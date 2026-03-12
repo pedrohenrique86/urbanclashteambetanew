@@ -10,27 +10,31 @@ const mainMenuItems: MenuItem[] = [
 ];
 
 const gameMenuItems: MenuItem[] = [
-  { icon: '🎲', label: 'Gacha', path: '/gacha' },
-  { icon: '🛒', label: 'Loja', path: '/loja' },
-  { icon: '🛠️', label: 'Fabricar', path: '/fabricar' },
-  { icon: '📚', label: 'Códice', path: '/codice' },
+  { icon: '📋', label: 'Tarefas', path: '/tasks' },
+  { icon: '⚔️', label: 'Duelos', path: '/duels' },
+  { icon: '🍽️', label: 'Restaurante', path: '/restaurant' },
+  { icon: '🏥', label: 'Hospital', path: '/hospital' },
+  { icon: '🔒', label: 'Prisão', path: '/prison' },
 ];
 
 const activitiesMenuItems: MenuItem[] = [
-  { icon: '⚔️', label: 'Batalha', path: '/batalha' },
-  { icon: '🎯', label: 'Missões', path: '/missoes' },
-  { icon: '🏆', label: 'Conquistas', path: '/conquistas' },
+  { icon: '🗺️', label: 'Territórios', path: '/territory' },
+  { icon: '🛒', label: 'Mercado Negro', path: '/market' },
+  { icon: '🏦', label: 'Banco', path: '/bank' },
+  { icon: '🏢', label: 'Empresas', path: '/business' },
 ];
 
 const socialMenuItems: MenuItem[] = [
-  { icon: '🤝', label: 'Clã', path: '/cla' },
-  { icon: '👥', label: 'Amigos', path: '/amigos' },
+  { icon: '🏴', label: 'Clãs', path: '/clans' },
   { icon: '🏆', label: 'Ranking', path: '/ranking' },
+  { icon: '🏛️', label: 'Praça', path: '/square' },
+  { icon: '💪', label: 'Academia', path: '/gym' },
+  { icon: '👤', label: 'Perfil', path: '/profile' },
 ];
 
 const premiumMenuItems: MenuItem[] = [
   { icon: '💎', label: 'VIP', path: '/vip' },
-  { icon: '✨', label: 'Passe de Batalha', path: '/passe-de-batalha' },
+  { icon: '🛍️', label: 'Loja Premium', path: '/store' },
 ];
 
 export const menuCategories = {
@@ -40,7 +44,7 @@ export const menuCategories = {
     items: mainMenuItems,
   },
   jogo: {
-    title: 'Itens',
+    title: 'Jogo',
     icon: '🎒',
     items: gameMenuItems,
   },
