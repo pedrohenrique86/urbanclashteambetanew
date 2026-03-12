@@ -1,0 +1,79 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer utilities {
+  .font-exo {
+    font-family: theme("fontFamily.exo");
+  }
+  .font-orbitron {
+    font-family: theme("fontFamily.orbitron");
+  }
+  
+  /* Custom scrollbar styles - Compatible with all browsers */
+  .custom-scrollbar {
+    /* Webkit browsers will use the detailed styles below */
+  }
+  
+  /* Webkit browsers (Chrome, Safari, Edge) */
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 8px;
+  }
+  
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: #374151;
+    border-radius: 4px;
+  }
+  
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, #9ca3af 0%, #6b7280 100%);
+    border-radius: 4px;
+    border: 1px solid #4b5563;
+    transition: all 0.2s ease;
+  }
+  
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(180deg, #d1d5db 0%, #9ca3af 100%);
+    border-color: #6b7280;
+  }
+  
+  .custom-scrollbar::-webkit-scrollbar-thumb:active {
+    background: linear-gradient(180deg, #f3f4f6 0%, #d1d5db 100%);
+  }
+  
+  /* Corner where scrollbars meet */
+  .custom-scrollbar::-webkit-scrollbar-corner {
+    background: #374151;
+  }
+}
+
+* {
+  font-display: swap;
+}
+
+body {
+  @apply bg-gray-900 text-white font-exo;
+  font-family: 'Exo 2', sans-serif;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  @apply font-orbitron;
+  font-family: 'Orbitron', sans-serif;
+}
+
+button {
+  font-family: inherit;
+}
+
+.font-orbitron {
+  font-family: 'Orbitron', sans-serif !important;
+}
+
+.font-exo {
+  font-family: 'Exo 2', sans-serif !important;
+}

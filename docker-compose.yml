@@ -1,0 +1,53 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15
+    container_name: urbanclash_postgres
+    environment:
+      POSTGRES_DB: urbanclash
+      POSTGRES_USER: urbanclash_user
+      POSTGRES_PASSWORD: urbanclash_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - urbanclash_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U urbanclash_user -d urbanclash"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    container_name: urbanclash_backend
+    ports:
+      - "3001:3001"
+    environment:
+      - DATABASE_URL=postgresql://urbanclash_user:urbanclash_password@postgres:5432/urbanclash
+      - JWT_SECRET=your-super-secret-jwt-key-change-this-in-production
+      - SENDGRID_API_KEY=your-sendgrid-api-key
+      - FROM_EMAIL=noreply@urbanclash.com
+      - FRONTEND_URL=http://localhost:3000
+      - BACKEND_URL=http://localhost:3001
+      - PORT=3001
+      - NODE_ENV=development
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - urbanclash_network
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+
+networks:
+  urbanclash_network:
+    driver: bridge

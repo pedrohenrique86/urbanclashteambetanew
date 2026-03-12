@@ -1,0 +1,77 @@
+=== COMANDOS ÚTEIS PARA GERENCIAR O BANCO POSTGRESQL ===
+
+1. CONECTAR AO BANCO:
+   "C:\Program Files\PostgreSQL\17\bin\psql.exe" -U postgres -d urbanclash
+   (Senha: W0rdPr355@@)
+
+2. VER TODAS AS TABELAS:
+   \dt
+
+3. VER USUÁRIOS CADASTRADOS:
+   SELECT * FROM users;
+
+4. VER PERFIS DE USUÁRIOS:
+   SELECT * FROM user_profiles;
+
+5. VER CLÃS:
+   SELECT * FROM clans;
+
+6. VER MEMBROS DOS CLÃS:
+   SELECT * FROM clan_members;
+
+7. DELETAR UM USUÁRIO ESPECÍFICO:
+   DELETE FROM users WHERE email = 'email@exemplo.com';
+
+8. DELETAR TODOS OS USUÁRIOS:
+   DELETE FROM users;
+
+9. VER USUÁRIOS COM SEUS PERFIS:
+   SELECT u.email, u.username, up.display_name, up.faction, up.level 
+   FROM users u 
+   LEFT JOIN user_profiles up ON u.id = up.user_id;
+
+10. BUSCAR USUÁRIO POR EMAIL:
+    SELECT * FROM users WHERE email = 'email@exemplo.com';
+
+11. BUSCAR USUÁRIO POR USERNAME:
+    SELECT * FROM users WHERE username = 'nome_usuario';
+
+12. VER ESTRUTURA DE UMA TABELA:
+    \d users
+    \d user_profiles
+    \d clans
+    \d clan_members
+
+13. CONTAR QUANTOS USUÁRIOS EXISTEM:
+    SELECT COUNT(*) FROM users;
+
+14. VER ÚLTIMOS USUÁRIOS CADASTRADOS:
+    SELECT email, username, created_at FROM users ORDER BY created_at DESC LIMIT 10;
+
+15. SAIR DO PSQL:
+    \q
+
+=== EXEMPLO DE USO RÁPIDO ===
+
+Para conectar e ver usuários em um comando:
+$env:PGPASSWORD='W0rdPr355@@'; & 'C:\Program Files\PostgreSQL\17\bin\psql.exe' -U postgres -d urbanclash -c 'SELECT * FROM users;'
+
+Para deletar um usuário específico:
+$env:PGPASSWORD='W0rdPr355@@'; & 'C:\Program Files\PostgreSQL\17\bin\psql.exe' -U postgres -d urbanclash -c "DELETE FROM users WHERE email = 'email@exemplo.com';"
+
+=== CONFIGURAÇÃO ATUAL ===
+
+✓ Banco de dados: urbanclash
+✓ Usuário: postgres
+✓ Senha: W0rdPr355@@
+✓ Host: localhost
+✓ Porta: 5432
+
+✓ Tabelas criadas:
+  - users (usuários principais)
+  - user_profiles (perfis dos usuários)
+  - clans (clãs do jogo)
+  - clan_members (membros dos clãs)
+
+✓ Arquivo .env configurado para usar PostgreSQL local
+✓ Backend configurado para conectar ao PostgreSQL
