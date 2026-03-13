@@ -54,7 +54,7 @@ export const fetchClanRankings = async (): Promise<Clan[]> => {
       id: clan.id,
       name: clan.name,
       faction: clan.faction,
-      score: clan.score || 0,
+      score: 0,
       position: index + 1,
       memberCount: clan.member_count || 0,
       leaderName: clan.leader_username || clan.leader_display_name || 'Sem líder'

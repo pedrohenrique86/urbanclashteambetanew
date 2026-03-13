@@ -1,156 +1,172 @@
-const express = require('express');
-const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
-const { body, validationResult } = require('express-validator');
-const rateLimit = require('express-rate-limit');
-const { query, transaction } = require('../config/database');
-const emailService = require('../services/emailService');
-const { 
-  generateToken, 
-  createSession, 
-  invalidateSession, 
+const express = require("express");
+const bcrypt = require("bcryptjs");
+const jwt = require("jsonwebtoken");
+const { body, validationResult } = require("express-validator");
+const rateLimit = require("express-rate-limit");
+const { query, transaction } = require("../config/database");
+const emailService = require("../services/emailService");
+const {
+  generateToken,
+  createSession,
+  invalidateSession,
   invalidateAllSessions,
-  authenticateToken 
-} = require('../middleware/auth');
+  authenticateToken,
+} = require("../middleware/auth");
 
 const router = express.Router();
+const crypto = require("crypto");
+const url = require("url");
 
 // Rate limiting específico para autenticação
 const authLimiter = rateLimit({
   windowMs: 1 * 60 * 1000, // 1 minuto
   max: 5, // máximo 5 tentativas por IP
-  message: { error: 'Muitas tentativas de login, tente novamente em 1 minuto' },
+  message: { error: "Muitas tentativas de login, tente novamente em 1 minuto" },
   standardHeaders: true,
-  legacyHeaders: false
+  legacyHeaders: false,
 });
 
 const registerLimiter = rateLimit({
   windowMs: 5 * 60 * 1000, // 5 minutos
   max: 3, // máximo 3 registros por IP por hora
-  message: { error: 'Muitos registros, tente novamente em 5 minutos' },
+  message: { error: "Muitos registros, tente novamente em 5 minutos" },
   standardHeaders: true,
-  legacyHeaders: false
+  legacyHeaders: false,
 });
 
 // Validações
 const registerValidation = [
-  body('email')
-    .isEmail()
-    .normalizeEmail()
-    .withMessage('Email inválido'),
-  body('username')
+  body("email").isEmail().normalizeEmail().withMessage("Email inválido"),
+  body("username")
     .isLength({ min: 3, max: 20 })
     .matches(/^[a-zA-Z0-9_]+$/)
-    .withMessage('Username deve ter 3-20 caracteres e conter apenas letras, números e underscore'),
-  body('password')
+    .withMessage(
+      "Username deve ter 3-20 caracteres e conter apenas letras, números e underscore"
+    ),
+  body("password")
     .isLength({ min: 8 })
     .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/)
-    .withMessage('Senha deve ter pelo menos 8 caracteres, incluindo maiúscula, minúscula, número e símbolo'),
-  body('birth_date')
+    .withMessage(
+      "Senha deve ter pelo menos 8 caracteres, incluindo maiúscula, minúscula, número e símbolo"
+    ),
+  body("birth_date")
     .optional()
     .isISO8601()
-    .withMessage('Data de nascimento deve estar no formato YYYY-MM-DD'),
-  body('country')
+    .withMessage("Data de nascimento deve estar no formato YYYY-MM-DD"),
+  body("country")
     .optional()
     .isLength({ min: 2, max: 3 })
     .matches(/^[A-Z]{2,3}$/)
-    .withMessage('Código do país deve ter 2-3 letras maiúsculas (ex: BR, US)')
+    .withMessage("Código do país deve ter 2-3 letras maiúsculas (ex: BR, US)"),
 ];
 
 const loginValidation = [
-  body('email').isEmail().normalizeEmail().withMessage('Email inválido'),
-  body('password').notEmpty().withMessage('Senha é obrigatória')
+  body("email").isEmail().normalizeEmail().withMessage("Email inválido"),
+  body("password").notEmpty().withMessage("Senha é obrigatória"),
 ];
 
 // POST /api/auth/register - Registrar novo usuário
-router.post('/register', registerLimiter, registerValidation, async (req, res) => {
-  try {
-    // Verificar erros de validação
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ 
-        error: 'Dados inválidos',
-        details: errors.array()
-      });
-    }
+router.post(
+  "/register",
+  registerLimiter,
+  registerValidation,
+  async (req, res) => {
+    try {
+      // Verificar erros de validação
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({
+          error: "Dados inválidos",
+          details: errors.array(),
+        });
+      }
 
-    const { email, username, password, birth_date, country } = req.body;
+      const { email, username, password, birth_date, country } = req.body;
 
-    // Verificar se email já existe
-    const emailExists = await query(
-      'SELECT id FROM users WHERE email = $1',
-      [email]
-    );
+      // Verificar se email já existe
+      const emailExists = await query("SELECT id FROM users WHERE email = $1", [
+        email,
+      ]);
 
-    if (emailExists.rows.length > 0) {
-      return res.status(409).json({ error: 'Email já está em uso' });
-    }
+      if (emailExists.rows.length > 0) {
+        return res.status(409).json({ error: "Email já está em uso" });
+      }
 
-    // Verificar se username já existe
-    const usernameExists = await query(
-      'SELECT id FROM users WHERE username = $1',
-      [username]
-    );
-
-    if (usernameExists.rows.length > 0) {
-      return res.status(409).json({ error: 'Username já está em uso' });
-    }
-
-    // Hash da senha
-    const saltRounds = 12;
-    const passwordHash = await bcrypt.hash(password, saltRounds);
-
-    // Gerar token de confirmação
-    const confirmationToken = emailService.generateConfirmationToken();
-
-    // Criar usuário e perfil em uma transação
-    const result = await transaction(async (client) => {
-      // Inserir usuário
-      const userResult = await client.query(
-        `INSERT INTO users (email, username, password_hash, email_confirmation_token, birth_date, country) 
-         VALUES ($1, $2, $3, $4, $5, $6) RETURNING id, email, username, birth_date, country`,
-        [email, username, passwordHash, confirmationToken, birth_date || null, country || null]
+      // Verificar se username já existe
+      const usernameExists = await query(
+        "SELECT id FROM users WHERE username = $1",
+        [username]
       );
 
-      const user = userResult.rows[0];
+      if (usernameExists.rows.length > 0) {
+        return res.status(409).json({ error: "Username já está em uso" });
+      }
 
-      // Perfil será criado quando o usuário escolher a facção
+      // Hash da senha
+      const saltRounds = 12;
+      const passwordHash = await bcrypt.hash(password, saltRounds);
 
-      return user;
-    });
+      // Gerar token de confirmação
+      const confirmationToken = emailService.generateConfirmationToken();
 
-    // Enviar email de confirmação
-    try {
-      await emailService.sendConfirmationEmail(email, confirmationToken);
-    } catch (emailError) {
-      console.error('❌ Erro ao enviar email de confirmação:', emailError.message);
-      // Não falhar o registro se o email não puder ser enviado
+      // Criar usuário e perfil em uma transação
+      const result = await transaction(async (client) => {
+        // Inserir usuário
+        const userResult = await client.query(
+          `INSERT INTO users (email, username, password_hash, email_confirmation_token, birth_date, country) 
+         VALUES ($1, $2, $3, $4, $5, $6) RETURNING id, email, username, birth_date, country`,
+          [
+            email,
+            username,
+            passwordHash,
+            confirmationToken,
+            birth_date || null,
+            country || null,
+          ]
+        );
+
+        const user = userResult.rows[0];
+
+        // Perfil será criado quando o usuário escolher a facção
+
+        return user;
+      });
+
+      // Enviar email de confirmação
+      try {
+        await emailService.sendConfirmationEmail(email, confirmationToken);
+      } catch (emailError) {
+        console.error(
+          "❌ Erro ao enviar email de confirmação:",
+          emailError.message
+        );
+        // Não falhar o registro se o email não puder ser enviado
+      }
+
+      res.status(201).json({
+        message: "Usuário registrado com sucesso",
+        user: {
+          id: result.id,
+          email: result.email,
+          username: result.username,
+        },
+        emailSent: true,
+      });
+    } catch (error) {
+      console.error("❌ Erro no registro:", error.message);
+      res.status(500).json({ error: "Erro interno do servidor" });
     }
-
-    res.status(201).json({
-      message: 'Usuário registrado com sucesso',
-      user: {
-        id: result.id,
-        email: result.email,
-        username: result.username
-      },
-      emailSent: true
-    });
-
-  } catch (error) {
-    console.error('❌ Erro no registro:', error.message);
-    res.status(500).json({ error: 'Erro interno do servidor' });
   }
-});
+);
 
 // POST /api/auth/login - Login do usuário
-router.post('/login', authLimiter, loginValidation, async (req, res) => {
+router.post("/login", authLimiter, loginValidation, async (req, res) => {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      return res.status(400).json({ 
-        error: 'Dados inválidos',
-        details: errors.array()
+      return res.status(400).json({
+        error: "Dados inválidos",
+        details: errors.array(),
       });
     }
 
@@ -158,12 +174,12 @@ router.post('/login', authLimiter, loginValidation, async (req, res) => {
 
     // Buscar usuário
     const userResult = await query(
-      'SELECT id, email, username, password_hash, is_email_confirmed FROM users WHERE email = $1',
+      "SELECT id, email, username, password_hash, is_email_confirmed FROM users WHERE email = $1",
       [email]
     );
 
     if (userResult.rows.length === 0) {
-      return res.status(401).json({ error: 'Email ou senha incorretos' });
+      return res.status(401).json({ error: "Email ou senha incorretos" });
     }
 
     const user = userResult.rows[0];
@@ -171,25 +187,25 @@ router.post('/login', authLimiter, loginValidation, async (req, res) => {
     // Verificar senha
     const passwordValid = await bcrypt.compare(password, user.password_hash);
     if (!passwordValid) {
-      return res.status(401).json({ error: 'Email ou senha incorretos' });
+      return res.status(401).json({ error: "Email ou senha incorretos" });
     }
 
     // Verificar se email foi confirmado
     if (!user.is_email_confirmed) {
-      return res.status(403).json({ 
-        error: 'Email não confirmado',
-        message: 'Por favor, confirme seu email antes de fazer login'
+      return res.status(403).json({
+        error: "Email não confirmado",
+        message: "Por favor, confirme seu email antes de fazer login",
       });
     }
 
     // Verificar se é o primeiro login após confirmação de email
     const lastLoginResult = await query(
-      'SELECT last_login FROM user_profiles WHERE user_id = $1',
+      "SELECT last_login FROM user_profiles WHERE user_id = $1",
       [user.id]
     );
-    
+
     const isFirstLogin = !lastLoginResult.rows[0]?.last_login;
-    console.log('👤 Verificação de primeiro login:', { isFirstLogin });
+    console.log("👤 Verificação de primeiro login:", { isFirstLogin });
 
     // Gerar token JWT
     const token = generateToken(user.id);
@@ -199,212 +215,232 @@ router.post('/login', authLimiter, loginValidation, async (req, res) => {
 
     // Atualizar último login
     await query(
-      'UPDATE user_profiles SET last_login = NOW() WHERE user_id = $1',
+      "UPDATE user_profiles SET last_login = NOW() WHERE user_id = $1",
       [user.id]
     );
 
     // Buscar perfil do usuário
     const profileResult = await query(
-      'SELECT * FROM user_profiles WHERE user_id = $1',
+      "SELECT * FROM user_profiles WHERE user_id = $1",
       [user.id]
     );
 
     res.json({
-      message: 'Login realizado com sucesso',
+      message: "Login realizado com sucesso",
       token,
       isFirstLogin,
       user: {
         id: user.id,
         email: user.email,
         username: user.username,
-        profile: profileResult.rows[0] || null
-      }
+        profile: profileResult.rows[0] || null,
+      },
     });
-
   } catch (error) {
-    console.error('❌ Erro no login:', error.message);
-    res.status(500).json({ error: 'Erro interno do servidor' });
+    console.error("❌ Erro no login:", error.message);
+    res.status(500).json({ error: "Erro interno do servidor" });
   }
 });
 
 // POST /api/auth/logout - Logout do usuário
-router.post('/logout', authenticateToken, async (req, res) => {
+router.post("/logout", authenticateToken, async (req, res) => {
   try {
-    const authHeader = req.headers['authorization'];
-    const token = authHeader && authHeader.split(' ')[1];
+    const authHeader = req.headers["authorization"];
+    const token = authHeader && authHeader.split(" ")[1];
 
     if (token) {
       await invalidateSession(req.user.id, token);
     }
 
-    res.json({ message: 'Logout realizado com sucesso' });
+    res.json({ message: "Logout realizado com sucesso" });
   } catch (error) {
-    console.error('❌ Erro no logout:', error.message);
-    res.status(500).json({ error: 'Erro interno do servidor' });
+    console.error("❌ Erro no logout:", error.message);
+    res.status(500).json({ error: "Erro interno do servidor" });
   }
 });
 
 // POST /api/auth/logout-all - Logout de todas as sessões
-router.post('/logout-all', authenticateToken, async (req, res) => {
+router.post("/logout-all", authenticateToken, async (req, res) => {
   try {
     await invalidateAllSessions(req.user.id);
-    res.json({ message: 'Logout de todas as sessões realizado com sucesso' });
+    res.json({ message: "Logout de todas as sessões realizado com sucesso" });
   } catch (error) {
-    console.error('❌ Erro no logout geral:', error.message);
-    res.status(500).json({ error: 'Erro interno do servidor' });
+    console.error("❌ Erro no logout geral:", error.message);
+    res.status(500).json({ error: "Erro interno do servidor" });
   }
 });
 
 // GET /api/auth/confirm-email/:token - Confirmar email
-router.get('/confirm-email/:token', async (req, res) => {
+router.get("/confirm-email/:token", async (req, res) => {
   try {
     const { token } = req.params;
-    console.log('🔍 Tentativa de confirmação de email com token:', token);
+    console.log("🔍 Tentativa de confirmação de email com token:", token);
 
     // Primeiro, verificar se o token existe na base de dados
     const tokenCheckResult = await query(
-      'SELECT id, email, username, is_email_confirmed FROM users WHERE email_confirmation_token = $1',
+      "SELECT id, email, username, is_email_confirmed FROM users WHERE email_confirmation_token = $1",
       [token]
     );
 
-    console.log('📊 Resultado da busca por token:', tokenCheckResult.rows.length > 0 ? 'Token encontrado' : 'Token não encontrado');
-    
+    console.log(
+      "📊 Resultado da busca por token:",
+      tokenCheckResult.rows.length > 0
+        ? "Token encontrado"
+        : "Token não encontrado"
+    );
+
     if (tokenCheckResult.rows.length === 0) {
-      console.log('❌ Token não encontrado na base de dados');
-      return res.status(400).json({ 
-        error: 'Token de confirmação inválido'
+      console.log("❌ Token não encontrado na base de dados");
+      return res.status(400).json({
+        error: "Token de confirmação inválido",
       });
     }
 
     const user = tokenCheckResult.rows[0];
-    console.log('👤 Usuário encontrado:', { id: user.id, email: user.email, is_confirmed: user.is_email_confirmed });
+    console.log("👤 Usuário encontrado:", {
+      id: user.id,
+      email: user.email,
+      is_confirmed: user.is_email_confirmed,
+    });
 
     if (user.is_email_confirmed) {
-      console.log('✅ Email já confirmado anteriormente - permitindo acesso para completar fluxo');
-      
-      // Gerar token de autenticação para usuário já confirmado
-      const authToken = jwt.sign(
-        { userId: user.id },
-        process.env.JWT_SECRET,
-        { expiresIn: '7d' }
+      console.log(
+        "✅ Email já confirmado anteriormente - permitindo acesso para completar fluxo"
       );
-      
+
+      // Gerar token de autenticação para usuário já confirmado
+      const authToken = jwt.sign({ userId: user.id }, process.env.JWT_SECRET, {
+        expiresIn: "7d",
+      });
+
       // Sessão será gerenciada pelo frontend via localStorage
-      
+
       return res.json({
-        message: 'Email já confirmado - acesso liberado',
+        message: "Email já confirmado - acesso liberado",
         token: authToken,
         user: {
           id: user.id,
           email: user.email,
-          username: user.username
+          username: user.username,
         },
         isFirstLogin: true,
-        redirectTo: '/faction-selection'
+        redirectTo: "/faction-selection",
       });
     }
 
     // Buscar usuário pelo token apenas se não estiver confirmado
     const userResult = await query(
-      'SELECT id, email, username FROM users WHERE email_confirmation_token = $1 AND is_email_confirmed = false',
+      "SELECT id, email, username FROM users WHERE email_confirmation_token = $1 AND is_email_confirmed = false",
       [token]
     );
 
     if (userResult.rows.length === 0) {
-      console.log('❌ Erro inesperado: usuário não encontrado na segunda consulta');
-      return res.status(400).json({ 
-        error: 'Erro interno na confirmação'
+      console.log(
+        "❌ Erro inesperado: usuário não encontrado na segunda consulta"
+      );
+      return res.status(400).json({
+        error: "Erro interno na confirmação",
       });
     }
 
     const confirmedUser = userResult.rows[0];
-    console.log('✅ Confirmando email para usuário:', confirmedUser.email);
+    console.log("✅ Confirmando email para usuário:", confirmedUser.email);
 
     // Confirmar email mas manter o token por mais tempo para permitir o fluxo completo
-    await query(
-      'UPDATE users SET is_email_confirmed = true WHERE id = $1',
-      [confirmedUser.id]
-    );
-    
+    await query("UPDATE users SET is_email_confirmed = true WHERE id = $1", [
+      confirmedUser.id,
+    ]);
+
     // Agendar invalidação do token após 30 minutos para dar tempo ao usuário
     setTimeout(async () => {
       try {
         await query(
-          'UPDATE users SET email_confirmation_token = NULL WHERE id = $1 AND email_confirmation_token = $2',
+          "UPDATE users SET email_confirmation_token = NULL WHERE id = $1 AND email_confirmation_token = $2",
           [confirmedUser.id, token]
         );
-        console.log('🕐 Token de confirmação invalidado após timeout para usuário:', confirmedUser.email);
+        console.log(
+          "🕐 Token de confirmação invalidado após timeout para usuário:",
+          confirmedUser.email
+        );
       } catch (error) {
-        console.error('❌ Erro ao invalidar token após timeout:', error.message);
+        console.error(
+          "❌ Erro ao invalidar token após timeout:",
+          error.message
+        );
       }
     }, 30 * 60 * 1000); // 30 minutos
 
-    console.log('✅ Email confirmado com sucesso na base de dados');
+    console.log("✅ Email confirmado com sucesso na base de dados");
 
     // Enviar email de boas-vindas
     try {
-      await emailService.sendWelcomeEmail(confirmedUser.email, confirmedUser.username);
-      console.log('📧 Email de boas-vindas enviado');
+      await emailService.sendWelcomeEmail(
+        confirmedUser.email,
+        confirmedUser.username
+      );
+      console.log("📧 Email de boas-vindas enviado");
     } catch (emailError) {
-      console.error('❌ Erro ao enviar email de boas-vindas:', emailError.message);
+      console.error(
+        "❌ Erro ao enviar email de boas-vindas:",
+        emailError.message
+      );
     }
 
     // Gerar token de autenticação após confirmação
     const authToken = jwt.sign(
-      { 
-        userId: confirmedUser.id, 
+      {
+        userId: confirmedUser.id,
         email: confirmedUser.email,
-        username: confirmedUser.username
+        username: confirmedUser.username,
       },
       process.env.JWT_SECRET,
-      { expiresIn: '7d' }
+      { expiresIn: "7d" }
     );
 
     // Sessão será gerenciada pelo frontend via localStorage
-    console.log('🔑 Token JWT gerado para usuário:', confirmedUser.email);
+    console.log("🔑 Token JWT gerado para usuário:", confirmedUser.email);
 
-    console.log('🎉 Confirmação de email concluída com sucesso');
-    res.json({ 
-      message: 'Email confirmado com sucesso',
+    console.log("🎉 Confirmação de email concluída com sucesso");
+    res.json({
+      message: "Email confirmado com sucesso",
       token: authToken, // Enviamos o token para permitir login automático
       user: {
         id: confirmedUser.id,
         email: confirmedUser.email,
-        username: confirmedUser.username
+        username: confirmedUser.username,
       },
       isFirstLogin: true, // Indica que é o primeiro login
-      redirectTo: '/faction-selection' // Redireciona para seleção de facção
+      redirectTo: "/faction-selection", // Redireciona para seleção de facção
     });
-
   } catch (error) {
-    console.error('❌ Erro na confirmação de email:', error.message);
-    res.status(500).json({ error: 'Erro interno do servidor' });
+    console.error("❌ Erro na confirmação de email:", error.message);
+    res.status(500).json({ error: "Erro interno do servidor" });
   }
 });
 
 // POST /api/auth/resend-confirmation - Reenviar email de confirmação
-router.post('/resend-confirmation', async (req, res) => {
+router.post("/resend-confirmation", async (req, res) => {
   try {
     const { email } = req.body;
 
     if (!email) {
-      return res.status(400).json({ error: 'Email é obrigatório' });
+      return res.status(400).json({ error: "Email é obrigatório" });
     }
 
     // Buscar usuário
     const userResult = await query(
-      'SELECT id, email, username, is_email_confirmed, last_confirmation_email_sent FROM users WHERE email = $1',
+      "SELECT id, email, username, is_email_confirmed, last_confirmation_email_sent FROM users WHERE email = $1",
       [email]
     );
 
     if (userResult.rows.length === 0) {
-      return res.status(404).json({ error: 'Usuário não encontrado' });
+      return res.status(404).json({ error: "Usuário não encontrado" });
     }
 
     const user = userResult.rows[0];
 
     if (user.is_email_confirmed) {
-      return res.status(400).json({ error: 'Email já foi confirmado' });
+      return res.status(400).json({ error: "Email já foi confirmado" });
     }
 
     // Verificar rate limiting (1 minuto)
@@ -412,11 +448,11 @@ router.post('/resend-confirmation', async (req, res) => {
       const lastSent = new Date(user.last_confirmation_email_sent);
       const now = new Date();
       const timeDiff = (now - lastSent) / 1000; // diferença em segundos
-      
+
       if (timeDiff < 60) {
         const remainingTime = Math.ceil(60 - timeDiff);
-        return res.status(429).json({ 
-          error: `Aguarde ${remainingTime} segundos antes de solicitar um novo email de confirmação` 
+        return res.status(429).json({
+          error: `Aguarde ${remainingTime} segundos antes de solicitar um novo email de confirmação`,
         });
       }
     }
@@ -426,39 +462,40 @@ router.post('/resend-confirmation', async (req, res) => {
 
     // Atualizar token e timestamp do último envio no banco
     await query(
-      'UPDATE users SET email_confirmation_token = $1, last_confirmation_email_sent = NOW() WHERE id = $2',
+      "UPDATE users SET email_confirmation_token = $1, last_confirmation_email_sent = NOW() WHERE id = $2",
       [confirmationToken, user.id]
     );
 
     // Enviar email
     await emailService.sendConfirmationEmail(user.email, confirmationToken);
 
-    res.json({ message: 'Email de confirmação reenviado com sucesso' });
-
+    res.json({ message: "Email de confirmação reenviado com sucesso" });
   } catch (error) {
-    console.error('❌ Erro ao reenviar confirmação:', error.message);
-    res.status(500).json({ error: 'Erro interno do servidor' });
+    console.error("❌ Erro ao reenviar confirmação:", error.message);
+    res.status(500).json({ error: "Erro interno do servidor" });
   }
 });
 
 // POST /api/auth/forgot-password - Solicitar recuperação de senha
-router.post('/forgot-password', async (req, res) => {
+router.post("/forgot-password", async (req, res) => {
   try {
     const { email } = req.body;
 
     if (!email) {
-      return res.status(400).json({ error: 'Email é obrigatório' });
+      return res.status(400).json({ error: "Email é obrigatório" });
     }
 
     // Buscar usuário
     const userResult = await query(
-      'SELECT id, email, username FROM users WHERE email = $1',
+      "SELECT id, email, username FROM users WHERE email = $1",
       [email]
     );
 
     // Sempre retornar sucesso por segurança (não revelar se email existe)
     if (userResult.rows.length === 0) {
-      return res.json({ message: 'Se o email existir, você receberá instruções de recuperação' });
+      return res.json({
+        message: "Se o email existir, você receberá instruções de recuperação",
+      });
     }
 
     const user = userResult.rows[0];
@@ -470,79 +507,87 @@ router.post('/forgot-password', async (req, res) => {
 
     // Salvar token no banco
     await query(
-      'UPDATE users SET password_reset_token = $1, password_reset_expires = $2 WHERE id = $3',
+      "UPDATE users SET password_reset_token = $1, password_reset_expires = $2 WHERE id = $3",
       [resetToken, resetExpires, user.id]
     );
 
     // Enviar email
     await emailService.sendPasswordResetEmail(user.email, resetToken);
 
-    res.json({ message: 'Se o email existir, você receberá instruções de recuperação' });
-
+    res.json({
+      message: "Se o email existir, você receberá instruções de recuperação",
+    });
   } catch (error) {
-    console.error('❌ Erro na recuperação de senha:', error.message);
-    res.status(500).json({ error: 'Erro interno do servidor' });
+    console.error("❌ Erro na recuperação de senha:", error.message);
+    res.status(500).json({ error: "Erro interno do servidor" });
   }
 });
 
 // POST /api/auth/reset-password - Redefinir senha
-router.post('/reset-password', [
-  body('token').notEmpty().withMessage('Token é obrigatório'),
-  body('password')
-    .isLength({ min: 8 })
-    .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/)
-    .withMessage('Senha deve ter pelo menos 8 caracteres, incluindo maiúscula, minúscula, número e símbolo')
-], async (req, res) => {
-  try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ 
-        error: 'Dados inválidos',
-        details: errors.array()
-      });
+router.post(
+  "/reset-password",
+  [
+    body("token").notEmpty().withMessage("Token é obrigatório"),
+    body("password")
+      .isLength({ min: 8 })
+      .matches(
+        /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/
+      )
+      .withMessage(
+        "Senha deve ter pelo menos 8 caracteres, incluindo maiúscula, minúscula, número e símbolo"
+      ),
+  ],
+  async (req, res) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({
+          error: "Dados inválidos",
+          details: errors.array(),
+        });
+      }
+
+      const { token, password } = req.body;
+
+      // Buscar usuário pelo token
+      const userResult = await query(
+        "SELECT id FROM users WHERE password_reset_token = $1 AND password_reset_expires > NOW()",
+        [token]
+      );
+
+      if (userResult.rows.length === 0) {
+        return res.status(400).json({ error: "Token inválido ou expirado" });
+      }
+
+      const user = userResult.rows[0];
+
+      // Hash da nova senha
+      const saltRounds = 12;
+      const passwordHash = await bcrypt.hash(password, saltRounds);
+
+      // Atualizar senha e limpar token
+      await query(
+        "UPDATE users SET password_hash = $1, password_reset_token = NULL, password_reset_expires = NULL WHERE id = $2",
+        [passwordHash, user.id]
+      );
+
+      // Invalidar todas as sessões do usuário
+      await invalidateAllSessions(user.id);
+
+      res.json({ message: "Senha redefinida com sucesso" });
+    } catch (error) {
+      console.error("❌ Erro na redefinição de senha:", error.message);
+      res.status(500).json({ error: "Erro interno do servidor" });
     }
-
-    const { token, password } = req.body;
-
-    // Buscar usuário pelo token
-    const userResult = await query(
-      'SELECT id FROM users WHERE password_reset_token = $1 AND password_reset_expires > NOW()',
-      [token]
-    );
-
-    if (userResult.rows.length === 0) {
-      return res.status(400).json({ error: 'Token inválido ou expirado' });
-    }
-
-    const user = userResult.rows[0];
-
-    // Hash da nova senha
-    const saltRounds = 12;
-    const passwordHash = await bcrypt.hash(password, saltRounds);
-
-    // Atualizar senha e limpar token
-    await query(
-      'UPDATE users SET password_hash = $1, password_reset_token = NULL, password_reset_expires = NULL WHERE id = $2',
-      [passwordHash, user.id]
-    );
-
-    // Invalidar todas as sessões do usuário
-    await invalidateAllSessions(user.id);
-
-    res.json({ message: 'Senha redefinida com sucesso' });
-
-  } catch (error) {
-    console.error('❌ Erro na redefinição de senha:', error.message);
-    res.status(500).json({ error: 'Erro interno do servidor' });
   }
-});
+);
 
 // GET /api/auth/me - Obter dados do usuário logado
-router.get('/me', authenticateToken, async (req, res) => {
+router.get("/me", authenticateToken, async (req, res) => {
   try {
     // Buscar perfil do usuário
     const profileResult = await query(
-      'SELECT * FROM user_profiles WHERE user_id = $1',
+      "SELECT * FROM user_profiles WHERE user_id = $1",
       [req.user.id]
     );
 
@@ -551,51 +596,306 @@ router.get('/me', authenticateToken, async (req, res) => {
         id: req.user.id,
         email: req.user.email,
         username: req.user.username,
-        profile: profileResult.rows[0] || null
-      }
+        profile: profileResult.rows[0] || null,
+      },
     });
   } catch (error) {
-    console.error('❌ Erro ao buscar dados do usuário:', error.message);
-    res.status(500).json({ error: 'Erro interno do servidor' });
+    console.error("❌ Erro ao buscar dados do usuário:", error.message);
+    res.status(500).json({ error: "Erro interno do servidor" });
   }
 });
 
 // POST /api/auth/check-email - Verificar se um email existe e está confirmado
-router.post('/check-email', async (req, res) => {
+router.post("/check-email", async (req, res) => {
   try {
     const { email } = req.body;
 
     if (!email) {
-      return res.status(400).json({ error: 'Email não fornecido' });
+      return res.status(400).json({ error: "Email não fornecido" });
     }
 
     console.log(`Verificando email: ${email}`);
 
     // Buscar usuário pelo email
     const userResult = await query(
-      'SELECT id, email, is_email_confirmed FROM users WHERE email = $1',
+      "SELECT id, email, is_email_confirmed FROM users WHERE email = $1",
       [email]
     );
 
     // Verificar se encontrou algum usuário
     const exists = userResult.rows.length > 0;
     const confirmed = exists ? userResult.rows[0].is_email_confirmed : false;
-    
+
     console.log(`Email: ${email}, Existe: ${exists}, Confirmado: ${confirmed}`);
     if (exists) {
       const user = userResult.rows[0];
-      console.log(`Detalhes do usuário: ID=${user.id}, Email confirmado: ${user.is_email_confirmed}`);
+      console.log(
+        `Detalhes do usuário: ID=${user.id}, Email confirmado: ${user.is_email_confirmed}`
+      );
     }
 
     // Retornar o resultado
     return res.json({
       exists,
-      confirmed
+      confirmed,
     });
   } catch (error) {
-    console.error('Erro ao verificar email:', error);
-    return res.status(500).json({ error: 'Erro ao verificar email' });
+    console.error("Erro ao verificar email:", error);
+    return res.status(500).json({ error: "Erro ao verificar email" });
   }
 });
 
 module.exports = router;
+
+// Google OAuth
+const stateStore = new Map();
+
+function base64url(input) {
+  return input
+    .toString("base64")
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/, "");
+}
+
+function getRedirectUri(req) {
+  const q = req.query.redirect_uri || req.body?.redirect_uri;
+  if (q) return q;
+  const frontend = process.env.FRONTEND_URL || "http://localhost:5173";
+  return `${frontend.replace(/\/+$/, "")}/auth/google/callback`;
+}
+
+function getNext(req) {
+  return req.query.next || req.body?.next || "/dashboard";
+}
+
+async function exchangeCodeForTokens(code, redirectUri) {
+  const params = new url.URLSearchParams({
+    code,
+    client_id: process.env.GOOGLE_CLIENT_ID || "",
+    client_secret: process.env.GOOGLE_CLIENT_SECRET || "",
+    redirect_uri: redirectUri,
+    grant_type: "authorization_code",
+  });
+  const resp = await fetch("https://oauth2.googleapis.com/token", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: params.toString(),
+  });
+  if (!resp.ok) {
+    const text = await resp.text().catch(() => "");
+    const e = new Error(`token_exchange_failed:${resp.status}`);
+    e.details = text;
+    throw e;
+  }
+  return resp.json();
+}
+
+function decodeIdToken(idToken) {
+  const parts = (idToken || "").split(".");
+  if (parts.length < 2) return {};
+  const payload = JSON.parse(
+    Buffer.from(
+      parts[1].replace(/-/g, "+").replace(/_/g, "/"),
+      "base64"
+    ).toString()
+  );
+  return payload || {};
+}
+
+router.get("/google/start", async (req, res) => {
+  try {
+    const clientId = process.env.GOOGLE_CLIENT_ID || "";
+    const redirectUri = getRedirectUri(req);
+    const scope = "openid email profile";
+    if (!clientId) {
+      return res.status(500).json({ error: "missing_client_id" });
+    }
+    const state = crypto.randomBytes(16).toString("hex");
+    stateStore.set(state, { created: Date.now() });
+    const params = new url.URLSearchParams({
+      client_id: clientId,
+      redirect_uri: redirectUri,
+      response_type: "code",
+      scope,
+      access_type: "offline",
+      include_granted_scopes: "true",
+      state,
+      prompt: "select_account",
+    });
+    const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
+    res.redirect(authUrl);
+  } catch (e) {
+    res.status(500).json({ error: "google_start_failed" });
+  }
+});
+
+router.post("/google/exchange", async (req, res) => {
+  try {
+    const code = req.body?.code;
+    if (!code) return res.status(400).json({ error: "code_required" });
+    const redirectUri = getRedirectUri(req);
+    const tokens = await exchangeCodeForTokens(code, redirectUri);
+    const profile = decodeIdToken(tokens.id_token || "");
+    const email = profile.email || "";
+    if (!email) return res.status(400).json({ error: "email_required" });
+    const emailRes = await query(
+      "SELECT id, email, username, is_email_confirmed FROM users WHERE email = $1",
+      [email]
+    );
+    let userId;
+    if (emailRes.rows.length > 0) {
+      userId = emailRes.rows[0].id;
+    } else {
+      const unameBase =
+        (profile.name || email.split("@")[0] || "user")
+          .replace(/[^a-zA-Z0-9_]/g, "_")
+          .slice(0, 20) || "user";
+      let uname = unameBase;
+      let tries = 0;
+      while (true) {
+        const exists = await query("SELECT 1 FROM users WHERE username = $1", [
+          uname,
+        ]);
+        if (exists.rows.length === 0) break;
+        tries += 1;
+        uname = `${unameBase.slice(
+          0,
+          Math.max(0, 18 - String(tries).length)
+        )}${tries}`;
+      }
+      const rnd = crypto.randomBytes(16).toString("hex");
+      const hash = await bcrypt.hash(rnd, 12);
+      const country =
+        profile.locale && profile.locale.includes("-")
+          ? profile.locale.split("-")[1].toUpperCase()
+          : null;
+      const ins = await query(
+        `INSERT INTO users (email, username, password_hash, is_email_confirmed, country) 
+         VALUES ($1, $2, $3, true, $4) RETURNING id`,
+        [email, uname, hash, country]
+      );
+      userId = ins.rows[0].id;
+    }
+    const token = generateToken(userId);
+    res.json({ token });
+  } catch (e) {
+    res.status(500).json({ error: "google_exchange_failed" });
+  }
+});
+
+router.post("/google/callback", async (req, res) => {
+  try {
+    const code = req.body?.code;
+    if (!code) return res.status(400).json({ error: "code_required" });
+    const redirectUri = getRedirectUri(req);
+    const tokens = await exchangeCodeForTokens(code, redirectUri);
+    const profile = decodeIdToken(tokens.id_token || "");
+    const email = profile.email || "";
+    if (!email) return res.status(400).json({ error: "email_required" });
+    const emailRes = await query(
+      "SELECT id, email, username, is_email_confirmed FROM users WHERE email = $1",
+      [email]
+    );
+    let userId;
+    if (emailRes.rows.length > 0) {
+      userId = emailRes.rows[0].id;
+    } else {
+      const unameBase =
+        (profile.name || email.split("@")[0] || "user")
+          .replace(/[^a-zA-Z0-9_]/g, "_")
+          .slice(0, 20) || "user";
+      let uname = unameBase;
+      let tries = 0;
+      while (true) {
+        const exists = await query("SELECT 1 FROM users WHERE username = $1", [
+          uname,
+        ]);
+        if (exists.rows.length === 0) break;
+        tries += 1;
+        uname = `${unameBase.slice(
+          0,
+          Math.max(0, 18 - String(tries).length)
+        )}${tries}`;
+      }
+      const rnd = crypto.randomBytes(16).toString("hex");
+      const hash = await bcrypt.hash(rnd, 12);
+      const country =
+        profile.locale && profile.locale.includes("-")
+          ? profile.locale.split("-")[1].toUpperCase()
+          : null;
+      const ins = await query(
+        `INSERT INTO users (email, username, password_hash, is_email_confirmed, country) 
+         VALUES ($1, $2, $3, true, $4) RETURNING id`,
+        [email, uname, hash, country]
+      );
+      userId = ins.rows[0].id;
+    }
+    const token = generateToken(userId);
+    res.json({ token });
+  } catch (e) {
+    res.status(500).json({ error: "google_callback_failed" });
+  }
+});
+
+router.get("/google/callback", async (req, res) => {
+  try {
+    const code = req.query.code;
+    if (!code) return res.status(400).json({ error: "code_required" });
+    const redirectUri = getRedirectUri(req);
+    const next = getNext(req);
+    const tokens = await exchangeCodeForTokens(code, redirectUri);
+    const profile = decodeIdToken(tokens.id_token || "");
+    const email = profile.email || "";
+    if (!email) return res.status(400).json({ error: "email_required" });
+    const emailRes = await query(
+      "SELECT id, email, username, is_email_confirmed FROM users WHERE email = $1",
+      [email]
+    );
+    let userId;
+    if (emailRes.rows.length > 0) {
+      userId = emailRes.rows[0].id;
+    } else {
+      const unameBase =
+        (profile.name || email.split("@")[0] || "user")
+          .replace(/[^a-zA-Z0-9_]/g, "_")
+          .slice(0, 20) || "user";
+      let uname = unameBase;
+      let tries = 0;
+      while (true) {
+        const exists = await query("SELECT 1 FROM users WHERE username = $1", [
+          uname,
+        ]);
+        if (exists.rows.length === 0) break;
+        tries += 1;
+        uname = `${unameBase.slice(
+          0,
+          Math.max(0, 18 - String(tries).length)
+        )}${tries}`;
+      }
+      const rnd = crypto.randomBytes(16).toString("hex");
+      const hash = await bcrypt.hash(rnd, 12);
+      const country =
+        profile.locale && profile.locale.includes("-")
+          ? profile.locale.split("-")[1].toUpperCase()
+          : null;
+      const ins = await query(
+        `INSERT INTO users (email, username, password_hash, is_email_confirmed, country) 
+         VALUES ($1, $2, $3, true, $4) RETURNING id`,
+        [email, uname, hash, country]
+      );
+      userId = ins.rows[0].id;
+    }
+    const token = generateToken(userId);
+    const frontend = process.env.FRONTEND_URL || "http://localhost:5173";
+    const redirect = `${frontend.replace(
+      /\/+$/,
+      ""
+    )}/auth/google/callback?token=${encodeURIComponent(
+      token
+    )}&next=${encodeURIComponent(next)}`;
+    res.redirect(302, redirect);
+  } catch (e) {
+    res.status(500).json({ error: "google_callback_redirect_failed" });
+  }
+});

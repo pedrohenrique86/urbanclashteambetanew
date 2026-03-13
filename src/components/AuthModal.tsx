@@ -131,6 +131,111 @@ export default function AuthModal({
     { id: "forgot-password", label: "Recuperar Senha" },
   ];
 
+  const googleEnabled =
+    ((import.meta as any).env?.VITE_GOOGLE_OAUTH_ENABLED ?? "true") !== "false";
+  const handleGoogleLogin = async (intent: 'login' | 'register') => {
+    const apiBase =
+      (import.meta as any).env?.VITE_API_URL || "http://localhost:3001/api";
+    const startPath =
+      (import.meta as any).env?.VITE_GOOGLE_START_PATH || "/auth/google/start";
+    const altStartPath =
+      (import.meta as any).env?.VITE_GOOGLE_ALT_START_PATH || "/auth/google";
+    const exchangePath =
+      (import.meta as any).env?.VITE_GOOGLE_EXCHANGE_PATH || "/auth/google/exchange";
+    const callbackPath =
+      (import.meta as any).env?.VITE_GOOGLE_CALLBACK_PATH || "/auth/google/callback";
+    const verifyPath =
+      (import.meta as any).env?.VITE_GOOGLE_VERIFY_PATH || "/auth/google/verify";
+    const redirectUri = `${window.location.origin}/auth/google/callback`;
+    const next = "/dashboard";
+    const params = `redirect_uri=${encodeURIComponent(redirectUri)}&next=${encodeURIComponent(next)}&intent=${intent}`;
+    const clientId = (import.meta as any).env?.VITE_GOOGLE_CLIENT_ID || "";
+    const loadGsi = () =>
+      new Promise<void>((resolve, reject) => {
+        if ((window as any).google && (window as any).google.accounts) {
+          resolve();
+          return;
+        }
+        const s = document.createElement("script");
+        s.src = "https://accounts.google.com/gsi/client";
+        s.async = true;
+        s.defer = true;
+        s.onload = () => resolve();
+        s.onerror = () => reject(new Error("gsi-load-failed"));
+        document.head.appendChild(s);
+      });
+    const exchangeCode = async (code: string) => {
+      const body = JSON.stringify({ code, redirect_uri: redirectUri, intent });
+      const heads = { "Content-Type": "application/json" };
+      const postCandidates = [
+        `${apiBase}${exchangePath}`,
+        `${apiBase}${callbackPath}`,
+        `${apiBase}${verifyPath}`,
+        `${apiBase}${altStartPath}`
+      ];
+      for (const url of postCandidates) {
+        try {
+          const r = await fetch(url, { method: "POST", headers: heads, body });
+          if (r.ok) {
+            const j = await r.json().catch(() => ({} as any));
+            const t = j?.token || j?.auth_token || j?.jwt || "";
+            if (t) {
+              window.location.href = `${redirectUri}?token=${encodeURIComponent(t)}&next=${encodeURIComponent(next)}`;
+              return true;
+            }
+            if (j?.redirect) {
+              window.location.href = j.redirect;
+              return true;
+            }
+          }
+        } catch {}
+      }
+      return false;
+    };
+    try {
+      if (clientId) {
+        await loadGsi();
+        const google: any = (window as any).google;
+        let resolved = false;
+        const codeClient = google.accounts.oauth2.initCodeClient({
+          client_id: clientId,
+          scope: "openid email profile",
+          ux_mode: "popup",
+          callback: async (resp: any) => {
+            if (resolved) return;
+            resolved = true;
+            if (resp?.code) {
+              const ok = await exchangeCode(resp.code);
+              if (!ok) {
+              const startUrl = `${apiBase}${startPath}?${params}`;
+                window.location.href = startUrl;
+              }
+            } else {
+            const startUrl = `${apiBase}${startPath}?${params}`;
+              window.location.href = startUrl;
+            }
+          }
+        });
+        codeClient.requestCode();
+        return;
+      }
+    } catch {}
+    const candidates = [
+      `${apiBase}${startPath}?${params}`,
+      `${apiBase}${altStartPath}?${params}`
+    ];
+    for (const url of candidates) {
+      try {
+        const res = await fetch(url, { method: "GET" });
+        if (res && (res.ok || res.status === 302 || res.status === 307 || res.status === 308)) {
+          window.location.href = url;
+          return;
+        }
+      } catch {}
+    }
+    window.location.href = candidates[0];
+  };
+
   // Função para validar palavrões (simulação de API)
   const checkProfanity = async (username: string): Promise<boolean> => {
     // Simulação de API anti-palavrões
@@ -139,49 +244,54 @@ export default function AuthModal({
   };
 
   // Função para verificar se um email existe e está confirmado usando a função serverless
-  const checkEmailExists = async (email: string): Promise<{exists: boolean, confirmed: boolean}> => {
+  const checkEmailExists = async (
+    email: string
+  ): Promise<{ exists: boolean; confirmed: boolean }> => {
     try {
       // Aguardar um pouco antes de verificar para evitar verificações prematuras
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      console.log('Verificando email:', email);
-      
+      await new Promise((resolve) => setTimeout(resolve, 500));
+
+      console.log("Verificando email:", email);
+
       // Chama a API do backend para verificar o email
-      const response = await fetch('http://localhost:3001/api/auth/check-email', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email })
-      });
-      
-      console.log('Status da resposta:', response.status);
-      
+      const response = await fetch(
+        "http://localhost:3001/api/auth/check-email",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ email }),
+        }
+      );
+
+      console.log("Status da resposta:", response.status);
+
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('Erro na resposta:', errorText);
+        console.error("Erro na resposta:", errorText);
         let errorData: { error?: string } = {};
         if (errorText) {
           try {
             errorData = JSON.parse(errorText);
           } catch (e) {
-            console.error('Invalid JSON in error response:', errorText);
+            console.error("Invalid JSON in error response:", errorText);
           }
         }
-        throw new Error(errorData.error || 'Erro ao verificar email');
+        throw new Error(errorData.error || "Erro ao verificar email");
       }
-      
+
       // Retorna o resultado da função serverless
       const responseText = await response.text();
-      console.log('Resposta bruta:', responseText);
-      
+      console.log("Resposta bruta:", responseText);
+
       if (responseText) {
         try {
           const result = JSON.parse(responseText);
-          console.log('Resposta parseada:', result);
+          console.log("Resposta parseada:", result);
           return result;
         } catch (e) {
-          console.error('Invalid JSON response:', responseText);
+          console.error("Invalid JSON response:", responseText);
           // Em caso de erro no parsing, não assumimos automaticamente que o email existe e está confirmado
           // Em vez disso, retornamos que o email não existe para forçar o usuário a se registrar
           return { exists: false, confirmed: false };
@@ -201,16 +311,37 @@ export default function AuthModal({
   // Função para verificar se é um email temporário
   const isTemporaryEmail = (email: string): boolean => {
     const temporaryDomains = [
-      'tempmail.com', 'temp-mail.org', 'guerrillamail.com', 'guerrillamail.net',
-      'sharklasers.com', 'mailinator.com', 'yopmail.com', 'throwawaymail.com',
-      'getairmail.com', '10minutemail.com', 'minutemail.com', 'tempinbox.com',
-      'mailnesia.com', 'mailcatch.com', 'dispostable.com', 'tempr.email',
-      'tempmail.net', 'emailondeck.com', 'spamgourmet.com', 'trashmail.com',
-      'maildrop.cc', 'getnada.com', 'temp-mail.io', 'fakeinbox.com',
-      'tempmail.ninja', 'emailfake.com', 'mohmal.com', 'tempmailaddress.com'
+      "tempmail.com",
+      "temp-mail.org",
+      "guerrillamail.com",
+      "guerrillamail.net",
+      "sharklasers.com",
+      "mailinator.com",
+      "yopmail.com",
+      "throwawaymail.com",
+      "getairmail.com",
+      "10minutemail.com",
+      "minutemail.com",
+      "tempinbox.com",
+      "mailnesia.com",
+      "mailcatch.com",
+      "dispostable.com",
+      "tempr.email",
+      "tempmail.net",
+      "emailondeck.com",
+      "spamgourmet.com",
+      "trashmail.com",
+      "maildrop.cc",
+      "getnada.com",
+      "temp-mail.io",
+      "fakeinbox.com",
+      "tempmail.ninja",
+      "emailfake.com",
+      "mohmal.com",
+      "tempmailaddress.com",
     ];
-    
-    const domain = email.split('@')[1]?.toLowerCase();
+
+    const domain = email.split("@")[1]?.toLowerCase();
     return domain ? temporaryDomains.includes(domain) : false;
   };
 
@@ -288,49 +419,51 @@ export default function AuthModal({
   const handleResendConfirmation = async () => {
     // Evita múltiplos cliques durante o cooldown ou processamento
     if (isResending || resendCooldown > 0) return;
-    
-    console.log('Reenviando email de confirmação para:', registeredEmail);
+
+    console.log("Reenviando email de confirmação para:", registeredEmail);
     setIsResending(true);
-    
+
     try {
       const result = await apiClient.resendConfirmation(registeredEmail);
-      console.log('Resultado do reenvio:', result);
+      console.log("Resultado do reenvio:", result);
 
       // Limpar mensagens de erro ao reenviar com sucesso
       setErrors({});
       setSuccessMessage(
         "Email de confirmação reenviado com sucesso! Verifique sua caixa de entrada e spam."
       );
-      
+
       // Inicia o cooldown de 60 segundos (1 minuto)
       setResendCooldown(60);
-      
     } catch (error: any) {
       console.error("Erro ao reenviar confirmação:", error.message);
-      
+
       // Se for erro de rate limiting (429), extrair o tempo restante
-      if (error.message.includes('Aguarde') && error.message.includes('segundos')) {
+      if (
+        error.message.includes("Aguarde") &&
+        error.message.includes("segundos")
+      ) {
         const match = error.message.match(/(\d+) segundos/);
         if (match) {
           const remainingTime = parseInt(match[1]);
           setResendCooldown(remainingTime);
         }
       }
-      
+
       setErrors({ form: `Erro ao reenviar confirmação: ${error.message}` });
     } finally {
       setIsResending(false);
     }
   };
-  
+
   // Efeito para gerenciar o contador de cooldown e limpar quando o componente for desmontado
   useEffect(() => {
     let countdownInterval: NodeJS.Timeout | null = null;
-    
+
     // Se houver um cooldown ativo, iniciar o contador
     if (resendCooldown > 0) {
       countdownInterval = setInterval(() => {
-        setResendCooldown(prev => {
+        setResendCooldown((prev) => {
           if (prev <= 1) {
             if (countdownInterval) clearInterval(countdownInterval);
             return 0;
@@ -339,7 +472,7 @@ export default function AuthModal({
         });
       }, 1000);
     }
-    
+
     // Cleanup quando o componente for desmontado
     return () => {
       if (countdownInterval) clearInterval(countdownInterval);
@@ -373,8 +506,10 @@ export default function AuthModal({
           // O perfil será criado automaticamente pelo trigger do banco de dados
           // quando o usuário selecionar sua facção na próxima página
           if (authData.user) {
-            console.log('👤 Usuário criado com sucesso:', authData.user.id);
-            console.log('📋 Perfil será criado automaticamente após seleção de facção');
+            console.log("👤 Usuário criado com sucesso:", authData.user.id);
+            console.log(
+              "📋 Perfil será criado automaticamente após seleção de facção"
+            );
           }
 
           // Armazenar o email registrado para exibir na tela de sucesso
@@ -403,15 +538,15 @@ export default function AuthModal({
     } else if (activeTab === "login") {
       try {
         // Verificar se o email existe e está confirmado antes de tentar fazer login
-        console.log('Verificando email antes do login:', formData.email);
+        console.log("Verificando email antes do login:", formData.email);
         const { exists, confirmed } = await checkEmailExists(formData.email);
-        console.log('Resultado da verificação:', { exists, confirmed });
-        
+        console.log("Resultado da verificação:", { exists, confirmed });
+
         if (!exists) {
           // Email não cadastrado - mostrar mensagem clara e opção de registro
-          console.log('Email não cadastrado, mostrando opção de registro');
-          setErrors({ 
-            form: "Este email não foi encontrado no banco de dados. Você precisa fazer cadastro primeiro para poder jogar."
+          console.log("Email não cadastrado, mostrando opção de registro");
+          setErrors({
+            form: "Este email não foi encontrado no banco de dados. Você precisa fazer cadastro primeiro para poder jogar.",
           });
           // Armazenar o email para facilitar o registro
           setRegisteredEmail(formData.email);
@@ -420,12 +555,12 @@ export default function AuthModal({
           setIsProcessing(false);
           return;
         }
-        
+
         if (!confirmed) {
           // Email cadastrado mas não confirmado - mostrar mensagem e opção de reenvio
-          console.log('Email não confirmado, mostrando opção de reenvio');
+          console.log("Email não confirmado, mostrando opção de reenvio");
           setErrors({
-            form: "Você fez cadastro mas ainda não confirmou seu email. É necessário confirmar o email para fazer login."
+            form: "Você fez cadastro mas ainda não confirmou seu email. É necessário confirmar o email para fazer login.",
           });
           // Armazenar o email não confirmado para possível reenvio
           setRegisteredEmail(formData.email);
@@ -434,16 +569,13 @@ export default function AuthModal({
           setIsProcessing(false);
           return;
         }
-        
-        console.log('Email existe e está confirmado, prosseguindo com login');
-        
+
+        console.log("Email existe e está confirmado, prosseguindo com login");
+
         // Manter o processamento ativo durante o login
-        
+
         // Se o email existe e está confirmado, tentar fazer login
-        const data = await apiClient.login(
-          formData.email,
-          formData.password
-        );
+        const data = await apiClient.login(formData.email, formData.password);
 
         // Verificar se o usuário já escolheu uma facção
         if (data.user) {
@@ -454,7 +586,7 @@ export default function AuthModal({
             console.log("Verificação de facção após login:", { profileData });
 
             // Delay adicional para processamento
-            await new Promise(resolve => setTimeout(resolve, 1500));
+            await new Promise((resolve) => setTimeout(resolve, 1500));
 
             // Fechar o modal
             onClose();
@@ -467,13 +599,15 @@ export default function AuthModal({
 
             // Redirecionar com base na facção e se é primeiro login
             if (isFirstLogin || !profileData?.faction) {
-              console.log("Primeiro login ou usuário sem facção, redirecionando para /faction-selection");
+              console.log(
+                "Primeiro login ou usuário sem facção, redirecionando para /faction-selection"
+              );
               // Se for primeiro login ou não tiver facção, redirecionar para a página de seleção
               window.location.href = "/faction-selection";
             } else {
               console.log("Usuário com facção, redirecionando para /dashboard");
               // Delay antes de redirecionar para o dashboard
-              await new Promise(resolve => setTimeout(resolve, 1000));
+              await new Promise((resolve) => setTimeout(resolve, 1000));
               window.location.href = "/dashboard";
             }
           } catch (profileError) {
@@ -492,15 +626,21 @@ export default function AuthModal({
     } else if (activeTab === "forgot-password") {
       try {
         // Verificar se o email existe e está confirmado antes de enviar o email de recuperação
-        console.log('Verificando email antes da recuperação de senha:', formData.email);
+        console.log(
+          "Verificando email antes da recuperação de senha:",
+          formData.email
+        );
         const { exists, confirmed } = await checkEmailExists(formData.email);
-        console.log('Resultado da verificação para recuperação:', { exists, confirmed });
-        
+        console.log("Resultado da verificação para recuperação:", {
+          exists,
+          confirmed,
+        });
+
         if (!exists) {
           // Email não cadastrado - mostrar mensagem clara e opção de registro
-          console.log('Email não cadastrado, mostrando opção de registro');
-          setErrors({ 
-            form: "Este email não foi encontrado no banco de dados. Você precisa fazer cadastro primeiro para poder recuperar senha."
+          console.log("Email não cadastrado, mostrando opção de registro");
+          setErrors({
+            form: "Este email não foi encontrado no banco de dados. Você precisa fazer cadastro primeiro para poder recuperar senha.",
           });
           // Armazenar o email para facilitar o registro
           setRegisteredEmail(formData.email);
@@ -509,12 +649,12 @@ export default function AuthModal({
           setIsProcessing(false);
           return;
         }
-        
+
         if (!confirmed) {
           // Email cadastrado mas não confirmado - mostrar mensagem e opção de reenvio
-          console.log('Email não confirmado, mostrando opção de reenvio');
+          console.log("Email não confirmado, mostrando opção de reenvio");
           setErrors({
-            form: "Você tem cadastro mas ainda não confirmou seu email. É necessário confirmar o email antes de recuperar a senha."
+            form: "Você tem cadastro mas ainda não confirmou seu email. É necessário confirmar o email antes de recuperar a senha.",
           });
           // Armazenar o email não confirmado para possível reenvio
           setRegisteredEmail(formData.email);
@@ -523,9 +663,11 @@ export default function AuthModal({
           setIsProcessing(false);
           return;
         }
-        
-        console.log('Email existe e está confirmado, prosseguindo com recuperação de senha');
-        
+
+        console.log(
+          "Email existe e está confirmado, prosseguindo com recuperação de senha"
+        );
+
         // Se o email existe e está confirmado, enviar o email de recuperação
         await apiClient.forgotPassword(formData.email);
 
@@ -731,25 +873,27 @@ export default function AuthModal({
                       onClick={handleResendConfirmation}
                       disabled={isResending || resendCooldown > 0}
                       className={`w-full font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline transition-colors ${
-                        isResending || resendCooldown > 0 
-                          ? 'bg-gray-400 cursor-not-allowed text-gray-600' 
-                          : 'bg-orange-600 hover:bg-orange-700 text-white'
+                        isResending || resendCooldown > 0
+                          ? "bg-gray-400 cursor-not-allowed text-gray-600"
+                          : "bg-orange-600 hover:bg-orange-700 text-white"
                       }`}
                     >
-                      {isResending 
-                        ? 'Reenviando email...' 
-                        : resendCooldown > 0 
-                          ? `Aguarde ${resendCooldown}s para reenviar` 
-                          : 'Reenviar email de confirmação'}
+                      {isResending
+                        ? "Reenviando email..."
+                        : resendCooldown > 0
+                        ? `Aguarde ${resendCooldown}s para reenviar`
+                        : "Reenviar email de confirmação"}
                     </button>
-                    
+
                     {/* Barra de progresso do cooldown */}
                     {resendCooldown > 0 && (
                       <div className="mt-3">
                         <div className="w-full bg-gray-200 rounded-full h-2">
-                          <div 
-                            className="bg-orange-500 h-2 rounded-full transition-all duration-1000" 
-                            style={{ width: `${((60 - resendCooldown) / 60) * 100}%` }}
+                          <div
+                            className="bg-orange-500 h-2 rounded-full transition-all duration-1000"
+                            style={{
+                              width: `${((60 - resendCooldown) / 60) * 100}%`,
+                            }}
                           ></div>
                         </div>
                         <p className="text-xs text-gray-500 mt-1 text-center">
@@ -757,13 +901,16 @@ export default function AuthModal({
                         </p>
                       </div>
                     )}
-                    
+
                     <p className="text-xs text-gray-600 mt-3 text-center">
-                      Email será reenviado para: <span className="font-medium text-orange-600">{registeredEmail}</span>
+                      Email será reenviado para:{" "}
+                      <span className="font-medium text-orange-600">
+                        {registeredEmail}
+                      </span>
                     </p>
                   </div>
                 )}
-                
+
                 {/* Opção de registro para emails não cadastrados */}
                 {showRegisterOption && (
                   <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
@@ -775,10 +922,10 @@ export default function AuthModal({
                       onClick={() => {
                         setActiveTab("register");
                         // Preencher o email no formulário de registro
-                        setFormData(prev => ({
+                        setFormData((prev) => ({
                           ...prev,
                           email: registeredEmail,
-                          confirmEmail: registeredEmail
+                          confirmEmail: registeredEmail,
                         }));
                         setErrors({});
                         setShowRegisterOption(false);
@@ -789,7 +936,10 @@ export default function AuthModal({
                       Criar nova conta
                     </button>
                     <p className="text-xs text-gray-600 mt-3 text-center">
-                      Nova conta será criada com: <span className="font-medium text-green-600">{registeredEmail}</span>
+                      Nova conta será criada com:{" "}
+                      <span className="font-medium text-green-600">
+                        {registeredEmail}
+                      </span>
                     </p>
                   </div>
                 )}
@@ -1151,6 +1301,36 @@ export default function AuthModal({
                 </>
               )}
             </button>
+
+            {activeTab === "login" && googleEnabled && (
+              <div className="mt-3">
+                <button
+                  type="button"
+                  onClick={() => handleGoogleLogin('login')}
+                  className="w-full bg-white text-black font-orbitron py-3 rounded-lg transition-all hover:scale-[1.01] shadow border border-gray-300 flex items-center justify-center gap-2"
+                >
+                  <span className="w-5 h-5 rounded bg-white text-black flex items-center justify-center font-extrabold">
+                    G
+                  </span>
+                  <span>Continuar com Google</span>
+                </button>
+              </div>
+            )}
+
+            {activeTab === "register" && googleEnabled && (
+              <div className="mt-3">
+                <button
+                  type="button"
+                  onClick={() => handleGoogleLogin('register')}
+                  className="w-full bg-white text-black font-orbitron py-3 rounded-lg transition-all hover:scale-[1.01] shadow border border-gray-300 flex items-center justify-center gap-2"
+                >
+                  <span className="w-5 h-5 rounded bg-white text-black flex items-center justify-center font-extrabold">
+                    G
+                  </span>
+                  <span>Registrar com Google</span>
+                </button>
+              </div>
+            )}
           </form>
         </div>
       )}

@@ -235,6 +235,24 @@ class ApiClient {
     })
   }
 
+  // Clan members
+  async getClanMembers(id: string) {
+    return this.request(`/clans/${id}/members`)
+  }
+
+  // Clan chat (optional backend support)
+  async getClanChat(id: string, since?: string) {
+    const qs = since ? `?since=${encodeURIComponent(since)}` : ''
+    return this.request(`/clans/${id}/chat${qs}`)
+  }
+
+  async sendClanChat(id: string, payload: { content?: string; message?: string }) {
+    return this.request(`/clans/${id}/chat`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    })
+  }
+
   // User Profile methods
   async getUserProfile() {
     return this.request('/users/profile')

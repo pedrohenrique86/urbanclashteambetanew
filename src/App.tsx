@@ -25,6 +25,8 @@ import ProfilePage from "./pages/ProfilePage";
 import VipPage from "./pages/VipPage";
 import StorePage from "./pages/StorePage";
 import OverviewPage from "./pages/OverviewPage"; // Importa a nova página
+import ClanPage from "./pages/ClanPage";
+import GoogleCallbackPage from "./pages/GoogleCallbackPage";
 import "./index.css";
 
 export default function App() {
@@ -52,6 +54,7 @@ export default function App() {
               <Route path="/reset-password" element={<ResetPasswordPage />} />
               <Route path="/ranking" element={<RankingPage />} />
               <Route path="/clans" element={<ClansPage />} />
+              <Route path="/clan" element={<ClanPage />} />
               <Route path="/tasks" element={<TasksPage />} />
               <Route path="/duels" element={<DuelsPage />} />
               <Route path="/restaurant" element={<RestaurantPage />} />
@@ -68,6 +71,7 @@ export default function App() {
               <Route path="/store" element={<StorePage />} />
               <Route path="/overview" element={<OverviewPage />} />{" "}
               {/* Adiciona a nova rota */}
+              <Route path="/auth/google/callback" element={<GoogleCallbackPage />} />
             </Routes>
           </GlobalLayout>
         </Router>
