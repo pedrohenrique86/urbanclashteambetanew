@@ -90,7 +90,7 @@ export default function AuthModal({
   initialMode = "login",
 }: AuthModalProps) {
   const [activeTab, setActiveTab] = useState<AuthMode>(
-    initialMode === "register" ? "register" : "login"
+    initialMode === "register" ? "register" : "login",
   );
   const [formData, setFormData] = useState({
     username: "",
@@ -125,6 +125,16 @@ export default function AuthModal({
     };
   }, []);
 
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const error = urlParams.get("error");
+    if (error === "google_user_not_found") {
+      setErrors({
+        form: "Usuário não encontrado. Por favor, registre-se primeiro.",
+      });
+    }
+  }, []);
+
   const tabs = [
     { id: "login", label: "Login" },
     { id: "register", label: "Registrar" },
@@ -133,107 +143,15 @@ export default function AuthModal({
 
   const googleEnabled =
     ((import.meta as any).env?.VITE_GOOGLE_OAUTH_ENABLED ?? "true") !== "false";
-  const handleGoogleLogin = async (intent: 'login' | 'register') => {
+
+  const handleGoogleLogin = async (intent: "login" | "register") => {
     const apiBase =
       (import.meta as any).env?.VITE_API_URL || "http://localhost:3001/api";
-    const startPath =
-      (import.meta as any).env?.VITE_GOOGLE_START_PATH || "/auth/google/start";
-    const altStartPath =
-      (import.meta as any).env?.VITE_GOOGLE_ALT_START_PATH || "/auth/google";
-    const exchangePath =
-      (import.meta as any).env?.VITE_GOOGLE_EXCHANGE_PATH || "/auth/google/exchange";
-    const callbackPath =
-      (import.meta as any).env?.VITE_GOOGLE_CALLBACK_PATH || "/auth/google/callback";
-    const verifyPath =
-      (import.meta as any).env?.VITE_GOOGLE_VERIFY_PATH || "/auth/google/verify";
     const redirectUri = `${window.location.origin}/auth/google/callback`;
-    const next = "/dashboard";
+    const next = "/faction-selection";
     const params = `redirect_uri=${encodeURIComponent(redirectUri)}&next=${encodeURIComponent(next)}&intent=${intent}`;
-    const clientId = (import.meta as any).env?.VITE_GOOGLE_CLIENT_ID || "";
-    const loadGsi = () =>
-      new Promise<void>((resolve, reject) => {
-        if ((window as any).google && (window as any).google.accounts) {
-          resolve();
-          return;
-        }
-        const s = document.createElement("script");
-        s.src = "https://accounts.google.com/gsi/client";
-        s.async = true;
-        s.defer = true;
-        s.onload = () => resolve();
-        s.onerror = () => reject(new Error("gsi-load-failed"));
-        document.head.appendChild(s);
-      });
-    const exchangeCode = async (code: string) => {
-      const body = JSON.stringify({ code, redirect_uri: redirectUri, intent });
-      const heads = { "Content-Type": "application/json" };
-      const postCandidates = [
-        `${apiBase}${exchangePath}`,
-        `${apiBase}${callbackPath}`,
-        `${apiBase}${verifyPath}`,
-        `${apiBase}${altStartPath}`
-      ];
-      for (const url of postCandidates) {
-        try {
-          const r = await fetch(url, { method: "POST", headers: heads, body });
-          if (r.ok) {
-            const j = await r.json().catch(() => ({} as any));
-            const t = j?.token || j?.auth_token || j?.jwt || "";
-            if (t) {
-              window.location.href = `${redirectUri}?token=${encodeURIComponent(t)}&next=${encodeURIComponent(next)}`;
-              return true;
-            }
-            if (j?.redirect) {
-              window.location.href = j.redirect;
-              return true;
-            }
-          }
-        } catch {}
-      }
-      return false;
-    };
-    try {
-      if (clientId) {
-        await loadGsi();
-        const google: any = (window as any).google;
-        let resolved = false;
-        const codeClient = google.accounts.oauth2.initCodeClient({
-          client_id: clientId,
-          scope: "openid email profile",
-          ux_mode: "popup",
-          callback: async (resp: any) => {
-            if (resolved) return;
-            resolved = true;
-            if (resp?.code) {
-              const ok = await exchangeCode(resp.code);
-              if (!ok) {
-              const startUrl = `${apiBase}${startPath}?${params}`;
-                window.location.href = startUrl;
-              }
-            } else {
-            const startUrl = `${apiBase}${startPath}?${params}`;
-              window.location.href = startUrl;
-            }
-          }
-        });
-        codeClient.requestCode();
-        return;
-      }
-    } catch {}
-    const candidates = [
-      `${apiBase}${startPath}?${params}`,
-      `${apiBase}${altStartPath}?${params}`
-    ];
-    for (const url of candidates) {
-      try {
-        const res = await fetch(url, { method: "GET" });
-        if (res && (res.ok || res.status === 302 || res.status === 307 || res.status === 308)) {
-          window.location.href = url;
-          return;
-        }
-      } catch {}
-    }
-    window.location.href = candidates[0];
+    const startUrl = `${apiBase}/auth/google/start?${params}`;
+    window.location.href = startUrl;
   };
 
   // Função para validar palavrões (simulação de API)
@@ -245,7 +163,7 @@ export default function AuthModal({
 
   // Função para verificar se um email existe e está confirmado usando a função serverless
   const checkEmailExists = async (
-    email: string
+    email: string,
   ): Promise<{ exists: boolean; confirmed: boolean }> => {
     try {
       // Aguardar um pouco antes de verificar para evitar verificações prematuras
@@ -262,7 +180,7 @@ export default function AuthModal({
             "Content-Type": "application/json",
           },
           body: JSON.stringify({ email }),
-        }
+        },
       );
 
       console.log("Status da resposta:", response.status);
@@ -430,7 +348,7 @@ export default function AuthModal({
       // Limpar mensagens de erro ao reenviar com sucesso
       setErrors({});
       setSuccessMessage(
-        "Email de confirmação reenviado com sucesso! Verifique sua caixa de entrada e spam."
+        "Email de confirmação reenviado com sucesso! Verifique sua caixa de entrada e spam.",
       );
 
       // Inicia o cooldown de 60 segundos (1 minuto)
@@ -500,7 +418,7 @@ export default function AuthModal({
             formData.username,
             formData.password,
             formData.birthDate || undefined,
-            formData.country || undefined
+            formData.country || undefined,
           );
 
           // O perfil será criado automaticamente pelo trigger do banco de dados
@@ -508,7 +426,7 @@ export default function AuthModal({
           if (authData.user) {
             console.log("👤 Usuário criado com sucesso:", authData.user.id);
             console.log(
-              "📋 Perfil será criado automaticamente após seleção de facção"
+              "📋 Perfil será criado automaticamente após seleção de facção",
             );
           }
 
@@ -600,7 +518,7 @@ export default function AuthModal({
             // Redirecionar com base na facção e se é primeiro login
             if (isFirstLogin || !profileData?.faction) {
               console.log(
-                "Primeiro login ou usuário sem facção, redirecionando para /faction-selection"
+                "Primeiro login ou usuário sem facção, redirecionando para /faction-selection",
               );
               // Se for primeiro login ou não tiver facção, redirecionar para a página de seleção
               window.location.href = "/faction-selection";
@@ -628,7 +546,7 @@ export default function AuthModal({
         // Verificar se o email existe e está confirmado antes de enviar o email de recuperação
         console.log(
           "Verificando email antes da recuperação de senha:",
-          formData.email
+          formData.email,
         );
         const { exists, confirmed } = await checkEmailExists(formData.email);
         console.log("Resultado da verificação para recuperação:", {
@@ -665,7 +583,7 @@ export default function AuthModal({
         }
 
         console.log(
-          "Email existe e está confirmado, prosseguindo com recuperação de senha"
+          "Email existe e está confirmado, prosseguindo com recuperação de senha",
         );
 
         // Se o email existe e está confirmado, enviar o email de recuperação
@@ -673,7 +591,7 @@ export default function AuthModal({
 
         // Só exibe a mensagem de sucesso se o email existir, estiver confirmado e o email de recuperação for enviado com sucesso
         setSuccessMessage(
-          "Enviamos um email com instruções para redefinir sua senha. Por favor, verifique sua caixa de entrada."
+          "Enviamos um email com instruções para redefinir sua senha. Por favor, verifique sua caixa de entrada.",
         );
         setIsProcessing(false); // Finalizar processamento após sucesso
       } catch (error: any) {
@@ -881,8 +799,8 @@ export default function AuthModal({
                       {isResending
                         ? "Reenviando email..."
                         : resendCooldown > 0
-                        ? `Aguarde ${resendCooldown}s para reenviar`
-                        : "Reenviar email de confirmação"}
+                          ? `Aguarde ${resendCooldown}s para reenviar`
+                          : "Reenviar email de confirmação"}
                     </button>
 
                     {/* Barra de progresso do cooldown */}
@@ -1125,7 +1043,7 @@ export default function AuthModal({
                     }
                     max={
                       new Date(
-                        new Date().setFullYear(new Date().getFullYear() - 18)
+                        new Date().setFullYear(new Date().getFullYear() - 18),
                       )
                         .toISOString()
                         .split("T")[0]
@@ -1306,7 +1224,7 @@ export default function AuthModal({
               <div className="mt-3">
                 <button
                   type="button"
-                  onClick={() => handleGoogleLogin('login')}
+                  onClick={() => handleGoogleLogin("login")}
                   className="w-full bg-white text-black font-orbitron py-3 rounded-lg transition-all hover:scale-[1.01] shadow border border-gray-300 flex items-center justify-center gap-2"
                 >
                   <span className="w-5 h-5 rounded bg-white text-black flex items-center justify-center font-extrabold">
@@ -1321,7 +1239,7 @@ export default function AuthModal({
               <div className="mt-3">
                 <button
                   type="button"
-                  onClick={() => handleGoogleLogin('register')}
+                  onClick={() => handleGoogleLogin("register")}
                   className="w-full bg-white text-black font-orbitron py-3 rounded-lg transition-all hover:scale-[1.01] shadow border border-gray-300 flex items-center justify-center gap-2"
                 >
                   <span className="w-5 h-5 rounded bg-white text-black flex items-center justify-center font-extrabold">

@@ -41,13 +41,13 @@ const registerValidation = [
     .isLength({ min: 3, max: 20 })
     .matches(/^[a-zA-Z0-9_]+$/)
     .withMessage(
-      "Username deve ter 3-20 caracteres e conter apenas letras, números e underscore"
+      "Username deve ter 3-20 caracteres e conter apenas letras, números e underscore",
     ),
   body("password")
     .isLength({ min: 8 })
     .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/)
     .withMessage(
-      "Senha deve ter pelo menos 8 caracteres, incluindo maiúscula, minúscula, número e símbolo"
+      "Senha deve ter pelo menos 8 caracteres, incluindo maiúscula, minúscula, número e símbolo",
     ),
   body("birth_date")
     .optional()
@@ -95,7 +95,7 @@ router.post(
       // Verificar se username já existe
       const usernameExists = await query(
         "SELECT id FROM users WHERE username = $1",
-        [username]
+        [username],
       );
 
       if (usernameExists.rows.length > 0) {
@@ -122,7 +122,7 @@ router.post(
             confirmationToken,
             birth_date || null,
             country || null,
-          ]
+          ],
         );
 
         const user = userResult.rows[0];
@@ -138,7 +138,7 @@ router.post(
       } catch (emailError) {
         console.error(
           "❌ Erro ao enviar email de confirmação:",
-          emailError.message
+          emailError.message,
         );
         // Não falhar o registro se o email não puder ser enviado
       }
@@ -156,7 +156,7 @@ router.post(
       console.error("❌ Erro no registro:", error.message);
       res.status(500).json({ error: "Erro interno do servidor" });
     }
-  }
+  },
 );
 
 // POST /api/auth/login - Login do usuário
@@ -175,7 +175,7 @@ router.post("/login", authLimiter, loginValidation, async (req, res) => {
     // Buscar usuário
     const userResult = await query(
       "SELECT id, email, username, password_hash, is_email_confirmed FROM users WHERE email = $1",
-      [email]
+      [email],
     );
 
     if (userResult.rows.length === 0) {
@@ -201,7 +201,7 @@ router.post("/login", authLimiter, loginValidation, async (req, res) => {
     // Verificar se é o primeiro login após confirmação de email
     const lastLoginResult = await query(
       "SELECT last_login FROM user_profiles WHERE user_id = $1",
-      [user.id]
+      [user.id],
     );
 
     const isFirstLogin = !lastLoginResult.rows[0]?.last_login;
@@ -216,13 +216,13 @@ router.post("/login", authLimiter, loginValidation, async (req, res) => {
     // Atualizar último login
     await query(
       "UPDATE user_profiles SET last_login = NOW() WHERE user_id = $1",
-      [user.id]
+      [user.id],
     );
 
     // Buscar perfil do usuário
     const profileResult = await query(
       "SELECT * FROM user_profiles WHERE user_id = $1",
-      [user.id]
+      [user.id],
     );
 
     res.json({
@@ -279,14 +279,14 @@ router.get("/confirm-email/:token", async (req, res) => {
     // Primeiro, verificar se o token existe na base de dados
     const tokenCheckResult = await query(
       "SELECT id, email, username, is_email_confirmed FROM users WHERE email_confirmation_token = $1",
-      [token]
+      [token],
     );
 
     console.log(
       "📊 Resultado da busca por token:",
       tokenCheckResult.rows.length > 0
         ? "Token encontrado"
-        : "Token não encontrado"
+        : "Token não encontrado",
     );
 
     if (tokenCheckResult.rows.length === 0) {
@@ -305,7 +305,7 @@ router.get("/confirm-email/:token", async (req, res) => {
 
     if (user.is_email_confirmed) {
       console.log(
-        "✅ Email já confirmado anteriormente - permitindo acesso para completar fluxo"
+        "✅ Email já confirmado anteriormente - permitindo acesso para completar fluxo",
       );
 
       // Gerar token de autenticação para usuário já confirmado
@@ -331,12 +331,12 @@ router.get("/confirm-email/:token", async (req, res) => {
     // Buscar usuário pelo token apenas se não estiver confirmado
     const userResult = await query(
       "SELECT id, email, username FROM users WHERE email_confirmation_token = $1 AND is_email_confirmed = false",
-      [token]
+      [token],
     );
 
     if (userResult.rows.length === 0) {
       console.log(
-        "❌ Erro inesperado: usuário não encontrado na segunda consulta"
+        "❌ Erro inesperado: usuário não encontrado na segunda consulta",
       );
       return res.status(400).json({
         error: "Erro interno na confirmação",
@@ -352,23 +352,26 @@ router.get("/confirm-email/:token", async (req, res) => {
     ]);
 
     // Agendar invalidação do token após 30 minutos para dar tempo ao usuário
-    setTimeout(async () => {
-      try {
-        await query(
-          "UPDATE users SET email_confirmation_token = NULL WHERE id = $1 AND email_confirmation_token = $2",
-          [confirmedUser.id, token]
-        );
-        console.log(
-          "🕐 Token de confirmação invalidado após timeout para usuário:",
-          confirmedUser.email
-        );
-      } catch (error) {
-        console.error(
-          "❌ Erro ao invalidar token após timeout:",
-          error.message
-        );
-      }
-    }, 30 * 60 * 1000); // 30 minutos
+    setTimeout(
+      async () => {
+        try {
+          await query(
+            "UPDATE users SET email_confirmation_token = NULL WHERE id = $1 AND email_confirmation_token = $2",
+            [confirmedUser.id, token],
+          );
+          console.log(
+            "🕐 Token de confirmação invalidado após timeout para usuário:",
+            confirmedUser.email,
+          );
+        } catch (error) {
+          console.error(
+            "❌ Erro ao invalidar token após timeout:",
+            error.message,
+          );
+        }
+      },
+      30 * 60 * 1000,
+    ); // 30 minutos
 
     console.log("✅ Email confirmado com sucesso na base de dados");
 
@@ -376,13 +379,13 @@ router.get("/confirm-email/:token", async (req, res) => {
     try {
       await emailService.sendWelcomeEmail(
         confirmedUser.email,
-        confirmedUser.username
+        confirmedUser.username,
       );
       console.log("📧 Email de boas-vindas enviado");
     } catch (emailError) {
       console.error(
         "❌ Erro ao enviar email de boas-vindas:",
-        emailError.message
+        emailError.message,
       );
     }
 
@@ -394,7 +397,7 @@ router.get("/confirm-email/:token", async (req, res) => {
         username: confirmedUser.username,
       },
       process.env.JWT_SECRET,
-      { expiresIn: "7d" }
+      { expiresIn: "7d" },
     );
 
     // Sessão será gerenciada pelo frontend via localStorage
@@ -430,7 +433,7 @@ router.post("/resend-confirmation", async (req, res) => {
     // Buscar usuário
     const userResult = await query(
       "SELECT id, email, username, is_email_confirmed, last_confirmation_email_sent FROM users WHERE email = $1",
-      [email]
+      [email],
     );
 
     if (userResult.rows.length === 0) {
@@ -463,7 +466,7 @@ router.post("/resend-confirmation", async (req, res) => {
     // Atualizar token e timestamp do último envio no banco
     await query(
       "UPDATE users SET email_confirmation_token = $1, last_confirmation_email_sent = NOW() WHERE id = $2",
-      [confirmationToken, user.id]
+      [confirmationToken, user.id],
     );
 
     // Enviar email
@@ -488,7 +491,7 @@ router.post("/forgot-password", async (req, res) => {
     // Buscar usuário
     const userResult = await query(
       "SELECT id, email, username FROM users WHERE email = $1",
-      [email]
+      [email],
     );
 
     // Sempre retornar sucesso por segurança (não revelar se email existe)
@@ -508,7 +511,7 @@ router.post("/forgot-password", async (req, res) => {
     // Salvar token no banco
     await query(
       "UPDATE users SET password_reset_token = $1, password_reset_expires = $2 WHERE id = $3",
-      [resetToken, resetExpires, user.id]
+      [resetToken, resetExpires, user.id],
     );
 
     // Enviar email
@@ -531,10 +534,10 @@ router.post(
     body("password")
       .isLength({ min: 8 })
       .matches(
-        /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/
+        /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/,
       )
       .withMessage(
-        "Senha deve ter pelo menos 8 caracteres, incluindo maiúscula, minúscula, número e símbolo"
+        "Senha deve ter pelo menos 8 caracteres, incluindo maiúscula, minúscula, número e símbolo",
       ),
   ],
   async (req, res) => {
@@ -552,7 +555,7 @@ router.post(
       // Buscar usuário pelo token
       const userResult = await query(
         "SELECT id FROM users WHERE password_reset_token = $1 AND password_reset_expires > NOW()",
-        [token]
+        [token],
       );
 
       if (userResult.rows.length === 0) {
@@ -568,7 +571,7 @@ router.post(
       // Atualizar senha e limpar token
       await query(
         "UPDATE users SET password_hash = $1, password_reset_token = NULL, password_reset_expires = NULL WHERE id = $2",
-        [passwordHash, user.id]
+        [passwordHash, user.id],
       );
 
       // Invalidar todas as sessões do usuário
@@ -579,7 +582,7 @@ router.post(
       console.error("❌ Erro na redefinição de senha:", error.message);
       res.status(500).json({ error: "Erro interno do servidor" });
     }
-  }
+  },
 );
 
 // GET /api/auth/me - Obter dados do usuário logado
@@ -588,7 +591,7 @@ router.get("/me", authenticateToken, async (req, res) => {
     // Buscar perfil do usuário
     const profileResult = await query(
       "SELECT * FROM user_profiles WHERE user_id = $1",
-      [req.user.id]
+      [req.user.id],
     );
 
     res.json({
@@ -619,7 +622,7 @@ router.post("/check-email", async (req, res) => {
     // Buscar usuário pelo email
     const userResult = await query(
       "SELECT id, email, is_email_confirmed FROM users WHERE email = $1",
-      [email]
+      [email],
     );
 
     // Verificar se encontrou algum usuário
@@ -630,7 +633,7 @@ router.post("/check-email", async (req, res) => {
     if (exists) {
       const user = userResult.rows[0];
       console.log(
-        `Detalhes do usuário: ID=${user.id}, Email confirmado: ${user.is_email_confirmed}`
+        `Detalhes do usuário: ID=${user.id}, Email confirmado: ${user.is_email_confirmed}`,
       );
     }
 
@@ -644,8 +647,6 @@ router.post("/check-email", async (req, res) => {
     return res.status(500).json({ error: "Erro ao verificar email" });
   }
 });
-
-module.exports = router;
 
 // Google OAuth
 const stateStore = new Map();
@@ -666,196 +667,124 @@ function getRedirectUri(req) {
 }
 
 function getNext(req) {
-  return req.query.next || req.body?.next || "/dashboard";
+  return req.query.next || req.body?.next || "/faction-selection";
 }
 
 async function exchangeCodeForTokens(code, redirectUri) {
-  const params = new url.URLSearchParams({
-    code,
-    client_id: process.env.GOOGLE_CLIENT_ID || "",
-    client_secret: process.env.GOOGLE_CLIENT_SECRET || "",
-    redirect_uri: redirectUri,
-    grant_type: "authorization_code",
-  });
-  const resp = await fetch("https://oauth2.googleapis.com/token", {
+  const params = new url.URLSearchParams();
+  params.set("client_id", process.env.GOOGLE_CLIENT_ID || "");
+  params.set("client_secret", process.env.GOOGLE_CLIENT_SECRET || "");
+  params.set("code", code);
+  params.set("redirect_uri", redirectUri);
+  params.set("grant_type", "authorization_code");
+
+  const r = await fetch("https://oauth2.googleapis.com/token", {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body: params.toString(),
   });
-  if (!resp.ok) {
-    const text = await resp.text().catch(() => "");
-    const e = new Error(`token_exchange_failed:${resp.status}`);
-    e.details = text;
-    throw e;
+
+  if (!r.ok) {
+    const errorBody = await r.text();
+    console.error("Google token exchange failed:", errorBody);
+    throw new Error(`Google API Error: ${errorBody}`);
   }
-  return resp.json();
+  return await r.json();
 }
 
-function decodeIdToken(idToken) {
-  const parts = (idToken || "").split(".");
-  if (parts.length < 2) return {};
-  const payload = JSON.parse(
-    Buffer.from(
-      parts[1].replace(/-/g, "+").replace(/_/g, "/"),
-      "base64"
-    ).toString()
-  );
-  return payload || {};
-}
-
-router.get("/google/start", async (req, res) => {
+function decodeIdToken(token) {
+  if (!token) {
+    console.error("decodeIdToken failed: received null or undefined token");
+    throw new Error("ID token is missing");
+  }
   try {
-    const clientId = process.env.GOOGLE_CLIENT_ID || "";
-    const redirectUri = getRedirectUri(req);
-    const scope = "openid email profile";
-    if (!clientId) {
-      return res.status(500).json({ error: "missing_client_id" });
+    const parts = token.split(".");
+    if (parts.length !== 3) {
+      throw new Error("Invalid ID token format");
     }
-    const state = crypto.randomBytes(16).toString("hex");
-    stateStore.set(state, { created: Date.now() });
-    const params = new url.URLSearchParams({
-      client_id: clientId,
-      redirect_uri: redirectUri,
-      response_type: "code",
-      scope,
-      access_type: "offline",
-      include_granted_scopes: "true",
-      state,
-      prompt: "select_account",
-    });
-    const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
-    res.redirect(authUrl);
+    const payload = Buffer.from(parts[1], "base64url").toString("utf-8");
+    return JSON.parse(payload);
   } catch (e) {
+    console.error("Failed to decode id_token", e);
+    throw new Error(`Failed to decode id_token: ${e.message}`);
+  }
+}
+
+router.get("/google/start", (req, res) => {
+  try {
+    const state = base64url(crypto.randomBytes(16));
+    const redirectUri = getRedirectUri(req);
+    const next = getNext(req);
+    const intent = req.query.intent || "login";
+    stateStore.set(state, { redirectUri, next, intent });
+
+    const codeVerifier = base64url(crypto.randomBytes(32));
+    const codeChallenge = base64url(
+      crypto.createHash("sha256").update(codeVerifier).digest(),
+    );
+    stateStore.set(state, { ...stateStore.get(state), codeVerifier });
+
+    const params = new url.URLSearchParams();
+    params.set("client_id", process.env.GOOGLE_CLIENT_ID || "");
+    params.set("redirect_uri", redirectUri);
+    params.set("response_type", "code");
+    params.set("scope", "openid email profile");
+    params.set("state", state);
+    params.set("code_challenge", codeChallenge);
+    params.set("code_challenge_method", "S256");
+    params.set("access_type", "offline");
+    params.set("prompt", "consent");
+
+    const googleUrl = `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
+    res.redirect(302, googleUrl);
+  } catch (e) {
+    console.error("Google start error:", e);
     res.status(500).json({ error: "google_start_failed" });
-  }
-});
-
-router.post("/google/exchange", async (req, res) => {
-  try {
-    const code = req.body?.code;
-    if (!code) return res.status(400).json({ error: "code_required" });
-    const redirectUri = getRedirectUri(req);
-    const tokens = await exchangeCodeForTokens(code, redirectUri);
-    const profile = decodeIdToken(tokens.id_token || "");
-    const email = profile.email || "";
-    if (!email) return res.status(400).json({ error: "email_required" });
-    const emailRes = await query(
-      "SELECT id, email, username, is_email_confirmed FROM users WHERE email = $1",
-      [email]
-    );
-    let userId;
-    if (emailRes.rows.length > 0) {
-      userId = emailRes.rows[0].id;
-    } else {
-      const unameBase =
-        (profile.name || email.split("@")[0] || "user")
-          .replace(/[^a-zA-Z0-9_]/g, "_")
-          .slice(0, 20) || "user";
-      let uname = unameBase;
-      let tries = 0;
-      while (true) {
-        const exists = await query("SELECT 1 FROM users WHERE username = $1", [
-          uname,
-        ]);
-        if (exists.rows.length === 0) break;
-        tries += 1;
-        uname = `${unameBase.slice(
-          0,
-          Math.max(0, 18 - String(tries).length)
-        )}${tries}`;
-      }
-      const rnd = crypto.randomBytes(16).toString("hex");
-      const hash = await bcrypt.hash(rnd, 12);
-      const country =
-        profile.locale && profile.locale.includes("-")
-          ? profile.locale.split("-")[1].toUpperCase()
-          : null;
-      const ins = await query(
-        `INSERT INTO users (email, username, password_hash, is_email_confirmed, country) 
-         VALUES ($1, $2, $3, true, $4) RETURNING id`,
-        [email, uname, hash, country]
-      );
-      userId = ins.rows[0].id;
-    }
-    const token = generateToken(userId);
-    res.json({ token });
-  } catch (e) {
-    res.status(500).json({ error: "google_exchange_failed" });
-  }
-});
-
-router.post("/google/callback", async (req, res) => {
-  try {
-    const code = req.body?.code;
-    if (!code) return res.status(400).json({ error: "code_required" });
-    const redirectUri = getRedirectUri(req);
-    const tokens = await exchangeCodeForTokens(code, redirectUri);
-    const profile = decodeIdToken(tokens.id_token || "");
-    const email = profile.email || "";
-    if (!email) return res.status(400).json({ error: "email_required" });
-    const emailRes = await query(
-      "SELECT id, email, username, is_email_confirmed FROM users WHERE email = $1",
-      [email]
-    );
-    let userId;
-    if (emailRes.rows.length > 0) {
-      userId = emailRes.rows[0].id;
-    } else {
-      const unameBase =
-        (profile.name || email.split("@")[0] || "user")
-          .replace(/[^a-zA-Z0-9_]/g, "_")
-          .slice(0, 20) || "user";
-      let uname = unameBase;
-      let tries = 0;
-      while (true) {
-        const exists = await query("SELECT 1 FROM users WHERE username = $1", [
-          uname,
-        ]);
-        if (exists.rows.length === 0) break;
-        tries += 1;
-        uname = `${unameBase.slice(
-          0,
-          Math.max(0, 18 - String(tries).length)
-        )}${tries}`;
-      }
-      const rnd = crypto.randomBytes(16).toString("hex");
-      const hash = await bcrypt.hash(rnd, 12);
-      const country =
-        profile.locale && profile.locale.includes("-")
-          ? profile.locale.split("-")[1].toUpperCase()
-          : null;
-      const ins = await query(
-        `INSERT INTO users (email, username, password_hash, is_email_confirmed, country) 
-         VALUES ($1, $2, $3, true, $4) RETURNING id`,
-        [email, uname, hash, country]
-      );
-      userId = ins.rows[0].id;
-    }
-    const token = generateToken(userId);
-    res.json({ token });
-  } catch (e) {
-    res.status(500).json({ error: "google_callback_failed" });
   }
 });
 
 router.get("/google/callback", async (req, res) => {
   try {
-    const code = req.query.code;
-    if (!code) return res.status(400).json({ error: "code_required" });
-    const redirectUri = getRedirectUri(req);
-    const next = getNext(req);
+    const { code, state } = req.query;
+    if (!code || !state) {
+      return res.status(400).json({ error: "missing_code_or_state" });
+    }
+
+    const stateData = stateStore.get(state);
+    if (!stateData) {
+      return res.status(400).json({ error: "invalid_state" });
+    }
+    stateStore.delete(state); // State is single-use
+
+    const { redirectUri, next, intent } = stateData;
+
     const tokens = await exchangeCodeForTokens(code, redirectUri);
-    const profile = decodeIdToken(tokens.id_token || "");
+    if (!tokens || !tokens.id_token) {
+      return res.status(500).json({ error: "token_exchange_failed" });
+    }
+
+    const profile = decodeIdToken(tokens.id_token);
     const email = profile.email || "";
-    if (!email) return res.status(400).json({ error: "email_required" });
+    if (!email) {
+      return res.status(400).json({ error: "email_required" });
+    }
+
     const emailRes = await query(
       "SELECT id, email, username, is_email_confirmed FROM users WHERE email = $1",
-      [email]
+      [email],
     );
+
+    if (intent === "login" && emailRes.rows.length === 0) {
+      const frontend = process.env.FRONTEND_URL || "http://localhost:5173";
+      const redirectUrl = `${frontend.replace(/\/+$/, "")}/?authMode=login&error=google_user_not_found`;
+      return res.redirect(302, redirectUrl);
+    }
+
     let userId;
     if (emailRes.rows.length > 0) {
       userId = emailRes.rows[0].id;
     } else {
+      // Register flow
       const unameBase =
         (profile.name || email.split("@")[0] || "user")
           .replace(/[^a-zA-Z0-9_]/g, "_")
@@ -868,10 +797,7 @@ router.get("/google/callback", async (req, res) => {
         ]);
         if (exists.rows.length === 0) break;
         tries += 1;
-        uname = `${unameBase.slice(
-          0,
-          Math.max(0, 18 - String(tries).length)
-        )}${tries}`;
+        uname = `${unameBase.slice(0, Math.max(0, 18 - String(tries).length))}${tries}`;
       }
       const rnd = crypto.randomBytes(16).toString("hex");
       const hash = await bcrypt.hash(rnd, 12);
@@ -879,23 +805,114 @@ router.get("/google/callback", async (req, res) => {
         profile.locale && profile.locale.includes("-")
           ? profile.locale.split("-")[1].toUpperCase()
           : null;
-      const ins = await query(
-        `INSERT INTO users (email, username, password_hash, is_email_confirmed, country) 
-         VALUES ($1, $2, $3, true, $4) RETURNING id`,
-        [email, uname, hash, country]
-      );
-      userId = ins.rows[0].id;
+
+      const ins = await transaction(async (client) => {
+        const userResult = await client.query(
+          `INSERT INTO users (email, username, password_hash, is_email_confirmed, country) 
+           VALUES ($1, $2, $3, true, $4) RETURNING id`,
+          [email, uname, hash, country],
+        );
+        const newUserId = userResult.rows[0].id;
+        // Create user_profile as well
+        await client.query("INSERT INTO user_profiles (user_id) VALUES ($1)", [
+          newUserId,
+        ]);
+        return { id: newUserId };
+      });
+      userId = ins.id;
     }
+
     const token = generateToken(userId);
+    await createSession(userId, token);
+
     const frontend = process.env.FRONTEND_URL || "http://localhost:5173";
-    const redirect = `${frontend.replace(
-      /\/+$/,
-      ""
-    )}/auth/google/callback?token=${encodeURIComponent(
-      token
-    )}&next=${encodeURIComponent(next)}`;
-    res.redirect(302, redirect);
+    const finalRedirect = `${frontend.replace(/\/+$/, "")}/auth/google/callback?token=${encodeURIComponent(token)}&next=${encodeURIComponent(next)}`;
+    res.redirect(302, finalRedirect);
   } catch (e) {
-    res.status(500).json({ error: "google_callback_redirect_failed" });
+    console.error("Google callback error:", e);
+    res.status(500).json({ error: "google_callback_failed" });
   }
 });
+
+router.post("/google/callback", async (req, res) => {
+  try {
+    const { code, redirect_uri, intent } = req.body;
+    if (!code) {
+      return res.status(400).json({ error: "missing_code" });
+    }
+
+    const redirectUri = redirect_uri || getRedirectUri(req);
+
+    const tokens = await exchangeCodeForTokens(code, redirectUri);
+    if (!tokens || !tokens.id_token) {
+      return res.status(500).json({ error: "token_exchange_failed" });
+    }
+
+    const profile = decodeIdToken(tokens.id_token);
+    const email = profile.email || "";
+    if (!email) {
+      return res.status(400).json({ error: "email_required" });
+    }
+
+    const emailRes = await query(
+      "SELECT id, email, username, is_email_confirmed FROM users WHERE email = $1",
+      [email],
+    );
+
+    if (intent === "login" && emailRes.rows.length === 0) {
+      return res.status(404).json({ error: "google_user_not_found" });
+    }
+
+    let userId;
+    if (emailRes.rows.length > 0) {
+      userId = emailRes.rows[0].id;
+    } else {
+      // Register flow
+      const unameBase =
+        (profile.name || email.split("@")[0] || "user")
+          .replace(/[^a-zA-Z0-9_]/g, "_")
+          .slice(0, 20) || "user";
+      let uname = unameBase;
+      let tries = 0;
+      while (true) {
+        const exists = await query("SELECT 1 FROM users WHERE username = $1", [
+          uname,
+        ]);
+        if (exists.rows.length === 0) break;
+        tries += 1;
+        uname = `${unameBase.slice(0, Math.max(0, 18 - String(tries).length))}${tries}`;
+      }
+      const rnd = crypto.randomBytes(16).toString("hex");
+      const hash = await bcrypt.hash(rnd, 12);
+      const country =
+        profile.locale && profile.locale.includes("-")
+          ? profile.locale.split("-")[1].toUpperCase()
+          : null;
+
+      const ins = await transaction(async (client) => {
+        const userResult = await client.query(
+          `INSERT INTO users (email, username, password_hash, is_email_confirmed, country) 
+           VALUES ($1, $2, $3, true, $4) RETURNING id`,
+          [email, uname, hash, country],
+        );
+        const newUserId = userResult.rows[0].id;
+        // Create user_profile as well
+        await client.query("INSERT INTO user_profiles (user_id) VALUES ($1)", [
+          newUserId,
+        ]);
+        return { id: newUserId };
+      });
+      userId = ins.id;
+    }
+
+    const token = generateToken(userId);
+    await createSession(userId, token);
+
+    res.json({ token });
+  } catch (e) {
+    console.error("Google POST callback error:", e);
+    res.status(500).json({ error: "google_callback_failed" });
+  }
+});
+
+module.exports = router;
