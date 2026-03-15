@@ -1,4 +1,5 @@
 const express = require("express");
+const axios = require("axios");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const { body, validationResult } = require("express-validator");
@@ -727,7 +728,10 @@ router.get("/google/start", (req, res) => {
     params.set("client_id", process.env.GOOGLE_CLIENT_ID || "");
     params.set("redirect_uri", redirectUri);
     params.set("response_type", "code");
-    params.set("scope", "openid email profile");
+    params.set(
+      "scope",
+      "openid email profile https://www.googleapis.com/auth/userinfo.profile",
+    );
     params.set("state", state);
     if (code_challenge && code_challenge_method) {
       params.set("code_challenge", code_challenge);
@@ -916,10 +920,51 @@ router.post("/google/callback", async (req, res) => {
       }
       const rnd = crypto.randomBytes(16).toString("hex");
       const hash = await bcrypt.hash(rnd, 12);
-      const country =
-        profile.locale && profile.locale.includes("-")
-          ? profile.locale.split("-")[1].toUpperCase()
-          : null;
+
+      let country = null;
+      try {
+        // TENTATIVA 3: Obter país via API de GeoIP
+        // Pega o IP do header (produção) ou da conexão (desenvolvimento)
+        const ip = (
+          req.headers["x-forwarded-for"] ||
+          req.socket.remoteAddress ||
+          ""
+        )
+          .split(",")[0]
+          .trim();
+        console.log(`[AUTH_DEBUG] IP detectado para GeoIP: ${ip}`);
+
+        // Evita chamar a API para IPs locais/inválidos
+        if (ip && ip !== "::1" && ip !== "127.0.0.1") {
+          const geoResponse = await axios.get(
+            `http://ip-api.com/json/${ip}?fields=status,message,countryCode`,
+          );
+          if (
+            geoResponse.data &&
+            geoResponse.data.status === "success" &&
+            geoResponse.data.countryCode
+          ) {
+            country = geoResponse.data.countryCode.toUpperCase();
+            console.log(
+              `[AUTH_DEBUG] País detectado via GeoIP API: ${country}`,
+            );
+          } else {
+            console.log(
+              `[AUTH_DEBUG] Resposta da API GeoIP não continha país:`,
+              geoResponse.data.message || "sem mensagem",
+            );
+          }
+        } else {
+          console.log(
+            `[AUTH_DEBUG] IP local ou inválido, pulando busca de país.`,
+          );
+        }
+      } catch (geoError) {
+        console.error(
+          `[AUTH_DEBUG] Erro ao buscar país via GeoIP: ${geoError.message}. O cadastro continuará sem país.`,
+        );
+        country = null; // Garante que o cadastro não falhe por erro na API de geo
+      }
 
       const ins = await transaction(async (client) => {
         const userResult = await client.query(
