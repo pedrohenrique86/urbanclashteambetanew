@@ -34,46 +34,64 @@ export default function App() {
     <ThemeProvider>
       <ToastProvider>
         <Router>
-          <GlobalLayout>
-            <Routes>
-              <Route path="/" element={<HomePage />} />
-              <Route path="/dashboard" element={<DashboardPage />} />
-              <Route
-                path="/faction-selection"
-                element={<FactionSelectionPage />}
-              />
-              <Route path="/clan-selection" element={<ClanSelectionPage />} />
-              <Route
-                path="/email-confirmation"
-                element={<EmailConfirmationPage />}
-              />
-              <Route
-                path="/confirm-email"
-                element={<EmailConfirmationPage />}
-              />
-              <Route path="/reset-password" element={<ResetPasswordPage />} />
-              <Route path="/ranking" element={<RankingPage />} />
-              <Route path="/clans" element={<ClansPage />} />
-              <Route path="/clan" element={<ClanPage />} />
-              <Route path="/tasks" element={<TasksPage />} />
-              <Route path="/duels" element={<DuelsPage />} />
-              <Route path="/restaurant" element={<RestaurantPage />} />
-              <Route path="/hospital" element={<HospitalPage />} />
-              <Route path="/prison" element={<PrisonPage />} />
-              <Route path="/territory" element={<TerritoryPage />} />
-              <Route path="/market" element={<MarketPage />} />
-              <Route path="/bank" element={<BankPage />} />
-              <Route path="/business" element={<BusinessPage />} />
-              <Route path="/square" element={<SquarePage />} />
-              <Route path="/gym" element={<GymPage />} />
-              <Route path="/profile" element={<ProfilePage />} />
-              <Route path="/vip" element={<VipPage />} />
-              <Route path="/store" element={<StorePage />} />
-              <Route path="/overview" element={<OverviewPage />} />{" "}
-              {/* Adiciona a nova rota */}
-              <Route path="/auth/google/callback" element={<GoogleCallbackPage />} />
-            </Routes>
-          </GlobalLayout>
+          <Routes>
+            {/* Rotas públicas que não usam o GlobalLayout */}
+            <Route path="/" element={<HomePage />} />
+            <Route
+              path="/auth/google/callback"
+              element={<GoogleCallbackPage />}
+            />
+
+            {/* Rotas protegidas que usam o GlobalLayout */}
+            <Route
+              path="*"
+              element={
+                <GlobalLayout>
+                  <Routes>
+                    <Route path="/dashboard" element={<DashboardPage />} />
+                    <Route
+                      path="/faction-selection"
+                      element={<FactionSelectionPage />}
+                    />
+                    <Route
+                      path="/clan-selection"
+                      element={<ClanSelectionPage />}
+                    />
+                    <Route
+                      path="/email-confirmation"
+                      element={<EmailConfirmationPage />}
+                    />
+                    <Route
+                      path="/confirm-email"
+                      element={<EmailConfirmationPage />}
+                    />
+                    <Route
+                      path="/reset-password"
+                      element={<ResetPasswordPage />}
+                    />
+                    <Route path="/ranking" element={<RankingPage />} />
+                    <Route path="/clans" element={<ClansPage />} />
+                    <Route path="/clan" element={<ClanPage />} />
+                    <Route path="/tasks" element={<TasksPage />} />
+                    <Route path="/duels" element={<DuelsPage />} />
+                    <Route path="/restaurant" element={<RestaurantPage />} />
+                    <Route path="/hospital" element={<HospitalPage />} />
+                    <Route path="/prison" element={<PrisonPage />} />
+                    <Route path="/territory" element={<TerritoryPage />} />
+                    <Route path="/market" element={<MarketPage />} />
+                    <Route path="/bank" element={<BankPage />} />
+                    <Route path="/business" element={<BusinessPage />} />
+                    <Route path="/square" element={<SquarePage />} />
+                    <Route path="/gym" element={<GymPage />} />
+                    <Route path="/profile" element={<ProfilePage />} />
+                    <Route path="/vip" element={<VipPage />} />
+                    <Route path="/store" element={<StorePage />} />
+                    <Route path="/overview" element={<OverviewPage />} />
+                  </Routes>
+                </GlobalLayout>
+              }
+            />
+          </Routes>
         </Router>
       </ToastProvider>
     </ThemeProvider>

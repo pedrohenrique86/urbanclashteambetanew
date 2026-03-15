@@ -145,12 +145,59 @@ export default function AuthModal({
     ((import.meta as any).env?.VITE_GOOGLE_OAUTH_ENABLED ?? "true") !== "false";
 
   const handleGoogleLogin = async (intent: "login" | "register") => {
+    // PKCE: Criar o code verifier e o code challenge
+    const generateRandomString = (length: number) => {
+      const possible =
+        "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+      let text = "";
+      for (let i = 0; i < length; i++) {
+        text += possible.charAt(Math.floor(Math.random() * possible.length));
+      }
+      return text;
+    };
+
+    const sha256 = async (plain: string) => {
+      const encoder = new TextEncoder();
+      const data = encoder.encode(plain);
+      return window.crypto.subtle.digest("SHA-256", data);
+    };
+
+    const base64urlencode = (a: ArrayBuffer) => {
+      return btoa(String.fromCharCode(...new Uint8Array(a)))
+        .replace(/\+/g, "-")
+        .replace(/\//g, "_")
+        .replace(/=+$/, "");
+    };
+
+    const codeVerifier = generateRandomString(128);
+    sessionStorage.setItem("google_code_verifier", codeVerifier);
+    sessionStorage.setItem("google_auth_intent", intent); // Salva o intent
+
+    const hashed = await sha256(codeVerifier);
+    const codeChallenge = base64urlencode(hashed);
+
     const apiBase =
       (import.meta as any).env?.VITE_API_URL || "http://localhost:3001/api";
     const redirectUri = `${window.location.origin}/auth/google/callback`;
     const next = "/faction-selection";
-    const params = `redirect_uri=${encodeURIComponent(redirectUri)}&next=${encodeURIComponent(next)}&intent=${intent}`;
-    const startUrl = `${apiBase}/auth/google/start?${params}`;
+    const params = new URLSearchParams({
+      redirect_uri: redirectUri,
+      next: next,
+      intent: intent,
+      code_challenge: codeChallenge,
+      code_challenge_method: "S256",
+    });
+
+    const startUrl = `${apiBase}/auth/google/start?${params.toString()}`;
+
+    // DEBUG: Log para verificar o intent antes do redirecionamento
+    console.log(
+      "Iniciando login com Google. INTENT:",
+      intent,
+      "URL:",
+      startUrl,
+    );
+
     window.location.href = startUrl;
   };
 

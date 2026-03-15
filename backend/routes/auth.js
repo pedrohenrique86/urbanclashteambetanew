@@ -670,13 +670,16 @@ function getNext(req) {
   return req.query.next || req.body?.next || "/faction-selection";
 }
 
-async function exchangeCodeForTokens(code, redirectUri) {
+async function exchangeCodeForTokens(code, redirectUri, codeVerifier) {
   const params = new url.URLSearchParams();
   params.set("client_id", process.env.GOOGLE_CLIENT_ID || "");
   params.set("client_secret", process.env.GOOGLE_CLIENT_SECRET || "");
   params.set("code", code);
   params.set("redirect_uri", redirectUri);
   params.set("grant_type", "authorization_code");
+  if (codeVerifier) {
+    params.set("code_verifier", codeVerifier);
+  }
 
   const r = await fetch("https://oauth2.googleapis.com/token", {
     method: "POST",
@@ -712,17 +715,13 @@ function decodeIdToken(token) {
 
 router.get("/google/start", (req, res) => {
   try {
+    const { code_challenge, code_challenge_method } = req.query;
+
     const state = base64url(crypto.randomBytes(16));
     const redirectUri = getRedirectUri(req);
     const next = getNext(req);
     const intent = req.query.intent || "login";
     stateStore.set(state, { redirectUri, next, intent });
-
-    const codeVerifier = base64url(crypto.randomBytes(32));
-    const codeChallenge = base64url(
-      crypto.createHash("sha256").update(codeVerifier).digest(),
-    );
-    stateStore.set(state, { ...stateStore.get(state), codeVerifier });
 
     const params = new url.URLSearchParams();
     params.set("client_id", process.env.GOOGLE_CLIENT_ID || "");
@@ -730,8 +729,10 @@ router.get("/google/start", (req, res) => {
     params.set("response_type", "code");
     params.set("scope", "openid email profile");
     params.set("state", state);
-    params.set("code_challenge", codeChallenge);
-    params.set("code_challenge_method", "S256");
+    if (code_challenge && code_challenge_method) {
+      params.set("code_challenge", code_challenge);
+      params.set("code_challenge_method", code_challenge_method);
+    }
     params.set("access_type", "offline");
     params.set("prompt", "consent");
 
@@ -781,10 +782,12 @@ router.get("/google/callback", async (req, res) => {
     }
 
     let userId;
+    let isFirstLogin = false;
     if (emailRes.rows.length > 0) {
       userId = emailRes.rows[0].id;
     } else {
       // Register flow
+      isFirstLogin = true; // This is a new user, so it's their first login.
       const unameBase =
         (profile.name || email.split("@")[0] || "user")
           .replace(/[^a-zA-Z0-9_]/g, "_")
@@ -806,44 +809,50 @@ router.get("/google/callback", async (req, res) => {
           ? profile.locale.split("-")[1].toUpperCase()
           : null;
 
-      const ins = await transaction(async (client) => {
-        const userResult = await client.query(
-          `INSERT INTO users (email, username, password_hash, is_email_confirmed, country) 
-           VALUES ($1, $2, $3, true, $4) RETURNING id`,
-          [email, uname, hash, country],
-        );
-        const newUserId = userResult.rows[0].id;
-        // Create user_profile as well
-        await client.query("INSERT INTO user_profiles (user_id) VALUES ($1)", [
-          newUserId,
-        ]);
-        return { id: newUserId };
-      });
-      userId = ins.id;
+      try {
+        const ins = await transaction(async (client) => {
+          const userResult = await client.query(
+            `INSERT INTO users (email, username, password_hash, is_email_confirmed, country) 
+             VALUES ($1, $2, $3, true, $4) RETURNING id`,
+            [email, uname, hash, country],
+          );
+          const newUserId = userResult.rows[0].id;
+          // Perfil será criado na escolha da facção
+          return { id: newUserId };
+        });
+        userId = ins.id;
+      } catch (dbError) {
+        console.error("DATABASE TRANSACTION FAILED:", dbError);
+        return res.status(500).json({ error: `DB_FAIL: ${dbError.message}` });
+      }
     }
 
     const token = generateToken(userId);
     await createSession(userId, token);
 
     const frontend = process.env.FRONTEND_URL || "http://localhost:5173";
-    const finalRedirect = `${frontend.replace(/\/+$/, "")}/auth/google/callback?token=${encodeURIComponent(token)}&next=${encodeURIComponent(next)}`;
+    const finalRedirect = `${frontend.replace(/\/+$/, "")}/auth/google/callback?token=${encodeURIComponent(token)}&next=${encodeURIComponent(next)}&isFirstLogin=${isFirstLogin}`;
     res.redirect(302, finalRedirect);
   } catch (e) {
     console.error("Google callback error:", e);
-    res.status(500).json({ error: "google_callback_failed" });
+    res
+      .status(500)
+      .json({ error: "google_callback_failed", details: e.message });
   }
 });
 
 router.post("/google/callback", async (req, res) => {
+  const { code, redirect_uri, intent, code_verifier } = req.body;
+  if (!code || !redirect_uri) {
+    return res.status(400).json({ error: "Missing code or redirect_uri" });
+  }
+
   try {
-    const { code, redirect_uri, intent } = req.body;
-    if (!code) {
-      return res.status(400).json({ error: "missing_code" });
-    }
-
-    const redirectUri = redirect_uri || getRedirectUri(req);
-
-    const tokens = await exchangeCodeForTokens(code, redirectUri);
+    const tokens = await exchangeCodeForTokens(
+      code,
+      redirect_uri,
+      code_verifier,
+    );
     if (!tokens || !tokens.id_token) {
       return res.status(500).json({ error: "token_exchange_failed" });
     }
@@ -859,15 +868,38 @@ router.post("/google/callback", async (req, res) => {
       [email],
     );
 
-    if (intent === "login" && emailRes.rows.length === 0) {
-      return res.status(404).json({ error: "google_user_not_found" });
-    }
+    const isNewUser = emailRes.rows.length === 0;
+    console.log(
+      `[AUTH_DEBUG] Verificando usuário: ${email}. É novo? ${isNewUser}`,
+    );
 
     let userId;
+    let isFirstLogin = false;
     if (emailRes.rows.length > 0) {
+      // User exists, proceed with login
       userId = emailRes.rows[0].id;
+      const profileResult = await query(
+        "SELECT 1 FROM user_profiles WHERE user_id = $1",
+        [userId],
+      );
+      if (profileResult.rows.length === 0) {
+        isFirstLogin = true;
+        console.log(
+          `[AUTH_DEBUG] Usuário existente sem perfil. Forçando isFirstLogin = true.`,
+        );
+      } else {
+        isFirstLogin = false; // Garantir que seja false se o perfil existir
+        console.log(
+          `[AUTH_DEBUG] Usuário existente com perfil. isFirstLogin = false.`,
+        );
+      }
     } else {
-      // Register flow
+      // User does not exist, check intent
+      if (intent === "login") {
+        return res.status(404).json({ error: "google_user_not_found" });
+      }
+
+      // Intent is 'register', so create the user
       const unameBase =
         (profile.name || email.split("@")[0] || "user")
           .replace(/[^a-zA-Z0-9_]/g, "_")
@@ -896,22 +928,37 @@ router.post("/google/callback", async (req, res) => {
           [email, uname, hash, country],
         );
         const newUserId = userResult.rows[0].id;
-        // Create user_profile as well
-        await client.query("INSERT INTO user_profiles (user_id) VALUES ($1)", [
-          newUserId,
-        ]);
+        // Perfil será criado na escolha da facção
         return { id: newUserId };
       });
       userId = ins.id;
+      isFirstLogin = true;
     }
 
-    const token = generateToken(userId);
-    await createSession(userId, token);
+    // Passo Final: Gerar um token de sessão da NOSSA aplicação, como no login manual
+    console.log(
+      `[AUTH_DEBUG] Gerando token de aplicação para o usuário: ${userId}`,
+    );
+    const appToken = generateToken(userId);
 
-    res.json({ token });
+    // Criar a sessão no nosso banco de dados
+    await createSession(userId, appToken);
+
+    console.log(
+      `[AUTH_DEBUG] Sessão criada. Valor FINAL de isFirstLogin a ser enviado: ${isFirstLogin}`,
+    );
+
+    res.json({
+      message: isFirstLogin
+        ? "Usuário criado com sucesso via Google."
+        : "Login com Google bem-sucedido.",
+      token: appToken, // O token da nossa aplicação para o frontend
+      isFirstLogin,
+      next: getNext(req),
+    });
   } catch (e) {
     console.error("Google POST callback error:", e);
-    res.status(500).json({ error: "google_callback_failed" });
+    res.status(500).json({ error: `CALLBACK_FAIL: ${e.message}` });
   }
 });
 
