@@ -1,12 +1,23 @@
 import React, { useState, useRef, useEffect } from "react";
 import { menuCategories } from "../constants/menuItems";
+import ServerClock from "./ServerClock";
+import AdminMenu from "../admin/AdminMenu";
+
+import { UserProfile } from "../../types";
 
 interface BottomNavBarProps {
   navigateTo: (path: string) => void;
+  userProfile: UserProfile | null;
 }
 
-const BottomNavBar: React.FC<BottomNavBarProps> = ({ navigateTo }) => {
+const BottomNavBar: React.FC<BottomNavBarProps> = ({
+  navigateTo,
+  userProfile,
+}) => {
   const [openMenu, setOpenMenu] = useState<string | null>(null);
+  const [isAdminMenuOpen, setAdminMenuOpen] = useState(false);
+
+  const isAdmin = userProfile?.is_admin === true;
   const menuRef = useRef<HTMLDivElement>(null);
 
   const toggleMenu = (category: string) => {
@@ -33,8 +44,9 @@ const BottomNavBar: React.FC<BottomNavBarProps> = ({ navigateTo }) => {
   return (
     <div
       ref={menuRef}
-      className="fixed bottom-0 left-0 right-0 h-24 bg-gray-900/80 backdrop-blur-md border-t-2 border-t-amber-800/50 shadow-[0_-5px_20px_rgba(0,0,0,0.5)] z-50 flex justify-center items-center"
+      className="fixed bottom-0 left-0 right-0 h-24 bg-gray-900/80 backdrop-blur-md border-t-2 border-t-amber-800/50 shadow-[0_-5px_20px_rgba(0,0,0,0.5)] z-50 flex justify-between items-center px-8"
     >
+      {/* Botões de Navegação (Esquerda/Centro) */}
       <div className="flex space-x-8">
         {Object.entries(menuCategories).map(([key, category]) => (
           <div key={key} className="relative">
@@ -66,7 +78,29 @@ const BottomNavBar: React.FC<BottomNavBarProps> = ({ navigateTo }) => {
             )}
           </div>
         ))}
+        {/* Botão de Admin (Apenas para o admin) */}
+        {isAdmin && (
+          <div className="relative">
+            <button
+              onClick={() => setAdminMenuOpen(!isAdminMenuOpen)}
+              className="flex flex-col items-center justify-center text-purple-300 w-20 h-20 rounded-full transition-all duration-300 hover:bg-purple-500/20 focus:outline-none"
+            >
+              <span className="text-4xl">⚙️</span>
+              <span className="text-xs font-bold tracking-wider uppercase">
+                Admin
+              </span>
+            </button>
+          </div>
+        )}
       </div>
+
+      {/* Relógio e Contagem Regressiva (Direita) */}
+      <div className="hidden md:flex">
+        <ServerClock />
+      </div>
+
+      {/* Menu de Admin Flutuante */}
+      {isAdminMenuOpen && <AdminMenu onClose={() => setAdminMenuOpen(false)} />}
     </div>
   );
 };

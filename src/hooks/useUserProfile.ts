@@ -122,6 +122,8 @@ export const useUserProfile = (shouldRedirect: boolean = true) => {
     const userProfileData = {
       id: profileData.id ? profileData.id.toString() : profileData.user_id,
       user_id: profileData.user_id,
+      email: user.email, // Adiciona o email do usuário de autenticação
+      is_admin: profileData.is_admin, // Adiciona a flag de administrador
       faction: profileData.faction,
       clan_id: profileData.clan_id,
       username: profileData.username || 'Usuário', // username vem da tabela users via API
@@ -172,6 +174,8 @@ export const useUserProfile = (shouldRedirect: boolean = true) => {
       const userProfileData = {
         id: profileData.id ? profileData.id.toString() : profileData.user_id,
         user_id: profileData.user_id,
+        email: user.email, // Adiciona o email do usuário de autenticação
+        is_admin: profileData.is_admin, // Adiciona a flag de administrador
         faction: profileData.faction,
         clan_id: profileData.clan_id,
         username: profileData.username || 'Usuário', // username vem da tabela users via API

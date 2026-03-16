@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Player, Clan } from '../types/ranking';
 import { fetchAllRankings, fetchFullRankings } from '../services/rankingService';
+import { apiClient } from '../lib/supabaseClient';
 
 interface RankingData {
   gangsters: Player[];
@@ -212,17 +213,56 @@ export const useRankingCache = (fullRankings: boolean = false): UseRankingCacheR
 
   useEffect(() => {
     mountedRef.current = true;
-    
-    // Carregar dados iniciais
+
+    const scheduleSyncUpdates = async () => {
+      try {
+        // 1. Buscar a hora atual do servidor
+        const { serverTime } = await apiClient.getServerTime();
+        const now = new Date(serverTime);
+
+        console.log(`[RankingCache] Hora do servidor recebida: ${now.toLocaleTimeString('pt-BR')}`);
+
+        // 2. Calcular o tempo até o próximo intervalo de 10 minutos
+        const minutes = now.getMinutes();
+        const seconds = now.getSeconds();
+        const milliseconds = now.getMilliseconds();
+
+        const minutesToNextInterval = 10 - (minutes % 10);
+        const delay = (minutesToNextInterval * 60 - seconds) * 1000 - milliseconds;
+
+        console.log(`[RankingCache] Próxima atualização sincronizada agendada para as ${new Date(now.getTime() + delay).toLocaleTimeString('pt-BR')}`);
+
+        // 3. Agendar a primeira atualização para o próximo intervalo
+        const timeoutId = setTimeout(() => {
+          console.log('[RankingCache] Executando atualização sincronizada agendada...');
+          loadRankings(true); // Força a atualização para buscar novos dados
+
+          // 4. Após a primeira atualização, criar um intervalo regular de 10 minutos
+          intervalRef.current = setInterval(() => {
+            console.log('[RankingCache] Executando atualização automática sincronizada (10 min).');
+            loadRankings(true); // Força a atualização
+          }, CACHE_DURATION);
+
+        }, delay);
+
+        // Armazena o ID do timeout para limpeza
+        intervalRef.current = timeoutId;
+
+      } catch (error) {
+        console.error('[RankingCache] Erro ao sincronizar com a hora do servidor. Usando fallback para o método local.', error);
+        // Fallback: se a sincronização falhar, usa o método antigo (não sincronizado)
+        intervalRef.current = setInterval(() => {
+          console.log('⏰ [Fallback] Atualização automática dos rankings (10 minutos)');
+          loadRankings();
+        }, CACHE_DURATION);
+      }
+    };
+
+    // Carrega os dados na montagem inicial e agenda as atualizações sincronizadas
     loadRankings();
-    
-    // Configurar intervalo para atualização automática
-    intervalRef.current = setInterval(() => {
-      console.log('⏰ Atualização automática dos rankings (10 minutos)');
-      loadRankings();
-    }, CACHE_DURATION);
-    
-    // Cleanup
+    scheduleSyncUpdates();
+
+    // Função de limpeza para desmontagem do componente
     return () => {
       mountedRef.current = false;
       if (intervalRef.current) {

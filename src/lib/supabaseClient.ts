@@ -72,6 +72,31 @@ class ApiClient {
     }
   }
 
+  // Time synchronization
+  async getServerTime() {
+    return this.request('/time');
+  }
+
+  // Admin methods
+  async scheduleGameStart(startTime: string) {
+    return this.request('/admin/schedule', {
+      method: 'POST',
+      body: JSON.stringify({ startTime }),
+    });
+  }
+
+  async toggleCountdown(active: boolean) {
+    return this.request('/admin/toggle-countdown', {
+      method: 'POST',
+      body: JSON.stringify({ active }),
+    });
+  }
+
+  // Game settings
+  async getGameSettings() {
+    return this.request('/game/settings');
+  }
+
   // Auth methods
   async register(email: string, username: string, password: string, birthDate?: string, country?: string) {
     const body: any = { email, username, password };

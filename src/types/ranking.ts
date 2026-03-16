@@ -22,6 +22,8 @@ export interface UserProfile {
   id: string;
   user_id: string;
   username: string;
+  email?: string; // Adicionado para verificação de admin
+  is_admin?: boolean; // Adicionado para verificação de admin
   level: number;
   current_xp: number;
   faction: 'gangsters' | 'guardas';

@@ -44,7 +44,7 @@ const GlobalLayout: React.FC<GlobalLayoutProps> = ({ children }) => {
         {/* Adiciona padding na parte inferior para não sobrepor o conteúdo */}
         {children}
       </main>
-      <BottomNavBar navigateTo={navigateTo} />
+      <BottomNavBar navigateTo={navigateTo} userProfile={userProfile} />
     </div>
   );
 };

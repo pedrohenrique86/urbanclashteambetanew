@@ -1,4 +1,7 @@
 const express = require("express");
+const timeRoutes = require("./routes/time");
+const adminRoutes = require("./routes/admin"); // Importa as rotas de admin
+const gameRoutes = require("./routes/game"); // Importa as rotas do jogo
 const cors = require("cors");
 const path = require("path");
 const helmet = require("helmet");
@@ -36,7 +39,7 @@ app.use(
       }
     },
     credentials: true,
-  })
+  }),
 );
 
 // Rate limiting
@@ -60,6 +63,9 @@ app.use(express.urlencoded({ extended: true }));
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/clans", clanRoutes);
+app.use("/api/time", timeRoutes);
+app.use("/api/admin", adminRoutes); // Registra as rotas de admin
+app.use("/api/game", gameRoutes); // Registra as rotas do jogo
 
 // Rota de health check
 app.get("/health", (req, res) => {
