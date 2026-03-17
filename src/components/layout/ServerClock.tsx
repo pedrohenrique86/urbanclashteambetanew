@@ -4,7 +4,8 @@ import { apiClient } from "../../lib/supabaseClient";
 import { motion } from "framer-motion";
 
 const ServerClock: React.FC = () => {
-  const [serverTime, setServerTime] = useState<Date | null>(null);
+  const [timeOffset, setTimeOffset] = useState<number | null>(null);
+  const [displayTime, setDisplayTime] = useState<Date | null>(null);
   const [countdown, setCountdown] = useState({
     days: 20,
     hours: 0,
@@ -28,7 +29,10 @@ const ServerClock: React.FC = () => {
 
         setGameSettings(settings);
         if (timeResponse.serverTime) {
-          setServerTime(new Date(timeResponse.serverTime));
+          const serverNow = new Date(timeResponse.serverTime);
+          const offset = serverNow.getTime() - Date.now();
+          setTimeOffset(offset);
+          setDisplayTime(serverNow);
         } else {
           throw new Error("Formato de resposta do servidor inválido.");
         }
@@ -42,39 +46,35 @@ const ServerClock: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    if (!serverTime || !gameSettings) return;
-
-    const { game_start_time, is_countdown_active } = gameSettings;
-
-    if (!is_countdown_active) {
-      setStatusMessage("Contagem Pausada");
-      setCountdown({ days: 20, hours: 0, minutes: 0, seconds: 0 });
-      return; // Para o intervalo se a contagem for pausada
-    }
-
-    if (!game_start_time) {
-      setStatusMessage("Aguardando Agendamento");
-      return;
-    }
-
-    const startTime = new Date(game_start_time);
-    const gameEndDate = new Date(
-      startTime.getTime() + 20 * 24 * 60 * 60 * 1000,
-    );
+    if (timeOffset === null || !gameSettings) return;
 
     const interval = setInterval(() => {
-      setServerTime((prevTime) => {
-        const newTime = new Date(prevTime!.getTime() + 1000);
+      const now = new Date(Date.now() + timeOffset);
+      setDisplayTime(now);
 
-        if (newTime < startTime) {
-          setStatusMessage(
-            `Inicia em ${startTime.toLocaleDateString("pt-BR")}`,
-          );
-          return newTime;
-        }
+      const { game_start_time, is_countdown_active } = gameSettings;
 
+      if (!is_countdown_active) {
+        setStatusMessage("Contagem Pausada");
+        setCountdown({ days: 20, hours: 0, minutes: 0, seconds: 0 });
+        return;
+      }
+
+      if (!game_start_time) {
+        setStatusMessage("Aguardando Agendamento");
+        return;
+      }
+
+      const startTime = new Date(game_start_time);
+      const gameEndDate = new Date(
+        startTime.getTime() + 20 * 24 * 60 * 60 * 1000,
+      );
+
+      if (now < startTime) {
+        setStatusMessage(`Inicia em ${startTime.toLocaleDateString("pt-BR")}`);
+      } else {
         setStatusMessage("Fim do Jogo em:");
-        const timeLeft = gameEndDate.getTime() - newTime.getTime();
+        const timeLeft = gameEndDate.getTime() - now.getTime();
 
         if (timeLeft > 0) {
           const days = Math.floor(timeLeft / (1000 * 60 * 60 * 24));
@@ -90,12 +90,11 @@ const ServerClock: React.FC = () => {
           setCountdown({ days: 0, hours: 0, minutes: 0, seconds: 0 });
           setStatusMessage("Jogo Encerrado");
         }
-        return newTime;
-      });
+      }
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [serverTime, gameSettings]);
+  }, [timeOffset, gameSettings]);
 
   const formatTwoDigits = (num: number) => num.toString().padStart(2, "0");
 
@@ -103,7 +102,7 @@ const ServerClock: React.FC = () => {
     return <div className="text-red-500 text-xs font-semibold">{error}</div>;
   }
 
-  if (!serverTime) {
+  if (!displayTime) {
     return (
       <div className="text-gray-400 text-xs font-semibold">
         Carregando relógio...
@@ -150,7 +149,7 @@ const ServerClock: React.FC = () => {
       >
         <FaServer className="text-purple-400" />
         <span>
-          {serverTime.toLocaleTimeString("pt-BR", {
+          {displayTime.toLocaleTimeString("pt-BR", {
             timeZone: "America/Sao_Paulo",
           })}
         </span>
