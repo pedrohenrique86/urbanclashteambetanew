@@ -13,7 +13,7 @@ require("dotenv").config({ path: path.resolve(__dirname, "../.env") });
 const authRoutes = require("./routes/auth");
 const userRoutes = require("./routes/users");
 const clanRoutes = require("./routes/clans");
-const { connectDB, closePool } = require("./config/database");
+const { connectDB, closePool, query } = require("./config/database");
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -89,12 +89,50 @@ app.use("*", (req, res) => {
   res.status(404).json({ error: "Rota não encontrada" });
 });
 
+async function checkGameStart() {
+  try {
+    const configResult = await query("SELECT key, value FROM game_config");
+    const settings = configResult.rows.reduce((acc, row) => {
+      acc[row.key] = row.value;
+      return acc;
+    }, {});
+
+    const gameStartTime = settings.game_start_time;
+    const isCountdownActive = settings.is_countdown_active === "true";
+
+    // Se a contagem já está ativa ou não há agendamento, não faz nada
+    if (isCountdownActive || !gameStartTime) {
+      return;
+    }
+
+    const now = new Date();
+    const startTime = new Date(gameStartTime);
+
+    // Se a hora atual for maior ou igual à hora de início, ativa a contagem
+    if (now >= startTime) {
+      console.log(
+        "⏰ Hora de início do jogo alcançada! Ativando contagem regressiva...",
+      );
+      await query(
+        `INSERT INTO game_config (id, key, value)
+         VALUES (2, 'is_countdown_active', 'true')
+         ON CONFLICT (key) DO UPDATE SET value = 'true', updated_at = NOW()`,
+      );
+    }
+  } catch (error) {
+    console.error("❌ Erro ao verificar o início do jogo:", error);
+  }
+}
+
 // Inicializar servidor
 async function startServer() {
   try {
     // Conectar ao banco de dados
     await connectDB();
     console.log("✅ Conectado ao PostgreSQL");
+
+    // Iniciar o verificador de início de jogo
+    setInterval(checkGameStart, 60000); // Executa a cada 60 segundos
 
     // Iniciar servidor
     app.listen(PORT, () => {

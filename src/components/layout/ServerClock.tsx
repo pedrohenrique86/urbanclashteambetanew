@@ -45,8 +45,25 @@ const ServerClock: React.FC = () => {
     fetchInitialData();
   }, []);
 
+  // Polling de baixa frequência para as configurações do jogo
   useEffect(() => {
-    if (timeOffset === null || !gameSettings) return;
+    const fetchSettings = async () => {
+      try {
+        const settings = await apiClient.getGameSettings();
+        setGameSettings(settings);
+      } catch (err) {
+        console.error("Falha ao sincronizar configurações do jogo:", err);
+      }
+    };
+
+    const settingsPollInterval = setInterval(fetchSettings, 30000); // A cada 30 segundos
+
+    return () => clearInterval(settingsPollInterval);
+  }, []);
+
+  // Lógica do relógio e contagem regressiva (executa a cada segundo)
+  useEffect(() => {
+    if (timeOffset === null) return;
 
     const interval = setInterval(() => {
       const now = new Date(Date.now() + timeOffset);

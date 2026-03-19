@@ -168,10 +168,10 @@ const TopBar: React.FC<TopBarProps> = ({ userProfile }) => {
       <div
         className={`fixed top-0 left-0 right-0 z-50 ${themeClasses.cardBg} border-b ${themeClasses.border} bg-opacity-90 backdrop-blur-md`}
       >
-        <div className="w-full px-3 lg:px-4">
-          <div className="h-12 w-full flex items-center">
-            {/* Left: Brand + User */}
-            <div className="flex items-center gap-2 shrink-0">
+        <div className="w-full px-1 md:px-3 lg:px-4">
+          <div className="w-full flex flex-col md:flex-row items-center md:h-12">
+            {/* Top part on mobile, left part on desktop */}
+            <div className="flex items-center justify-between w-full md:w-auto shrink-0 h-12 px-2 md:px-0">
               <div className="flex items-center gap-2">
                 <span className="text-xs sm:text-sm font-orbitron whitespace-nowrap">
                   <span className="text-transparent bg-gradient-to-r from-orange-400 to-orange-600 bg-clip-text font-bold">
@@ -181,75 +181,34 @@ const TopBar: React.FC<TopBarProps> = ({ userProfile }) => {
                     CLASH
                   </span>
                 </span>
-                <div className="flex items-center gap-2 text-[12px] sm:text-sm whitespace-nowrap">
-                  <span
-                    className={`font-orbitron font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r ${usernameGradient}`}
-                  >
-                    {userProfile?.username || "Usuário"}
-                  </span>
-                </div>
+              </div>
+              <div className="flex items-center gap-2 text-[12px] sm:text-sm whitespace-nowrap">
+                <span
+                  className={`font-orbitron font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r ${usernameGradient}`}
+                >
+                  {userProfile?.username || "Usuário"}
+                </span>
               </div>
             </div>
-            {/* Center: Main metrics */}
-            <div className="flex-1 flex items-center justify-center gap-1.5 sm:gap-2 whitespace-nowrap">
-              {metricPills
-                .filter((p) => p.key !== "R$")
-                .map((p) => (
-                  <div
-                    key={p.key}
-                    className={`flex items-center rounded-md shadow ${
-                      p.color
-                    } ${p.textClass ?? "text-black"} ${
-                      p.size === "lg"
-                        ? "px-3 py-1 text-[12px] sm:text-sm"
-                        : "px-2 py-0.5 text-[11px] sm:text-xs"
-                    }`}
-                  >
-                    <span className="mr-1">{p.icon}</span>
-                    <span className="opacity-90 mr-0.5 hidden md:inline">
-                      {p.fullLabel}:
-                    </span>
-                    <span className="opacity-90 mr-0.5 md:hidden">
-                      {p.shortLabel}:
-                    </span>
-                    <span className="font-extrabold text-[13px] sm:text-sm tracking-tight">
-                      {p.value}
-                    </span>
-                  </div>
-                ))}
-            </div>
-            {/* Right: Edge metrics (Money) */}
-            <div className="flex items-center gap-1.5 sm:gap-2 whitespace-nowrap shrink-0">
-              {metricPills
-                .filter((p) => p.key === "R$")
-                .map((p) => (
-                  <div
-                    key={p.key}
-                    className={`flex items-center rounded-md shadow ${
-                      p.color
-                    } ${p.textClass ?? "text-black"} ${
-                      p.size === "lg"
-                        ? "px-3 py-1 text-[12px] sm:text-sm"
-                        : "px-2 py-0.5 text-[11px] sm:text-xs"
-                    }`}
-                  >
-                    <span className="mr-1">{p.icon}</span>
-                    <span className="opacity-90 mr-0.5 hidden md:inline">
-                      {p.fullLabel}:
-                    </span>
-                    <span className="opacity-90 mr-0.5 md:hidden">
-                      {p.shortLabel}:
-                    </span>
-                    <span className="font-extrabold text-[13px] sm:text-sm tracking-tight">
-                      {p.value}
-                    </span>
-                  </div>
-                ))}
+
+            {/* Metrics container - allows wrapping */}
+            <div className="w-full flex-1 flex flex-wrap items-center justify-center gap-1.5 sm:gap-2 pb-2 md:pb-0">
+              {metricPills.map((p) => (
+                <div
+                  key={p.key}
+                  className={`flex flex-shrink-0 items-center rounded-md shadow ${p.color} px-2 py-0.5 ${p.textClass} font-bold text-xs`}
+                  title={p.fullLabel}
+                >
+                  {p.icon}
+                  <span className="ml-1">{p.shortLabel}</span>
+                  <span className="ml-1.5">{p.value}</span>
+                </div>
+              ))}
             </div>
           </div>
         </div>
       </div>
-      <div className="h-12" />
+      <div className="h-24 md:h-12" />
     </>
   );
 };

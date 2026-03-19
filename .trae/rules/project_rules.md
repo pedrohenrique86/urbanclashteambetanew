@@ -5,6 +5,21 @@ Este documento define princípios operacionais obrigatórios para todas as inst�
 
 Padrões de Qualidade de Código
 
+## UI Responsiveness Rule
+
+All UI, layout, and frontend code MUST be responsive.
+
+Requirements:
+
+- Mobile-first design must be considered by default.
+- The interface must adapt to any screen size.
+- Layouts must work on mobile, tablet, laptop and large desktop screens.
+- Use flexible layouts (Flexbox or Grid).
+- Prefer relative units (%, rem, vw, vh) instead of fixed pixels.
+- Avoid fixed widths that break small screens.
+- Ensure touch-friendly spacing for mobile devices.
+- Prevent horizontal scrolling.
+
 Todos os scripts devem implementar tratamento estruturado de erros com modos de falha específicos.
 
 Cada função deve incluir uma docstring concisa e orientada a objetivos.
