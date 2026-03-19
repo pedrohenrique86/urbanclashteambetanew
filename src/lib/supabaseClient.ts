@@ -38,6 +38,9 @@ class ApiClient {
 
     try {
       const response = await fetch(url, config)
+      if (response.status === 304) {
+        return { __notModified: true, __etag: response.headers.get('ETag') || undefined }
+      }
 
       // Verificar se a resposta tem conteúdo antes de fazer o parsing
       const text = await response.text()
@@ -59,7 +62,8 @@ class ApiClient {
         throw new Error(errorMessage)
       }
 
-      return data
+      const etag = response.headers.get('ETag') || undefined
+      return etag ? { ...data, __etag: etag } : data
     } catch (error: unknown) {
       let errorMessage = 'An unknown error occurred'
       if (error instanceof Error) {

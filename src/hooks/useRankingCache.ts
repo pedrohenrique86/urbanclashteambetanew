@@ -59,8 +59,8 @@ export const useRankingCache = (fullRankings: boolean = false): UseRankingCacheR
   }, [fullRankings]);
 
   // 2. fetchRankings: Depende de saveToStorage
-  const fetchRankings = useCallback(async (): Promise<RankingData> => {
-    const apiData = fullRankings ? await fetchFullRankings() : await fetchAllRankings();
+  const fetchRankings = useCallback(async (force = false): Promise<RankingData> => {
+    const apiData = fullRankings ? await fetchFullRankings(force) : await fetchAllRankings(force);
     const rankingData: RankingData = {
       gangsters: apiData.gangsters || [],
       guardas: apiData.guardas || [],
@@ -139,7 +139,7 @@ export const useRankingCache = (fullRankings: boolean = false): UseRankingCacheR
             rankingData = await currentGlobalPromise;
             timestamp = currentGlobalTimestamp || Date.now();
           } else {
-            const newPromise = fetchRankings();
+            const newPromise = fetchRankings(forceRefresh);
             if (fullRankings) {
               globalPromiseFull = newPromise;
             } else {
@@ -159,7 +159,7 @@ export const useRankingCache = (fullRankings: boolean = false): UseRankingCacheR
       
       if (mountedRef.current) {
         setData(rankingData);
-        setLastUpdated(new Date(timestamp));
+        setLastUpdated(new Date());
       }
     } catch (err) {
       if (mountedRef.current) {
@@ -195,14 +195,11 @@ export const useRankingCache = (fullRankings: boolean = false): UseRankingCacheR
         const minutesToNextInterval = 10 - (minutes % 10);
         const delay = (minutesToNextInterval * 60 - seconds) * 1000 - milliseconds;
 
-        // Agenda a primeira atualização forçada e depois o intervalo regular
         const timeoutId = setTimeout(() => {
-          forceRefresh(); // Força a atualização no tempo certo
-          
-          // Limpa o timeout anterior e inicia o intervalo
+          forceRefresh();
           if (intervalRef.current) clearInterval(intervalRef.current); 
           intervalRef.current = setInterval(forceRefresh, CACHE_DURATION);
-        }, delay);
+        }, Math.max(0, delay));
 
         // Armazena o ID do timeout para limpeza
         if (intervalRef.current) clearTimeout(intervalRef.current);
@@ -225,6 +222,34 @@ export const useRankingCache = (fullRankings: boolean = false): UseRankingCacheR
       }
     };
   }, [loadRankings, forceRefresh]);
+
+  useEffect(() => {
+    const base = (import.meta as any).env?.VITE_API_URL || "/api";
+    let esUsers: EventSource | null = null;
+    let esClans: EventSource | null = null;
+    try {
+      const url = `${base}/users/rankings/subscribe`;
+      esUsers = new EventSource(url);
+      esUsers.addEventListener("rankings", () => {
+        forceRefresh();
+      });
+      const urlClans = `${base}/clans/rankings/subscribe`;
+      esClans = new EventSource(urlClans);
+      esClans.addEventListener("clans_rankings", () => {
+        forceRefresh();
+      });
+    } catch (e) { void e }
+    return () => {
+      if (esUsers) {
+        esUsers.close();
+        esUsers = null;
+      }
+      if (esClans) {
+        esClans.close();
+        esClans = null;
+      }
+    };
+  }, [forceRefresh]);
 
   return {
     data,

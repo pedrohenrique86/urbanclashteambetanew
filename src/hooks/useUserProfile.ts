@@ -80,24 +80,9 @@ export const useUserProfile = (shouldRedirect: boolean = true) => {
   }, [navigate, shouldRedirect, refreshTrigger]);
 
   const processExistingProfile = async (profileData: any, user: any) => {
-    
-    // Usar level do banco de dados, mas verificar se precisa atualizar xp_required
+    // Usar sempre o nível vindo do banco; não sobrescrever automaticamente
+    // Calcular informações de XP apenas para exibição local quando necessário
     const levelInfo = calculateLevel(profileData.current_xp || 0);
-    const shouldUpdateLevel = levelInfo.level !== profileData.level;
-    
-    // Se o nível calculado for diferente do armazenado, atualizar no banco
-    if (shouldUpdateLevel) {
-      try {
-        await apiClient.updateUserProfile({
-          level: levelInfo.level,
-          xp_required: levelInfo.xpForNextLevel
-        });
-        profileData.level = levelInfo.level;
-        profileData.xp_required = levelInfo.xpForNextLevel;
-      } catch (error) {
-        // Error handling silently
-      }
-    }
     
     // Usar os pontos de ação diretamente do banco de dados sem resetar
     const actionPoints = profileData.action_points;
@@ -112,8 +97,8 @@ export const useUserProfile = (shouldRedirect: boolean = true) => {
       username: profileData.username || 'Usuário', // username vem da tabela users via API
       created_at: profileData.created_at,
       current_xp: profileData.current_xp,
-      level: profileData.level, // Usar level do banco de dados
-      xp_required: profileData.xp_required, // Usar xp_required do banco
+      level: Number(profileData.level ?? levelInfo.level),
+      xp_required: Number(profileData.xp_required ?? levelInfo.xpForNextLevel),
       resources: profileData.money,
       money: profileData.money, // Adicionar campo money diretamente
       wins: profileData.victories,

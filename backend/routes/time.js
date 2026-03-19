@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const { query } = require('../config/database');
 
 /**
  * @swagger
@@ -21,8 +22,13 @@ const router = express.Router();
  *                   format: date-time
  *                   example: "2023-10-27T10:30:00.000Z"
  */
-router.get('/', (req, res) => {
-  res.json({ serverTime: new Date().toISOString() });
+router.get('/', async (req, res) => {
+  try {
+    const result = await query('SELECT NOW() as now');
+    res.json({ serverTime: result.rows[0].now });
+  } catch (error) {
+    res.json({ serverTime: new Date().toISOString() });
+  }
 });
 
 module.exports = router;

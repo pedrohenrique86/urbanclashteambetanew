@@ -1,9 +1,23 @@
 const express = require("express");
+const crypto = require("crypto");
 const { body, validationResult } = require("express-validator");
 const { query, transaction } = require("../config/database");
 const { authenticateToken } = require("../middleware/auth");
 
 const router = express.Router();
+
+const clansSseClients = new Set();
+function broadcastClansRankingsUpdate(payload) {
+  const data = JSON.stringify(payload || {});
+  clansSseClients.forEach((res) => {
+    try {
+      res.write(`event: clans_rankings\n`);
+      res.write(`data: ${data}\n\n`);
+    } catch (e) {
+      void e;
+    }
+  });
+}
 
 // Validações
 const createClanValidation = [
@@ -157,12 +171,102 @@ router.get("/by-faction/:faction", async (req, res) => {
   }
 });
 
+const CLANS_CACHE_TTL_MS = 10 * 60 * 1000;
+const clansCache = new Map();
+function getClansCacheKey(params) {
+  const limit = params?.limit || 26;
+  return `clans:${limit}`;
+}
+function getCachedClans(params) {
+  const key = getClansCacheKey(params);
+  const entry = clansCache.get(key);
+  if (entry && (Date.now() - entry.timestamp) < CLANS_CACHE_TTL_MS) {
+    return entry;
+  }
+  return null;
+}
+function computeETag(data) {
+  const h = crypto.createHash("sha1");
+  h.update(JSON.stringify(data));
+  return `W/"${h.digest("hex")}"`;
+}
+function setCachedClans(params, data) {
+  const key = getClansCacheKey(params);
+  const etag = computeETag(data);
+  clansCache.set(key, { data, etag, timestamp: Date.now() });
+}
+async function refreshClansCache(limit) {
+  const rankingResult = await query(
+    `
+    SELECT 
+      c.id,
+      c.name,
+      c.faction,
+      c.points as score,
+      c.created_at,
+      c.updated_at,
+      COUNT(cm.id) as member_count,
+      ROW_NUMBER() OVER (ORDER BY c.points DESC, COUNT(cm.id) DESC) as rank
+    FROM clans c
+    LEFT JOIN clan_members cm ON c.id = cm.clan_id
+    GROUP BY c.id, c.name, c.faction, c.points, c.created_at, c.updated_at
+    ORDER BY c.points DESC, COUNT(cm.id) DESC
+    LIMIT $1
+  `,
+    [limit],
+  );
+  setCachedClans({ limit }, rankingResult.rows);
+  broadcastClansRankingsUpdate({ limit });
+}
+function scheduleClansRefresh() {
+  query('SELECT NOW() as now')
+    .then((result) => {
+      const now = new Date(result.rows[0].now);
+      const minutes = now.getMinutes();
+      const seconds = now.getSeconds();
+      const milliseconds = now.getMilliseconds();
+      const minutesToNextInterval = 10 - (minutes % 10);
+      const delay = (minutesToNextInterval * 60 - seconds) * 1000 - milliseconds;
+      setTimeout(async () => {
+        try {
+          await refreshClansCache(26);
+        } catch (e) {
+          void e;
+        } finally {
+          scheduleClansRefresh();
+        }
+      }, Math.max(0, delay));
+    })
+    .catch(() => {
+      setTimeout(async () => {
+        try {
+          await refreshClansCache(26);
+        } catch (e) {
+          void e;
+        } finally {
+          scheduleClansRefresh();
+        }
+      }, CLANS_CACHE_TTL_MS);
+    });
+}
+scheduleClansRefresh();
+
 // GET /api/clans/rankings - Ranking de clãs
 router.get("/rankings", async (req, res) => {
   try {
-    console.log("🔍 Buscando ranking de clãs...");
     const { limit = 26 } = req.query;
-    console.log("📊 Limite:", limit);
+    const cached = getCachedClans({ limit });
+    if (cached) {
+      const ifNoneMatch = req.headers["if-none-match"];
+      if (ifNoneMatch && ifNoneMatch === cached.etag) {
+        res.set("Cache-Control", "public, max-age=600");
+        res.set("ETag", cached.etag);
+        return res.status(304).end();
+      }
+      res.set("Cache-Control", "public, max-age=600");
+      res.set("ETag", cached.etag);
+      return res.json({ clans: cached.data });
+    }
 
     const rankingResult = await query(
       `
@@ -184,15 +288,28 @@ router.get("/rankings", async (req, res) => {
       [limit],
     );
 
-    console.log("✅ Ranking encontrado:", rankingResult.rows.length, "clãs");
-    res.json({
-      clans: rankingResult.rows,
-    });
+    setCachedClans({ limit }, rankingResult.rows);
+    const entry = getCachedClans({ limit });
+    res.set("Cache-Control", "public, max-age=600");
+    res.set("ETag", entry?.etag || computeETag(rankingResult.rows));
+    res.json({ clans: rankingResult.rows });
   } catch (error) {
-    console.error("❌ Erro ao buscar ranking de clãs:", error.message);
-    console.error("❌ Stack trace:", error.stack);
     res.status(500).json({ error: "Erro interno do servidor" });
   }
+});
+
+router.get("/rankings/subscribe", (req, res) => {
+  res.set({
+    "Content-Type": "text/event-stream",
+    "Cache-Control": "no-cache",
+    Connection: "keep-alive",
+  });
+  res.flushHeaders && res.flushHeaders();
+  res.write("\n");
+  clansSseClients.add(res);
+  req.on("close", () => {
+    clansSseClients.delete(res);
+  });
 });
 
 // GET /api/clans/:id - Obter detalhes do clã
