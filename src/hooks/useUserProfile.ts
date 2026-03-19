@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { apiClient } from '../lib/supabaseClient';
 import { UserProfile } from '../types';
-import { applyFactionDefaults, isMoreThan24HoursAgo } from '../utils/faction';
 import { calculateLevel } from '../utils/leveling';
 
 // Função global para invalidar cache do perfil
@@ -10,7 +9,6 @@ let invalidateProfileCache: (() => void) | null = null;
 
 export const invalidateUserProfile = () => {
   if (invalidateProfileCache) {
-    console.log('🔄 Invalidando cache do perfil do usuário...');
     invalidateProfileCache();
   }
 };
@@ -48,42 +46,27 @@ export const useUserProfile = (shouldRedirect: boolean = true) => {
         const userResponse = await apiClient.getCurrentUser();
         
         if (!userResponse.data.user) {
-          console.log('Usuário não autenticado');
           if (isMounted && shouldRedirect) navigate('/');
           if (isMounted) setLoading(false);
           return;
         }
         
         const user = userResponse.data.user;
-        console.log('👤 useUserProfile - Buscando dados do perfil...');
         const profileData = await apiClient.getUserProfile();
-        
-        console.log('📊 useUserProfile - Dados recebidos da API:', {
-          faction: profileData?.faction,
-          clan_id: profileData?.clan_id,
-          username: profileData?.username
-        });
         
         if (profileData?.faction) {
           const processedProfile = await processExistingProfile(profileData, user);
-          console.log('✅ useUserProfile - Perfil processado:', {
-            faction: processedProfile.faction,
-            clan_id: processedProfile.clan_id,
-            username: processedProfile.username
-          });
           if (isMounted) setUserProfile(processedProfile);
         } else if (user.user_metadata?.faction) {
           const newProfile = await createNewProfile(user);
           if (isMounted && newProfile) setUserProfile(newProfile);
         } else {
-          console.log('Usuário sem facção');
           if (isMounted && shouldRedirect) {
-            console.log('Redirecionando para página de seleção de facção');
             window.location.href = '/faction-selection';
           }
         }
       } catch (error) {
-        console.error('Erro ao verificar usuário:', error);
+        // Error handling silently
       } finally {
         if (isMounted) setLoading(false);
       }
@@ -112,12 +95,12 @@ export const useUserProfile = (shouldRedirect: boolean = true) => {
         profileData.level = levelInfo.level;
         profileData.xp_required = levelInfo.xpForNextLevel;
       } catch (error) {
-        console.error('Erro ao atualizar level:', error);
+        // Error handling silently
       }
     }
     
     // Usar os pontos de ação diretamente do banco de dados sem resetar
-    let actionPoints = profileData.action_points;
+    const actionPoints = profileData.action_points;
     
     const userProfileData = {
       id: profileData.id ? profileData.id.toString() : profileData.user_id,
@@ -165,7 +148,6 @@ export const useUserProfile = (shouldRedirect: boolean = true) => {
       const profileData = await apiClient.createUserProfile(newProfile);
         
       if (!profileData) {
-        console.error('Erro ao criar perfil');
         return null;
       }
       
@@ -203,7 +185,6 @@ export const useUserProfile = (shouldRedirect: boolean = true) => {
       
       return userProfileData;
     } catch (error) {
-      console.error('Erro ao criar perfil:', error);
       return null;
     }
   };

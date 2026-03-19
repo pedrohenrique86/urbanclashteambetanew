@@ -38,7 +38,6 @@ const ServerClock: React.FC = () => {
         }
       } catch (err) {
         setError("Falha ao buscar dados do servidor.");
-        console.error(err);
       }
     };
 
@@ -52,11 +51,11 @@ const ServerClock: React.FC = () => {
         const settings = await apiClient.getGameSettings();
         setGameSettings(settings);
       } catch (err) {
-        console.error("Falha ao sincronizar configurações do jogo:", err);
+        // Falha ao buscar configurações é ignorada silenciosamente no polling
       }
     };
 
-    const settingsPollInterval = setInterval(fetchSettings, 30000); // A cada 30 segundos
+    const settingsPollInterval = setInterval(fetchSettings, 5000); // A cada 5 segundos
 
     return () => clearInterval(settingsPollInterval);
   }, []);

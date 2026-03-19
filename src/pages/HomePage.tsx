@@ -69,7 +69,7 @@ export default function HomePage() {
         </div>
       </nav>
 
-      <HeroSection openAuthModal={openAuthModal} />
+      <HeroSection />
 
       <FactionsSection />
 

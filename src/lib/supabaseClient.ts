@@ -38,11 +38,11 @@ class ApiClient {
 
     try {
       const response = await fetch(url, config)
-      
+
       // Verificar se a resposta tem conteúdo antes de fazer o parsing
       const text = await response.text()
       let data
-      
+
       if (text) {
         try {
           data = JSON.parse(text)
@@ -55,19 +55,27 @@ class ApiClient {
       }
 
       if (!response.ok) {
-        throw new Error(data.error || `HTTP error! status: ${response.status}`)
+        const errorMessage = data?.error || `HTTP error! status: ${response.status}`
+        throw new Error(errorMessage)
       }
 
       return data
-    } catch (error: any) {
+    } catch (error: unknown) {
+      let errorMessage = 'An unknown error occurred'
+      if (error instanceof Error) {
+        errorMessage = error.message
+      }
+
       // Não logar erros 404 para rotas de perfil, pois são esperados para novos usuários
-      const is404Error = error.message?.includes('404') || error.message?.includes('Perfil não encontrado')
+      const is404Error =
+        errorMessage.includes('404') ||
+        errorMessage.includes('Perfil não encontrado')
       const isProfileRoute = url.includes('/users/profile')
-      
+
       if (!(is404Error && isProfileRoute)) {
         console.error('API request failed:', error)
       }
-      
+
       throw error
     }
   }
@@ -85,10 +93,9 @@ class ApiClient {
     });
   }
 
-  async toggleCountdown(active: boolean) {
-    return this.request('/admin/toggle-countdown', {
+  async stopGameTime() {
+    return this.request('/admin/stop-time', {
       method: 'POST',
-      body: JSON.stringify({ active }),
     });
   }
 
@@ -99,7 +106,7 @@ class ApiClient {
 
   // Auth methods
   async register(email: string, username: string, password: string, birthDate?: string, country?: string) {
-    const body: any = { email, username, password };
+    const body: Record<string, string> = { email, username, password };
     
     if (birthDate) {
       body.birth_date = birthDate;
@@ -181,7 +188,7 @@ class ApiClient {
     return this.request(`/users/${id}`)
   }
 
-  async updateProfile(id: string, profileData: any) {
+  async updateProfile(id: string, profileData: Record<string, unknown>) {
     return this.request(`/users/${id}/profile`, {
       method: 'PUT',
       body: JSON.stringify(profileData),
@@ -195,7 +202,7 @@ class ApiClient {
     })
   }
 
-  async getUsers(params: any = {}) {
+  async getUsers(params: Record<string, string> = {}) {
     const queryString = new URLSearchParams(params).toString()
     return this.request(`/users?${queryString}`)
   }
@@ -206,7 +213,7 @@ class ApiClient {
   }
 
   // Clan methods
-  async getClans(params: any = {}) {
+  async getClans(params: Record<string, string> = {}) {
     const queryString = new URLSearchParams(params).toString()
     return this.request(`/clans?${queryString}`)
   }
@@ -215,14 +222,14 @@ class ApiClient {
     return this.request(`/clans/${id}`)
   }
 
-  async createClan(clanData: any) {
+  async createClan(clanData: Record<string, unknown>) {
     return this.request('/clans', {
       method: 'POST',
       body: JSON.stringify(clanData),
     })
   }
 
-  async updateClan(id: string, clanData: any) {
+  async updateClan(id: string, clanData: Record<string, unknown>) {
     return this.request(`/clans/${id}`, {
       method: 'PUT',
       body: JSON.stringify(clanData),
@@ -283,14 +290,14 @@ class ApiClient {
     return this.request('/users/profile')
   }
 
-  async updateUserProfile(profileData: any) {
+  async updateUserProfile(profileData: Record<string, unknown>) {
     return this.request('/users/profile', {
       method: 'PUT',
       body: JSON.stringify(profileData),
     })
   }
 
-  async createUserProfile(profileData: any) {
+  async createUserProfile(profileData: Record<string, unknown>) {
     return this.request('/users/profile', {
       method: 'POST',
       body: JSON.stringify(profileData),

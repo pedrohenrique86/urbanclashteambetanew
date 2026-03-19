@@ -1,21 +1,55 @@
 const fs = require("fs");
+const path = require("path");
 
-function load(file) {
-  return fs.readFileSync(file, "utf-8");
+// caminho do rules master
+const RULES_PATH = path.join(__dirname, "../rules.master.md");
+
+// carregar rules
+function loadRules() {
+  if (!fs.existsSync(RULES_PATH)) {
+    throw new Error("rules.master.md não encontrado");
+  }
+  return fs.readFileSync(RULES_PATH, "utf-8");
 }
 
-const system = load("config/ai/system.md");
-const rules = load("config/rules.md");
-const guard = load("config/guard.md");
+// execução principal
+async function runAI(prompt) {
+  const rules = loadRules();
 
-const fullPrompt = `
-${system}
+  const messages = [
+    {
+      role: "system",
+      content: rules
+    },
+    {
+      role: "user",
+      content: prompt
+    }
+  ];
 
-REGRAS:
-${rules}
+  const response = await callYourAI(messages);
 
-GUARD:
-${guard}
-`;
+  return response;
+}
 
-console.log(fullPrompt);
+// 🔌 conecta aqui com sua IA (Gemini)
+async function callYourAI(messages) {
+  console.log("🧠 Enviando para IA com rules.master.md...");
+
+  // aqui você coloca sua integração real com Gemini
+  // exemplo mock:
+  return "RESPOSTA DA IA";
+}
+
+// pegar argumento do terminal
+const userPrompt = process.argv.slice(2).join(" ");
+
+if (!userPrompt) {
+  console.log("❌ Digite um prompt");
+  process.exit(1);
+}
+
+runAI(userPrompt).then((res) => {
+  console.log("\n🚀 RESPOSTA:\n");
+  console.log(res);
+});

@@ -1,10 +1,8 @@
-import React, { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import React, { useEffect, useState } from "react";
+import { motion } from "framer-motion";
 import { useLocation, useNavigate } from "react-router-dom";
-import { useTheme } from "../contexts/ThemeContext";
 import { useUserProfile, invalidateUserProfile } from "../hooks/useUserProfile";
 import { redirectToDashboardWithCleanup } from "../utils/cacheUtils";
-import { apiClient } from "../lib/supabaseClient";
 
 interface Clan {
   id: string;
@@ -35,47 +33,44 @@ export default function ClanSelectionPage() {
       navigate("/faction-selection");
       return;
     }
-    fetchClans();
-  }, [selectedFaction]);
 
-  const fetchClans = async () => {
-    try {
-      const response = await fetch(
-        `http://localhost:3001/api/clans/by-faction/${selectedFaction}`
-      );
-      if (!response.ok) {
-        throw new Error("Erro ao carregar clãs");
-      }
-      const text = await response.text();
-      let data: { clans?: any[] } = {};
-      if (text) {
-        try {
-          data = JSON.parse(text);
-        } catch (e) {
-          console.error("Invalid JSON response:", text);
-          throw new Error("Resposta inválida do servidor");
+    const fetchClans = async () => {
+      try {
+        const response = await fetch(
+          `http://localhost:3001/api/clans/by-faction/${selectedFaction}`,
+        );
+        if (!response.ok) {
+          throw new Error("Erro ao carregar clãs");
         }
+        const text = await response.text();
+        let data: { clans?: any[] } = {};
+        if (text) {
+          try {
+            data = JSON.parse(text);
+          } catch (e) {
+            throw new Error("Resposta inválida do servidor");
+          }
+        }
+        setClans(data.clans || []);
+      } catch (error) {
+        setError("Erro ao carregar clãs. Tente novamente.");
+      } finally {
+        setLoading(false);
       }
-      setClans(data.clans || []);
-    } catch (error) {
-      console.error("Erro ao carregar clãs:", error);
-      setError("Erro ao carregar clãs. Tente novamente.");
-    } finally {
-      setLoading(false);
-    }
-  };
+    };
+
+    fetchClans();
+  }, [selectedFaction, navigate]);
 
   const handleJoinClan = async () => {
     if (!selectedClan) return;
 
-    console.log("🔄 Iniciando processo de entrada no clã:", selectedClan);
     setJoining(true);
     setProcessing(true);
     setError("");
 
     try {
       const token = localStorage.getItem("auth_token");
-      console.log("🔑 Token encontrado:", !!token);
 
       const response = await fetch(
         `http://localhost:3001/api/clans/${selectedClan}/join`,
@@ -85,10 +80,8 @@ export default function ClanSelectionPage() {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
-        }
+        },
       );
-
-      console.log("📡 Resposta da API:", response.status, response.statusText);
 
       if (!response.ok) {
         const errorText = await response.text();
@@ -97,13 +90,11 @@ export default function ClanSelectionPage() {
           try {
             errorData = JSON.parse(errorText);
           } catch (e) {
-            console.error("Invalid JSON in error response:", errorText);
+            // Ignore JSON parse error
           }
         }
         throw new Error(errorData.error || "Erro ao entrar no clã");
       }
-
-      console.log("✅ Entrada no clã bem-sucedida!");
 
       // Invalidar cache do hook
       invalidateUserProfile();
@@ -114,9 +105,8 @@ export default function ClanSelectionPage() {
       // Redirecionar com limpeza completa
       redirectToDashboardWithCleanup();
     } catch (error) {
-      console.error("❌ Erro ao entrar no clã:", error);
       setError(
-        error instanceof Error ? error.message : "Erro ao entrar no clã"
+        error instanceof Error ? error.message : "Erro ao entrar no clã",
       );
     } finally {
       setJoining(false);
@@ -167,7 +157,7 @@ export default function ClanSelectionPage() {
             <div className="flex items-center justify-center gap-2">
               <div
                 className={`w-3 h-3 rounded-full bg-gradient-to-r ${getFactionColor(
-                  selectedFaction
+                  selectedFaction,
                 )}`}
               ></div>
               <span className="text-gray-300 font-medium">
@@ -197,11 +187,13 @@ export default function ClanSelectionPage() {
                 const banKey = `clan_banlist:${clan.id}`;
                 const banObj = JSON.parse(localStorage.getItem(banKey) || "{}");
                 const uid = String(
-                  userProfile?.user_id || userProfile?.id || ""
+                  userProfile?.user_id || userProfile?.id || "",
                 );
                 const exp = banObj?.[uid];
                 isBannedForUser = !!exp && new Date(exp).getTime() > Date.now();
-              } catch {}
+              } catch (e) {
+                // Ignore ban check error
+              }
               const canJoin = clan.is_recruiting && !isFull && !isBannedForUser;
               const memberPercentage =
                 (clan.member_count / clan.max_members) * 100;
@@ -221,11 +213,11 @@ export default function ClanSelectionPage() {
                   ${
                     isSelected
                       ? `bg-gradient-to-br ${getFactionColor(
-                          selectedFaction
+                          selectedFaction,
                         )} shadow-2xl shadow-blue-500/25`
                       : canJoin
-                      ? "bg-gray-800/80 hover:bg-gray-700/80 border border-gray-600/50 hover:border-gray-500/70"
-                      : "bg-gray-900/60 border border-gray-700/30 opacity-60 cursor-not-allowed"
+                        ? "bg-gray-800/80 hover:bg-gray-700/80 border border-gray-600/50 hover:border-gray-500/70"
+                        : "bg-gray-900/60 border border-gray-700/30 opacity-60 cursor-not-allowed"
                   }
                   rounded-xl backdrop-blur-sm overflow-hidden
                 `}
@@ -269,8 +261,8 @@ export default function ClanSelectionPage() {
                           memberPercentage >= 100
                             ? "text-red-400"
                             : memberPercentage >= 80
-                            ? "text-yellow-400"
-                            : "text-green-400"
+                              ? "text-yellow-400"
+                              : "text-green-400"
                         }`}
                       >
                         {clan.member_count}/{clan.max_members}
@@ -290,10 +282,10 @@ export default function ClanSelectionPage() {
                           memberPercentage >= 100
                             ? "bg-gradient-to-r from-red-500 to-red-600"
                             : memberPercentage >= 80
-                            ? "bg-gradient-to-r from-yellow-500 to-orange-500"
-                            : `bg-gradient-to-r from-${getFactionAccentColor(
-                                selectedFaction
-                              )} to-${getFactionAccentColor(selectedFaction)}`
+                              ? "bg-gradient-to-r from-yellow-500 to-orange-500"
+                              : `bg-gradient-to-r from-${getFactionAccentColor(
+                                  selectedFaction,
+                                )} to-${getFactionAccentColor(selectedFaction)}`
                         }`}
                       />
                     </div>
@@ -352,7 +344,7 @@ export default function ClanSelectionPage() {
               ${
                 selectedClan && !joining && !processing
                   ? `bg-gradient-to-r ${getFactionColor(
-                      selectedFaction
+                      selectedFaction,
                     )} text-white shadow-lg hover:shadow-xl border border-white/20`
                   : "bg-gray-700/50 text-gray-500 cursor-not-allowed border border-gray-600/30"
               }

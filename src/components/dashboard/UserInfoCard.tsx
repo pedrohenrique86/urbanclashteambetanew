@@ -1,8 +1,23 @@
-import React from 'react';
-import { getCriticalChanceExplanation, getCriticalDamageExplanation } from '../../utils/combat';
+import React from "react";
+import {
+  getCriticalChanceExplanation,
+  getCriticalDamageExplanation,
+} from "../../utils/combat";
+
+interface UserProfile {
+  username?: string;
+  level?: number;
+  energy?: number;
+  current_xp?: number;
+  action_points?: number;
+  attack?: number;
+  defense?: number;
+  focus?: number;
+  money?: number;
+}
 
 interface UserInfoCardProps {
-  userProfile: any;
+  userProfile: UserProfile;
   combatStats: {
     criticalChance: number;
     criticalDamage: number;
@@ -23,7 +38,12 @@ interface UserInfoCardProps {
   compact?: boolean;
 }
 
-const UserInfoCard: React.FC<UserInfoCardProps> = ({ userProfile, combatStats, themeClasses, compact = false }) => {
+const UserInfoCard: React.FC<UserInfoCardProps> = ({
+  userProfile,
+  combatStats,
+  themeClasses,
+  compact = false,
+}) => {
   if (compact) {
     return (
       <div className="user-info-compact">
@@ -34,66 +54,112 @@ const UserInfoCard: React.FC<UserInfoCardProps> = ({ userProfile, combatStats, t
           </p>
         </div>
         {/* Grade compacta de stats 2x5 com bordas */}
-        <div className={`grid grid-cols-2 gap-1 text-xs border ${themeClasses.border} rounded p-1`}>
+        <div
+          className={`grid grid-cols-2 gap-1 text-xs border ${themeClasses.border} rounded p-1`}
+        >
           {/* Linha 1 */}
-          <div className={`bg-gray-800/20 rounded p-1 text-center border-r ${themeClasses.border}`}>
+          <div
+            className={`bg-gray-800/20 rounded p-1 text-center border-r ${themeClasses.border}`}
+          >
             <div className={`${themeClasses.textSecondary} text-xs`}>Nível</div>
             <div className="font-bold text-green-400">{userProfile?.level}</div>
           </div>
           <div className="bg-gray-800/20 rounded p-1 text-center">
-            <div className={`${themeClasses.textSecondary} text-xs`}>Energia</div>
-            <div className="font-bold text-orange-400">{userProfile?.energy}</div>
+            <div className={`${themeClasses.textSecondary} text-xs`}>
+              Energia
+            </div>
+            <div className="font-bold text-orange-400">
+              {userProfile?.energy}
+            </div>
           </div>
-          
+
           {/* Linha 2 */}
-          <div className={`bg-gray-800/20 rounded p-1 text-center border-r border-t ${themeClasses.border}`}>
+          <div
+            className={`bg-gray-800/20 rounded p-1 text-center border-r border-t ${themeClasses.border}`}
+          >
             <div className={`${themeClasses.textSecondary} text-xs`}>XP</div>
-            <div className="font-bold text-purple-400">{userProfile?.current_xp}</div>
+            <div className="font-bold text-purple-400">
+              {userProfile?.current_xp}
+            </div>
           </div>
-          <div className={`bg-gray-800/20 rounded p-1 text-center border-t ${themeClasses.border}`}>
-            <div className={`${themeClasses.textSecondary} text-xs`}>Pontos de Ação</div>
-            <div className="font-bold text-green-400">{userProfile?.action_points?.toLocaleString('pt-BR')}</div>
+          <div
+            className={`bg-gray-800/20 rounded p-1 text-center border-t ${themeClasses.border}`}
+          >
+            <div className={`${themeClasses.textSecondary} text-xs`}>
+              Pontos de Ação
+            </div>
+            <div className="font-bold text-green-400">
+              {userProfile?.action_points?.toLocaleString("pt-BR")}
+            </div>
           </div>
-          
+
           {/* Linha 3 */}
-          <div className={`bg-gray-800/20 rounded p-1 text-center border-r border-t ${themeClasses.border}`}>
-            <div className={`${themeClasses.textSecondary} text-xs`}>Ataque</div>
+          <div
+            className={`bg-gray-800/20 rounded p-1 text-center border-r border-t ${themeClasses.border}`}
+          >
+            <div className={`${themeClasses.textSecondary} text-xs`}>
+              Ataque
+            </div>
             <div className="font-bold text-red-400">{userProfile?.attack}</div>
           </div>
-          <div className={`bg-gray-800/20 rounded p-1 text-center border-t ${themeClasses.border}`}>
-            <div className={`${themeClasses.textSecondary} text-xs`}>Defesa</div>
-            <div className="font-bold text-blue-400">{userProfile?.defense}</div>
+          <div
+            className={`bg-gray-800/20 rounded p-1 text-center border-t ${themeClasses.border}`}
+          >
+            <div className={`${themeClasses.textSecondary} text-xs`}>
+              Defesa
+            </div>
+            <div className="font-bold text-blue-400">
+              {userProfile?.defense}
+            </div>
           </div>
-          
+
           {/* Linha 4 */}
-          <div className={`bg-gray-800/20 rounded p-1 text-center border-r border-t ${themeClasses.border}`}>
+          <div
+            className={`bg-gray-800/20 rounded p-1 text-center border-r border-t ${themeClasses.border}`}
+          >
             <div className={`${themeClasses.textSecondary} text-xs`}>Foco</div>
-            <div className="font-bold text-purple-400">{userProfile?.focus}</div>
+            <div className="font-bold text-purple-400">
+              {userProfile?.focus}
+            </div>
           </div>
-          <div className={`bg-gray-800/20 rounded p-1 text-center border-t ${themeClasses.border}`}>
-            <div className={`${themeClasses.textSecondary} text-xs`}>Dinheiro</div>
-            <div className="font-bold text-yellow-400">${(userProfile?.money || 0).toLocaleString('pt-BR')}</div>
+          <div
+            className={`bg-gray-800/20 rounded p-1 text-center border-t ${themeClasses.border}`}
+          >
+            <div className={`${themeClasses.textSecondary} text-xs`}>
+              Dinheiro
+            </div>
+            <div className="font-bold text-yellow-400">
+              ${(userProfile?.money || 0).toLocaleString("pt-BR")}
+            </div>
           </div>
-          
+
           {/* Linha 5 */}
-          <div 
+          <div
             className={`bg-gray-800/20 rounded p-1 text-center border-r border-t ${themeClasses.border} cursor-help`}
             title={getCriticalChanceExplanation(userProfile?.focus || 0)}
           >
-            <div className={`${themeClasses.textSecondary} text-xs`}>Chance Crítico</div>
-            <div className="font-bold text-pink-400">{combatStats.criticalChance.toFixed(0)}%</div>
+            <div className={`${themeClasses.textSecondary} text-xs`}>
+              Chance Crítico
+            </div>
+            <div className="font-bold text-pink-400">
+              {combatStats.criticalChance.toFixed(0)}%
+            </div>
           </div>
-          <div 
+          <div
             className={`bg-gray-800/20 rounded p-1 text-center border-t ${themeClasses.border} cursor-help`}
-            title={getCriticalDamageExplanation(userProfile?.attack || 0, userProfile?.focus || 0)}
+            title={getCriticalDamageExplanation(
+              userProfile?.attack || 0,
+              userProfile?.focus || 0,
+            )}
           >
-            <div className={`${themeClasses.textSecondary} text-xs`}>Dano Crítico</div>
-            <div className="font-bold text-pink-400">{combatStats.criticalDamage.toFixed(1)}</div>
+            <div className={`${themeClasses.textSecondary} text-xs`}>
+              Dano Crítico
+            </div>
+            <div className="font-bold text-pink-400">
+              {combatStats.criticalDamage.toFixed(1)}
+            </div>
           </div>
-          
-
         </div>
-
       </div>
     );
   }
@@ -123,69 +189,106 @@ const UserInfoCard: React.FC<UserInfoCardProps> = ({ userProfile, combatStats, t
       <div className="stats-grid grid grid-cols-2 gap-3">
         {/* Linha 1 */}
         <div className="stat-item bg-gray-800/50 rounded-lg p-3 text-center">
-          <div className={`${themeClasses.textSecondary} text-xs mb-1`}>Nível</div>
-          <div className="font-bold text-green-400 text-lg">{userProfile?.level}</div>
+          <div className={`${themeClasses.textSecondary} text-xs mb-1`}>
+            Nível
+          </div>
+          <div className="font-bold text-green-400 text-lg">
+            {userProfile?.level}
+          </div>
         </div>
-        
+
         <div className="stat-item bg-gray-800/50 rounded-lg p-3 text-center">
-          <div className={`${themeClasses.textSecondary} text-xs mb-1`}>Energia</div>
-          <div className="font-bold text-orange-400 text-lg">{userProfile?.energy}</div>
+          <div className={`${themeClasses.textSecondary} text-xs mb-1`}>
+            Energia
+          </div>
+          <div className="font-bold text-orange-400 text-lg">
+            {userProfile?.energy}
+          </div>
         </div>
 
         {/* Linha 2 */}
         <div className="stat-item bg-gray-800/50 rounded-lg p-3 text-center">
-            <div className={`${themeClasses.textSecondary} text-xs mb-1`}>XP</div>
-            <div className="font-bold text-purple-400 text-lg">{userProfile?.current_xp}</div>
+          <div className={`${themeClasses.textSecondary} text-xs mb-1`}>XP</div>
+          <div className="font-bold text-purple-400 text-lg">
+            {userProfile?.current_xp}
           </div>
-        
+        </div>
+
         <div className="stat-item bg-gray-800/50 rounded-lg p-3 text-center">
-            <div className={`${themeClasses.textSecondary} text-xs mb-1`}>Pontos de Ação</div>
-            <div className="font-bold text-green-400 text-lg">{userProfile?.action_points?.toLocaleString('pt-BR')}</div>
+          <div className={`${themeClasses.textSecondary} text-xs mb-1`}>
+            Pontos de Ação
           </div>
+          <div className="font-bold text-green-400 text-lg">
+            {userProfile?.action_points?.toLocaleString("pt-BR")}
+          </div>
+        </div>
 
         {/* Linha 3 */}
         <div className="stat-item bg-gray-800/50 rounded-lg p-3 text-center">
-          <div className={`${themeClasses.textSecondary} text-xs mb-1`}>Ataque</div>
-          <div className="font-bold text-red-400 text-lg">{userProfile?.attack}</div>
+          <div className={`${themeClasses.textSecondary} text-xs mb-1`}>
+            Ataque
+          </div>
+          <div className="font-bold text-red-400 text-lg">
+            {userProfile?.attack}
+          </div>
         </div>
-        
+
         <div className="stat-item bg-gray-800/50 rounded-lg p-3 text-center">
-          <div className={`${themeClasses.textSecondary} text-xs mb-1`}>Defesa</div>
-          <div className="font-bold text-blue-400 text-lg">{userProfile?.defense}</div>
+          <div className={`${themeClasses.textSecondary} text-xs mb-1`}>
+            Defesa
+          </div>
+          <div className="font-bold text-blue-400 text-lg">
+            {userProfile?.defense}
+          </div>
         </div>
 
         {/* Linha 4 */}
         <div className="stat-item bg-gray-800/50 rounded-lg p-3 text-center">
-          <div className={`${themeClasses.textSecondary} text-xs mb-1`}>Foco</div>
-          <div className="font-bold text-purple-400 text-lg">{userProfile?.focus}</div>
+          <div className={`${themeClasses.textSecondary} text-xs mb-1`}>
+            Foco
+          </div>
+          <div className="font-bold text-purple-400 text-lg">
+            {userProfile?.focus}
+          </div>
         </div>
-        
+
         <div className="stat-item bg-gray-800/50 rounded-lg p-3 text-center">
-          <div className={`${themeClasses.textSecondary} text-xs mb-1`}>Dinheiro</div>
-          <div className="font-bold text-yellow-400 text-lg">${(userProfile?.money || 0).toLocaleString('pt-BR')}</div>
+          <div className={`${themeClasses.textSecondary} text-xs mb-1`}>
+            Dinheiro
+          </div>
+          <div className="font-bold text-yellow-400 text-lg">
+            ${(userProfile?.money || 0).toLocaleString("pt-BR")}
+          </div>
         </div>
 
         {/* Linha 5 */}
-        <div 
+        <div
           className="stat-item bg-gray-800/50 rounded-lg p-3 text-center cursor-help hover:bg-gray-700/50 transition-colors"
           title={getCriticalChanceExplanation(userProfile?.focus || 0)}
         >
-          <div className={`${themeClasses.textSecondary} text-xs mb-1`}>Chance Crítica</div>
-          <div className="font-bold text-pink-400 text-lg">{combatStats.criticalChance.toFixed(0)}%</div>
+          <div className={`${themeClasses.textSecondary} text-xs mb-1`}>
+            Chance Crítica
+          </div>
+          <div className="font-bold text-pink-400 text-lg">
+            {combatStats.criticalChance.toFixed(0)}%
+          </div>
         </div>
-        
-        <div 
+
+        <div
           className="stat-item bg-gray-800/50 rounded-lg p-3 text-center cursor-help hover:bg-gray-700/50 transition-colors"
-          title={getCriticalDamageExplanation(userProfile?.attack || 0, userProfile?.focus || 0)}
+          title={getCriticalDamageExplanation(
+            userProfile?.attack || 0,
+            userProfile?.focus || 0,
+          )}
         >
-          <div className={`${themeClasses.textSecondary} text-xs mb-1`}>Dano Crítico</div>
-          <div className="font-bold text-pink-400 text-lg">{combatStats.criticalDamage.toFixed(1)}</div>
+          <div className={`${themeClasses.textSecondary} text-xs mb-1`}>
+            Dano Crítico
+          </div>
+          <div className="font-bold text-pink-400 text-lg">
+            {combatStats.criticalDamage.toFixed(1)}
+          </div>
         </div>
-
-
       </div>
-
-
     </div>
   );
 };

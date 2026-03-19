@@ -1,25 +1,14 @@
-import React from 'react';
-import { useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import { useSWRConfig } from 'swr';
-import { apiClient } from '../../lib/supabaseClient';
+import React from "react";
+import { useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
+import { useSWRConfig } from "swr";
+import { apiClient } from "../../lib/supabaseClient";
 
 interface DashboardHeaderProps {
   username: string;
-  themeClasses?: {
-    bg: string;
-    cardBg: string;
-    sidebarBg: string;
-    text: string;
-    textSecondary: string;
-    border: string;
-    hover: string;
-    buttonSecondary: string;
-    shadow: string;
-  };
 }
 
-export default function DashboardHeader({ username, themeClasses }: DashboardHeaderProps) {
+export default function DashboardHeader({ username }: DashboardHeaderProps) {
   const navigate = useNavigate();
   const { mutate } = useSWRConfig();
 
@@ -28,11 +17,11 @@ export default function DashboardHeader({ username, themeClasses }: DashboardHea
     mutate(() => true, undefined, { revalidate: false });
     // Pequeno delay antes de redirecionar
     await new Promise((resolve) => setTimeout(resolve, 1000));
-    navigate('/');
+    navigate("/");
   };
 
   return (
-    <motion.div 
+    <motion.div
       initial={{ opacity: 0, y: -20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
@@ -49,10 +38,12 @@ export default function DashboardHeader({ username, themeClasses }: DashboardHea
               <span className="mx-1 text-transparent bg-gradient-to-r from-blue-400 to-blue-600 bg-clip-text font-bold">
                 CLASH
               </span>
-              <span className="text-gray-400 font-normal ml-2">| Dashboard</span>
+              <span className="text-gray-400 font-normal ml-2">
+                | Dashboard
+              </span>
             </h1>
           </div>
-          
+
           {/* User Info and Logout */}
           <div className="flex items-center space-x-4">
             <div className="bg-gray-700 px-4 py-2 rounded-lg">

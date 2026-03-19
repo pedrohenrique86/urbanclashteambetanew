@@ -142,7 +142,7 @@ export default function AuthModal({
   ];
 
   const googleEnabled =
-    ((import.meta as any).env?.VITE_GOOGLE_OAUTH_ENABLED ?? "true") !== "false";
+    (import.meta.env?.VITE_GOOGLE_OAUTH_ENABLED ?? "true") !== "false";
 
   const handleGoogleLogin = async (intent: "login" | "register") => {
     // PKCE: Criar o code verifier e o code challenge
@@ -177,7 +177,7 @@ export default function AuthModal({
     const codeChallenge = base64urlencode(hashed);
 
     const apiBase =
-      (import.meta as any).env?.VITE_API_URL || "http://localhost:3001/api";
+      import.meta.env?.VITE_API_URL || "http://localhost:3001/api";
     const redirectUri = `${window.location.origin}/auth/google/callback`;
     const next = "/faction-selection";
     const params = new URLSearchParams({
@@ -189,14 +189,6 @@ export default function AuthModal({
     });
 
     const startUrl = `${apiBase}/auth/google/start?${params.toString()}`;
-
-    // DEBUG: Log para verificar o intent antes do redirecionamento
-    console.log(
-      "Iniciando login com Google. INTENT:",
-      intent,
-      "URL:",
-      startUrl,
-    );
 
     window.location.href = startUrl;
   };
@@ -216,8 +208,6 @@ export default function AuthModal({
       // Aguardar um pouco antes de verificar para evitar verificações prematuras
       await new Promise((resolve) => setTimeout(resolve, 500));
 
-      console.log("Verificando email:", email);
-
       // Chama a API do backend para verificar o email
       const response = await fetch(
         "http://localhost:3001/api/auth/check-email",
@@ -230,17 +220,14 @@ export default function AuthModal({
         },
       );
 
-      console.log("Status da resposta:", response.status);
-
       if (!response.ok) {
         const errorText = await response.text();
-        console.error("Erro na resposta:", errorText);
         let errorData: { error?: string } = {};
         if (errorText) {
           try {
             errorData = JSON.parse(errorText);
           } catch (e) {
-            console.error("Invalid JSON in error response:", errorText);
+            // O erro de parsing é intencional se a resposta não for JSON
           }
         }
         throw new Error(errorData.error || "Erro ao verificar email");
@@ -248,15 +235,12 @@ export default function AuthModal({
 
       // Retorna o resultado da função serverless
       const responseText = await response.text();
-      console.log("Resposta bruta:", responseText);
 
       if (responseText) {
         try {
           const result = JSON.parse(responseText);
-          console.log("Resposta parseada:", result);
           return result;
         } catch (e) {
-          console.error("Invalid JSON response:", responseText);
           // Em caso de erro no parsing, não assumimos automaticamente que o email existe e está confirmado
           // Em vez disso, retornamos que o email não existe para forçar o usuário a se registrar
           return { exists: false, confirmed: false };
@@ -266,48 +250,10 @@ export default function AuthModal({
       // Em vez disso, retornamos que o email não existe para forçar o usuário a se registrar
       return { exists: false, confirmed: false };
     } catch (error) {
-      console.error("Erro ao verificar email:", error);
       // Em caso de erro, não assumimos automaticamente que o usuário existe e está confirmado
       // Em vez disso, retornamos que o email não existe para forçar o usuário a se registrar
       return { exists: false, confirmed: false };
     }
-  };
-
-  // Função para verificar se é um email temporário
-  const isTemporaryEmail = (email: string): boolean => {
-    const temporaryDomains = [
-      "tempmail.com",
-      "temp-mail.org",
-      "guerrillamail.com",
-      "guerrillamail.net",
-      "sharklasers.com",
-      "mailinator.com",
-      "yopmail.com",
-      "throwawaymail.com",
-      "getairmail.com",
-      "10minutemail.com",
-      "minutemail.com",
-      "tempinbox.com",
-      "mailnesia.com",
-      "mailcatch.com",
-      "dispostable.com",
-      "tempr.email",
-      "tempmail.net",
-      "emailondeck.com",
-      "spamgourmet.com",
-      "trashmail.com",
-      "maildrop.cc",
-      "getnada.com",
-      "temp-mail.io",
-      "fakeinbox.com",
-      "tempmail.ninja",
-      "emailfake.com",
-      "mohmal.com",
-      "tempmailaddress.com",
-    ];
-
-    const domain = email.split("@")[1]?.toLowerCase();
-    return domain ? temporaryDomains.includes(domain) : false;
   };
 
   const validateForm = async (): Promise<boolean> => {
@@ -385,12 +331,10 @@ export default function AuthModal({
     // Evita múltiplos cliques durante o cooldown ou processamento
     if (isResending || resendCooldown > 0) return;
 
-    console.log("Reenviando email de confirmação para:", registeredEmail);
     setIsResending(true);
 
     try {
-      const result = await apiClient.resendConfirmation(registeredEmail);
-      console.log("Resultado do reenvio:", result);
+      await apiClient.resendConfirmation(registeredEmail);
 
       // Limpar mensagens de erro ao reenviar com sucesso
       setErrors({});
@@ -400,22 +344,25 @@ export default function AuthModal({
 
       // Inicia o cooldown de 60 segundos (1 minuto)
       setResendCooldown(60);
-    } catch (error: any) {
-      console.error("Erro ao reenviar confirmação:", error.message);
+    } catch (error: unknown) {
+      let errorMessage = "Ocorreu um erro desconhecido.";
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      }
 
       // Se for erro de rate limiting (429), extrair o tempo restante
       if (
-        error.message.includes("Aguarde") &&
-        error.message.includes("segundos")
+        errorMessage.includes("Aguarde") &&
+        errorMessage.includes("segundos")
       ) {
-        const match = error.message.match(/(\d+) segundos/);
+        const match = errorMessage.match(/(\d+) segundos/);
         if (match) {
           const remainingTime = parseInt(match[1]);
           setResendCooldown(remainingTime);
         }
       }
 
-      setErrors({ form: `Erro ao reenviar confirmação: ${error.message}` });
+      setErrors({ form: `Erro ao reenviar confirmação: ${errorMessage}` });
     } finally {
       setIsResending(false);
     }
@@ -471,10 +418,7 @@ export default function AuthModal({
           // O perfil será criado automaticamente pelo trigger do banco de dados
           // quando o usuário selecionar sua facção na próxima página
           if (authData.user) {
-            console.log("👤 Usuário criado com sucesso:", authData.user.id);
-            console.log(
-              "📋 Perfil será criado automaticamente após seleção de facção",
-            );
+            // Opcional: pode-se adicionar um log de backend aqui se necessário
           }
 
           // Armazenar o email registrado para exibir na tela de sucesso
@@ -494,22 +438,22 @@ export default function AuthModal({
             country: "",
           });
         }
-      } catch (error: any) {
-        console.error("Erro no registro:", error.message);
-        setErrors({ form: error.message });
+      } catch (error: unknown) {
+        const message =
+          error instanceof Error
+            ? error.message
+            : "Ocorreu um erro durante o registro.";
+        setErrors({ form: message });
       } finally {
         setIsProcessing(false); // Sempre finalizar o processamento, mesmo em caso de erro
       }
     } else if (activeTab === "login") {
       try {
         // Verificar se o email existe e está confirmado antes de tentar fazer login
-        console.log("Verificando email antes do login:", formData.email);
         const { exists, confirmed } = await checkEmailExists(formData.email);
-        console.log("Resultado da verificação:", { exists, confirmed });
 
         if (!exists) {
           // Email não cadastrado - mostrar mensagem clara e opção de registro
-          console.log("Email não cadastrado, mostrando opção de registro");
           setErrors({
             form: "Este email não foi encontrado no banco de dados. Você precisa fazer cadastro primeiro para poder jogar.",
           });
@@ -523,7 +467,6 @@ export default function AuthModal({
 
         if (!confirmed) {
           // Email cadastrado mas não confirmado - mostrar mensagem e opção de reenvio
-          console.log("Email não confirmado, mostrando opção de reenvio");
           setErrors({
             form: "Você fez cadastro mas ainda não confirmou seu email. É necessário confirmar o email para fazer login.",
           });
@@ -535,10 +478,6 @@ export default function AuthModal({
           return;
         }
 
-        console.log("Email existe e está confirmado, prosseguindo com login");
-
-        // Manter o processamento ativo durante o login
-
         // Se o email existe e está confirmado, tentar fazer login
         const data = await apiClient.login(formData.email, formData.password);
 
@@ -547,8 +486,6 @@ export default function AuthModal({
           try {
             // Tentar obter os dados do perfil
             const profileData = await apiClient.getUserProfile();
-
-            console.log("Verificação de facção após login:", { profileData });
 
             // Delay adicional para processamento
             await new Promise((resolve) => setTimeout(resolve, 1500));
@@ -560,50 +497,38 @@ export default function AuthModal({
             // Verificar se é o primeiro login (após confirmação de email)
             // O backend já envia isFirstLogin baseado na verificação de last_login
             const isFirstLogin = data.isFirstLogin;
-            console.log("É o primeiro login?", isFirstLogin);
 
             // Redirecionar com base na facção e se é primeiro login
             if (isFirstLogin || !profileData?.faction) {
-              console.log(
-                "Primeiro login ou usuário sem facção, redirecionando para /faction-selection",
-              );
               // Se for primeiro login ou não tiver facção, redirecionar para a página de seleção
               window.location.href = "/faction-selection";
             } else {
-              console.log("Usuário com facção, redirecionando para /dashboard");
               // Delay antes de redirecionar para o dashboard
               await new Promise((resolve) => setTimeout(resolve, 1000));
               window.location.href = "/dashboard";
             }
           } catch (profileError) {
-            console.error("Erro ao verificar perfil:", profileError);
             // Se houver erro ao buscar o perfil, redirecionar para a página de seleção
             onClose();
             setIsProcessing(false);
             window.location.href = "/faction-selection";
           }
         }
-      } catch (error: any) {
-        console.error("Erro no login:", error.message);
-        setErrors({ form: error.message });
+      } catch (error: unknown) {
+        const message =
+          error instanceof Error
+            ? error.message
+            : "Ocorreu um erro durante o login.";
+        setErrors({ form: message });
         setIsProcessing(false);
       }
     } else if (activeTab === "forgot-password") {
       try {
         // Verificar se o email existe e está confirmado antes de enviar o email de recuperação
-        console.log(
-          "Verificando email antes da recuperação de senha:",
-          formData.email,
-        );
         const { exists, confirmed } = await checkEmailExists(formData.email);
-        console.log("Resultado da verificação para recuperação:", {
-          exists,
-          confirmed,
-        });
 
         if (!exists) {
           // Email não cadastrado - mostrar mensagem clara e opção de registro
-          console.log("Email não cadastrado, mostrando opção de registro");
           setErrors({
             form: "Este email não foi encontrado no banco de dados. Você precisa fazer cadastro primeiro para poder recuperar senha.",
           });
@@ -617,7 +542,6 @@ export default function AuthModal({
 
         if (!confirmed) {
           // Email cadastrado mas não confirmado - mostrar mensagem e opção de reenvio
-          console.log("Email não confirmado, mostrando opção de reenvio");
           setErrors({
             form: "Você tem cadastro mas ainda não confirmou seu email. É necessário confirmar o email antes de recuperar a senha.",
           });
@@ -629,10 +553,6 @@ export default function AuthModal({
           return;
         }
 
-        console.log(
-          "Email existe e está confirmado, prosseguindo com recuperação de senha",
-        );
-
         // Se o email existe e está confirmado, enviar o email de recuperação
         await apiClient.forgotPassword(formData.email);
 
@@ -641,9 +561,12 @@ export default function AuthModal({
           "Enviamos um email com instruções para redefinir sua senha. Por favor, verifique sua caixa de entrada.",
         );
         setIsProcessing(false); // Finalizar processamento após sucesso
-      } catch (error: any) {
-        console.error("Erro ao recuperar senha:", error.message);
-        setErrors({ form: error.message });
+      } catch (error: unknown) {
+        const message =
+          error instanceof Error
+            ? error.message
+            : "Ocorreu um erro durante a recuperação de senha.";
+        setErrors({ form: message });
         setIsProcessing(false); // Finalizar processamento em caso de erro
       }
     }

@@ -26,10 +26,8 @@ export default function FactionSelectionPage() {
   // Verificar se o usuário está autenticado
   useEffect(() => {
     let timeoutId: NodeJS.Timeout | undefined;
-    let safetyTimeoutId: NodeJS.Timeout;
-
     // Timeout de segurança para evitar loop infinito de carregamento
-    safetyTimeoutId = setTimeout(() => {
+    const safetyTimeoutId = setTimeout(() => {
       console.log("Timeout de segurança acionado, redirecionando para home");
       setError("Tempo limite excedido. Por favor, faça login novamente.");
       // Forçar redirecionamento após 10 segundos se a página continuar carregando
@@ -81,8 +79,13 @@ export default function FactionSelectionPage() {
           setPageLoading(false);
         } catch (profileCheckError: any) {
           // Se o erro for 404 (perfil não encontrado), isso é esperado para novos usuários
-          if (profileCheckError.message?.includes('404') || profileCheckError.message?.includes('Perfil não encontrado')) {
-            console.log("👤 Novo usuário detectado - perfil será criado na seleção de facção");
+          if (
+            profileCheckError.message?.includes("404") ||
+            profileCheckError.message?.includes("Perfil não encontrado")
+          ) {
+            console.log(
+              "👤 Novo usuário detectado - perfil será criado na seleção de facção"
+            );
           } else {
             console.error(
               "Erro ao verificar perfil do usuário:",
@@ -122,9 +125,9 @@ export default function FactionSelectionPage() {
     setProcessing(true);
     setLoading(true);
     setError(null);
-    
+
     // Delay inicial para mostrar processamento
-    await new Promise(resolve => setTimeout(resolve, 2500));
+    await new Promise((resolve) => setTimeout(resolve, 2500));
 
     try {
       console.log(`🎯 Iniciando seleção de facção: ${selectedFaction}`);
@@ -150,7 +153,10 @@ export default function FactionSelectionPage() {
           existingProfile = await apiClient.getUserProfile();
         } catch (profileError: any) {
           // Se perfil não existe (404), isso é esperado para novos usuários
-          if (profileError.message?.includes('Perfil não encontrado') || profileError.message?.includes('404')) {
+          if (
+            profileError.message?.includes("Perfil não encontrado") ||
+            profileError.message?.includes("404")
+          ) {
             console.log("👤 Perfil não existe, será criado um novo");
             existingProfile = null;
           } else {
@@ -184,8 +190,8 @@ export default function FactionSelectionPage() {
         console.log(`✅ Facção ${selectedFaction} selecionada com sucesso!`);
 
         // Delay adicional antes de redirecionar
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+
         console.log("🔄 Redirecionando para seleção de clãs...");
         navigate("/clan-selection", { state: { faction: selectedFaction } });
       } catch (profileError: any) {

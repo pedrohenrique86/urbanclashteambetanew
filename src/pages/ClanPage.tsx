@@ -6,6 +6,15 @@ import { useUserProfile } from "../hooks/useUserProfile";
 import { useTheme } from "../contexts/ThemeContext";
 import { apiClient } from "../lib/supabaseClient";
 
+type Player = {
+  id: string;
+  user_id: string;
+  username: string;
+  display_name?: string;
+  level?: number;
+  role?: string;
+};
+
 type ClanData = {
   id: string;
   name: string;
@@ -16,7 +25,7 @@ type ClanData = {
   available_slots?: number;
   score?: number;
   vault?: number;
-  members?: any[];
+  members?: Player[];
 };
 
 type ChatMessage = {
@@ -102,7 +111,7 @@ export default function ClanPage() {
         faction: rawClan?.faction,
         member_count: Array.isArray(rawMembers)
           ? rawMembers.length
-          : rawClan?.member_count ?? 0,
+          : (rawClan?.member_count ?? 0),
         max_members: rawClan?.max_members ?? rawClan?.capacity ?? 0,
         available_slots: rawClan?.available_slots,
         score: rawClan?.score ?? rawClan?.strength ?? 0,
@@ -125,21 +134,22 @@ export default function ClanPage() {
               ? membersList.length
               : normalized.member_count,
           };
-        } catch (_) {
-          // silencioso: seguir com membros vazios
+        } catch (error) {
+          /* silencioso: seguir com membros vazios */
         }
       }
 
       setClan(normalized);
-    } catch (e: any) {
+    } catch (e: unknown) {
       setClanError("Erro ao carregar dados do clã");
     } finally {
       setClanLoading(false);
     }
   };
 
-  const fetchChat = async () => {
+  const fetchChat = React.useCallback(async () => {
     if (!clan?.id || !chatEnabled) return;
+
     try {
       if (chatMode === "local") {
         const key = `clan_chat:${clan.id}`;
@@ -149,43 +159,45 @@ export default function ClanPage() {
         setChatError(null);
         return;
       }
+
       const sinceParam = lastMessageTimeRef.current || undefined;
-      let data: any = null;
+      let data: { messages: ChatMessage[] } | ChatMessage[] | null = null;
+
       try {
         data = await apiClient.getClanChat(String(clan.id), sinceParam);
       } catch (err) {
-        // Fallback para endpoint alternativo
         const qs = sinceParam ? `?since=${encodeURIComponent(sinceParam)}` : "";
         try {
           data = await (apiClient as any).request(
-            `/clans/${clan.id}/messages${qs}`
+            `/clans/${clan.id}/messages${qs}`,
           );
-        } catch {
-          // habilitar chat local
+        } catch (finalError) {
           setChatMode("local");
-          // inicializar broadcast
           try {
             if (!broadcastRef.current) {
               broadcastRef.current = new BroadcastChannel(
-                `clan_chat_${clan.id}`
+                `clan_chat_${clan.id}`,
               );
               broadcastRef.current.onmessage = (ev) => {
                 if (ev?.data?.type === "new_message" && ev.data?.message) {
                   setChatMessages((prev) => {
                     const exists = prev.some(
-                      (m) => m.id === ev.data.message.id
+                      (m) => m.id === ev.data.message.id,
                     );
-                    const merged = exists ? prev : [...prev, ev.data.message];
+                    if (exists) return prev;
+                    const merged = [...prev, ev.data.message];
                     localStorage.setItem(
                       `clan_chat:${clan.id}`,
-                      JSON.stringify(merged.slice(-200))
+                      JSON.stringify(merged.slice(-200)),
                     );
                     return merged;
                   });
                 }
               };
             }
-          } catch {}
+          } catch (broadcastError) {
+            /* Falha ao inicializar BroadcastChannel no fallback */
+          }
           const localRaw = localStorage.getItem(`clan_chat:${clan.id}`);
           const localParsed: ChatMessage[] = localRaw
             ? JSON.parse(localRaw)
@@ -195,39 +207,44 @@ export default function ClanPage() {
           return;
         }
       }
-      const messages: ChatMessage[] = Array.isArray(data?.messages)
-        ? data.messages
-        : Array.isArray(data)
-        ? data
-        : [];
+
+      const messages: ChatMessage[] =
+        data && "messages" in data && Array.isArray(data.messages)
+          ? data.messages
+          : Array.isArray(data)
+            ? data
+            : [];
+
       if (messages.length > 0) {
-        const merged = [...chatMessages, ...messages].reduce(
-          (acc: ChatMessage[], m) => {
-            if (!acc.find((x) => x.id === m.id)) acc.push(m);
-            return acc;
-          },
-          []
-        );
-        merged.sort(
-          (a, b) =>
-            new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
-        );
-        setChatMessages(merged);
-        localStorage.setItem(
-          `clan_chat:${clan.id}`,
-          JSON.stringify(merged.slice(-200))
-        );
-        lastMessageTimeRef.current = merged[merged.length - 1].created_at;
+        setChatMessages((prevMessages) => {
+          const messageMap = new Map(prevMessages.map((m) => [m.id, m]));
+          messages.forEach((m) => messageMap.set(m.id, m));
+          const merged = Array.from(messageMap.values());
+          merged.sort(
+            (a, b) =>
+              new Date(a.created_at).getTime() -
+              new Date(b.created_at).getTime(),
+          );
+
+          if (merged.length > 0) {
+            lastMessageTimeRef.current = merged[merged.length - 1].created_at;
+          }
+
+          localStorage.setItem(
+            `clan_chat:${clan.id}`,
+            JSON.stringify(merged.slice(-200)),
+          );
+          return merged;
+        });
         pollIntervalRef.current = 3000;
       } else {
         pollIntervalRef.current = Math.min(
           pollIntervalRef.current + 1000,
-          10000
+          10000,
         );
       }
       setChatError(null);
-    } catch (e: any) {
-      // ativar modo local ao falhar
+    } catch (e: unknown) {
       setChatMode("local");
       try {
         if (!broadcastRef.current && clan?.id) {
@@ -236,17 +253,20 @@ export default function ClanPage() {
             if (ev?.data?.type === "new_message" && ev.data?.message) {
               setChatMessages((prev) => {
                 const exists = prev.some((m) => m.id === ev.data.message.id);
-                const merged = exists ? prev : [...prev, ev.data.message];
+                if (exists) return prev;
+                const merged = [...prev, ev.data.message];
                 localStorage.setItem(
                   `clan_chat:${clan.id}`,
-                  JSON.stringify(merged.slice(-200))
+                  JSON.stringify(merged.slice(-200)),
                 );
                 return merged;
               });
             }
           };
         }
-      } catch {}
+      } catch (broadcastError) {
+        /* Falha ao inicializar BroadcastChannel de emergência */
+      }
       const localRaw = clan?.id
         ? localStorage.getItem(`clan_chat:${clan.id}`)
         : null;
@@ -254,16 +274,16 @@ export default function ClanPage() {
       setChatMessages(localParsed);
       setChatError(null);
     }
-  };
+  }, [clan?.id, chatEnabled, chatMode, setChatMode, setChatError]);
 
-  const startPolling = () => {
+  const startPolling = React.useCallback(() => {
     if (pollTimerRef.current) window.clearTimeout(pollTimerRef.current);
     const tick = () => {
       fetchChat();
       pollTimerRef.current = window.setTimeout(tick, pollIntervalRef.current);
     };
     pollTimerRef.current = window.setTimeout(tick, pollIntervalRef.current);
-  };
+  }, [fetchChat]);
 
   useEffect(() => {
     if (clan?.id && chatEnabled) {
@@ -275,7 +295,7 @@ export default function ClanPage() {
         }
       };
     }
-  }, [clan?.id, chatEnabled]);
+  }, [clan?.id, chatEnabled, startPolling]);
 
   useEffect(() => {
     const onVisibility = () => {
@@ -294,7 +314,7 @@ export default function ClanPage() {
     return () => {
       document.removeEventListener("visibilitychange", onVisibility);
     };
-  }, [clan?.id, chatEnabled]);
+  }, [clan?.id, chatEnabled, startPolling]);
 
   const sendMessage = async () => {
     if (!clan?.id || !chatInput.trim()) return;
@@ -310,7 +330,8 @@ export default function ClanPage() {
               method: "POST",
               body: JSON.stringify(payload),
             });
-          } catch {
+          } catch (finalError) {
+            /* Falha no envio da mensagem (fallback), mudando para modo local */
             setChatMode("local");
           }
         }
@@ -327,7 +348,7 @@ export default function ClanPage() {
         setChatMessages(merged);
         localStorage.setItem(
           `clan_chat:${clan.id}`,
-          JSON.stringify(merged.slice(-200))
+          JSON.stringify(merged.slice(-200)),
         );
         try {
           if (!broadcastRef.current) {
@@ -337,7 +358,9 @@ export default function ClanPage() {
             type: "new_message",
             message: newMsg,
           });
-        } catch {}
+        } catch (broadcastError) {
+          /* Falha ao postar mensagem no BroadcastChannel */
+        }
       }
       setChatInput("");
       setChatEnabled(true);
@@ -345,7 +368,7 @@ export default function ClanPage() {
       if (chatMode === "api") {
         fetchChat();
       }
-    } catch (e: any) {
+    } catch (e: unknown) {
       setChatError("Não foi possível enviar a mensagem");
     } finally {
       setChatLoading(false);
@@ -358,7 +381,7 @@ export default function ClanPage() {
       setLeaving(true);
       await apiClient.leaveClan(clan.id);
       navigate("/clan-selection", { state: { faction: userProfile?.faction } });
-    } catch (e: any) {
+    } catch (e: unknown) {
       setClanError("Erro ao sair do clã");
     } finally {
       setLeaving(false);
@@ -468,10 +491,10 @@ export default function ClanPage() {
                 </span>
               </div>
               <ul className="divide-y divide-gray-700/60">
-                {(clan?.members ?? []).map((m: any) => {
+                {(clan?.members ?? []).map((m: Player) => {
                   const mid = String(m.id || m.user_id);
                   const voterId = String(
-                    userProfile?.user_id || userProfile?.id || "me"
+                    userProfile?.user_id || userProfile?.id || "me",
                   );
                   const keyVotes = clan?.id
                     ? `clan_votes:${clan.id}:${mid}`
@@ -480,10 +503,12 @@ export default function ClanPage() {
                   if (keyVotes) {
                     try {
                       const lst = JSON.parse(
-                        localStorage.getItem(keyVotes) || "[]"
+                        localStorage.getItem(keyVotes) || "[]",
                       );
                       votesSize = Array.isArray(lst) ? lst.length : 0;
-                    } catch {}
+                    } catch (e) {
+                      /* Falha ao parsear votos do localStorage */
+                    }
                   }
                   const total =
                     clan?.members?.length ?? clan?.member_count ?? 1;
@@ -493,12 +518,14 @@ export default function ClanPage() {
                   let isBanned = false;
                   if (banKey) {
                     try {
-                      const obj = JSON.parse(
-                        localStorage.getItem(banKey) || "{}"
+                      const obj: { [key: string]: string } = JSON.parse(
+                        localStorage.getItem(banKey) || "{}",
                       );
-                      const exp = obj?.[mid];
+                      const exp = obj[mid];
                       isBanned = !!exp && new Date(exp).getTime() > Date.now();
-                    } catch {}
+                    } catch (e) {
+                      /* Falha ao parsear banlist do localStorage */
+                    }
                   }
                   return (
                     <li
@@ -539,14 +566,16 @@ export default function ClanPage() {
                               let setVotes = new Set<string>();
                               try {
                                 const arr = JSON.parse(
-                                  localStorage.getItem(key) || "[]"
+                                  localStorage.getItem(key) || "[]",
                                 );
                                 if (Array.isArray(arr)) setVotes = new Set(arr);
-                              } catch {}
+                              } catch (e) {
+                                /* Falha ao parsear votos do localStorage para votar */
+                              }
                               setVotes.add(voterId);
                               localStorage.setItem(
                                 key,
-                                JSON.stringify(Array.from(setVotes))
+                                JSON.stringify(Array.from(setVotes)),
                               );
                               const totalMembers =
                                 clan?.members?.length ??
@@ -557,27 +586,35 @@ export default function ClanPage() {
                                 try {
                                   await apiClient.kickMember(
                                     String(clan.id),
-                                    mid
+                                    mid,
                                   );
-                                } catch {
+                                } catch (e) {
+                                  /* Ignorar erro ao kickar, o processo continua */
                                   const bKey = `clan_banlist:${clan.id}`;
-                                  const obj = JSON.parse(
-                                    localStorage.getItem(bKey) || "{}"
-                                  );
+                                  const obj: { [key: string]: string } = {};
+                                  try {
+                                    const existing = localStorage.getItem(bKey);
+                                    if (existing) {
+                                      Object.assign(obj, JSON.parse(existing));
+                                    }
+                                  } catch (parseError) {
+                                    /* Falha ao parsear banlist */
+                                  }
                                   obj[mid] = new Date(
-                                    Date.now() + 24 * 3600 * 1000
+                                    Date.now() + 24 * 3600 * 1000,
                                   ).toISOString();
                                   localStorage.setItem(
                                     bKey,
-                                    JSON.stringify(obj)
+                                    JSON.stringify(obj),
                                   );
                                 }
                                 // remover da lista local
                                 setClan((prev) => {
                                   if (!prev) return prev;
                                   const filtered = (prev.members || []).filter(
-                                    (x: any) =>
-                                      String(x.id || x.user_id) !== mid
+                                    (member) =>
+                                      String(member.id || member.user_id) !==
+                                      mid,
                                   );
                                   return {
                                     ...prev,
@@ -589,12 +626,14 @@ export default function ClanPage() {
                                 // atualizar UI de votos
                                 try {
                                   const arr2 = JSON.parse(
-                                    localStorage.getItem(key) || "[]"
+                                    localStorage.getItem(key) || "[]",
                                   );
                                   votesSize = Array.isArray(arr2)
                                     ? arr2.length
                                     : setVotes.size;
-                                } catch {}
+                                } catch {
+                                  /* Silently ignore update error */
+                                }
                               }
                             }}
                             className="text-xs px-2 py-1 rounded bg-red-600 hover:bg-red-500 transition-colors font-bold"
@@ -613,7 +652,7 @@ export default function ClanPage() {
                   </li>
                 )}
               </ul>
-              {((clan?.members?.length ?? clan?.member_count ?? 0) <= 1) && (
+              {(clan?.members?.length ?? clan?.member_count ?? 0) <= 1 && (
                 <div className="px-4 py-3 text-xs text-gray-400 border-t border-gray-700/60">
                   Adicione mais membros para habilitar a votação de expulsão.
                 </div>
@@ -627,9 +666,13 @@ export default function ClanPage() {
                 <h2 className="text-lg font-bold">Chat do Clã</h2>
                 <div className="flex items-center gap-2">
                   {!chatEnabled && (
-                    <span className="text-xs text-yellow-400">Indisponível</span>
+                    <span className="text-xs text-yellow-400">
+                      Indisponível
+                    </span>
                   )}
-                  <span className={`text-[10px] px-2 py-0.5 rounded ${chatMode === "local" ? "bg-yellow-400 text-black" : "bg-green-500 text-black"}`}>
+                  <span
+                    className={`text-[10px] px-2 py-0.5 rounded ${chatMode === "local" ? "bg-yellow-400 text-black" : "bg-green-500 text-black"}`}
+                  >
                     {chatMode === "local" ? "Modo Local" : "Online"}
                   </span>
                 </div>

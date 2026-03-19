@@ -95,11 +95,9 @@ const requireAdmin = async (req, res, next) => {
     );
 
     if (adminResult.rows.length === 0 || !adminResult.rows[0].is_admin) {
-      return res
-        .status(403)
-        .json({
-          error: "Acesso negado - privilégios de administrador requeridos",
-        });
+      return res.status(403).json({
+        error: "Acesso negado - privilégios de administrador requeridos",
+      });
     }
 
     next();
@@ -152,7 +150,7 @@ const generateToken = (userId) => {
 };
 
 // Função para criar sessão no banco
-const createSession = async (userId, token) => {
+const createSession = async (userId) => {
   try {
     console.log("✅ Sessão criada para usuário:", userId);
     // Usando a tabela user_profiles existente ao invés de user_sessions

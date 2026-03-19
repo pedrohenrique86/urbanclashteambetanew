@@ -1,11 +1,7 @@
-import React from 'react';
-import { motion } from 'framer-motion';
+import React from "react";
+import { motion } from "framer-motion";
 
-interface HeroSectionProps {
-  openAuthModal: (mode: 'login' | 'register') => void;
-}
-
-export function HeroSection({ openAuthModal }: HeroSectionProps) {
+export function HeroSection() {
   return (
     <motion.header
       id="hero"
@@ -17,7 +13,6 @@ export function HeroSection({ openAuthModal }: HeroSectionProps) {
       {/* Background Effects */}
       <div className="absolute inset-0 bg-gradient-to-br from-gray-900 via-gray-800 to-black"></div>
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-orange-900/20 via-transparent to-transparent"></div>
-      
       {/* Animated background particles */}
       <div className="absolute inset-0 overflow-hidden">
         {[...Array(50)].map((_, i) => (
@@ -41,9 +36,6 @@ export function HeroSection({ openAuthModal }: HeroSectionProps) {
           />
         ))}
       </div>
-
-
-
       {/* Hero Content */}
       <div className="relative z-10 text-center px-4 sm:px-6 lg:px-8 max-w-5xl mx-auto">
         <motion.h1
@@ -106,12 +98,10 @@ export function HeroSection({ openAuthModal }: HeroSectionProps) {
           transition={{ delay: 0.6, duration: 0.8 }}
           className="text-xl md:text-2xl max-w-3xl mx-auto text-gray-300 leading-relaxed"
         >
-          Duas facções dominam as ruas. Escolha seu lado e lute pela
-          supremacia!
+          Duas facções dominam as ruas. Escolha seu lado e lute pela supremacia!
         </motion.p>
       </div>
-a
-      {/* Scroll Indicator - Positioned at bottom of hero section */}
+      a{/* Scroll Indicator - Positioned at bottom of hero section */}
       <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 z-20">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -128,12 +118,20 @@ a
             </div>
             <motion.div
               animate={{ opacity: [0.4, 1, 0.4] }}
-              transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+              transition={{
+                duration: 1.5,
+                repeat: Infinity,
+                ease: "easeInOut",
+              }}
               className="w-6 h-10 border-2 border-white/50 rounded-full flex justify-center"
             >
               <motion.div
                 animate={{ y: [0, 12, 0] }}
-                transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+                transition={{
+                  duration: 1.5,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                }}
                 className="w-1 h-3 bg-white/70 rounded-full mt-2"
               />
             </motion.div>

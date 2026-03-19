@@ -9,7 +9,6 @@ interface AdminMenuProps {
 const AdminMenu: React.FC<AdminMenuProps> = ({ onClose }) => {
   const [startDate, setStartDate] = useState("");
   const [startTime, setStartTime] = useState("");
-  const [isCountdownActive, setIsCountdownActive] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState<{
     type: "success" | "error";
@@ -38,30 +37,25 @@ const AdminMenu: React.FC<AdminMenuProps> = ({ onClose }) => {
         text: `Jogo agendado para ${gameStartTime.toLocaleString("pt-BR")}`,
       });
     } catch (error) {
-      console.error("Erro ao agendar o jogo:", error);
       setMessage({ type: "error", text: "Erro ao agendar. Tente novamente." });
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleToggleCountdown = async () => {
+  const handleStopTime = async () => {
     setIsLoading(true);
     setMessage(null);
     try {
-      await apiClient.toggleCountdown(!isCountdownActive);
+      // Esta função será implementada no apiClient para chamar a nova rota
+      await apiClient.stopGameTime();
 
-      setIsCountdownActive(!isCountdownActive);
       setMessage({
         type: "success",
-        text: `Contagem ${!isCountdownActive ? "ativada" : "pausada"} com sucesso.`,
+        text: "Tempo parado e cronômetro resetado com sucesso!",
       });
     } catch (error) {
-      console.error("Erro ao alterar contagem:", error);
-      setMessage({
-        type: "error",
-        text: "Erro ao alterar estado da contagem.",
-      });
+      setMessage({ type: "error", text: "Erro ao parar o tempo." });
     } finally {
       setIsLoading(false);
     }
@@ -112,19 +106,11 @@ const AdminMenu: React.FC<AdminMenuProps> = ({ onClose }) => {
           {isLoading ? "Agendando..." : "Agendar Início"}
         </button>
         <button
-          onClick={handleToggleCountdown}
+          onClick={handleStopTime}
           disabled={isLoading}
-          className={`w-full text-white font-bold py-2 px-4 rounded-md transition-colors disabled:opacity-50 ${
-            isCountdownActive
-              ? "bg-red-600 hover:bg-red-700"
-              : "bg-green-600 hover:bg-green-700"
-          }`}
+          className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-md transition-colors disabled:opacity-50"
         >
-          {isLoading
-            ? "Aguarde..."
-            : isCountdownActive
-              ? "Pausar Contagem"
-              : "Ativar Contagem"}
+          {isLoading ? "Parando..." : "Parar Tempo"}
         </button>
       </div>
 

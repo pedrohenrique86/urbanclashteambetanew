@@ -797,14 +797,25 @@ router.get("/google/callback", async (req, res) => {
           .replace(/[^a-zA-Z0-9_]/g, "_")
           .slice(0, 20) || "user";
       let uname = unameBase;
-      let tries = 0;
-      while (true) {
+      let isUnameUnique = false;
+      for (let tries = 0; tries < 100; tries++) {
+        const finalUname =
+          tries === 0
+            ? unameBase
+            : `${unameBase.slice(0, 18 - String(tries).length)}${tries}`;
         const exists = await query("SELECT 1 FROM users WHERE username = $1", [
-          uname,
+          finalUname,
         ]);
-        if (exists.rows.length === 0) break;
-        tries += 1;
-        uname = `${unameBase.slice(0, Math.max(0, 18 - String(tries).length))}${tries}`;
+        if (exists.rows.length === 0) {
+          uname = finalUname;
+          isUnameUnique = true;
+          break;
+        }
+      }
+
+      if (!isUnameUnique) {
+        // Se não encontrar um nome único após 100 tentativas, adiciona um hash aleatório
+        uname = `${unameBase.slice(0, 10)}_${crypto.randomBytes(4).toString("hex")}`;
       }
       const rnd = crypto.randomBytes(16).toString("hex");
       const hash = await bcrypt.hash(rnd, 12);
@@ -909,14 +920,25 @@ router.post("/google/callback", async (req, res) => {
           .replace(/[^a-zA-Z0-9_]/g, "_")
           .slice(0, 20) || "user";
       let uname = unameBase;
-      let tries = 0;
-      while (true) {
+      let isUnameUnique = false;
+      for (let tries = 0; tries < 100; tries++) {
+        const finalUname =
+          tries === 0
+            ? unameBase
+            : `${unameBase.slice(0, 18 - String(tries).length)}${tries}`;
         const exists = await query("SELECT 1 FROM users WHERE username = $1", [
-          uname,
+          finalUname,
         ]);
-        if (exists.rows.length === 0) break;
-        tries += 1;
-        uname = `${unameBase.slice(0, Math.max(0, 18 - String(tries).length))}${tries}`;
+        if (exists.rows.length === 0) {
+          uname = finalUname;
+          isUnameUnique = true;
+          break;
+        }
+      }
+
+      if (!isUnameUnique) {
+        // Se não encontrar um nome único após 100 tentativas, adiciona um hash aleatório
+        uname = `${unameBase.slice(0, 10)}_${crypto.randomBytes(4).toString("hex")}`;
       }
       const rnd = crypto.randomBytes(16).toString("hex");
       const hash = await bcrypt.hash(rnd, 12);

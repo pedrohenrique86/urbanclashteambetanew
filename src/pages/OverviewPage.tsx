@@ -42,7 +42,7 @@ export default function OverviewPage() {
         {/* NavigationButtons pode ser removido se a BottomNavBar for suficiente */}
         {/* <NavigationButtons navigateTo={navigateTo} /> */}
       </motion.div>
-      <BottomNavBar navigateTo={navigateTo} />
+      <BottomNavBar navigateTo={navigateTo} userProfile={userProfile} />
     </div>
   );
 }

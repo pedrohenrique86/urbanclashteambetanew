@@ -44,7 +44,7 @@ export const calculateLevel = (xp: number): LevelInfo => {
   let totalXP = 0;
   
   // Calculate level using new XP requirements
-  while (true) {
+  for (;;) {
     const xpForCurrentLevel = getXPRequirementForLevel(level);
     if (totalXP + xpForCurrentLevel > xp) {
       break;

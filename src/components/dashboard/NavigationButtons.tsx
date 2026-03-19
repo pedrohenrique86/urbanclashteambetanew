@@ -1,13 +1,7 @@
-import React from 'react';
+import React from "react";
 
-interface NavigationButtonsProps {
-  navigateTo: (path: string) => void;
-}
-
-export function NavigationButtons({ navigateTo }: NavigationButtonsProps) {
+export function NavigationButtons() {
   return (
-    <div className="mb-8">
-      {/* Botões removidos conforme solicitado */}
-    </div>
+    <div className="mb-8">{/* Botões removidos conforme solicitado */}</div>
   );
 }

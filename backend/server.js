@@ -1,7 +1,7 @@
 const express = require("express");
 const timeRoutes = require("./routes/time");
-const adminRoutes = require("./routes/admin"); // Importa as rotas de admin
-const gameRoutes = require("./routes/game"); // Importa as rotas do jogo
+const adminRoutes = require("./routes/admin");
+const gameRoutes = require("./routes/game");
 const cors = require("cors");
 const path = require("path");
 const helmet = require("helmet");
@@ -14,6 +14,39 @@ const authRoutes = require("./routes/auth");
 const userRoutes = require("./routes/users");
 const clanRoutes = require("./routes/clans");
 const { connectDB, closePool, query } = require("./config/database");
+
+// Cache em memória para as configurações do jogo
+let gameSettingsCache = {};
+
+// Função para buscar e atualizar o cache de configurações do jogo
+async function updateGameSettingsCache() {
+  try {
+    const result = await query("SELECT key, value FROM game_config");
+    const newSettings = result.rows.reduce((acc, row) => {
+      acc[row.key] = row.value;
+      return acc;
+    }, {});
+
+    // Converte o valor de 'is_countdown_active' para booleano
+    if (newSettings.is_countdown_active !== undefined) {
+      newSettings.is_countdown_active =
+        newSettings.is_countdown_active === "true";
+    }
+
+    // Limpa o cache antigo e copia as novas propriedades para manter a referência do objeto
+    Object.keys(gameSettingsCache).forEach(
+      (key) => delete gameSettingsCache[key],
+    );
+    Object.assign(gameSettingsCache, newSettings);
+
+    // console.log('Cache de configurações do jogo atualizado:', gameSettingsCache); // Log para depuração
+  } catch (error) {
+    console.error(
+      "❌ Erro ao atualizar o cache de configurações do jogo:",
+      error,
+    );
+  }
+}
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -59,13 +92,17 @@ app.use(morgan("combined"));
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true }));
 
+// Injeta o cache e a função de atualização nas rotas
+const adminRouter = adminRoutes({ updateGameSettingsCache });
+const gameRouter = gameRoutes({ gameSettingsCache });
+
 // Rotas
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/clans", clanRoutes);
 app.use("/api/time", timeRoutes);
-app.use("/api/admin", adminRoutes); // Registra as rotas de admin
-app.use("/api/game", gameRoutes); // Registra as rotas do jogo
+app.use("/api/admin", adminRouter);
+app.use("/api/game", gameRouter);
 
 // Rota de health check
 app.get("/health", (req, res) => {
@@ -73,7 +110,7 @@ app.get("/health", (req, res) => {
 });
 
 // Middleware de tratamento de erros
-app.use((err, req, res, next) => {
+app.use((err, req, res) => {
   console.error(err.stack);
   res.status(500).json({
     error: "Algo deu errado!",
@@ -91,14 +128,8 @@ app.use("*", (req, res) => {
 
 async function checkGameStart() {
   try {
-    const configResult = await query("SELECT key, value FROM game_config");
-    const settings = configResult.rows.reduce((acc, row) => {
-      acc[row.key] = row.value;
-      return acc;
-    }, {});
-
-    const gameStartTime = settings.game_start_time;
-    const isCountdownActive = settings.is_countdown_active === "true";
+    const gameStartTime = gameSettingsCache.game_start_time;
+    const isCountdownActive = gameSettingsCache.is_countdown_active;
 
     // Se a contagem já está ativa ou não há agendamento, não faz nada
     if (isCountdownActive || !gameStartTime) {
@@ -118,10 +149,19 @@ async function checkGameStart() {
          VALUES (2, 'is_countdown_active', 'true')
          ON CONFLICT (key) DO UPDATE SET value = 'true', updated_at = NOW()`,
       );
+      // Atualiza o cache imediatamente após a mudança no banco
+      await updateGameSettingsCache();
     }
   } catch (error) {
     console.error("❌ Erro ao verificar o início do jogo:", error);
   }
+}
+
+// Função para iniciar o polling das configurações do jogo
+async function pollGameSettings() {
+  await updateGameSettingsCache(); // Carga inicial
+  setInterval(updateGameSettingsCache, 5000); // Atualiza a cada 5 segundos
+  setInterval(checkGameStart, 5000); // Verifica o início do jogo a cada 5 segundos
 }
 
 // Inicializar servidor
@@ -131,8 +171,8 @@ async function startServer() {
     await connectDB();
     console.log("✅ Conectado ao PostgreSQL");
 
-    // Iniciar o verificador de início de jogo
-    setInterval(checkGameStart, 60000); // Executa a cada 60 segundos
+    // Iniciar o polling das configurações do jogo
+    await pollGameSettings();
 
     // Iniciar servidor
     app.listen(PORT, () => {

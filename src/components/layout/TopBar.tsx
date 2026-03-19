@@ -2,8 +2,23 @@ import React from "react";
 import { useTheme } from "../../contexts/ThemeContext";
 import { calculateCombatStats } from "../../utils/combat";
 
+interface User {
+  username?: string;
+  faction?: string;
+  level?: number;
+  xp_required?: number;
+  current_xp?: number;
+  energy?: number;
+  max_energy?: number;
+  action_points?: number;
+  attack?: number;
+  defense?: number;
+  focus?: number;
+  money?: number;
+}
+
 interface TopBarProps {
-  userProfile: any;
+  userProfile: User | null;
 }
 
 const TopBar: React.FC<TopBarProps> = ({ userProfile }) => {

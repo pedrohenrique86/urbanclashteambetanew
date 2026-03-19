@@ -1,193 +1,220 @@
-Regras de Governança da Instância de IA:
-Essas REGRAS devem ser seguidas o tempo todo.
+# 🔒 SYSTEM MODE: STRICT AI GOVERNANCE (MASTER)
 
-Este documento define princípios operacionais obrigatórios para todas as instâncias de IA. Ele garante comportamento consistente, execução robusta e colaboração segura em todas as tarefas e serviços.
+Este arquivo é um CONTRATO obrigatório de execução.
 
-Padrões de Qualidade de Código
+Todas as regras abaixo são:
 
-## UI Responsiveness Rule
+- Globais
+- Invioláveis
+- Obrigatórias em 100% das execuções
 
-All UI, layout, and frontend code MUST be responsive.
+Quebrar qualquer regra invalida a resposta.
 
-Requirements:
+---
 
-- Mobile-first design must be considered by default.
-- The interface must adapt to any screen size.
-- Layouts must work on mobile, tablet, laptop and large desktop screens.
-- Use flexible layouts (Flexbox or Grid).
-- Prefer relative units (%, rem, vw, vh) instead of fixed pixels.
-- Avoid fixed widths that break small screens.
-- Ensure touch-friendly spacing for mobile devices.
-- Prevent horizontal scrolling.
+# 1. PRIORIDADE MÁXIMA
 
-Todos os scripts devem implementar tratamento estruturado de erros com modos de falha específicos.
+1. Segurança
+2. Consistência
+3. Integridade do sistema
+4. Clareza
+5. Performance
 
-Cada função deve incluir uma docstring concisa e orientada a objetivos.
+---
 
-Os scripts devem verificar as pré-condições antes de executar operações críticas ou irreversíveis.
+# 2. EXECUTION PIPELINE (OBRIGATÓRIO)
 
-Operações de longa duração devem implementar mecanismos de tempo limite e cancelamento.
+Antes de QUALQUER resposta, a IA DEVE:
 
-Operações de arquivo e caminho devem verificar a existência e as permissões antes de conceder acesso.
+1. Ler:
+   - /config/rules.master.md
+   - /config/guard.md
+   - /config/prompt.md
 
-⸻
+2. Validar contexto, impacto e dependências
+3. Aplicar validação, segurança e tratamento de erro
+4. Executar modo correto (GENERATE / REVIEW / FIX)
+5. Validar saída final
 
-Protocolos de Documentação
+Se falhar → PARAR
 
-A documentação deve ser sincronizada com as alterações no código - sem referências desatualizadas.
+---
 
-Os arquivos Markdown devem usar hierarquias de títulos e formatos de seção consistentes.
+# 3. CORE RULES
 
-Trechos de código na documentação devem ser executáveis, testados e refletir casos de uso reais.
+- Nunca assumir contexto implícito
+- Nunca gerar código incompleto
+- Nunca quebrar código existente
+- Nunca ignorar validação
 
-Cada documento deve descrever claramente: propósito, uso, parâmetros e exemplos.
+---
 
-Termos técnicos devem ser explicados inline ou vinculados a uma definição canônica.
+# 4. PADRÕES OBRIGATÓRIOS
 
-⸻
+## Input
 
-Regras de Gerenciamento de Tarefas
+if (!input || typeof input !== "string") throw new Error("Entrada inválida");
 
-As tarefas devem ser claras, específicas e acionáveis - evite ambiguidade.
+## Error Handling
 
-Cada tarefa deve ser atribuída a um agente responsável, explicitamente marcado.
+try {
+validateInputs();
+executeAction();
+} catch (error) {
+logError(error);
+throw new Error("Erro controlado");
+}
 
-Tarefas complexas devem ser divididas em subtarefas atômicas e rastreáveis.
+## Safe Execution
 
-Nenhuma tarefa pode entrar em conflito ou ignorar o comportamento validado do sistema existente.
+if (!preConditionsMet()) throw new Error("Pré-condições não atendidas");
 
-Tarefas relacionadas à segurança devem passar por revisão obrigatória por um agente revisor designado.
+## Retry
 
-Os agentes devem atualizar o status e os resultados das tarefas no arquivo de tarefas compartilhado.
+for (let i = 0; i < MAX_RETRIES; i++) {
+try { return await operation(); }
+catch { await delay(2 \*_ i _ 100); }
+}
 
-As dependências entre as tarefas devem ser explicitamente declaradas.
+---
 
-Os agentes devem escalar tarefas ambíguas, contraditórias ou sem escopo para esclarecimentos.
+# 5. SEGURANÇA
 
-⸻
+- Proibido eval / exec
+- Sem credenciais hardcoded
+- Usar env
+- Sanitizar inputs
 
-Diretrizes de Conformidade de Segurança
+---
 
-Credenciais hardcoded são estritamente proibidas - use mecanismos de armazenamento seguro.
+# 6. VALIDAÇÃO
 
-Todas as entradas devem ser validadas, sanitizadas e verificadas quanto ao tipo antes do processamento.
+Validar:
 
-Evite usar eval, chamadas de shell não sanitizadas ou qualquer forma de vetores de injeção de comando.
+- input
+- estado
+- permissões
+- recursos
 
-As operações de arquivo e processo devem seguir o princípio do menor privilégio.
+Falhou → PARAR
 
-Todas as operações confidenciais devem ser registradas, excluindo valores de dados confidenciais.
+---
 
-Os agentes devem verificar as permissões em nível de sistema antes de acessar serviços ou caminhos protegidos.
+# 7. EXECUÇÃO SEGURA
 
-⸻
+- Timeout
+- Evitar loops infinitos
+- Não continuar após erro
 
-Requisitos de Execução de Processos
+---
 
-Os agentes devem registrar todas as ações com a gravidade apropriada (INFO, WARNING, ERROR, etc.).
+# 8. ERROR FORMAT
 
-Qualquer tarefa com falha deve incluir um relatório de erro claro e legível por humanos.
+{
+"error": true,
+"message": "Descrição clara",
+"code": "ERROR_CODE"
+}
 
-Os agentes devem respeitar os limites de recursos do sistema, especialmente o uso de memória e CPU.
+---
 
-Tarefas de longa duração devem expor indicadores de progresso ou pontos de verificação.
+# 9. ENFORCEMENT
 
-A lógica de repetição deve incluir retrocesso exponencial e limites de falha.
+- ESLint OK
+- TypeScript OK
+- Sem erro → roda
+- Com erro → BLOQUEAR
 
-⸻
+---
 
-Princípios Operacionais Essenciais
+# 10. DOCUMENTAÇÃO
 
-Os agentes nunca devem usar dados simulados, de fallback ou sintéticos em tarefas de produção.
+Toda função:
 
-A lógica de tratamento de erros deve ser projetada usando princípios de teste primeiro.
+- propósito
+- parâmetros
+- retorno
+- exemplo
 
-Os agentes devem sempre agir com base em evidências verificáveis, não em suposições.
+---
 
-Todas as pré-condições devem ser explicitamente validadas antes de qualquer operação destrutiva ou de alto impacto.
+# 11. ENGENHARIA
 
-Todas as decisões devem ser rastreáveis ​​para logs, dados ou arquivos de configuração.
+- KISS
+- SOLID
+- YAGNI
 
-⸻
+---
 
-Princípios da Filosofia de Design
+# 12. ANTI-ALUCINAÇÃO
 
-KISS (Keep It Simple, Stupid - Mantenha Simples, Idiota)
-• As soluções devem ser diretas e fáceis de entender.
-• Evite engenharia excessiva ou abstração desnecessária.
-• Priorize a legibilidade e a capacidade de manutenção do código.
+Nunca inventar dados.
 
-YAGNI (You Aren’t Gonna Need It - Você Não Vai Precisar Disso)
-• Não adicione recursos especulativos ou à prova de futuro, a menos que seja explicitamente necessário.
-• Concentre-se apenas nos requisitos e entregas imediatas.
-• Minimize o inchaço do código e a dívida técnica de longo prazo.
+Se não souber:
+throw new Error("Informação insuficiente");
 
-Princípios SOLID
+---
 
-Princípio da Responsabilidade Única - cada módulo ou função deve fazer apenas uma coisa.
+# 13. FAIL-SAFE
 
-Princípio Aberto-Fechado - as entidades de software devem estar abertas para extensão, mas fechadas para modificação.
+1. Parar
+2. Logar
+3. Retornar erro
+4. Pedir dados
 
-Princípio da Substituição de Liskov - as classes derivadas devem ser substituíveis por seus tipos base.
+---
 
-Princípio da Segregação de Interface - prefira muitas interfaces específicas em vez de uma interface de uso geral.
+# 14. GUARD RULES
 
-Princípio da Inversão de Dependência - dependa de abstrações, não de implementações concretas.
+- Ler código existente
+- Validar impacto
+- Evitar regressão
 
-⸻
+---
 
-Diretrizes de Extensão do Sistema
+# 15. AI STRICT MODE
 
-Todos os novos agentes devem estar em conformidade com as estruturas de interface, registro e tarefas existentes.
+- Sempre validação
+- Sempre try/catch
+- Nunca código incompleto
 
-As funções utilitárias devem ser testadas unitariamente e revisadas por pares antes do uso compartilhado.
+---
 
-Todas as alterações de configuração devem ser refletidas no manifesto do sistema com carimbos de versão.
+# 16. UI RESPONSIVENESS
 
-Novos recursos devem manter a compatibilidade com versões anteriores, a menos que justificados e documentados.
+- Mobile-first
+- Flex/Grid
+- Sem largura fixa
+- Sem scroll horizontal
 
-Todas as alterações devem incluir uma avaliação do impacto no desempenho.
+---
 
-⸻
+# 17. AUTO DEBUG
 
-Procedimentos de Garantia de Qualidade
+- Revisar antes de entregar
+- Corrigir erros claros
+- Não inventar erro
 
-Um agente revisor deve revisar todas as alterações envolvendo segurança, configuração do sistema ou funções de agente.
+---
 
-A documentação deve ser revisada quanto à clareza, consistência e correção técnica.
+# 18. DEV MODE (AUTOMÁTICO)
 
-A saída voltada para o usuário (logs, mensagens, erros) deve ser clara, não técnica e acionável.
+Se não resolver em modo estrito:
+→ liberar código parcial e pragmático
 
-Todas as mensagens de erro devem sugerir caminhos de correção ou etapas de diagnóstico.
+Nunca quebrar segurança
 
-Todas as atualizações importantes devem incluir um plano de reversão ou mecanismo de reversão seguro.
+---
 
-⸻
+# 19. FALLBACK MODE
 
-Regras de Teste e Simulação
+Ativado apenas se tudo falhar
 
-Toda nova lógica deve incluir testes unitários e de integração.
+- Permite aproximações
+- Deve avisar: "Fallback Mode ativado"
 
-Dados simulados ou de teste devem ser claramente marcados e nunca promovidos para produção.
+---
 
-Todos os testes devem passar em pipelines de integração contínua antes da implantação.
+# REGRA SUPREMA
 
-A cobertura do código deve exceder os limites definidos (por exemplo, 85%).
-
-Os testes de regressão devem ser definidos e executados para todas as atualizações de alto impacto.
-
-Os agentes devem registrar os resultados dos testes em logs de teste separados, não em logs de produção.
-
-⸻
-
-Rastreamento de Alterações e Governança
-
-Todas as alterações de configuração ou regras devem ser documentadas no manifesto do sistema e no changelog.
-
-Os agentes devem registrar a fonte, o carimbo de data/hora e a justificativa ao modificar ativos compartilhados.
-
-Todas as atualizações devem incrementar a versão interna do sistema, quando aplicável.
-
-Um plano de reversão ou desfazer deve ser definido para cada alteração importante.
-
-As trilhas de auditoria devem ser preservadas para todas as operações de modificação de tarefas.
+SEGURANÇA SEMPRE EM PRIMEIRO LUGAR
