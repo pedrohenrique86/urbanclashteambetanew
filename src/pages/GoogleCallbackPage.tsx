@@ -139,9 +139,6 @@ export default function GoogleCallbackPage() {
                   `[CALLBACK_DEBUG] Backend disse isFirstLogin: ${data.isFirstLogin}. Redirecionando para: ${redirectTo}`,
                 );
 
-                // Adiciona um pequeno delay para melhorar a experiência do usuário
-                await new Promise((resolve) => setTimeout(resolve, 1500));
-
                 // Forçar o recarregamento da página para garantir que a sessão seja lida
                 window.location.href = redirectTo;
               } else {
@@ -172,6 +169,14 @@ export default function GoogleCallbackPage() {
     };
   }, [location.search, navigate]);
 
+  // Para evitar o "flash" de um contêiner vazio, só renderizamos a página
+  // se houver um erro explícito ou um prompt de registro para mostrar.
+  // Caso contrário, retorna nulo, resultando em uma página em branco durante o processamento
+  // e redirecionamento.
+  if (!showRegisterPrompt && !error) {
+    return null;
+  }
+
   return (
     <div
       className={`min-h-screen ${themeClasses.bg} flex items-center justify-center px-4`}
@@ -179,14 +184,7 @@ export default function GoogleCallbackPage() {
       <div
         className={`${themeClasses.cardBg} border ${themeClasses.border} rounded-xl p-6 w-full max-w-md text-center`}
       >
-        {processing ? (
-          <div className="flex flex-col items-center gap-3">
-            <div className="w-10 h-10 border-4 border-gray-600 border-t-transparent rounded-full animate-spin" />
-            <div className="text-white font-bold">
-              Processando login com Google...
-            </div>
-          </div>
-        ) : showRegisterPrompt ? (
+        {showRegisterPrompt ? (
           <div className="space-y-4">
             <h2 className="text-xl font-bold text-white">
               Usuário não cadastrado
