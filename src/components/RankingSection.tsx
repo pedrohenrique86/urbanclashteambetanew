@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
-import { motion } from 'framer-motion';
-import { Player, Clan } from '../types/ranking';
-import { useRankingCache } from '../hooks/useRankingCache';
-import PlayerRankingItem from './PlayerRankingItem';
-import ClanRankingItem from './ClanRankingItem';
-import RankingUpdateNotification from './RankingUpdateNotification';
+import React, { useState } from "react";
+import { motion } from "framer-motion";
+import { Player, Clan } from "../types/ranking";
+import { useRankingCache } from "../hooks/useRankingCache";
+import PlayerRankingItem from "./PlayerRankingItem";
+import ClanRankingItem from "./ClanRankingItem";
+import RankingUpdateNotification from "./RankingUpdateNotification";
 
 export default function RankingSection() {
   // Usar o hook de cache para gerenciar os rankings (limitado a 5 para home page)
@@ -14,8 +14,8 @@ export default function RankingSection() {
   // Limpar cache antigo na primeira renderização (apenas uma vez)
   React.useEffect(() => {
     // Limpar localStorage antigo para forçar nova busca com limitação correta
-    localStorage.removeItem('ranking_cache');
-    localStorage.removeItem('ranking_cache_timestamp');
+    localStorage.removeItem("ranking_cache");
+    localStorage.removeItem("ranking_cache_timestamp");
   }, []);
 
   // Extrair dados do cache
@@ -25,12 +25,12 @@ export default function RankingSection() {
   React.useEffect(() => {
     if (lastUpdated) {
       setShowNotification(true);
-      
+
       // Esconder a notificação após 5 segundos
       const timer = setTimeout(() => {
         setShowNotification(false);
       }, 5000);
-      
+
       return () => clearTimeout(timer);
     }
   }, [lastUpdated]);
@@ -43,12 +43,12 @@ export default function RankingSection() {
     delay: 0.3,
     data: gangsters || [],
     renderItem: (item: Player, index: number) => (
-      <PlayerRankingItem 
-        key={`gangster-${index}`} 
-        player={item} 
-        gradient="from-orange-600 to-orange-500" 
+      <PlayerRankingItem
+        key={`gangster-${index}`}
+        player={item}
+        gradient="from-orange-600 to-orange-500"
       />
-    )
+    ),
   };
 
   const guardConfig = {
@@ -58,12 +58,12 @@ export default function RankingSection() {
     delay: 0.4,
     data: guardas || [],
     renderItem: (item: Player, index: number) => (
-      <PlayerRankingItem 
-        key={`guarda-${index}`} 
-        player={item} 
-        gradient="from-blue-600 to-blue-400" 
+      <PlayerRankingItem
+        key={`guarda-${index}`}
+        player={item}
+        gradient="from-blue-600 to-blue-400"
       />
-    )
+    ),
   };
 
   // Definição específica para o tipo Clan para evitar problemas de tipagem
@@ -75,12 +75,12 @@ export default function RankingSection() {
     data: clans || [],
     // Especificando o tipo correto para o item
     renderItem: (item: Clan, index: number) => (
-      <ClanRankingItem 
-        key={`clan-${index}`} 
-        clan={item} 
-        gradient="from-purple-600 to-purple-500" 
+      <ClanRankingItem
+        key={`clan-${index}`}
+        clan={item}
+        gradient="from-purple-600 to-purple-500"
       />
-    )
+    ),
   };
 
   const rankingConfigs = [gangsterConfig, guardConfig, clanConfig];
@@ -98,7 +98,7 @@ export default function RankingSection() {
       {showNotification && lastUpdated && (
         <RankingUpdateNotification lastUpdated={lastUpdated} />
       )}
-      
+
       <div className="max-w-7xl mx-auto">
         <motion.h2
           initial={{ opacity: 0, y: 30 }}
@@ -109,7 +109,7 @@ export default function RankingSection() {
         >
           RANKINGS
         </motion.h2>
-        
+
         {/* Informação sobre atualização */}
         <motion.p
           initial={{ opacity: 0 }}
@@ -118,10 +118,21 @@ export default function RankingSection() {
           viewport={{ once: true }}
           className="text-center text-gray-400 mb-16"
         >
-          Atualizado a cada 10 minutos • Última atualização: {lastUpdated ? lastUpdated.toLocaleTimeString('pt-BR', {
-            hour: '2-digit',
-            minute: '2-digit'
-          }) : 'Carregando...'}
+          Atualizado a cada 10 minutos • Última atualização:{" "}
+          {lastUpdated
+            ? (() => {
+                const roundedDate = new Date(lastUpdated);
+                roundedDate.setMinutes(
+                  Math.floor(lastUpdated.getMinutes() / 10) * 10,
+                  0,
+                  0,
+                );
+                return roundedDate.toLocaleTimeString("pt-BR", {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                });
+              })()
+            : "Carregando..."}
         </motion.p>
 
         <div className="grid md:grid-cols-3 gap-8">
@@ -139,12 +150,12 @@ export default function RankingSection() {
               >
                 {config.title}
               </h3>
-              
+
               <div className="space-y-4">
                 {loading ? (
                   // Mostrar placeholders durante o carregamento
                   Array.from({ length: 5 }).map((_, index) => (
-                    <div 
+                    <div
                       key={`loading-${configIdx}-${index}`}
                       className="bg-gray-700 animate-pulse h-14 rounded-lg"
                     />
@@ -153,23 +164,35 @@ export default function RankingSection() {
                   // Mostrar mensagem de erro
                   <div className="text-center text-red-400 py-8">
                     <p className="mb-4">{error}</p>
-                    <p className="text-sm text-gray-400">Os dados serão atualizados automaticamente</p>
+                    <p className="text-sm text-gray-400">
+                      Os dados serão atualizados automaticamente
+                    </p>
                   </div>
                 ) : config.data.length > 0 ? (
                   // Mostrar os dados do ranking
                   // Usar uma abordagem tipada para cada configuração específica
-                  config === gangsterConfig
-                    ? gangsterConfig.data.map((item, index) => gangsterConfig.renderItem(item, index))
-                    : config === guardConfig
-                    ? guardConfig.data.map((item, index) => guardConfig.renderItem(item, index))
-                    : clanConfig.data.map((item, index) => clanConfig.renderItem(item, index))
+                  config === gangsterConfig ? (
+                    gangsterConfig.data.map((item, index) =>
+                      gangsterConfig.renderItem(item, index),
+                    )
+                  ) : config === guardConfig ? (
+                    guardConfig.data.map((item, index) =>
+                      guardConfig.renderItem(item, index),
+                    )
+                  ) : (
+                    clanConfig.data.map((item, index) =>
+                      clanConfig.renderItem(item, index),
+                    )
+                  )
                 ) : (
                   // Mostrar mensagem quando não houver dados
                   <div className="text-center text-gray-400 py-4">
                     {config === clanConfig ? (
                       <div>
                         <p className="mb-2">🏗️ Aguardando implementação</p>
-                        <p className="text-sm">A lógica de clãs está sendo desenvolvida</p>
+                        <p className="text-sm">
+                          A lógica de clãs está sendo desenvolvida
+                        </p>
                       </div>
                     ) : (
                       "Nenhum jogador encontrado nesta facção"

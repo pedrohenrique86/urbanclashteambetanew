@@ -173,50 +173,58 @@ export const useRankingCache = (fullRankings: boolean = false): UseRankingCacheR
   }, [fullRankings, fetchRankings, loadFromStorage]); // Corrigido // Corrigido
 
   // Função para forçar atualização
-  const forceRefresh = async (): Promise<void> => {
+  const forceRefresh = useCallback(async (): Promise<void> => {
     await loadRankings(true);
-  };
+  }, [loadRankings]);
 
   useEffect(() => {
     mountedRef.current = true;
 
-    const scheduleSyncUpdates = async () => {
+    const scheduleInitialLoad = async () => {
+      await loadRankings(); // Carrega dados do cache ou busca novos se necessário
+
+      // Após o carregamento inicial, agenda a próxima atualização sincronizada
       try {
         const { serverTime } = await apiClient.getServerTime();
         const now = new Date(serverTime);
         const minutes = now.getMinutes();
         const seconds = now.getSeconds();
         const milliseconds = now.getMilliseconds();
+        
+        // Calcula o tempo até o próximo intervalo de 10 minutos
         const minutesToNextInterval = 10 - (minutes % 10);
         const delay = (minutesToNextInterval * 60 - seconds) * 1000 - milliseconds;
 
+        // Agenda a primeira atualização forçada e depois o intervalo regular
         const timeoutId = setTimeout(() => {
-          loadRankings(true);
-          intervalRef.current = setInterval(() => {
-            loadRankings(true);
-          }, CACHE_DURATION);
+          forceRefresh(); // Força a atualização no tempo certo
+          
+          // Limpa o timeout anterior e inicia o intervalo
+          if (intervalRef.current) clearInterval(intervalRef.current); 
+          intervalRef.current = setInterval(forceRefresh, CACHE_DURATION);
         }, delay);
 
+        // Armazena o ID do timeout para limpeza
+        if (intervalRef.current) clearTimeout(intervalRef.current);
         intervalRef.current = timeoutId;
 
       } catch (error) {
-        intervalRef.current = setInterval(() => {
-          loadRankings();
-        }, CACHE_DURATION);
+        // Fallback: se não conseguir obter a hora do servidor, usa o intervalo padrão
+        if (intervalRef.current) clearInterval(intervalRef.current);
+        intervalRef.current = setInterval(forceRefresh, CACHE_DURATION);
       }
     };
 
-    loadRankings();
-    scheduleSyncUpdates();
+    scheduleInitialLoad();
 
     return () => {
       mountedRef.current = false;
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
-        clearTimeout(intervalRef.current);
+        clearTimeout(intervalRef.current); // Garante que ambos sejam limpos
       }
     };
-  }, [loadRankings]);
+  }, [loadRankings, forceRefresh]);
 
   return {
     data,

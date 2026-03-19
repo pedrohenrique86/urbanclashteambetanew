@@ -1,30 +1,35 @@
-import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 
 interface RankingUpdateNotificationProps {
   lastUpdated: Date;
 }
 
-export default function RankingUpdateNotification({ lastUpdated }: RankingUpdateNotificationProps) {
+export default function RankingUpdateNotification({
+  lastUpdated,
+}: RankingUpdateNotificationProps) {
   const [show, setShow] = useState(false);
-  
+
   // Mostrar a notificação por 5 segundos quando o componente for montado ou quando lastUpdated mudar
   useEffect(() => {
     setShow(true);
-    
+
     const timer = setTimeout(() => {
       setShow(false);
     }, 5000);
-    
+
     return () => clearTimeout(timer);
   }, [lastUpdated]);
-  
-  // Formatar a hora da última atualização
-  const formattedTime = lastUpdated.toLocaleTimeString('pt-BR', {
-    hour: '2-digit',
-    minute: '2-digit'
+
+  // Formatar a hora da última atualização, arredondando para baixo para o múltiplo de 10 mais próximo
+  const roundedDate = new Date(lastUpdated);
+  roundedDate.setMinutes(Math.floor(lastUpdated.getMinutes() / 10) * 10, 0, 0); // Arredonda os minutos e zera segundos/milissegundos
+
+  const formattedTime = roundedDate.toLocaleTimeString("pt-BR", {
+    hour: "2-digit",
+    minute: "2-digit",
   });
-  
+
   return (
     <AnimatePresence>
       {show && (
