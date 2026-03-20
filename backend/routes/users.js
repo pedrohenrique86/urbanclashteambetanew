@@ -66,31 +66,35 @@ async function refreshRankingsCache(faction, limit) {
     ORDER BY p.level DESC, p.experience_points DESC
     LIMIT $${queryParams.length + 1}
   `,
-    [...queryParams, limit]
+    [...queryParams, limit],
   );
   setCachedRankings({ faction, limit }, leaderboardResult.rows);
   broadcastRankingsUpdate({ faction, limit });
 }
 function scheduleUsersRefresh() {
-  query('SELECT NOW() as now')
+  query("SELECT NOW() as now")
     .then((result) => {
       const now = new Date(result.rows[0].now);
       const minutes = now.getMinutes();
       const seconds = now.getSeconds();
       const milliseconds = now.getMilliseconds();
       const minutesToNextInterval = 10 - (minutes % 10);
-      const delay = (minutesToNextInterval * 60 - seconds) * 1000 - milliseconds;
-      setTimeout(async () => {
-        try {
-          await refreshRankingsCache("gangsters", 26);
-          await refreshRankingsCache("guardas", 26);
-          await refreshRankingsCache(undefined, 26);
-        } catch (e) {
-          void e;
-        } finally {
-          scheduleUsersRefresh();
-        }
-      }, Math.max(0, delay));
+      const delay =
+        (minutesToNextInterval * 60 - seconds) * 1000 - milliseconds;
+      setTimeout(
+        async () => {
+          try {
+            await refreshRankingsCache("gangsters", 26);
+            await refreshRankingsCache("guardas", 26);
+            await refreshRankingsCache(undefined, 26);
+          } catch (e) {
+            void e;
+          } finally {
+            scheduleUsersRefresh();
+          }
+        },
+        Math.max(0, delay),
+      );
     })
     .catch(() => {
       setTimeout(async () => {
@@ -128,7 +132,7 @@ const updateProfileValidation = [
     .isLength({ min: 3, max: 20 })
     .matches(/^[a-zA-Z0-9_]+$/)
     .withMessage(
-      "Username deve ter 3-20 caracteres e conter apenas letras, números e underscore"
+      "Username deve ter 3-20 caracteres e conter apenas letras, números e underscore",
     ),
   body("bio")
     .optional()
@@ -147,7 +151,7 @@ const changePasswordValidation = [
     .withMessage("Nova senha deve ter pelo menos 8 caracteres")
     .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/)
     .withMessage(
-      "Nova senha deve ter pelo menos 8 caracteres, incluindo maiúscula, minúscula, número e símbolo"
+      "Nova senha deve ter pelo menos 8 caracteres, incluindo maiúscula, minúscula, número e símbolo",
     ),
 ];
 
@@ -165,7 +169,7 @@ router.get("/profile", authenticateToken, async (req, res) => {
       JOIN users u ON p.user_id = u.id
       WHERE p.user_id = $1
     `,
-      [req.user.id]
+      [req.user.id],
     );
 
     if (profileResult.rows.length === 0) {
@@ -177,7 +181,7 @@ router.get("/profile", authenticateToken, async (req, res) => {
       `
       SELECT clan_id FROM clan_members WHERE user_id = $1
     `,
-      [req.user.id]
+      [req.user.id],
     );
 
     // Converter campos numéricos que vêm como string do PostgreSQL
@@ -285,7 +289,7 @@ router.post("/profile", authenticateToken, async (req, res) => {
     // Verificar se o perfil já existe
     const existingProfile = await query(
       "SELECT id FROM user_profiles WHERE user_id = $1",
-      [req.user.id]
+      [req.user.id],
     );
 
     if (existingProfile.rows.length > 0) {
@@ -331,7 +335,7 @@ router.post("/profile", authenticateToken, async (req, res) => {
         factionStats.victories,
         factionStats.defeats,
         factionStats.winning_streak,
-      ]
+      ],
     );
 
     res.status(201).json(result.rows[0]);
@@ -400,7 +404,7 @@ router.put(
       WHERE user_id = $${paramCount}
       RETURNING *
     `,
-        updateValues
+        updateValues,
       );
 
       if (result.rows.length === 0) {
@@ -412,7 +416,7 @@ router.put(
       console.error("❌ Erro ao atualizar perfil do usuário:", error.message);
       res.status(500).json({ error: "Erro interno do servidor" });
     }
-  }
+  },
 );
 
 // GET /api/users/rankings - Ranking de usuários (alias para leaderboard)
@@ -455,17 +459,17 @@ router.get("/rankings", async (req, res) => {
       ORDER BY p.level DESC, p.experience_points DESC
       LIMIT $${queryParams.length + 1}
     `,
-      [...queryParams, limit]
+      [...queryParams, limit],
     );
 
     console.log(
       "✅ [RANKINGS] Retornando",
       leaderboardResult.rows.length,
-      "resultados"
+      "resultados",
     );
     console.log(
       "✅ [RANKINGS] Primeiro resultado com country:",
-      leaderboardResult.rows[0]?.country
+      leaderboardResult.rows[0]?.country,
     );
 
     setCachedRankings({ faction, limit }, leaderboardResult.rows);
@@ -497,7 +501,7 @@ router.get("/:id", async (req, res) => {
       LEFT JOIN user_profiles p ON u.id = p.user_id
       WHERE u.id = $1 AND u.is_email_confirmed = true
     `,
-      [id]
+      [id],
     );
 
     if (userResult.rows.length === 0) {
@@ -515,7 +519,7 @@ router.get("/:id", async (req, res) => {
       FROM clan_members cm
       WHERE cm.user_id = $1
     `,
-      [id]
+      [id],
     );
 
     const stats = statsResult.rows[0] || { clans_joined: 0, clans_led: 0 };
@@ -566,7 +570,7 @@ router.put(
       // Verificar se o perfil existe
       const profileExists = await query(
         "SELECT id FROM user_profiles WHERE user_id = $1",
-        [id]
+        [id],
       );
 
       let result;
@@ -622,7 +626,7 @@ router.put(
             stats.critical_chance,
             stats.intimidation,
             stats.discipline,
-          ]
+          ],
         );
       } else {
         // Atualizar perfil existente
@@ -709,7 +713,7 @@ router.put(
         WHERE user_id = $${paramCount}
         RETURNING *
       `,
-          updateValues
+          updateValues,
         );
       }
 
@@ -721,7 +725,7 @@ router.put(
       console.error("❌ Erro ao atualizar perfil:", error.message);
       res.status(500).json({ error: "Erro interno do servidor" });
     }
-  }
+  },
 );
 
 // PUT /api/users/:id/password - Alterar senha
@@ -746,7 +750,7 @@ router.put(
       // Buscar senha atual
       const userResult = await query(
         "SELECT password_hash FROM users WHERE id = $1",
-        [id]
+        [id],
       );
 
       if (userResult.rows.length === 0) {
@@ -758,7 +762,7 @@ router.put(
       // Verificar senha atual
       const passwordValid = await bcrypt.compare(
         currentPassword,
-        user.password_hash
+        user.password_hash,
       );
       if (!passwordValid) {
         return res.status(400).json({ error: "Senha atual incorreta" });
@@ -771,7 +775,7 @@ router.put(
       // Atualizar senha
       await query(
         "UPDATE users SET password_hash = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2",
-        [newPasswordHash, id]
+        [newPasswordHash, id],
       );
 
       res.json({ message: "Senha alterada com sucesso" });
@@ -779,7 +783,7 @@ router.put(
       console.error("❌ Erro ao alterar senha:", error.message);
       res.status(500).json({ error: "Erro interno do servidor" });
     }
-  }
+  },
 );
 
 // GET /api/users/:id/clans - Obter clãs do usuário
@@ -797,7 +801,7 @@ router.get("/:id/clans", async (req, res) => {
       WHERE cm.user_id = $1
       ORDER BY cm.joined_at DESC
     `,
-      [id]
+      [id],
     );
 
     res.json({
@@ -828,7 +832,7 @@ router.delete(
       // Verificar senha
       const userResult = await query(
         "SELECT password_hash FROM users WHERE id = $1",
-        [id]
+        [id],
       );
 
       if (userResult.rows.length === 0) {
@@ -844,9 +848,23 @@ router.delete(
 
       // Deletar usuário (cascade irá deletar perfil, sessões e memberships)
       await transaction(async (client) => {
-        // Nota: Lógica de liderança de clãs foi removida
+        // Primeiro, verificar se o usuário é membro de um clã
+        const clanMemberResult = await client.query(
+          "SELECT clan_id FROM clan_members WHERE user_id = $1",
+          [id],
+        );
 
-        // Deletar usuário
+        if (clanMemberResult.rows.length > 0) {
+          const { clan_id } = clanMemberResult.rows[0];
+
+          // Decrementar a contagem de membros do clã
+          await client.query(
+            "UPDATE clans SET member_count = member_count - 1 WHERE id = $1",
+            [clan_id],
+          );
+        }
+
+        // Deletar usuário (o cascade cuidará do resto, como clan_members)
         await client.query("DELETE FROM users WHERE id = $1", [id]);
       });
 
@@ -855,7 +873,7 @@ router.delete(
       console.error("❌ Erro ao deletar usuário:", error.message);
       res.status(500).json({ error: "Erro interno do servidor" });
     }
-  }
+  },
 );
 
 // GET /api/users - Listar usuários (com paginação e filtros)
@@ -907,7 +925,7 @@ router.get("/", async (req, res) => {
       } ${sortOrder}
       LIMIT $${paramCount++} OFFSET $${paramCount++}
     `,
-      [...queryParams, limit, offset]
+      [...queryParams, limit, offset],
     );
 
     // Query para contar total
@@ -918,7 +936,7 @@ router.get("/", async (req, res) => {
       LEFT JOIN user_profiles p ON u.id = p.user_id
       ${whereClause}
     `,
-      queryParams
+      queryParams,
     );
 
     const total = parseInt(countResult.rows[0].total);
@@ -967,7 +985,7 @@ router.get("/leaderboard", async (req, res) => {
       ORDER BY p.experience_points DESC, p.level DESC
       LIMIT $${queryParams.length + 1}
     `,
-      [...queryParams, limit]
+      [...queryParams, limit],
     );
 
     res.json({
@@ -983,7 +1001,7 @@ router.get("/leaderboard", async (req, res) => {
 router.get("/action-points", authenticateToken, async (req, res) => {
   try {
     const actionPoints = await ActionPointsService.getCurrentActionPoints(
-      req.user.id
+      req.user.id,
     );
 
     res.json({
@@ -1008,7 +1026,7 @@ router.post("/action-points/consume", authenticateToken, async (req, res) => {
 
     const result = await ActionPointsService.consumeActionPoints(
       req.user.id,
-      amount
+      amount,
     );
 
     if (!result.success) {

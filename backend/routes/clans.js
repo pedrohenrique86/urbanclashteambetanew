@@ -180,7 +180,7 @@ function getClansCacheKey(params) {
 function getCachedClans(params) {
   const key = getClansCacheKey(params);
   const entry = clansCache.get(key);
-  if (entry && (Date.now() - entry.timestamp) < CLANS_CACHE_TTL_MS) {
+  if (entry && Date.now() - entry.timestamp < CLANS_CACHE_TTL_MS) {
     return entry;
   }
   return null;
@@ -219,23 +219,27 @@ async function refreshClansCache(limit) {
   broadcastClansRankingsUpdate({ limit });
 }
 function scheduleClansRefresh() {
-  query('SELECT NOW() as now')
+  query("SELECT NOW() as now")
     .then((result) => {
       const now = new Date(result.rows[0].now);
       const minutes = now.getMinutes();
       const seconds = now.getSeconds();
       const milliseconds = now.getMilliseconds();
       const minutesToNextInterval = 10 - (minutes % 10);
-      const delay = (minutesToNextInterval * 60 - seconds) * 1000 - milliseconds;
-      setTimeout(async () => {
-        try {
-          await refreshClansCache(26);
-        } catch (e) {
-          void e;
-        } finally {
-          scheduleClansRefresh();
-        }
-      }, Math.max(0, delay));
+      const delay =
+        (minutesToNextInterval * 60 - seconds) * 1000 - milliseconds;
+      setTimeout(
+        async () => {
+          try {
+            await refreshClansCache(26);
+          } catch (e) {
+            void e;
+          } finally {
+            scheduleClansRefresh();
+          }
+        },
+        Math.max(0, delay),
+      );
     })
     .catch(() => {
       setTimeout(async () => {
@@ -664,11 +668,20 @@ router.post("/:id/leave", authenticateToken, async (req, res) => {
       return res.json({ message: "Clã deletado com sucesso" });
     }
 
-    // Remover membro do clã
-    await query(
-      "DELETE FROM clan_members WHERE clan_id = $1 AND user_id = $2",
-      [id, userId],
-    );
+    // Remover membro do clã e atualizar contagem
+    await transaction(async (client) => {
+      // Remover da tabela clan_members
+      await client.query(
+        "DELETE FROM clan_members WHERE clan_id = $1 AND user_id = $2",
+        [id, userId],
+      );
+
+      // Decrementar member_count do clã
+      await client.query(
+        "UPDATE clans SET member_count = member_count - 1 WHERE id = $1",
+        [id],
+      );
+    });
 
     res.json({ message: "Você saiu do clã com sucesso" });
   } catch (error) {
@@ -719,11 +732,20 @@ router.post("/:id/kick/:userId", authenticateToken, async (req, res) => {
       return res.status(400).json({ error: "Não é possível expulsar o líder" });
     }
 
-    // Remover membro
-    await query(
-      "DELETE FROM clan_members WHERE clan_id = $1 AND user_id = $2",
-      [id, targetUserId],
-    );
+    // Remover membro e atualizar contagem
+    await transaction(async (client) => {
+      // Remover da tabela clan_members
+      await client.query(
+        "DELETE FROM clan_members WHERE clan_id = $1 AND user_id = $2",
+        [id, targetUserId],
+      );
+
+      // Decrementar member_count do clã
+      await client.query(
+        "UPDATE clans SET member_count = member_count - 1 WHERE id = $1",
+        [id],
+      );
+    });
 
     res.json({ message: "Membro expulso com sucesso" });
   } catch (error) {
