@@ -161,7 +161,6 @@ const EmptyRankingItem: React.FC<{
     </div>
   );
 };
-
 export default function RankingPage() {
   // Usar o hook de cache para gerenciar os rankings (com rankings completos)
   const {
@@ -199,120 +198,120 @@ export default function RankingPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white font-exo">
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        {/* Título principal */}
-        <motion.div
-          initial={{ opacity: 0, y: -30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          className="text-center mb-12"
-        >
-          <h1 className="text-4xl md:text-6xl font-orbitron font-bold mb-4 bg-gradient-to-r from-blue-400 via-purple-500 to-pink-500 bg-clip-text text-transparent">
-            RANKINGS OFICIAIS
-          </h1>
-          <p className="text-gray-400 text-lg">
-            Competição entre os melhores jogadores e clãs do Urban Clash
+    <div className="max-w-7xl mx-auto px-4 py-8">
+      {/* Título principal */}
+      <motion.div
+        initial={{ opacity: 0, y: -30 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6 }}
+        className="text-center mb-12"
+      >
+        <h1 className="text-4xl md:text-6xl font-orbitron font-bold mb-4 bg-gradient-to-r from-blue-400 via-purple-500 to-pink-500 bg-clip-text text-transparent">
+          RANKINGS OFICIAIS
+        </h1>
+        <p className="text-gray-400 text-lg">
+          Competição entre os melhores jogadores e clãs do Urban Clash
+        </p>
+      </motion.div>
+
+      {/* Informação de atualização */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.3, duration: 0.6 }}
+        className="text-center mb-8 p-4 bg-gray-800/50 rounded-lg border border-gray-700/50"
+      >
+        <p className="text-gray-300">
+          🔄 Atualizado automaticamente a cada 10 minutos
+        </p>
+        {lastUpdate && (
+          <p className="text-sm text-gray-400 mt-1">
+            Última atualização:{" "}
+            {(() => {
+              const roundedDate = new Date(lastUpdate);
+              roundedDate.setMinutes(
+                Math.floor(lastUpdate.getMinutes() / 10) * 10,
+                0,
+                0,
+              );
+              return roundedDate.toLocaleString("pt-BR");
+            })()}
           </p>
-        </motion.div>
+        )}
+        {error && <p className="text-red-400 text-sm mt-2">⚠️ {error}</p>}
+      </motion.div>
 
-        {/* Informação de atualização */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.3, duration: 0.6 }}
-          className="text-center mb-8 p-4 bg-gray-800/50 rounded-lg border border-gray-700/50"
-        >
-          <p className="text-gray-300">
-            🔄 Atualizado automaticamente a cada 10 minutos
-          </p>
-          {lastUpdate && (
-            <p className="text-sm text-gray-400 mt-1">
-              Última atualização:{" "}
-              {(() => {
-                const roundedDate = new Date(lastUpdate);
-                roundedDate.setMinutes(
-                  Math.floor(lastUpdate.getMinutes() / 10) * 10,
-                  0,
-                  0,
-                );
-                return roundedDate.toLocaleString("pt-BR");
-              })()}
-            </p>
-          )}
-          {error && <p className="text-red-400 text-sm mt-2">⚠️ {error}</p>}
-        </motion.div>
+      {/* Grid dos rankings */}
+      <div className="grid lg:grid-cols-3 gap-8">
+        {rankingConfigs.map((config, configIdx) => (
+          <motion.div
+            key={configIdx}
+            initial={{ opacity: 0, y: 50 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 + configIdx * 0.1, duration: 0.6 }}
+            className={`bg-gradient-to-br from-gray-800 to-gray-900 p-6 rounded-2xl border ${config.borderColor} shadow-2xl`}
+          >
+            {/* Título da seção */}
+            <div className="text-center mb-6">
+              <h2
+                className={`text-2xl font-orbitron font-bold bg-gradient-to-r ${config.gradient} bg-clip-text text-transparent`}
+              >
+                {config.title}
+              </h2>
+              <div
+                className={`w-16 h-1 bg-gradient-to-r ${config.gradient} mx-auto mt-2 rounded-full`}
+              ></div>
+            </div>
 
-        {/* Grid dos rankings */}
-        <div className="grid lg:grid-cols-3 gap-8">
-          {rankingConfigs.map((config, configIdx) => (
-            <motion.div
-              key={configIdx}
-              initial={{ opacity: 0, y: 50 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 + configIdx * 0.1, duration: 0.6 }}
-              className={`bg-gradient-to-br from-gray-800 to-gray-900 p-6 rounded-2xl border ${config.borderColor} shadow-2xl`}
-            >
-              {/* Título da seção */}
-              <div className="text-center mb-6">
-                <h2
-                  className={`text-2xl font-orbitron font-bold bg-gradient-to-r ${config.gradient} bg-clip-text text-transparent`}
-                >
-                  {config.title}
-                </h2>
-                <div className="w-16 h-1 bg-gradient-to-r ${config.gradient} mx-auto mt-2 rounded-full"></div>
-              </div>
+            {/* Lista do ranking */}
+            <div className="space-y-2 max-h-[600px] overflow-y-auto custom-scrollbar">
+              {isLoading
+                ? // Placeholders de carregamento
+                  Array.from({ length: 26 }, (_, i) => (
+                    <div
+                      key={i}
+                      className="animate-pulse h-14 bg-gray-700 rounded-lg"
+                    ></div>
+                  ))
+                : // Renderizar sempre 26 posições
+                  Array.from({ length: 26 }, (_, idx) => {
+                    const position = idx + 1;
+                    const item = config.data[idx];
+                    const gradient = `bg-gradient-to-r ${config.gradient}`;
 
-              {/* Lista do ranking */}
-              <div className="space-y-2 max-h-[600px] overflow-y-auto custom-scrollbar">
-                {isLoading
-                  ? // Placeholders de carregamento
-                    Array.from({ length: 26 }, (_, i) => (
-                      <div
-                        key={i}
-                        className="animate-pulse h-14 bg-gray-700 rounded-lg"
-                      ></div>
-                    ))
-                  : // Renderizar sempre 26 posições
-                    Array.from({ length: 26 }, (_, idx) => {
-                      const position = idx + 1;
-                      const item = config.data[idx];
-                      const gradient = `bg-gradient-to-r ${config.gradient}`;
-
-                      if (item) {
-                        // Renderizar item real
-                        if (config.type === "player") {
-                          return (
-                            <PlayerRankingItem
-                              key={item.id || idx}
-                              player={{ ...(item as Player), position }}
-                              gradient={gradient}
-                            />
-                          );
-                        } else {
-                          return (
-                            <ClanRankingItem
-                              key={item.id || idx}
-                              clan={{ ...(item as Clan), position }}
-                              gradient={gradient}
-                            />
-                          );
-                        }
-                      } else {
-                        // Renderizar placeholder para posição vazia
+                    if (item) {
+                      // Renderizar item real
+                      if (config.type === "player") {
                         return (
-                          <EmptyRankingItem
-                            key={`empty-${position}`}
-                            position={position}
-                            type={config.type}
+                          <PlayerRankingItem
+                            key={item.id || idx}
+                            player={{ ...(item as Player), position }}
+                            gradient={gradient}
+                          />
+                        );
+                      } else {
+                        return (
+                          <ClanRankingItem
+                            key={item.id || idx}
+                            clan={{ ...(item as Clan), position }}
+                            gradient={gradient}
                           />
                         );
                       }
-                    })}
-              </div>
-            </motion.div>
-          ))}
-        </div>
+                    } else {
+                      // Renderizar placeholder para posição vazia
+                      return (
+                        <EmptyRankingItem
+                          key={`empty-${position}`}
+                          position={position}
+                          type={config.type}
+                        />
+                      );
+                    }
+                  })}
+            </div>
+          </motion.div>
+        ))}
       </div>
     </div>
   );

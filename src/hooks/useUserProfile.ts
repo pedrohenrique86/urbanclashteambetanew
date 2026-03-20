@@ -18,6 +18,12 @@ export const useUserProfile = (shouldRedirect: boolean = true) => {
   const [loading, setLoading] = useState(true);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    await apiClient.logout();
+    setUserProfile(null);
+    navigate('/');
+  };
   
   // Registrar função de invalidação
   useEffect(() => {
@@ -215,5 +221,5 @@ export const useUserProfile = (shouldRedirect: boolean = true) => {
     }
   };
 
-  return { userProfile, loading, setUserProfile };
+  return { userProfile, loading, setUserProfile, handleLogout };
 };

@@ -191,24 +191,6 @@ const TopBar: React.FC<TopBarProps> = ({ userProfile, handleLogout }) => {
                 >
                   {userProfile?.username || "Usuário"}
                 </span>
-                <button
-                  onClick={handleLogout}
-                  className="text-gray-400 hover:text-white transition-colors"
-                  title="Sair"
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-5 w-5"
-                    viewBox="0 0 20 20"
-                    fill="currentColor"
-                  >
-                    <path
-                      fillRule="evenodd"
-                      d="M3 3a1 1 0 00-1 1v12a1 1 0 102 0V5h10a1 1 0 100-2H3zm12.293 4.293a1 1 0 011.414 0l3 3a1 1 0 010 1.414l-3 3a1 1 0 01-1.414-1.414L16.586 13H9a1 1 0 110-2h7.586l-1.293-1.293a1 1 0 010-1.414z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
-                </button>
               </div>
             </div>
 
@@ -225,6 +207,17 @@ const TopBar: React.FC<TopBarProps> = ({ userProfile, handleLogout }) => {
                   <span className="ml-1.5">{p.value}</span>
                 </div>
               ))}
+            </div>
+
+            {/* Logout Button */}
+            <div className="ml-auto flex items-center pr-2">
+              <button
+                onClick={handleLogout}
+                className="font-orbitron text-sm font-bold text-cyan-400 transition-all duration-300 easea_in-out hover:text-cyan-300 hover:shadow-[0_0_15px_#06b6d4] shadow-[0_0_5px_#06b6d4,0_0_10px_#06b6d4] px-3 py-1 rounded-md"
+                title="Sair"
+              >
+                Sair
+              </button>
             </div>
           </div>
         </div>
