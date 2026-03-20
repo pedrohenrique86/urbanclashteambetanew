@@ -1,220 +1,189 @@
-# 🔒 SYSTEM MODE: STRICT AI GOVERNANCE (MASTER)
+# 🔒 SYSTEM MODE: PRO AI GOVERNANCE (AUTO MODE)
 
-Este arquivo é um CONTRATO obrigatório de execução.
+Este arquivo define comportamento inteligente da IA com 3 modos automáticos:
 
-Todas as regras abaixo são:
+- DEV MODE (desenvolvimento)
+- DEBUG MODE (investigação)
+- PROD MODE (rigor máximo)
 
-- Globais
-- Invioláveis
-- Obrigatórias em 100% das execuções
-
-Quebrar qualquer regra invalida a resposta.
+A IA deve alternar automaticamente conforme o contexto.
 
 ---
 
-# 1. PRIORIDADE MÁXIMA
+# 1. PRIORIDADE GLOBAL
 
 1. Segurança
-2. Consistência
-3. Integridade do sistema
+2. Integridade
+3. Consistência
 4. Clareza
 5. Performance
 
 ---
 
-# 2. EXECUTION PIPELINE (OBRIGATÓRIO)
+# 2. EXECUTION PIPELINE
 
-Antes de QUALQUER resposta, a IA DEVE:
+Antes de qualquer resposta, a IA deve:
 
 1. Ler:
    - /config/rules.master.md
    - /config/guard.md
    - /config/prompt.md
 
-2. Validar contexto, impacto e dependências
-3. Aplicar validação, segurança e tratamento de erro
-4. Executar modo correto (GENERATE / REVIEW / FIX)
-5. Validar saída final
-
-Se falhar → PARAR
+2. Entender o contexto
+3. Validar impacto no sistema
+4. Escolher modo automaticamente
+5. Executar ação
+6. Validar saída
 
 ---
 
-# 3. CORE RULES
+# 3. AUTO MODE SWITCH
 
+## 🔧 DEV MODE (PADRÃO)
+
+Ativar quando:
+
+- Código em construção
+- Contexto incompleto
+- Usuário não forneceu erro real
+- Múltiplas possibilidades válidas
+
+Regras:
+
+- Permitir código parcial
+- Não travar execução
+- Não forçar perfeição
+- Priorizar progresso
+
+Objetivo:
+→ Fazer o projeto andar
+
+---
+
+## 🐛 DEBUG MODE
+
+Ativar quando:
+
+- Usuário reporta erro real
+- Existe log, stack trace ou comportamento inválido
+
+Regras:
+
+- Analisar erro real
+- NÃO assumir erros
+- NÃO inventar problemas
+- Corrigir baseado em evidência
+
+Objetivo:
+→ Resolver problemas reais
+
+---
+
+## 🔒 PROD MODE
+
+Ativar quando:
+
+- Código final
+- Refatoração crítica
+- Segurança envolvida
+
+Regras:
+
+- Código completo obrigatório
+- Validação total
+- Tratamento de erro obrigatório
+- Sem riscos
+
+Objetivo:
+→ Código estável e seguro
+
+---
+
+# 4. CORE RULES
+
+- Nunca inventar erros
 - Nunca assumir contexto implícito
-- Nunca gerar código incompleto
 - Nunca quebrar código existente
-- Nunca ignorar validação
+- Priorizar progresso seguro
 
 ---
 
-# 4. PADRÕES OBRIGATÓRIOS
+# 5. VALIDAÇÃO INTELIGENTE
 
-## Input
+- Validar quando necessário
+- Não bloquear desenvolvimento
+- Alertar ao invés de travar
+- Evitar excesso de rigidez
 
-if (!input || typeof input !== "string") throw new Error("Entrada inválida");
+---
 
-## Error Handling
+# 6. ERROR HANDLING
 
 try {
-validateInputs();
-executeAction();
+execute();
 } catch (error) {
-logError(error);
+log(error);
 throw new Error("Erro controlado");
 }
 
-## Safe Execution
-
-if (!preConditionsMet()) throw new Error("Pré-condições não atendidas");
-
-## Retry
-
-for (let i = 0; i < MAX_RETRIES; i++) {
-try { return await operation(); }
-catch { await delay(2 \*_ i _ 100); }
-}
-
 ---
 
-# 5. SEGURANÇA
+# 7. SEGURANÇA
 
 - Proibido eval / exec
 - Sem credenciais hardcoded
-- Usar env
+- Usar variáveis de ambiente
 - Sanitizar inputs
 
 ---
 
-# 6. VALIDAÇÃO
+# 8. AUTO DEBUG (CONTROLADO)
 
-Validar:
+A IA deve:
 
-- input
-- estado
-- permissões
-- recursos
+- Revisar código antes de entregar
+- Corrigir apenas erros claros
+- NÃO inventar erro
+- NÃO simular execução
+- NÃO afirmar que “não funciona” sem teste real
 
-Falhou → PARAR
-
----
-
-# 7. EXECUÇÃO SEGURA
-
-- Timeout
-- Evitar loops infinitos
-- Não continuar após erro
+Se não houver certeza:
+→ entregar código + sugerir testes
 
 ---
 
-# 8. ERROR FORMAT
+# 9. ENFORCEMENT FLEXÍVEL
 
-{
-"error": true,
-"message": "Descrição clara",
-"code": "ERROR_CODE"
-}
-
----
-
-# 9. ENFORCEMENT
-
-- ESLint OK
-- TypeScript OK
-- Sem erro → roda
-- Com erro → BLOQUEAR
+- Sugerir ESLint
+- Sugerir melhorias
+- NÃO bloquear execução
+- NÃO assumir erro sem evidência
 
 ---
 
-# 10. DOCUMENTAÇÃO
+# 10. UI RESPONSIVENESS
 
-Toda função:
-
-- propósito
-- parâmetros
-- retorno
-- exemplo
-
----
-
-# 11. ENGENHARIA
-
-- KISS
-- SOLID
-- YAGNI
-
----
-
-# 12. ANTI-ALUCINAÇÃO
-
-Nunca inventar dados.
-
-Se não souber:
-throw new Error("Informação insuficiente");
-
----
-
-# 13. FAIL-SAFE
-
-1. Parar
-2. Logar
-3. Retornar erro
-4. Pedir dados
-
----
-
-# 14. GUARD RULES
-
-- Ler código existente
-- Validar impacto
-- Evitar regressão
-
----
-
-# 15. AI STRICT MODE
-
-- Sempre validação
-- Sempre try/catch
-- Nunca código incompleto
-
----
-
-# 16. UI RESPONSIVENESS
-
-- Mobile-first
-- Flex/Grid
+- Flexbox ou Grid
 - Sem largura fixa
 - Sem scroll horizontal
+- Layout adaptável
 
 ---
 
-# 17. AUTO DEBUG
+# 11. FAIL-SAFE
 
-- Revisar antes de entregar
-- Corrigir erros claros
-- Não inventar erro
+Se falhar:
 
----
+→ tentar alternativa  
+→ pedir mais contexto  
+→ evitar travamento
 
-# 18. DEV MODE (AUTOMÁTICO)
-
-Se não resolver em modo estrito:
-→ liberar código parcial e pragmático
-
-Nunca quebrar segurança
+Só parar em caso crítico
 
 ---
 
-# 19. FALLBACK MODE
+# 12. REGRA SUPREMA
 
-Ativado apenas se tudo falhar
-
-- Permite aproximações
-- Deve avisar: "Fallback Mode ativado"
-
----
-
-# REGRA SUPREMA
-
-SEGURANÇA SEMPRE EM PRIMEIRO LUGAR
+SEGURANÇA EM PRIMEIRO LUGAR  
+PROGRESSO EM SEGUNDO  
+PERFEIÇÃO POR ÚLTIMO

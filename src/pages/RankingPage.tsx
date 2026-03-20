@@ -199,21 +199,6 @@ export default function RankingPage() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
-      {/* Título principal */}
-      <motion.div
-        initial={{ opacity: 0, y: -30 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6 }}
-        className="text-center mb-12"
-      >
-        <h1 className="text-4xl md:text-6xl font-orbitron font-bold mb-4 bg-gradient-to-r from-blue-400 via-purple-500 to-pink-500 bg-clip-text text-transparent">
-          RANKINGS OFICIAIS
-        </h1>
-        <p className="text-gray-400 text-lg">
-          Competição entre os melhores jogadores e clãs do Urban Clash
-        </p>
-      </motion.div>
-
       {/* Informação de atualização */}
       <motion.div
         initial={{ opacity: 0 }}
@@ -224,20 +209,6 @@ export default function RankingPage() {
         <p className="text-gray-300">
           🔄 Atualizado automaticamente a cada 10 minutos
         </p>
-        {lastUpdate && (
-          <p className="text-sm text-gray-400 mt-1">
-            Última atualização:{" "}
-            {(() => {
-              const roundedDate = new Date(lastUpdate);
-              roundedDate.setMinutes(
-                Math.floor(lastUpdate.getMinutes() / 10) * 10,
-                0,
-                0,
-              );
-              return roundedDate.toLocaleString("pt-BR");
-            })()}
-          </p>
-        )}
         {error && <p className="text-red-400 text-sm mt-2">⚠️ {error}</p>}
       </motion.div>
 
@@ -264,7 +235,7 @@ export default function RankingPage() {
             </div>
 
             {/* Lista do ranking */}
-            <div className="space-y-2 max-h-[600px] overflow-y-auto custom-scrollbar">
+            <div className="space-y-2">
               {isLoading
                 ? // Placeholders de carregamento
                   Array.from({ length: 26 }, (_, i) => (
