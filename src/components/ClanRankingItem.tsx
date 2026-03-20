@@ -1,5 +1,5 @@
-import React from 'react';
-import { Clan } from '../types/ranking';
+import React from "react";
+import { Clan } from "../types/ranking";
 
 interface ClanRankingItemProps {
   clan: Clan;
@@ -7,23 +7,29 @@ interface ClanRankingItemProps {
 }
 
 // Componente para exibir um item do ranking de clãs
-export default function ClanRankingItem({ clan, gradient }: ClanRankingItemProps) {
+export default function ClanRankingItem({
+  clan,
+  gradient,
+}: ClanRankingItemProps) {
   // Ícone baseado na facção do clã
   const getClanShield = (faction: string) => {
-    return faction === 'gangsters' ? '🔫' : '🛡️';
+    return faction === "gangsters" ? "🔫" : "🛡️";
   };
 
   // Função para obter a cor da posição
   const getPositionColor = (position: number) => {
     switch (position) {
       case 1:
-        return 'text-yellow-400'; // Ouro
+        return "text-yellow-400"; // Ouro
       case 2:
-        return 'text-gray-300'; // Prata
+        return "text-gray-300"; // Prata
       case 3:
-        return 'text-orange-400'; // Bronze
+        return "text-yellow-600"; // Bronze
+      case 4:
+      case 5:
+        return "text-purple-400"; // Roxo
       default:
-        return 'text-gray-300';
+        return "text-gray-400";
     }
   };
 
@@ -37,15 +43,15 @@ export default function ClanRankingItem({ clan, gradient }: ClanRankingItemProps
           >
             {clan.position}º
           </span>
-          
+
           {/* Escudo do clã */}
           <span className="text-sm">{getClanShield(clan.faction)}</span>
-          
+
           {/* Nome do clã */}
           <span className="text-white font-medium flex-grow truncate text-sm">
             {clan.name}
           </span>
-          
+
           {/* Pontuação */}
           <span className="text-purple-400 font-bold text-sm">
             {clan.score} pts
