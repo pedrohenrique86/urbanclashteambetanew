@@ -6,6 +6,59 @@ const { authenticateToken } = require("../middleware/auth");
 
 const router = express.Router();
 
+// --- Sistema de Eventos em Tempo Real (SSE) por Clã ---
+// Armazena os clientes SSE por ID do clã
+const clanEventClients = new Map();
+
+// Função para enviar eventos para todos os clientes de um clã específico
+function broadcastToClan(clanId, event, data) {
+  const clients = clanEventClients.get(clanId);
+  if (!clients) {
+    return;
+  }
+
+  const message = `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`;
+
+  clients.forEach((client) => {
+    try {
+      client.write(message);
+    } catch (e) {
+      // Se houver erro ao escrever (ex: cliente desconectado), removemos o cliente.
+      clients.delete(client);
+    }
+  });
+}
+
+// Rota para um cliente se inscrever para receber eventos de um clã
+router.get("/:id/events", authenticateToken, (req, res) => {
+  const { id: clanId } = req.params;
+
+  res.set({
+    "Content-Type": "text/event-stream",
+    "Cache-Control": "no-cache",
+    Connection: "keep-alive",
+  });
+  res.flushHeaders();
+
+  if (!clanEventClients.has(clanId)) {
+    clanEventClients.set(clanId, new Set());
+  }
+  const clients = clanEventClients.get(clanId);
+  clients.add(res);
+
+  // Envia um evento de conexão para confirmar que a inscrição foi bem-sucedida
+  res.write(
+    `event: connection_established\ndata: ${JSON.stringify({ message: "Conectado aos eventos do clã." })}\n\n`,
+  );
+
+  req.on("close", () => {
+    clients.delete(res);
+    if (clients.size === 0) {
+      clanEventClients.delete(clanId);
+    }
+  });
+});
+
 const clansSseClients = new Set();
 function broadcastClansRankingsUpdate(payload) {
   const data = JSON.stringify(payload || {});
@@ -617,6 +670,9 @@ router.post("/:id/join", authenticateToken, async (req, res) => {
       );
     });
 
+    // Notificar membros do clã em tempo real
+    broadcastToClan(id, "member_joined", { userId, clanId: id });
+
     res.json({ message: "Você entrou no clã com sucesso" });
   } catch (error) {
     console.error("❌ Erro ao entrar no clã:", error.message);
@@ -627,12 +683,11 @@ router.post("/:id/join", authenticateToken, async (req, res) => {
 // POST /api/clans/:id/leave - Sair do clã
 router.post("/:id/leave", authenticateToken, async (req, res) => {
   try {
-    const { id } = req.params;
+    const { id } = req.params; // ID do clã
     const userId = req.user.id;
 
-    // Verificar se o usuário é membro do clã
     const memberResult = await query(
-      "SELECT * FROM clan_members WHERE clan_id = $1 AND user_id = $2",
+      "SELECT role FROM clan_members WHERE clan_id = $1 AND user_id = $2",
       [id, userId],
     );
 
@@ -640,114 +695,226 @@ router.post("/:id/leave", authenticateToken, async (req, res) => {
       return res.status(400).json({ error: "Você não é membro deste clã" });
     }
 
-    const member = memberResult.rows[0];
+    const { role } = memberResult.rows[0];
 
-    // Verificar se é o líder
-    if (member.role === "leader") {
-      // Verificar se há outros membros
+    if (role === "leader") {
       const otherMembersResult = await query(
         "SELECT COUNT(*) as count FROM clan_members WHERE clan_id = $1 AND user_id != $2",
         [id, userId],
       );
-
-      const otherMembersCount = parseInt(otherMembersResult.rows[0].count);
+      const otherMembersCount = parseInt(otherMembersResult.rows[0].count, 10);
 
       if (otherMembersCount > 0) {
         return res.status(400).json({
           error:
-            "Você deve transferir a liderança ou remover todos os membros antes de sair",
+            "Você deve transferir a liderança ou remover todos os membros antes de sair.",
         });
       }
 
-      // Se é o único membro, deletar o clã
+      // Se for o único membro (líder), deleta o clã
       await transaction(async (client) => {
         await client.query("DELETE FROM clan_members WHERE clan_id = $1", [id]);
         await client.query("DELETE FROM clans WHERE id = $1", [id]);
       });
 
-      return res.json({ message: "Clã deletado com sucesso" });
+      broadcastToClan(id, "clan_deleted", { clanId: id });
+      return res.json({ message: "Clã deletado com sucesso." });
     }
 
-    // Remover membro do clã e atualizar contagem
+    // Se não for o líder, apenas sai do clã
     await transaction(async (client) => {
-      // Remover da tabela clan_members
+      // Remove o membro
       await client.query(
         "DELETE FROM clan_members WHERE clan_id = $1 AND user_id = $2",
         [id, userId],
       );
-
-      // Decrementar member_count do clã
+      // Decrementa a contagem de membros
       await client.query(
         "UPDATE clans SET member_count = member_count - 1 WHERE id = $1",
         [id],
       );
     });
 
-    res.json({ message: "Você saiu do clã com sucesso" });
+    broadcastToClan(id, "member_left", { userId, clanId: id });
+    res.json({ message: "Você saiu do clã com sucesso." });
   } catch (error) {
     console.error("❌ Erro ao sair do clã:", error.message);
     res.status(500).json({ error: "Erro interno do servidor" });
   }
 });
 
-// POST /api/clans/:id/kick/:userId - Expulsar membro
+// POST /api/clans/:id/vote-kick/:targetUserId - Votar para expulsar um membro
+router.post(
+  "/:id/vote-kick/:targetUserId",
+  authenticateToken,
+  async (req, res) => {
+    try {
+      const { id: clanId, targetUserId } = req.params;
+      const { id: voterId } = req.user;
+      const KICK_VOTE_THRESHOLD = 10;
+
+      if (voterId === targetUserId) {
+        return res
+          .status(400)
+          .json({ error: "Você não pode votar para expulsar a si mesmo." });
+      }
+
+      const result = await transaction(async (client) => {
+        // Validar se todos os envolvidos pertencem ao clã
+        const membersCheck = await client.query(
+          `SELECT user_id, role FROM clan_members WHERE clan_id = $1 AND user_id = ANY($2::uuid[])`,
+          [clanId, [voterId, targetUserId]],
+        );
+
+        const voterInfo = membersCheck.rows.find((m) => m.user_id === voterId);
+        const targetInfo = membersCheck.rows.find(
+          (m) => m.user_id === targetUserId,
+        );
+
+        if (!voterInfo) {
+          return {
+            status: 403,
+            body: { error: "Você não é membro deste clã." },
+          };
+        }
+
+        if (!targetInfo) {
+          return {
+            status: 404,
+            body: { error: "O membro alvo não foi encontrado neste clã." },
+          };
+        }
+
+        // Líder não pode ser expulso por votação
+        if (targetInfo.role === "leader") {
+          return {
+            status: 400,
+            body: { error: "O líder do clã não pode ser expulso por votação." },
+          };
+        }
+
+        // Registrar o voto, ignorando se já votou
+        await client.query(
+          `INSERT INTO clan_kick_votes (clan_id, target_user_id, voter_user_id)
+         VALUES ($1, $2, $3)
+         ON CONFLICT (clan_id, target_user_id, voter_user_id) DO NOTHING`,
+          [clanId, targetUserId, voterId],
+        );
+
+        // Contar os votos
+        const voteCountResult = await client.query(
+          `SELECT COUNT(*) as count FROM clan_kick_votes WHERE clan_id = $1 AND target_user_id = $2`,
+          [clanId, targetUserId],
+        );
+        const voteCount = parseInt(voteCountResult.rows[0].count, 10);
+
+        // Notificar sobre o novo voto
+        broadcastToClan(clanId, "vote_update", { targetUserId, voteCount });
+
+        // Se atingiu o limite, expulsar o membro
+        if (voteCount >= KICK_VOTE_THRESHOLD) {
+          // Remover da tabela clan_members
+          await client.query(
+            `DELETE FROM clan_members WHERE clan_id = $1 AND user_id = $2`,
+            [clanId, targetUserId],
+          );
+          // Decrementar member_count
+          await client.query(
+            `UPDATE clans SET member_count = member_count - 1 WHERE id = $1`,
+            [clanId],
+          );
+          // Limpar os votos para este usuário
+          await client.query(
+            `DELETE FROM clan_kick_votes WHERE clan_id = $1 AND target_user_id = $2`,
+            [clanId, targetUserId],
+          );
+
+          // Notificar que o membro foi expulso
+          broadcastToClan(clanId, "member_kicked", { targetUserId, clanId });
+          return {
+            status: 200,
+            body: { message: `Membro expulso com ${voteCount} votos.` },
+          };
+        }
+
+        return {
+          status: 200,
+          body: { message: "Voto registrado com sucesso.", voteCount },
+        };
+      });
+
+      return res.status(result.status).json(result.body);
+    } catch (error) {
+      console.error("❌ Erro ao votar para expulsar membro:", error.message);
+      res.status(500).json({ error: "Erro interno do servidor" });
+    }
+  },
+);
+
+// POST /api/clans/:id/kick/:userId - Expulsar membro do clã
 router.post("/:id/kick/:userId", authenticateToken, async (req, res) => {
   try {
     const { id, userId: targetUserId } = req.params;
-    const userId = req.user.id;
+    const requesterId = req.user.id;
 
-    // Verificar se o clã existe
-    const clanResult = await query("SELECT * FROM clans WHERE id = $1", [id]);
-
-    if (clanResult.rows.length === 0) {
-      return res.status(404).json({ error: "Clã não encontrado" });
-    }
-
-    // Verificar se o usuário é líder do clã
-    const leaderResult = await query(
-      "SELECT id FROM clan_members WHERE clan_id = $1 AND user_id = $2 AND role = $3",
-      [id, userId, "leader"],
+    // Verificar se o requisitante é líder do clã
+    const requesterMember = await query(
+      "SELECT role FROM clan_members WHERE clan_id = $1 AND user_id = $2",
+      [id, requesterId],
     );
 
-    if (leaderResult.rows.length === 0) {
+    if (
+      requesterMember.rows.length === 0 ||
+      requesterMember.rows[0].role !== "leader"
+    ) {
       return res
         .status(403)
-        .json({ error: "Apenas o líder pode expulsar membros" });
+        .json({ error: "Apenas o líder pode expulsar membros." });
     }
 
-    // Verificar se o alvo é membro do clã
-    const memberResult = await query(
-      "SELECT * FROM clan_members WHERE clan_id = $1 AND user_id = $2",
-      [id, targetUserId],
-    );
-
-    if (memberResult.rows.length === 0) {
-      return res.status(400).json({ error: "Usuário não é membro deste clã" });
+    // O líder não pode expulsar a si mesmo
+    if (String(requesterId) === String(targetUserId)) {
+      return res
+        .status(400)
+        .json({ error: "Você não pode expulsar a si mesmo." });
     }
 
-    const member = memberResult.rows[0];
+    // Usar transação para garantir a consistência
+    const result = await transaction(async (client) => {
+      // Verificar se o alvo é membro do clã
+      const targetMember = await client.query(
+        "SELECT role FROM clan_members WHERE clan_id = $1 AND user_id = $2",
+        [id, targetUserId],
+      );
 
-    // Não pode expulsar o líder
-    if (member.role === "leader") {
-      return res.status(400).json({ error: "Não é possível expulsar o líder" });
-    }
+      if (targetMember.rows.length === 0) {
+        // Retornar um objeto para indicar que o membro não foi encontrado
+        return { notFound: true };
+      }
 
-    // Remover membro e atualizar contagem
-    await transaction(async (client) => {
-      // Remover da tabela clan_members
+      // Remover membro do clã
       await client.query(
         "DELETE FROM clan_members WHERE clan_id = $1 AND user_id = $2",
         [id, targetUserId],
       );
 
-      // Decrementar member_count do clã
+      // Decrementar a contagem de membros
       await client.query(
         "UPDATE clans SET member_count = member_count - 1 WHERE id = $1",
         [id],
       );
+
+      return { success: true };
     });
 
-    res.json({ message: "Membro expulso com sucesso" });
+    if (result.notFound) {
+      return res.status(404).json({ error: "Membro alvo não encontrado." });
+    }
+
+    // Notificar em tempo real
+    broadcastToClan(id, "member_kicked", { userId: targetUserId, clanId: id });
+
+    res.json({ message: "Membro expulso com sucesso." });
   } catch (error) {
     console.error("❌ Erro ao expulsar membro:", error.message);
     res.status(500).json({ error: "Erro interno do servidor" });

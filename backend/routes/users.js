@@ -821,54 +821,36 @@ router.delete(
   async (req, res) => {
     try {
       const { id } = req.params;
-      const { password } = req.body;
 
-      if (!password) {
-        return res
-          .status(400)
-          .json({ error: "Senha é obrigatória para deletar a conta" });
-      }
-
-      // Verificar senha
-      const userResult = await query(
-        "SELECT password_hash FROM users WHERE id = $1",
-        [id],
-      );
-
-      if (userResult.rows.length === 0) {
-        return res.status(404).json({ error: "Usuário não encontrado" });
-      }
-
-      const user = userResult.rows[0];
-      const passwordValid = await bcrypt.compare(password, user.password_hash);
-
-      if (!passwordValid) {
-        return res.status(400).json({ error: "Senha incorreta" });
-      }
-
-      // Deletar usuário (cascade irá deletar perfil, sessões e memberships)
-      await transaction(async (client) => {
-        // Primeiro, verificar se o usuário é membro de um clã
+      const result = await transaction(async (client) => {
+        // Verificar se o usuário é membro de um clã
         const clanMemberResult = await client.query(
           "SELECT clan_id FROM clan_members WHERE user_id = $1",
           [id],
         );
 
+        // Se for membro, decrementar a contagem no clã
         if (clanMemberResult.rows.length > 0) {
           const { clan_id } = clanMemberResult.rows[0];
-
-          // Decrementar a contagem de membros do clã
           await client.query(
             "UPDATE clans SET member_count = member_count - 1 WHERE id = $1",
             [clan_id],
           );
         }
 
-        // Deletar usuário (o cascade cuidará do resto, como clan_members)
-        await client.query("DELETE FROM users WHERE id = $1", [id]);
+        // Deletar o usuário (ON DELETE CASCADE cuidará das tabelas relacionadas)
+        const deleteResult = await client.query(
+          "DELETE FROM users WHERE id = $1",
+          [id],
+        );
+        return deleteResult;
       });
 
-      res.json({ message: "Conta deletada com sucesso" });
+      if (result.rowCount === 0) {
+        return res.status(404).json({ error: "Usuário não encontrado" });
+      }
+
+      res.json({ message: "Usuário deletado com sucesso" });
     } catch (error) {
       console.error("❌ Erro ao deletar usuário:", error.message);
       res.status(500).json({ error: "Erro interno do servidor" });
