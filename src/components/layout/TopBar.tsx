@@ -185,12 +185,36 @@ const TopBar: React.FC<TopBarProps> = ({ userProfile, handleLogout }) => {
                   </span>
                 </span>
               </div>
-              <div className="flex items-center gap-2 text-[12px] sm:text-sm whitespace-nowrap">
+              {/* User info and mobile logout */}
+              <div className="flex items-center gap-3">
                 <span
-                  className={`font-orbitron font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r ${usernameGradient}`}
+                  className={`font-orbitron font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r ${usernameGradient} text-[12px] sm:text-sm whitespace-nowrap`}
                 >
                   {userProfile?.username || "Usuário"}
                 </span>
+                {/* Mobile Logout Icon */}
+                <div className="md:hidden">
+                  <button
+                    onClick={handleLogout}
+                    className="text-cyan-400 transition-all duration-300 ease-in-out hover:text-cyan-300"
+                    title="Sair"
+                  >
+                    <svg
+                      className="w-6 h-6"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2"
+                        d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
+                      ></path>
+                    </svg>
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -209,11 +233,11 @@ const TopBar: React.FC<TopBarProps> = ({ userProfile, handleLogout }) => {
               ))}
             </div>
 
-            {/* Logout Button */}
-            <div className="ml-auto flex items-center pr-2">
+            {/* Desktop Logout Button */}
+            <div className="hidden md:flex items-center ml-auto pr-2">
               <button
                 onClick={handleLogout}
-                className="font-orbitron text-sm font-bold text-cyan-400 transition-all duration-300 easea_in-out hover:text-cyan-300 hover:shadow-[0_0_15px_#06b6d4] shadow-[0_0_5px_#06b6d4,0_0_10px_#06b6d4] px-3 py-1 rounded-md"
+                className="font-orbitron text-sm font-bold text-cyan-400 transition-all duration-300 ease-in-out hover:text-cyan-300 hover:shadow-[0_0_15px_#06b6d4] shadow-[0_0_5px_#06b6d4,0_0_10px_#06b6d4] px-3 py-1 rounded-md"
                 title="Sair"
               >
                 Sair
