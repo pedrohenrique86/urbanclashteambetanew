@@ -162,13 +162,10 @@ const EmptyRankingItem: React.FC<{
   );
 };
 export default function RankingPage() {
+  const [selectedRanking, setSelectedRanking] = useState(0);
+
   // Usar o hook de cache para gerenciar os rankings (com rankings completos)
-  const {
-    data,
-    loading: isLoading,
-    error,
-    lastUpdated: lastUpdate,
-  } = useRankingCache(true);
+  const { data, loading: isLoading, error } = useRankingCache(true);
 
   // Extrair dados do cache
   const { gangsters, guardas, clans } = data;
@@ -212,81 +209,117 @@ export default function RankingPage() {
         {error && <p className="text-red-400 text-sm mt-2">⚠️ {error}</p>}
       </motion.div>
 
-      {/* Grid dos rankings */}
-      <div className="grid lg:grid-cols-3 gap-8">
+      {/* Seletor de Ranking para Mobile */}
+      <div className="lg:hidden mb-6">
+        <select
+          value={selectedRanking}
+          onChange={(e) => setSelectedRanking(Number(e.target.value))}
+          className="w-full p-3 bg-gray-800 border border-gray-700 rounded-lg text-white font-orbitron"
+        >
+          {rankingConfigs.map((config, index) => (
+            <option key={index} value={index}>
+              {config.title}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {/* Grid dos rankings para Desktop */}
+      <div className="hidden lg:grid lg:grid-cols-3 gap-8">
         {rankingConfigs.map((config, configIdx) => (
-          <motion.div
+          <RankingColumn
             key={configIdx}
-            initial={{ opacity: 0, y: 50 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 + configIdx * 0.1, duration: 0.6 }}
-            className={`bg-gradient-to-br from-gray-800 to-gray-900 p-6 rounded-2xl border ${config.borderColor} shadow-2xl`}
-          >
-            {/* Título da seção */}
-            <div className="text-center mb-6">
-              <h2
-                className={`text-2xl font-orbitron font-bold bg-gradient-to-r ${config.gradient} bg-clip-text text-transparent`}
-              >
-                {config.title}
-              </h2>
-              <div
-                className={`w-16 h-1 bg-gradient-to-r ${config.gradient} mx-auto mt-2 rounded-full`}
-              ></div>
-            </div>
-
-            {/* Lista do ranking */}
-            <div className="space-y-2">
-              {isLoading
-                ? // Placeholders de carregamento
-                  Array.from({ length: 26 }, (_, i) => (
-                    <div
-                      key={i}
-                      className="animate-pulse h-14 bg-gray-700 rounded-lg"
-                    ></div>
-                  ))
-                : // Renderizar sempre 26 posições
-                  Array.from({ length: 26 }, (_, idx) => {
-                    const position = idx + 1;
-                    const item = config.data[idx];
-                    const gradient = `bg-gradient-to-r ${config.gradient}`;
-
-                    if (item) {
-                      // Renderizar item real
-                      if (config.type === "player") {
-                        return (
-                          <PlayerRankingItem
-                            key={item.id || idx}
-                            player={{ ...(item as Player), position }}
-                            gradient={gradient}
-                          />
-                        );
-                      } else {
-                        return (
-                          <ClanRankingItem
-                            key={item.id || idx}
-                            clan={{ ...(item as Clan), position }}
-                            gradient={gradient}
-                          />
-                        );
-                      }
-                    } else {
-                      // Renderizar placeholder para posição vazia
-                      return (
-                        <EmptyRankingItem
-                          key={`empty-${position}`}
-                          position={position}
-                          type={config.type}
-                        />
-                      );
-                    }
-                  })}
-            </div>
-          </motion.div>
+            config={config}
+            isLoading={isLoading}
+          />
         ))}
+      </div>
+
+      {/* Ranking selecionado para Mobile */}
+      <div className="lg:hidden">
+        {rankingConfigs[selectedRanking] && (
+          <RankingColumn
+            config={rankingConfigs[selectedRanking]}
+            isLoading={isLoading}
+          />
+        )}
       </div>
     </div>
   );
 }
+
+// Componente auxiliar para a coluna de ranking
+const RankingColumn: React.FC<{ config: any; isLoading: boolean }> = ({
+  config,
+  isLoading,
+}) => (
+  <motion.div
+    initial={{ opacity: 0, y: 50 }}
+    animate={{ opacity: 1, y: 0 }}
+    transition={{ duration: 0.6 }}
+    className={`bg-gradient-to-br from-gray-800 to-gray-900 p-6 rounded-2xl border ${config.borderColor} shadow-2xl`}
+  >
+    {/* Título da seção */}
+    <div className="text-center mb-6">
+      <h2
+        className={`text-2xl font-orbitron font-bold bg-gradient-to-r ${config.gradient} bg-clip-text text-transparent`}
+      >
+        {config.title}
+      </h2>
+      <div
+        className={`w-16 h-1 bg-gradient-to-r ${config.gradient} mx-auto mt-2 rounded-full`}
+      ></div>
+    </div>
+
+    {/* Lista do ranking */}
+    <div className="space-y-2">
+      {isLoading
+        ? // Placeholders de carregamento
+          Array.from({ length: 26 }, (_, i) => (
+            <div
+              key={i}
+              className="animate-pulse h-14 bg-gray-700 rounded-lg"
+            ></div>
+          ))
+        : // Renderizar sempre 26 posições
+          Array.from({ length: 26 }, (_, idx) => {
+            const position = idx + 1;
+            const item = config.data[idx];
+            const gradient = `bg-gradient-to-r ${config.gradient}`;
+
+            if (item) {
+              // Renderizar item real
+              if (config.type === "player") {
+                return (
+                  <PlayerRankingItem
+                    key={item.id || idx}
+                    player={{ ...(item as Player), position }}
+                    gradient={gradient}
+                  />
+                );
+              } else {
+                return (
+                  <ClanRankingItem
+                    key={item.id || idx}
+                    clan={{ ...(item as Clan), position }}
+                    gradient={gradient}
+                  />
+                );
+              }
+            } else {
+              // Renderizar placeholder para posição vazia
+              return (
+                <EmptyRankingItem
+                  key={`empty-${position}`}
+                  position={position}
+                  type={config.type}
+                />
+              );
+            }
+          })}
+    </div>
+  </motion.div>
+);
 
 // Estilos customizados para scrollbar
 const styles = `
