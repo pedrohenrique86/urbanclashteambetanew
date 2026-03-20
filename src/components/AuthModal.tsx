@@ -179,10 +179,8 @@ export default function AuthModal({
     const apiBase =
       import.meta.env?.VITE_API_URL || "http://localhost:3001/api";
     const redirectUri = `${window.location.origin}/auth/google/callback`;
-    const next = "/faction-selection";
     const params = new URLSearchParams({
       redirect_uri: redirectUri,
-      next: next,
       intent: intent,
       code_challenge: codeChallenge,
       code_challenge_method: "S256",

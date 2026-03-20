@@ -60,131 +60,94 @@ export default function GoogleCallbackPage() {
   };
 
   useEffect(() => {
-    if (effectRan.current === false) {
-      const run = async () => {
-        const params = new URLSearchParams(location.search);
-        const token = params.get("token");
-        const code = params.get("code");
-        const next = params.get("next") || "/dashboard";
-
-        try {
-          if (token) {
-            apiClient.setToken(token);
-            // Lógica de perfil e redirecionamento existente...
-            // (Esta parte permanece a mesma)
-            navigate(next, { replace: true });
-            return;
-          }
-
-          if (code) {
-            setProcessing(true);
-            try {
-              const intent =
-                sessionStorage.getItem("google_auth_intent") || "login";
-              const codeVerifier = sessionStorage.getItem(
-                "google_code_verifier",
-              );
-              sessionStorage.removeItem("google_auth_intent");
-              sessionStorage.removeItem("google_code_verifier");
-
-              if (!codeVerifier) {
-                throw new Error(
-                  "Code verifier não encontrado. O fluxo de login pode ter expirado.",
-                );
-              }
-
-              const res = await fetch(
-                (import.meta as any).env.VITE_API_URL + "/auth/google/callback",
-                {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({
-                    code,
-                    redirect_uri: `${window.location.origin}/auth/google/callback`,
-                    intent,
-                    code_verifier: codeVerifier,
-                  }),
-                },
-              );
-
-              if (!res.ok) {
-                let errorData = { error: "Erro desconhecido do servidor." };
-                try {
-                  errorData = await res.json();
-                } catch (e) {
-                  // Ignore if response is not json
-                }
-
-                if (errorData.error === "google_user_not_found") {
-                  setShowRegisterPrompt(true);
-                  setProcessing(false);
-                  return;
-                }
-
-                throw new Error(
-                  errorData.error || "Falha na comunicação com o servidor.",
-                );
-              }
-
-              const data = await res.json();
-              if (data.token) {
-                apiClient.setToken(data.token);
-
-                // A lógica de redirecionamento agora usa a resposta do backend
-                const redirectTo = data.isFirstLogin
-                  ? "/faction-selection"
-                  : data.next || "/dashboard";
-
-                console.log(
-                  `[CALLBACK_DEBUG] Backend disse isFirstLogin: ${data.isFirstLogin}. Redirecionando para: ${redirectTo}`,
-                );
-
-                // Forçar o recarregamento da página para garantir que a sessão seja lida
-                window.location.href = redirectTo;
-              } else {
-                throw new Error("Token não recebido do backend");
-              }
-            } catch (e: any) {
-              setError(e.message || "Erro ao processar o login com Google.");
-            } finally {
-              setProcessing(false);
-            }
-            return;
-          }
-
-          setError(
-            "Callback sem credenciais. Tente novamente pelo botão Google.",
-          );
-        } catch (e: any) {
-          setError(e.message || "Falha ao processar o login com Google.");
-        } finally {
-          setProcessing(false);
-        }
-      };
-      run();
+    // O effectRan previne a execução duplicada em modo de desenvolvimento com StrictMode
+    if (effectRan.current === true && import.meta.env.DEV) {
+      return;
     }
+    effectRan.current = true;
 
-    return () => {
-      effectRan.current = true;
+    const processAuth = async () => {
+      const params = new URLSearchParams(location.search);
+      const code = params.get("code");
+
+      // Se não houver código, não há o que fazer.
+      if (!code) {
+        setError("Código de autorização não encontrado na URL.");
+        // Em caso de erro real, podemos redirecionar para a página de login com uma mensagem
+        navigate("/?error=google_auth_failed", { replace: true });
+        return;
+      }
+
+      try {
+        const intent = sessionStorage.getItem("google_auth_intent") || "login";
+        const codeVerifier = sessionStorage.getItem("google_code_verifier");
+
+        sessionStorage.removeItem("google_auth_intent");
+        sessionStorage.removeItem("google_code_verifier");
+
+        if (!codeVerifier) {
+          throw new Error("Verificador de código PKCE não encontrado.");
+        }
+
+        const res = await fetch(
+          `${(import.meta as any).env.VITE_API_URL}/auth/google/callback`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              code,
+              redirect_uri: `${window.location.origin}/auth/google/callback`,
+              intent,
+              code_verifier: codeVerifier,
+            }),
+          },
+        );
+
+        if (!res.ok) {
+          const errorData = await res.json().catch(() => null);
+          // Se o usuário não existe, redireciona para o registro
+          if (errorData?.error === "google_user_not_found") {
+            setShowRegisterPrompt(true);
+            return; // Interrompe para mostrar o prompt de registro
+          }
+          throw new Error(
+            errorData?.error || "Falha na autenticação com Google.",
+          );
+        }
+
+        const data = await res.json();
+        if (data.token) {
+          apiClient.setToken(data.token);
+
+          // Lógica de redirecionamento corrigida e final:
+          // Se não é o primeiro login, vai direto para o dashboard.
+          const redirectTo = data.isFirstLogin
+            ? "/faction-selection"
+            : "/dashboard";
+
+          navigate(redirectTo, { replace: true });
+        } else {
+          throw new Error("Token de autenticação não recebido.");
+        }
+      } catch (e: any) {
+        setError(e.message);
+        // Em caso de erro, redireciona para a home com uma mensagem
+        navigate(`/?error=${encodeURIComponent(e.message)}`, { replace: true });
+      }
     };
+
+    processAuth();
   }, [location.search, navigate]);
 
-  // Para evitar o "flash" de um contêiner vazio, só renderizamos a página
-  // se houver um erro explícito ou um prompt de registro para mostrar.
-  // Caso contrário, retorna nulo, resultando em uma página em branco durante o processamento
-  // e redirecionamento.
-  if (!showRegisterPrompt && !error) {
-    return null;
-  }
-
-  return (
-    <div
-      className={`min-h-screen ${themeClasses.bg} flex items-center justify-center px-4`}
-    >
+  // Se o usuário não estiver cadastrado, mostramos um prompt para se registrar.
+  if (showRegisterPrompt) {
+    return (
       <div
-        className={`${themeClasses.cardBg} border ${themeClasses.border} rounded-xl p-6 w-full max-w-md text-center`}
+        className={`min-h-screen ${themeClasses.bg} flex items-center justify-center px-4`}
       >
-        {showRegisterPrompt ? (
+        <div
+          className={`${themeClasses.cardBg} border ${themeClasses.border} rounded-xl p-6 w-full max-w-md text-center`}
+        >
           <div className="space-y-4">
             <h2 className="text-xl font-bold text-white">
               Usuário não cadastrado
@@ -201,23 +164,16 @@ export default function GoogleCallbackPage() {
             </button>
             <button
               onClick={() => navigate("/")}
-              className="w-full px-4 py-2 rounded bg-gray-600 hover:bg-gray-500 transition-colors font-bold text-white"
+              className="w-full px-4 py-2 rounded bg-gray-600 hover:bg-gray-500 transition-colors font-bold text-white mt-2"
             >
-              Voltar
+              Voltar para o Início
             </button>
           </div>
-        ) : error ? (
-          <div className="space-y-4">
-            <div className="text-yellow-400 font-bold">{error}</div>
-            <button
-              onClick={() => navigate("/")}
-              className="px-4 py-2 rounded bg-blue-600 hover:bg-blue-500 transition-colors font-bold"
-            >
-              Voltar
-            </button>
-          </div>
-        ) : null}
+        </div>
       </div>
-    </div>
-  );
+    );
+  }
+
+  // A página não renderiza nada durante o processamento, ficando em branco.
+  return null;
 }
