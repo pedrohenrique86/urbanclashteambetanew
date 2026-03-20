@@ -1,27 +1,14 @@
 import React from "react";
 import { useTheme } from "../../contexts/ThemeContext";
+import { UserProfile } from "../../types";
 import { calculateCombatStats } from "../../utils/combat";
 
-interface User {
-  username?: string;
-  faction?: string;
-  level?: number;
-  xp_required?: number;
-  current_xp?: number;
-  energy?: number;
-  max_energy?: number;
-  action_points?: number;
-  attack?: number;
-  defense?: number;
-  focus?: number;
-  money?: number;
-}
-
 interface TopBarProps {
-  userProfile: User | null;
+  userProfile: UserProfile | null;
+  handleLogout: () => void;
 }
 
-const TopBar: React.FC<TopBarProps> = ({ userProfile }) => {
+const TopBar: React.FC<TopBarProps> = ({ userProfile, handleLogout }) => {
   const { themeClasses } = useTheme();
   const usernameGradient =
     userProfile?.faction === "gangsters"
@@ -33,7 +20,6 @@ const TopBar: React.FC<TopBarProps> = ({ userProfile }) => {
   const energyText = userProfile?.max_energy
     ? `${userProfile?.energy ?? 0}/${userProfile?.max_energy}`
     : `${userProfile?.energy ?? 0}`;
-  const moneyText = (userProfile?.money || 0).toLocaleString("pt-BR");
   const combat = calculateCombatStats(userProfile);
   const metricPills = [
     {
@@ -163,10 +149,12 @@ const TopBar: React.FC<TopBarProps> = ({ userProfile }) => {
       ),
     },
     {
-      key: "R$",
+      key: "DINHEIRO",
       fullLabel: "Dinheiro",
-      shortLabel: "R$",
-      value: moneyText,
+      shortLabel: "$",
+      value: (userProfile?.money ?? 0).toLocaleString("pt-BR", {
+        minimumFractionDigits: 2,
+      }),
       size: "lg",
       color: "bg-gradient-to-r from-lime-400 to-emerald-600",
       textClass: "text-black",
@@ -203,6 +191,24 @@ const TopBar: React.FC<TopBarProps> = ({ userProfile }) => {
                 >
                   {userProfile?.username || "Usuário"}
                 </span>
+                <button
+                  onClick={handleLogout}
+                  className="text-gray-400 hover:text-white transition-colors"
+                  title="Sair"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-5 w-5"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M3 3a1 1 0 00-1 1v12a1 1 0 102 0V5h10a1 1 0 100-2H3zm12.293 4.293a1 1 0 011.414 0l3 3a1 1 0 010 1.414l-3 3a1 1 0 01-1.414-1.414L16.586 13H9a1 1 0 110-2h7.586l-1.293-1.293a1 1 0 010-1.414z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                </button>
               </div>
             </div>
 

@@ -4,10 +4,7 @@ export interface MenuItem {
   path: string;
 }
 
-const mainMenuItems: MenuItem[] = [
-  { icon: '📊', label: 'Visão Geral', path: '/overview' },
-  { icon: '🗺️', label: 'Mapa', path: '/dashboard' },
-];
+const mainMenuItems: MenuItem[] = [];
 
 const gameMenuItems: MenuItem[] = [
   { icon: '📋', label: 'Tarefas', path: '/tasks' },

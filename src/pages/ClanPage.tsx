@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
-import PageHeader from "../components/layout/PageHeader";
 import { useUserProfile } from "../hooks/useUserProfile";
 import { useTheme } from "../contexts/ThemeContext";
 import { apiClient } from "../lib/supabaseClient";
@@ -380,7 +379,7 @@ export default function ClanPage() {
     try {
       setLeaving(true);
       await apiClient.leaveClan(clan.id);
-      navigate("/clan-selection", { state: { faction: userProfile?.faction } });
+      navigate("/dashboard");
     } catch (e: unknown) {
       setClanError("Erro ao sair do clã");
     } finally {
@@ -420,325 +419,309 @@ export default function ClanPage() {
   }
 
   return (
-    <div className={`min-h-screen ${themeClasses.bg} text-white font-exo`}>
-      <PageHeader title="Clã" backTo="/dashboard" backText="Voltar ao Mapa" />
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6"
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+      className={`min-h-screen ${themeClasses.bg} text-white font-exo max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6`}
+    >
+      <div
+        className={`rounded-xl p-6 bg-gradient-to-r ${factionColor.gradient} shadow-xl ring-2 ${factionColor.ring}`}
       >
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-orbitron font-extrabold tracking-tight">
+              {clan?.name || "Clã"}
+            </h1>
+            <p className="text-sm text-white/80 mt-1">
+              {clan?.description || "Sem descrição"}
+            </p>
+          </div>
+          <button
+            onClick={() => setConfirmLeave(true)}
+            className="px-4 py-2 bg-black/30 hover:bg-black/40 rounded-lg text-white font-bold border border-white/30 transition-colors"
+          >
+            Sair do Clã
+          </button>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div
-          className={`rounded-xl p-6 bg-gradient-to-r ${factionColor.gradient} shadow-xl ring-2 ${factionColor.ring}`}
+          className={`${themeClasses.cardBg} rounded-xl p-4 border ${themeClasses.border} shadow`}
         >
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl sm:text-3xl font-orbitron font-extrabold tracking-tight">
-                {clan?.name || "Clã"}
-              </h1>
-              <p className="text-sm text-white/80 mt-1">
-                {clan?.description || "Sem descrição"}
-              </p>
+          <div className="text-xs text-gray-400">Força do Clã</div>
+          <div className="text-3xl font-extrabold mt-1">{clan?.score ?? 0}</div>
+        </div>
+        <div
+          className={`${themeClasses.cardBg} rounded-xl p-4 border ${themeClasses.border} shadow`}
+        >
+          <div className="text-xs text-gray-400">Cofre</div>
+          <div className="text-3xl font-extrabold mt-1">
+            R$ {(clan?.vault ?? 0).toLocaleString("pt-BR")}
+          </div>
+        </div>
+        <div
+          className={`${themeClasses.cardBg} rounded-xl p-4 border ${themeClasses.border} shadow`}
+        >
+          <div className="text-xs text-gray-400">Vagas</div>
+          <div className="text-3xl font-extrabold mt-1">
+            {clan?.member_count ?? 0}/{clan?.max_members ?? 0}{" "}
+            <span className="text-sm text-gray-400">
+              ({availableSlots} livres)
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2 space-y-6">
+          <div
+            className={`${themeClasses.cardBg} rounded-xl border ${themeClasses.border} shadow overflow-hidden`}
+          >
+            <div className="px-4 py-3 border-b ${themeClasses.border} flex items-center justify-between">
+              <h2 className="text-lg font-bold">Membros</h2>
+              <span className={`text-xs font-bold ${factionColor.accent}`}>
+                {clan?.members?.length ?? clan?.member_count ?? 0} membros
+              </span>
             </div>
+            <ul className="divide-y divide-gray-700/60">
+              {(clan?.members ?? []).map((m: Player) => {
+                const mid = String(m.id || m.user_id);
+                const voterId = String(
+                  userProfile?.user_id || userProfile?.id || "me",
+                );
+                const keyVotes = clan?.id ? `clan_votes:${clan.id}:${mid}` : "";
+                let votesSize = 0;
+                if (keyVotes) {
+                  try {
+                    const lst = JSON.parse(
+                      localStorage.getItem(keyVotes) || "[]",
+                    );
+                    votesSize = Array.isArray(lst) ? lst.length : 0;
+                  } catch (e) {
+                    /* Falha ao parsear votos do localStorage */
+                  }
+                }
+                const total = clan?.members?.length ?? clan?.member_count ?? 1;
+                const threshold = Math.ceil(total / 2);
+                const isSelf = voterId === mid;
+                const banKey = clan?.id ? `clan_banlist:${clan.id}` : "";
+                let isBanned = false;
+                if (banKey) {
+                  try {
+                    const obj: { [key: string]: string } = JSON.parse(
+                      localStorage.getItem(banKey) || "{}",
+                    );
+                    const exp = obj[mid];
+                    isBanned = !!exp && new Date(exp).getTime() > Date.now();
+                  } catch (e) {
+                    /* Falha ao parsear banlist do localStorage */
+                  }
+                }
+                return (
+                  <li
+                    key={mid}
+                    className="px-4 py-3 flex items-center justify-between"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded bg-gray-700 flex items-center justify-center font-bold">
+                        {(m.username || m.display_name || "U")
+                          .charAt(0)
+                          .toUpperCase()}
+                      </div>
+                      <div>
+                        <div className="font-semibold flex items-center gap-2">
+                          <span>
+                            {m.username || m.display_name || "Usuário"}
+                          </span>
+                          {isBanned && (
+                            <span className="text-[10px] px-2 py-0.5 rounded bg-red-600/40 border border-red-500/50">
+                              BANIDO 24h
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-xs text-gray-400">
+                          Nível {m.level ?? "-"}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <div className="text-xs text-gray-400">
+                        {m.role || "Membro"}
+                      </div>
+                      {!isSelf && !isBanned && (
+                        <button
+                          onClick={async () => {
+                            if (!clan?.id) return;
+                            const key = `clan_votes:${clan.id}:${mid}`;
+                            let setVotes = new Set<string>();
+                            try {
+                              const arr = JSON.parse(
+                                localStorage.getItem(key) || "[]",
+                              );
+                              if (Array.isArray(arr)) setVotes = new Set(arr);
+                            } catch (e) {
+                              /* Falha ao parsear votos do localStorage para votar */
+                            }
+                            setVotes.add(voterId);
+                            localStorage.setItem(
+                              key,
+                              JSON.stringify(Array.from(setVotes)),
+                            );
+                            const totalMembers =
+                              clan?.members?.length ?? clan?.member_count ?? 1;
+                            const th = Math.ceil(totalMembers / 2);
+                            if (setVotes.size >= th) {
+                              try {
+                                await apiClient.kickMember(
+                                  String(clan.id),
+                                  mid,
+                                );
+                              } catch (e) {
+                                /* Ignorar erro ao kickar, o processo continua */
+                                const bKey = `clan_banlist:${clan.id}`;
+                                const obj: { [key: string]: string } = {};
+                                try {
+                                  const existing = localStorage.getItem(bKey);
+                                  if (existing) {
+                                    Object.assign(obj, JSON.parse(existing));
+                                  }
+                                } catch (parseError) {
+                                  /* Falha ao parsear banlist */
+                                }
+                                obj[mid] = new Date(
+                                  Date.now() + 24 * 3600 * 1000,
+                                ).toISOString();
+                                localStorage.setItem(bKey, JSON.stringify(obj));
+                              }
+                              // remover da lista local
+                              setClan((prev) => {
+                                if (!prev) return prev;
+                                const filtered = (prev.members || []).filter(
+                                  (member) =>
+                                    String(member.id || member.user_id) !== mid,
+                                );
+                                return {
+                                  ...prev,
+                                  members: filtered,
+                                  member_count: filtered.length,
+                                };
+                              });
+                            } else {
+                              // atualizar UI de votos
+                              try {
+                                const arr2 = JSON.parse(
+                                  localStorage.getItem(key) || "[]",
+                                );
+                                votesSize = Array.isArray(arr2)
+                                  ? arr2.length
+                                  : setVotes.size;
+                              } catch {
+                                /* Silently ignore update error */
+                              }
+                            }
+                          }}
+                          className="text-xs px-2 py-1 rounded bg-red-600 hover:bg-red-500 transition-colors font-bold"
+                          title={`Votos: ${votesSize}/${threshold}`}
+                        >
+                          Votar expulsão ({votesSize}/{threshold})
+                        </button>
+                      )}
+                    </div>
+                  </li>
+                );
+              })}
+              {(!clan?.members || clan.members.length === 0) && (
+                <li className="px-4 py-6 text-center text-gray-400">
+                  Nenhum membro listado
+                </li>
+              )}
+            </ul>
+            {(clan?.members?.length ?? clan?.member_count ?? 0) <= 1 && (
+              <div className="px-4 py-3 text-xs text-gray-400 border-t border-gray-700/60">
+                Adicione mais membros para habilitar a votação de expulsão.
+              </div>
+            )}
+          </div>
+
+          <div
+            className={`${themeClasses.cardBg} rounded-xl border ${themeClasses.border} shadow overflow-hidden`}
+          >
+            <div className="px-4 py-3 border-b ${themeClasses.border} flex items-center justify-between">
+              <h2 className="text-lg font-bold">Chat do Clã</h2>
+              <div className="flex items-center gap-2">
+                {!chatEnabled && (
+                  <span className="text-xs text-yellow-400">Indisponível</span>
+                )}
+                <span
+                  className={`text-[10px] px-2 py-0.5 rounded ${chatMode === "local" ? "bg-yellow-400 text-black" : "bg-green-500 text-black"}`}
+                >
+                  {chatMode === "local" ? "Modo Local" : "Online"}
+                </span>
+              </div>
+            </div>
+            <div className="p-4 space-y-3 max-h-80 overflow-y-auto custom-scrollbar">
+              {chatMessages.length === 0 && (
+                <div className="text-sm text-gray-400">Sem mensagens</div>
+              )}
+              {chatMessages.map((msg) => (
+                <div key={msg.id} className="flex items-start gap-3">
+                  <div className="w-7 h-7 rounded bg-gray-700 flex items-center justify-center font-bold text-xs">
+                    {(msg.username || "U").charAt(0).toUpperCase()}
+                  </div>
+                  <div>
+                    <div className="text-xs text-gray-400">
+                      {msg.username || "Usuário"} •{" "}
+                      {new Date(msg.created_at).toLocaleString("pt-BR")}
+                    </div>
+                    <div className="text-sm font-semibold">{msg.content}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="p-3 border-t border-gray-700/60 flex items-center gap-2">
+              <input
+                value={chatInput}
+                onChange={(e) => setChatInput(e.target.value)}
+                placeholder="Escreva uma mensagem"
+                className="flex-1 px-3 py-2 rounded bg-gray-800 border border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <button
+                onClick={sendMessage}
+                disabled={
+                  !chatEnabled || chatLoading || chatInput.trim().length === 0
+                }
+                className="px-4 py-2 rounded bg-blue-600 hover:bg-blue-500 disabled:opacity-50 transition-colors font-bold"
+              >
+                Enviar
+              </button>
+            </div>
+            {chatError && (
+              <div className="px-4 py-2 text-xs text-yellow-400">
+                {chatError}
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="space-y-6">
+          <div
+            className={`${themeClasses.cardBg} rounded-xl border ${themeClasses.border} shadow p-4`}
+          >
+            <div className="text-sm text-gray-300 font-bold mb-2">Ações</div>
             <button
               onClick={() => setConfirmLeave(true)}
-              className="px-4 py-2 bg-black/30 hover:bg-black/40 rounded-lg text-white font-bold border border-white/30 transition-colors"
+              className="w-full px-4 py-2 rounded bg-red-600 hover:bg-red-500 transition-colors font-bold"
             >
               Sair do Clã
             </button>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div
-            className={`${themeClasses.cardBg} rounded-xl p-4 border ${themeClasses.border} shadow`}
-          >
-            <div className="text-xs text-gray-400">Força do Clã</div>
-            <div className="text-3xl font-extrabold mt-1">
-              {clan?.score ?? 0}
-            </div>
-          </div>
-          <div
-            className={`${themeClasses.cardBg} rounded-xl p-4 border ${themeClasses.border} shadow`}
-          >
-            <div className="text-xs text-gray-400">Cofre</div>
-            <div className="text-3xl font-extrabold mt-1">
-              R$ {(clan?.vault ?? 0).toLocaleString("pt-BR")}
-            </div>
-          </div>
-          <div
-            className={`${themeClasses.cardBg} rounded-xl p-4 border ${themeClasses.border} shadow`}
-          >
-            <div className="text-xs text-gray-400">Vagas</div>
-            <div className="text-3xl font-extrabold mt-1">
-              {clan?.member_count ?? 0}/{clan?.max_members ?? 0}{" "}
-              <span className="text-sm text-gray-400">
-                ({availableSlots} livres)
-              </span>
+            <div className="text-xs text-gray-400 mt-2">
+              Ao sair, você só poderá retornar a este clã após 24h reais.
             </div>
           </div>
         </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 space-y-6">
-            <div
-              className={`${themeClasses.cardBg} rounded-xl border ${themeClasses.border} shadow overflow-hidden`}
-            >
-              <div className="px-4 py-3 border-b ${themeClasses.border} flex items-center justify-between">
-                <h2 className="text-lg font-bold">Membros</h2>
-                <span className={`text-xs font-bold ${factionColor.accent}`}>
-                  {clan?.members?.length ?? clan?.member_count ?? 0} membros
-                </span>
-              </div>
-              <ul className="divide-y divide-gray-700/60">
-                {(clan?.members ?? []).map((m: Player) => {
-                  const mid = String(m.id || m.user_id);
-                  const voterId = String(
-                    userProfile?.user_id || userProfile?.id || "me",
-                  );
-                  const keyVotes = clan?.id
-                    ? `clan_votes:${clan.id}:${mid}`
-                    : "";
-                  let votesSize = 0;
-                  if (keyVotes) {
-                    try {
-                      const lst = JSON.parse(
-                        localStorage.getItem(keyVotes) || "[]",
-                      );
-                      votesSize = Array.isArray(lst) ? lst.length : 0;
-                    } catch (e) {
-                      /* Falha ao parsear votos do localStorage */
-                    }
-                  }
-                  const total =
-                    clan?.members?.length ?? clan?.member_count ?? 1;
-                  const threshold = Math.ceil(total / 2);
-                  const isSelf = voterId === mid;
-                  const banKey = clan?.id ? `clan_banlist:${clan.id}` : "";
-                  let isBanned = false;
-                  if (banKey) {
-                    try {
-                      const obj: { [key: string]: string } = JSON.parse(
-                        localStorage.getItem(banKey) || "{}",
-                      );
-                      const exp = obj[mid];
-                      isBanned = !!exp && new Date(exp).getTime() > Date.now();
-                    } catch (e) {
-                      /* Falha ao parsear banlist do localStorage */
-                    }
-                  }
-                  return (
-                    <li
-                      key={mid}
-                      className="px-4 py-3 flex items-center justify-between"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded bg-gray-700 flex items-center justify-center font-bold">
-                          {(m.username || m.display_name || "U")
-                            .charAt(0)
-                            .toUpperCase()}
-                        </div>
-                        <div>
-                          <div className="font-semibold flex items-center gap-2">
-                            <span>
-                              {m.username || m.display_name || "Usuário"}
-                            </span>
-                            {isBanned && (
-                              <span className="text-[10px] px-2 py-0.5 rounded bg-red-600/40 border border-red-500/50">
-                                BANIDO 24h
-                              </span>
-                            )}
-                          </div>
-                          <div className="text-xs text-gray-400">
-                            Nível {m.level ?? "-"}
-                          </div>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <div className="text-xs text-gray-400">
-                          {m.role || "Membro"}
-                        </div>
-                        {!isSelf && !isBanned && (
-                          <button
-                            onClick={async () => {
-                              if (!clan?.id) return;
-                              const key = `clan_votes:${clan.id}:${mid}`;
-                              let setVotes = new Set<string>();
-                              try {
-                                const arr = JSON.parse(
-                                  localStorage.getItem(key) || "[]",
-                                );
-                                if (Array.isArray(arr)) setVotes = new Set(arr);
-                              } catch (e) {
-                                /* Falha ao parsear votos do localStorage para votar */
-                              }
-                              setVotes.add(voterId);
-                              localStorage.setItem(
-                                key,
-                                JSON.stringify(Array.from(setVotes)),
-                              );
-                              const totalMembers =
-                                clan?.members?.length ??
-                                clan?.member_count ??
-                                1;
-                              const th = Math.ceil(totalMembers / 2);
-                              if (setVotes.size >= th) {
-                                try {
-                                  await apiClient.kickMember(
-                                    String(clan.id),
-                                    mid,
-                                  );
-                                } catch (e) {
-                                  /* Ignorar erro ao kickar, o processo continua */
-                                  const bKey = `clan_banlist:${clan.id}`;
-                                  const obj: { [key: string]: string } = {};
-                                  try {
-                                    const existing = localStorage.getItem(bKey);
-                                    if (existing) {
-                                      Object.assign(obj, JSON.parse(existing));
-                                    }
-                                  } catch (parseError) {
-                                    /* Falha ao parsear banlist */
-                                  }
-                                  obj[mid] = new Date(
-                                    Date.now() + 24 * 3600 * 1000,
-                                  ).toISOString();
-                                  localStorage.setItem(
-                                    bKey,
-                                    JSON.stringify(obj),
-                                  );
-                                }
-                                // remover da lista local
-                                setClan((prev) => {
-                                  if (!prev) return prev;
-                                  const filtered = (prev.members || []).filter(
-                                    (member) =>
-                                      String(member.id || member.user_id) !==
-                                      mid,
-                                  );
-                                  return {
-                                    ...prev,
-                                    members: filtered,
-                                    member_count: filtered.length,
-                                  };
-                                });
-                              } else {
-                                // atualizar UI de votos
-                                try {
-                                  const arr2 = JSON.parse(
-                                    localStorage.getItem(key) || "[]",
-                                  );
-                                  votesSize = Array.isArray(arr2)
-                                    ? arr2.length
-                                    : setVotes.size;
-                                } catch {
-                                  /* Silently ignore update error */
-                                }
-                              }
-                            }}
-                            className="text-xs px-2 py-1 rounded bg-red-600 hover:bg-red-500 transition-colors font-bold"
-                            title={`Votos: ${votesSize}/${threshold}`}
-                          >
-                            Votar expulsão ({votesSize}/{threshold})
-                          </button>
-                        )}
-                      </div>
-                    </li>
-                  );
-                })}
-                {(!clan?.members || clan.members.length === 0) && (
-                  <li className="px-4 py-6 text-center text-gray-400">
-                    Nenhum membro listado
-                  </li>
-                )}
-              </ul>
-              {(clan?.members?.length ?? clan?.member_count ?? 0) <= 1 && (
-                <div className="px-4 py-3 text-xs text-gray-400 border-t border-gray-700/60">
-                  Adicione mais membros para habilitar a votação de expulsão.
-                </div>
-              )}
-            </div>
-
-            <div
-              className={`${themeClasses.cardBg} rounded-xl border ${themeClasses.border} shadow overflow-hidden`}
-            >
-              <div className="px-4 py-3 border-b ${themeClasses.border} flex items-center justify-between">
-                <h2 className="text-lg font-bold">Chat do Clã</h2>
-                <div className="flex items-center gap-2">
-                  {!chatEnabled && (
-                    <span className="text-xs text-yellow-400">
-                      Indisponível
-                    </span>
-                  )}
-                  <span
-                    className={`text-[10px] px-2 py-0.5 rounded ${chatMode === "local" ? "bg-yellow-400 text-black" : "bg-green-500 text-black"}`}
-                  >
-                    {chatMode === "local" ? "Modo Local" : "Online"}
-                  </span>
-                </div>
-              </div>
-              <div className="p-4 space-y-3 max-h-80 overflow-y-auto custom-scrollbar">
-                {chatMessages.length === 0 && (
-                  <div className="text-sm text-gray-400">Sem mensagens</div>
-                )}
-                {chatMessages.map((msg) => (
-                  <div key={msg.id} className="flex items-start gap-3">
-                    <div className="w-7 h-7 rounded bg-gray-700 flex items-center justify-center font-bold text-xs">
-                      {(msg.username || "U").charAt(0).toUpperCase()}
-                    </div>
-                    <div>
-                      <div className="text-xs text-gray-400">
-                        {msg.username || "Usuário"} •{" "}
-                        {new Date(msg.created_at).toLocaleString("pt-BR")}
-                      </div>
-                      <div className="text-sm font-semibold">{msg.content}</div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <div className="p-3 border-t border-gray-700/60 flex items-center gap-2">
-                <input
-                  value={chatInput}
-                  onChange={(e) => setChatInput(e.target.value)}
-                  placeholder="Escreva uma mensagem"
-                  className="flex-1 px-3 py-2 rounded bg-gray-800 border border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-                <button
-                  onClick={sendMessage}
-                  disabled={
-                    !chatEnabled || chatLoading || chatInput.trim().length === 0
-                  }
-                  className="px-4 py-2 rounded bg-blue-600 hover:bg-blue-500 disabled:opacity-50 transition-colors font-bold"
-                >
-                  Enviar
-                </button>
-              </div>
-              {chatError && (
-                <div className="px-4 py-2 text-xs text-yellow-400">
-                  {chatError}
-                </div>
-              )}
-            </div>
-          </div>
-
-          <div className="space-y-6">
-            <div
-              className={`${themeClasses.cardBg} rounded-xl border ${themeClasses.border} shadow p-4`}
-            >
-              <div className="text-sm text-gray-300 font-bold mb-2">Ações</div>
-              <button
-                onClick={() => setConfirmLeave(true)}
-                className="w-full px-4 py-2 rounded bg-red-600 hover:bg-red-500 transition-colors font-bold"
-              >
-                Sair do Clã
-              </button>
-              <div className="text-xs text-gray-400 mt-2">
-                Ao sair, você só poderá retornar a este clã após 24h reais.
-              </div>
-            </div>
-          </div>
-        </div>
-      </motion.div>
+      </div>
 
       {confirmLeave && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
@@ -770,6 +753,6 @@ export default function ClanPage() {
           </div>
         </div>
       )}
-    </div>
+    </motion.div>
   );
 }

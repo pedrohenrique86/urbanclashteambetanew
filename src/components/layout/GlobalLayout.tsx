@@ -1,8 +1,10 @@
 import React from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import BottomNavBar from "./BottomNavBar"; // Importando o novo componente
+import BottomNavBar from "./BottomNavBar";
+import TopBar from "./TopBar"; // Importa a nova TopBar
 import { useTheme } from "../../contexts/ThemeContext";
 import { useUserProfile } from "../../hooks/useUserProfile";
+import { apiClient } from "../../lib/supabaseClient"; // Importa o apiClient
 
 interface GlobalLayoutProps {
   children: React.ReactNode;
@@ -13,7 +15,6 @@ const GlobalLayout: React.FC<GlobalLayoutProps> = ({ children }) => {
   const navigate = useNavigate();
   const { themeClasses } = useTheme();
 
-  // Páginas que não devem mostrar a barra de navegação
   const pagesWithoutNav = [
     "/",
     "/faction",
@@ -24,11 +25,19 @@ const GlobalLayout: React.FC<GlobalLayoutProps> = ({ children }) => {
   ];
   const shouldShowNav = !pagesWithoutNav.includes(location.pathname);
 
-  // useUserProfile é chamado condicionalmente, mas as regras dos hooks são mantidas
   const { userProfile } = useUserProfile(shouldShowNav);
 
   const navigateTo = (path: string) => {
     navigate(path);
+  };
+
+  const handleLogout = async () => {
+    try {
+      await apiClient.logout();
+      navigate("/");
+    } catch (error) {
+      console.error("Erro ao fazer logout:", error);
+    }
   };
 
   if (!shouldShowNav) {
@@ -39,9 +48,9 @@ const GlobalLayout: React.FC<GlobalLayoutProps> = ({ children }) => {
     <div
       className={`min-h-screen ${themeClasses.bg} transition-colors duration-300`}
     >
-      <main className="pb-24">
-        {" "}
-        {/* Adiciona padding na parte inferior para não sobrepor o conteúdo */}
+      <TopBar userProfile={userProfile} handleLogout={handleLogout} />
+      <main className="pt-20 pb-24">
+        {/* Padding-top para não sobrepor o conteúdo, padding-bottom para a BottomNavBar */}
         {children}
       </main>
       <BottomNavBar navigateTo={navigateTo} userProfile={userProfile} />

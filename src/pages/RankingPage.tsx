@@ -1,6 +1,5 @@
 import React, { useState } from "react";
 import { motion } from "framer-motion";
-import { PageHeader } from "../components/layout";
 import { Player, Clan } from "../types/ranking";
 import { useRankingCache } from "../hooks/useRankingCache";
 
@@ -201,9 +200,6 @@ export default function RankingPage() {
 
   return (
     <div className="min-h-screen bg-gray-900 text-white font-exo">
-      {/* Header */}
-      <PageHeader title="Rankings" backTo="/dashboard" backText="Dashboard" />
-
       <div className="max-w-7xl mx-auto px-4 py-8">
         {/* Título principal */}
         <motion.div

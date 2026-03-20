@@ -51,7 +51,13 @@ const BottomNavBar: React.FC<BottomNavBarProps> = ({
         {Object.entries(menuCategories).map(([key, category]) => (
           <div key={key} className="relative">
             <button
-              onClick={() => toggleMenu(key)}
+              onClick={() => {
+                if (key === "principal") {
+                  handleNavigate("/dashboard");
+                } else {
+                  toggleMenu(key);
+                }
+              }}
               className="flex flex-col items-center justify-center text-white w-16 h-16 rounded-full transition-all duration-300 hover:bg-amber-500/20 focus:outline-none"
             >
               <span className="text-3xl">{category.icon}</span>

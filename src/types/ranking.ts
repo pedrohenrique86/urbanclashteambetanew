@@ -26,6 +26,7 @@ export interface UserProfile {
   is_admin?: boolean; // Adicionado para verificação de admin
   level: number;
   current_xp: number;
+  xp_required?: number;
   faction: 'gangsters' | 'guardas';
   clan_id?: string;
   resources: number;

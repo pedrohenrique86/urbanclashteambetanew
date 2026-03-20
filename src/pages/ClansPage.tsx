@@ -1,15 +1,11 @@
-import { motion } from 'framer-motion';
-import ClanManagement from '../components/ClanManagement';
-import PageHeader from '../components/layout/PageHeader';
+import { motion } from "framer-motion";
+import ClanManagement from "../components/ClanManagement";
 
 export default function ClansPage() {
   return (
     <div className="min-h-screen bg-gray-900 text-white font-exo">
-      {/* Header */}
-      <PageHeader title="Clãs" />
-
       {/* Main Content */}
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}

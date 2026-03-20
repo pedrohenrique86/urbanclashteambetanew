@@ -1,12 +1,9 @@
-import { motion } from 'framer-motion';
-import PageHeader from '../components/layout/PageHeader';
+import { motion } from "framer-motion";
 
 export default function TerritoryPage() {
   return (
     <div className="min-h-screen bg-gray-900 text-white font-exo">
-      <PageHeader title="Territórios" />
-      
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
