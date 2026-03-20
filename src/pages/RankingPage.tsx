@@ -195,7 +195,7 @@ export default function RankingPage() {
   ];
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8">
+    <div className="max-w-7xl mx-auto px-4 pb-8">
       {/* Informação de atualização */}
       <motion.div
         initial={{ opacity: 0 }}

@@ -246,7 +246,6 @@ const TopBar: React.FC<TopBarProps> = ({ userProfile, handleLogout }) => {
           </div>
         </div>
       </div>
-      <div className="h-24 md:h-12" />
     </>
   );
 };

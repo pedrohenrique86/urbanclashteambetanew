@@ -1,6 +1,6 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import { motion } from "framer-motion";
+import PageContainer from "../components/layout/PageContainer";
 import { useUserProfile } from "../hooks/useUserProfile";
 import { useTheme } from "../contexts/ThemeContext";
 import { StatsCards, NavigationButtons } from "../components/dashboard";
@@ -23,12 +23,7 @@ export default function DashboardPage() {
   }
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.5 }}
-      className="p-4 sm:p-6 md:p-8"
-    >
+    <PageContainer>
       {/* Stats Cards */}
       <StatsCards
         userProfile={userProfile}
@@ -38,6 +33,6 @@ export default function DashboardPage() {
 
       {/* Navigation Buttons */}
       <NavigationButtons />
-    </motion.div>
+    </PageContainer>
   );
 }

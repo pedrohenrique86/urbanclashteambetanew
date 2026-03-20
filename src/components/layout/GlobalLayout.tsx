@@ -49,7 +49,7 @@ const GlobalLayout: React.FC<GlobalLayoutProps> = ({ children }) => {
       className={`min-h-screen ${themeClasses.bg} transition-colors duration-300`}
     >
       <TopBar userProfile={userProfile} handleLogout={handleLogout} />
-      <main className="pt-20 pb-24">
+      <main className="pt-28 md:pt-16 pb-24">
         {/* Padding-top para não sobrepor o conteúdo, padding-bottom para a BottomNavBar */}
         {children}
       </main>
