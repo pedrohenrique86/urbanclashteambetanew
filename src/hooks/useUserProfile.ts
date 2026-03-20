@@ -54,15 +54,56 @@ export const useUserProfile = (shouldRedirect: boolean = true) => {
         const user = userResponse.data.user;
         const profileData = await apiClient.getUserProfile();
         
-        if (profileData?.faction) {
-          const processedProfile = await processExistingProfile(profileData, user);
-          if (isMounted) setUserProfile(processedProfile);
-        } else if (user.user_metadata?.faction) {
-          const newProfile = await createNewProfile(user);
-          if (isMounted && newProfile) setUserProfile(newProfile);
-        } else {
-          if (isMounted && shouldRedirect) {
-            window.location.href = '/faction-selection';
+        if (isMounted) {
+          const currentPath = window.location.pathname;
+
+          if (profileData?.faction) {
+            // Usuário tem facção, verificar o clã
+            if (profileData.clan_id) {
+              // Usuário totalmente configurado
+              const processedProfile = await processExistingProfile(
+                profileData,
+                user,
+              );
+              setUserProfile(processedProfile);
+              // Se estiver em uma página de configuração, redirecione para o dashboard
+              if (
+                currentPath === "/faction-selection" ||
+                currentPath === "/clan-selection"
+              ) {
+                navigate("/dashboard");
+              }
+            } else {
+              // Usuário tem facção, mas não tem clã
+              const processedProfile = await processExistingProfile(
+                profileData,
+                user,
+              );
+              setUserProfile(processedProfile);
+              if (shouldRedirect && currentPath !== "/clan-selection") {
+                navigate("/clan-selection");
+              }
+            }
+          } else if (user.user_metadata?.faction) {
+            // Fluxo de novo usuário com facção nos metadados
+            const newProfile = await createNewProfile(user);
+            if (newProfile) {
+              setUserProfile(newProfile);
+              // Após a criação do perfil, o usuário provavelmente precisará escolher um clã
+              if (shouldRedirect && currentPath !== "/clan-selection") {
+                navigate("/clan-selection");
+              }
+            } else {
+              // Falha na criação do perfil, redirecionar para seleção de facção
+              if (shouldRedirect && currentPath !== "/faction-selection") {
+                navigate("/faction-selection");
+              }
+            }
+          } else {
+            // Usuário não tem facção, precisa escolher uma
+            if (shouldRedirect && currentPath !== "/faction-selection") {
+              navigate("/faction-selection");
+            }
           }
         }
       } catch (error) {
