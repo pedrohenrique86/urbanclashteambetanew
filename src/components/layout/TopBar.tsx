@@ -185,6 +185,7 @@ const TopBar: React.FC<TopBarProps> = ({ userProfile, handleLogout }) => {
                   </span>
                 </span>
               </div>
+
               {/* User info and mobile logout */}
               <div className="flex items-center gap-3">
                 <span

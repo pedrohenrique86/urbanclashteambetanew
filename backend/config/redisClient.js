@@ -1,4 +1,4 @@
-const redis = require('redis');
+const redis = require("redis");
 
 let client = null;
 let isReady = false;
@@ -6,16 +6,16 @@ let isReady = false;
 async function initRedis() {
   try {
     client = redis.createClient({
-      url: process.env.REDIS_URL || 'redis://localhost:6379'
+      url: process.env.REDIS_URL || "redis://localhost:6379",
     });
-    
-    client.on('error', () => {});
-    
+
+    client.on("error", () => {});
+
     await client.connect();
     isReady = true;
-    console.log('✅ Redis OK');
+    console.log("✅ Redis OK");
   } catch (e) {
-    console.log('⚠️ Redis indisponível');
+    console.log("⚠️ Redis indisponível");
     client = null;
     isReady = false;
   }
@@ -24,21 +24,51 @@ async function initRedis() {
 initRedis();
 
 module.exports = {
-  client: { get isReady() { return isReady; } },
+  client: {
+    get isReady() {
+      return isReady;
+    },
+  },
   getAsync: async (k) => {
     if (!isReady) return null;
-    try { return await client.get(k); } catch { return null; }
+    try {
+      return await client.get(k);
+    } catch {
+      return null;
+    }
   },
   setAsync: async (k, v, m, t) => {
     if (!isReady) return null;
-    try { 
-      return (m === 'EX' && t) 
-        ? await client.setEx(k, t, String(v)) 
+    try {
+      return m === "EX" && t
+        ? await client.setEx(k, t, String(v))
         : await client.set(k, String(v));
-    } catch { return null; }
+    } catch {
+      return null;
+    }
   },
   delAsync: async (k) => {
     if (!isReady) return null;
-    try { return await client.del(k); } catch { return null; }
+    try {
+      return await client.del(k);
+    } catch {
+      return null;
+    }
+  },
+  hSetAsync: async (k, f, v) => {
+    if (!isReady) return null;
+    try {
+      return await client.hSet(k, f, String(v));
+    } catch {
+      return null;
+    }
+  },
+  hGetAllAsync: async (k) => {
+    if (!isReady) return null;
+    try {
+      return await client.hGetAll(k);
+    } catch {
+      return null;
+    }
   },
 };

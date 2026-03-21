@@ -1,7 +1,8 @@
 const express = require("express");
+
 const timeRoutes = require("./routes/time");
 const adminRoutes = require("./routes/admin");
-const gameRoutes = require("./routes/game");
+// const gameRoutes = require("./routes/game"); // Replaced by Socket.IO
 const cors = require("cors");
 const path = require("path");
 const helmet = require("helmet");
@@ -15,8 +16,19 @@ const userRoutes = require("./routes/users");
 const clanRoutes = require("./routes/clans");
 const { connectDB, closePool } = require("./config/database");
 const { checkAutoStart } = require("./services/gameStateService");
+const { initializeSocket } = require("./socketHandler");
+const http = require("http");
+const { Server } = require("socket.io");
 
 const app = express();
+const server = http.createServer(app);
+const io = new Server(server, {
+  cors: {
+    origin: process.env.FRONTEND_URL || "http://localhost:5173",
+    methods: ["GET", "POST"],
+  },
+});
+
 const PORT = process.env.PORT || 3001;
 
 // Middleware de segurança
@@ -66,7 +78,7 @@ app.use("/api/users", userRoutes);
 app.use("/api/clans", clanRoutes);
 app.use("/api/time", timeRoutes);
 app.use("/api/admin", adminRoutes);
-app.use("/api/game", gameRoutes);
+// app.use("/api/game", gameRoutes); // Replaced by Socket.IO
 
 // Rota de health check
 app.get("/health", (req, res) => {
@@ -74,7 +86,8 @@ app.get("/health", (req, res) => {
 });
 
 // Middleware de tratamento de erros
-app.use((err, req, res) => {
+// eslint-disable-next-line no-unused-vars
+app.use((err, req, res, next) => {
   console.error(err.stack);
   res.status(500).json({
     error: "Algo deu errado!",
@@ -93,16 +106,18 @@ app.use("*", (req, res) => {
 // Função para iniciar verificação periódica do estado do jogo
 async function startGameStateMonitor() {
   await checkAutoStart();
-  
+
   const interval = 30000; // 30 segundos
   setInterval(async () => {
     const started = await checkAutoStart();
     if (started) {
-      console.log('🎮 Jogo iniciado automaticamente pelo monitor');
+      console.log("🎮 Jogo iniciado automaticamente pelo monitor");
     }
   }, interval);
-  
-  console.log(`⏱️ Monitor de estado do jogo iniciado (verificação a cada ${interval}ms)`);
+
+  console.log(
+    `⏱️ Monitor de estado do jogo iniciado (verificação a cada ${interval}ms)`,
+  );
 }
 
 // Inicializar servidor
@@ -113,7 +128,9 @@ async function startServer() {
 
     await startGameStateMonitor();
 
-    app.listen(PORT, () => {
+    initializeSocket(io);
+
+    server.listen(PORT, () => {
       console.log(`🚀 Servidor rodando na porta ${PORT}`);
       console.log(`📱 Frontend URL: ${process.env.FRONTEND_URL}`);
       console.log(`🔗 Backend URL: http://localhost:${PORT}`);

@@ -1,9 +1,9 @@
 import React, { useState, useRef, useEffect } from "react";
 import { menuCategories } from "../constants/menuItems";
-import ServerClock from "./ServerClock";
 import AdminMenu from "../admin/AdminMenu";
-
 import { UserProfile } from "../../types";
+import GameClockDisplay from "./GameClockDisplay"; // Importa o novo componente
+import { useGameClock } from "../../hooks/useGameClock"; // Importa o novo hook
 
 interface BottomNavBarProps {
   navigateTo: (path: string) => void;
@@ -16,6 +16,7 @@ const BottomNavBar: React.FC<BottomNavBarProps> = ({
 }) => {
   const [openMenu, setOpenMenu] = useState<string | null>(null);
   const [isAdminMenuOpen, setAdminMenuOpen] = useState(false);
+  const { remainingTime, status, serverTime } = useGameClock(); // Usa o novo hook
 
   const isAdmin = userProfile?.is_admin === true;
   const menuRef = useRef<HTMLDivElement>(null);
@@ -103,8 +104,12 @@ const BottomNavBar: React.FC<BottomNavBarProps> = ({
       </div>
 
       {/* Relógio e Contagem Regressiva (Direita no Desktop, Abaixo no Mobile) */}
-      <div className="w-full md:w-auto order-2 flex justify-center">
-        <ServerClock />
+      <div className="w-full md:w-auto order-2 flex justify-center px-4 md:px-0">
+        <GameClockDisplay
+          remainingTime={remainingTime}
+          status={status}
+          serverTime={serverTime}
+        />
       </div>
 
       {/* Menu de Admin Flutuante */}
