@@ -3,11 +3,20 @@ import { motion } from "framer-motion";
 import AuthModal from "../components/AuthModal";
 import Timeline from "../components/Timeline";
 import RankingSection from "../components/RankingSection";
-import { HeroSection, FactionsSection, AboutSection, PrizesSection, Footer } from "../components/home";
+import {
+  HeroSection,
+  FactionsSection,
+  AboutSection,
+  PrizesSection,
+  Footer,
+} from "../components/home";
+import { useGameClock } from "../hooks/useGameClock"; // Importar o hook
+import GameCountdown from "../components/layout/GameCountdown"; // Importar o novo componente
 
 export default function HomePage() {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authMode, setAuthMode] = useState<"login" | "register">("login");
+  const { status, remainingTime } = useGameClock(); // Usar o hook para obter o estado do jogo
 
   const openAuthModal = (mode: "login" | "register") => {
     setAuthMode(mode);
@@ -32,23 +41,6 @@ export default function HomePage() {
                 <span className="text-transparent bg-gradient-to-r from-purple-400 to-purple-600 bg-clip-text font-bold">
                   TEAM
                 </span>
-                <motion.div
-                  className="ml-2 w-2 h-2 rounded-full bg-orange-500"
-                  animate={{
-                    scale: [1, 1.5, 1],
-                    backgroundColor: [
-                      "rgb(249, 115, 22)", // orange-500
-                      "rgb(37, 99, 235)", // blue-600
-                      "rgb(168, 85, 247)", // purple-500
-                      "rgb(249, 115, 22)", // orange-500
-                    ],
-                  }}
-                  transition={{
-                    duration: 3,
-                    repeat: Infinity,
-                    ease: "easeInOut",
-                  }}
-                />
               </h1>
             </div>
             <div className="flex gap-2 sm:gap-4">
@@ -69,6 +61,13 @@ export default function HomePage() {
         </div>
       </nav>
 
+      {/* Contador Regressivo para o Início do Jogo */}
+      {status === "scheduled" && remainingTime > 0 && (
+        <div className="absolute top-16 left-0 w-full z-40">
+          <GameCountdown remainingTime={remainingTime} />
+        </div>
+      )}
+
       <HeroSection />
 
       <FactionsSection />
@@ -80,7 +79,7 @@ export default function HomePage() {
 
       <PrizesSection />
 
-      <Footer 
+      <Footer
         onLoginClick={() => openAuthModal("login")}
         onRegisterClick={() => openAuthModal("register")}
       />

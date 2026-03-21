@@ -25,8 +25,9 @@ export const useGameClock = (): GameClock => {
   const lastServerUpdateTime = useRef<number>(0);
 
   useEffect(() => {
-    // Conecta ao socket e registra os listeners
+    // Conecta ao socket, registra os listeners e pede o estado atual
     socketService.connect();
+    socketService.emit('getGameState'); // Pede ativamente o estado ao conectar
 
     // Ouve o estado inicial do jogo, enviado pelo servidor no momento da conexão.
     const handleInitialState = (initialState: GameState) => {
@@ -63,24 +64,48 @@ export const useGameClock = (): GameClock => {
   // Efeito para controlar o loop de animação do cronômetro.
   useEffect(() => {
     const tick = () => {
-      // Atualiza o cronômetro regressivo se estiver em andamento
-      if (gameState?.status === 'running') {
-        const now = Date.now();
+      if (!gameState) return;
+
+      const now = Date.now();
+      const currentServerTime = gameState.serverTime 
+        ? new Date(new Date(gameState.serverTime).getTime() + (now - lastServerUpdateTime.current))
+        : new Date();
+
+      // Atualiza o relógio do servidor para a UI
+      setServerTime(currentServerTime);
+
+      // --- LÓGICA DE TRANSIÇÃO DE ESTADO AUTÔNOMA ---
+      if (gameState.status === 'scheduled' && gameState.startTime) {
+        const startTime = new Date(gameState.startTime).getTime();
+        if (currentServerTime.getTime() >= startTime) {
+          // O tempo de agendamento acabou. Promove para 'running' no frontend!
+          console.log("🚀 Frontend promovendo estado para RUNNING!");
+          setGameState(prev => {
+            if (!prev) return null;
+            const newEndTime = new Date(startTime + (prev.duration ?? 0) * 1000);
+            const newRemainingTime = Math.floor((newEndTime.getTime() - currentServerTime.getTime()) / 1000);
+            return {
+              ...prev,
+              status: 'running',
+              remainingTime: newRemainingTime,
+            };
+          });
+          setDisplayTime(Math.floor((new Date(startTime + (gameState.duration ?? 0) * 1000).getTime() - currentServerTime.getTime()) / 1000));
+          lastServerUpdateTime.current = now;
+          animationFrameId.current = requestAnimationFrame(tick);
+          return; // Sai do tick atual para recomeçar com o novo estado
+        }
+      }
+
+      // --- LÓGICA DE CONTAGEM REGRESSIVA ---
+      if (gameState.status === 'running' || gameState.status === 'scheduled') {
         const elapsedTimeInSeconds = (now - lastServerUpdateTime.current) / 1000;
         const newRemainingTime = Math.max(0, gameState.remainingTime - elapsedTimeInSeconds);
         setDisplayTime(newRemainingTime);
 
-        if (newRemainingTime <= 0) {
+        if (newRemainingTime <= 0 && gameState.status === 'running') {
           setGameState(prev => prev ? { ...prev, status: 'finished' } : null);
         }
-      }
-
-      // Atualiza o relógio do servidor independentemente do status
-      if (gameState?.serverTime) {
-        const now = Date.now();
-        const elapsedTime = now - lastServerUpdateTime.current;
-        const currentServerTime = new Date(new Date(gameState.serverTime).getTime() + elapsedTime);
-        setServerTime(currentServerTime);
       }
 
       animationFrameId.current = requestAnimationFrame(tick);

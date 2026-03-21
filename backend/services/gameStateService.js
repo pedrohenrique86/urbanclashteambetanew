@@ -82,7 +82,7 @@ function calculateGameState(rawConfig) {
 
   let status = GameStatus.STOPPED;
   let endTime = null;
-  let remainingTime = 0;
+  let remainingTime = duration; // Regra 1: Por padrão, o tempo é a duração total (20d)
 
   if (startTime) {
     const startDate = new Date(startTime);
@@ -95,7 +95,8 @@ function calculateGameState(rawConfig) {
     } else if (now < startDate) {
       // Jogo agendado, mas não iniciado
       status = GameStatus.SCHEDULED;
-      remainingTime = duration; // Exibe a duração total, parado.
+      // Regra 2: Contagem regressiva para o início
+      remainingTime = Math.floor((startDate - now) / 1000);
     } else if (now >= startDate && now < endTime) {
       // Jogo em andamento
       status = GameStatus.RUNNING;
@@ -277,15 +278,27 @@ async function stopGame() {
   }
 }
 
-async function pauseGame(paused = true) {
-  await updateGameConfig("is_paused", String(paused));
+async function pauseGame() {
+  await updateGameConfig("is_paused", "true");
   const state = await getGameState();
 
   return {
     success: true,
-    message: paused ? "Jogo pausado" : "Jogo despausado",
+    message: "Jogo pausado",
     status: state.status,
-    isPaused: paused,
+    isPaused: true,
+  };
+}
+
+async function resumeGame() {
+  await updateGameConfig("is_paused", "false");
+  const state = await getGameState();
+
+  return {
+    success: true,
+    message: "Jogo despausado",
+    status: state.status,
+    isPaused: false,
   };
 }
 
@@ -359,6 +372,7 @@ module.exports = {
   scheduleGame,
   stopGame,
   pauseGame,
+  resumeGame,
   invalidateAndBroadcastState,
   checkAutoStart,
   getGameStateFromDB,

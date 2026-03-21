@@ -77,6 +77,15 @@ class SocketService {
   off(event: string): void {
     this.connect()?.off(event);
   }
+
+  /**
+   * Emite um evento para o servidor.
+   * @param event - O nome do evento a ser emitido.
+   * @param data - Os dados a serem enviados com o evento (opcional).
+   */
+  emit<T>(event: string, data?: T): void {
+    this.connect()?.emit(event, data);
+  }
 }
 
 // Exporta uma instância única (singleton) do serviço
