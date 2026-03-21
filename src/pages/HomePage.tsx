@@ -10,8 +10,8 @@ import {
   PrizesSection,
   Footer,
 } from "../components/home";
-import { useGameClock } from "../hooks/useGameClock"; // Importar o hook
-import GameCountdown from "../components/layout/GameCountdown"; // Importar o novo componente
+import { useGameClock } from "../hooks/useGameClock";
+import NavbarCountdown from "../components/layout/NavbarCountdown";
 
 export default function HomePage() {
   const [showAuthModal, setShowAuthModal] = useState(false);
@@ -25,13 +25,17 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-gray-900 text-white font-exo relative">
-      <Timeline />
+      {/* Timeline visível apenas em telas grandes */}
+      <div className="hidden lg:block">
+        <Timeline />
+      </div>
       {/* Navigation */}
       <nav className="fixed top-0 w-full bg-gray-900/95 backdrop-blur-sm z-50 border-b border-gray-700">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
-            <div className="flex items-center">
-              <h1 className="text-xl sm:text-2xl font-orbitron flex items-center">
+            {/* Logo */}
+            <div className="flex-shrink-0">
+              <h1 className="text-base sm:text-xl md:text-2xl font-orbitron flex items-center">
                 <span className="text-transparent bg-gradient-to-r from-orange-400 to-orange-600 bg-clip-text font-bold">
                   URBAN
                 </span>
@@ -43,16 +47,25 @@ export default function HomePage() {
                 </span>
               </h1>
             </div>
-            <div className="flex gap-2 sm:gap-4">
+
+            {/* Cronômetro Centralizado */}
+            <div className="flex-grow flex justify-center px-4">
+              {status === "scheduled" && remainingTime > 0 && (
+                <NavbarCountdown remainingTime={remainingTime} />
+              )}
+            </div>
+
+            {/* Botões de Autenticação */}
+            <div className="flex-shrink-0 flex gap-1 sm:gap-2">
               <button
                 onClick={() => openAuthModal("login")}
-                className="bg-orange-600 hover:bg-orange-700 px-3 sm:px-4 md:px-6 py-2 rounded-lg font-bold transition-all hover:scale-105 text-sm sm:text-base font-orbitron"
+                className="bg-orange-600 hover:bg-orange-700 px-2 sm:px-4 py-1 sm:py-2 rounded-md sm:rounded-lg font-bold transition-all hover:scale-105 text-xs sm:text-sm font-orbitron"
               >
                 Entrar
               </button>
               <button
                 onClick={() => openAuthModal("register")}
-                className="bg-blue-600 hover:bg-blue-700 px-3 sm:px-4 md:px-6 py-2 rounded-lg font-bold transition-all hover:scale-105 text-sm sm:text-base font-orbitron"
+                className="bg-blue-600 hover:bg-blue-700 px-2 sm:px-4 py-1 sm:py-2 rounded-md sm:rounded-lg font-bold transition-all hover:scale-105 text-xs sm:text-sm font-orbitron"
               >
                 Registrar
               </button>
@@ -60,13 +73,6 @@ export default function HomePage() {
           </div>
         </div>
       </nav>
-
-      {/* Contador Regressivo para o Início do Jogo */}
-      {status === "scheduled" && remainingTime > 0 && (
-        <div className="absolute top-16 left-0 w-full z-40">
-          <GameCountdown remainingTime={remainingTime} />
-        </div>
-      )}
 
       <HeroSection />
 
