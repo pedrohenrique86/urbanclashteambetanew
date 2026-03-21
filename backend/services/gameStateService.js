@@ -1,12 +1,11 @@
 const { query } = require('../config/database');
 const redisClient = require('../config/redisClient');
 
-// Wrapper seguro para Redis
+// Wrapper seguro para Redis (String)
 async function safeRedisGet(key) {
   try {
     return await redisClient.getAsync(key);
   } catch (error) {
-    console.warn('⚠️ Redis GET falhou, usando fallback:', error.message);
     return null;
   }
 }
@@ -15,7 +14,6 @@ async function safeRedisSet(key, value, mode, ttl) {
   try {
     return await redisClient.setAsync(key, value, mode, ttl);
   } catch (error) {
-    console.warn('⚠️ Redis SET falhou:', error.message);
     return null;
   }
 }
@@ -24,7 +22,31 @@ async function safeRedisDel(key) {
   try {
     return await redisClient.delAsync(key);
   } catch (error) {
-    console.warn('⚠️ Redis DEL falhou:', error.message);
+    return null;
+  }
+}
+
+// Wrapper para Redis Hash (melhor para múltiplos campos)
+async function safeRedisHGetAll(key) {
+  try {
+    return await redisClient.client.hGetAll(key);
+  } catch (error) {
+    return {};
+  }
+}
+
+async function safeRedisHSet(key, fields) {
+  try {
+    return await redisClient.client.hSet(key, fields);
+  } catch (error) {
+    return null;
+  }
+}
+
+async function safeRedisHDel(key, fields) {
+  try {
+    return await redisClient.client.hDel(key, fields);
+  } catch (error) {
     return null;
   }
 }
@@ -223,7 +245,48 @@ async function updateGameConfig(key, value) {
 }
 
 /**
- * Inicia o jogo
+ * Agenda o jogo para iniciar no futuro (sem ativar ainda)
+ * @param {string|Date} startTime - Quando o jogo deve iniciar
+ * @param {number} durationSeconds - Duração em segundos
+ * @returns {Promise<Object>} Resultado da operação
+ */
+async function scheduleGame(startTime, durationSeconds = 20 * 24 * 60 * 60) {
+  const startTimeStr = startTime instanceof Date ? startTime.toISOString() : startTime;
+  
+  try {
+    await query('BEGIN');
+    
+    // Agenda SEM ativar (is_countdown_active = 'false')
+    await query(
+      `INSERT INTO game_config (key, value, updated_at) VALUES 
+       ('game_start_time', $1, NOW()),
+       ('game_duration', $2, NOW()),
+       ('is_countdown_active', 'false', NOW())
+       ON CONFLICT (key) DO UPDATE 
+       SET value = EXCLUDED.value, updated_at = NOW()`,
+      [startTimeStr, String(durationSeconds)]
+    );
+    
+    await query('COMMIT');
+    await invalidateGameStateCache();
+    
+    console.log(`📅 Jogo agendado para: ${startTimeStr}`);
+    
+    return {
+      success: true,
+      message: 'Jogo agendado com sucesso',
+      startTime: startTimeStr,
+      duration: durationSeconds,
+      status: GameStatus.SCHEDULED
+    };
+  } catch (error) {
+    await query('ROLLBACK');
+    throw error;
+  }
+}
+
+/**
+ * Inicia o jogo imediatamente
  * @param {string|Date} startTime - Quando o jogo deve iniciar
  * @param {number} durationSeconds - Duração em segundos
  * @returns {Promise<Object>} Resultado da operação
@@ -325,23 +388,48 @@ async function invalidateGameStateCache() {
 
 /**
  * Verifica se o jogo deve iniciar automaticamente
+ * Usa cache, mas invalida quando detecta mudança necessária
  * @returns {Promise<boolean>}
  */
 async function checkAutoStart() {
   try {
-    const state = await getGameState();
+    // Tenta buscar do cache primeiro (rápido)
+    const cachedState = await safeRedisGet(GAME_STATE_CACHE_KEY);
+    let state;
     
-    if (state.status === GameStatus.SCHEDULED && state.startTime) {
-      const startDate = new Date(state.startTime);
-      if (new Date() >= startDate) {
-        await query(
-          `INSERT INTO game_config (key, value, updated_at)
-           VALUES ('is_countdown_active', 'true', NOW())
-           ON CONFLICT (key) DO UPDATE SET value = 'true', updated_at = NOW()`
-        );
-        await invalidateGameStateCache();
-        return true;
+    if (cachedState) {
+      state = JSON.parse(cachedState);
+      // Se já está running/finished, não precisa fazer nada
+      if (state.status !== GameStatus.SCHEDULED) {
+        return false;
       }
+    }
+    
+    // Se está SCHEDULED no cache, confirma no banco (evita race condition)
+    // Isso só acontece quando está agendado, não a cada 30s
+    const rawConfig = await getGameStateFromDB();
+    
+    if (!rawConfig.game_start_time) {
+      return false;
+    }
+    
+    const startTime = new Date(rawConfig.game_start_time);
+    const now = new Date();
+    const isCountdownActive = rawConfig.is_countdown_active === true || rawConfig.is_countdown_active === 'true';
+    
+    // Já passou do horário e countdown não está ativo?
+    if (!isCountdownActive && now >= startTime) {
+      console.log(`⏰ Auto-start: Horário ${startTime.toISOString()} alcançado. Ativando countdown...`);
+      
+      await query(
+        `INSERT INTO game_config (key, value, updated_at)
+         VALUES ('is_countdown_active', 'true', NOW())
+         ON CONFLICT (key) DO UPDATE SET value = 'true', updated_at = NOW()`
+      );
+      
+      await invalidateGameStateCache();
+      console.log('🎮 Jogo iniciado automaticamente!');
+      return true;
     }
     
     return false;
@@ -357,6 +445,7 @@ module.exports = {
   getGameStatus,
   updateGameConfig,
   startGame,
+  scheduleGame,  // NOVO: Agendar para futuro
   stopGame,
   pauseGame,
   invalidateGameStateCache,

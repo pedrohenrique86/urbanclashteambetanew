@@ -4,6 +4,7 @@ const {
   startGame, 
   stopGame, 
   pauseGame, 
+  scheduleGame,
   getGameState 
 } = require("../services/gameStateService");
 const { authenticateToken } = require("../middleware/auth");
@@ -28,7 +29,7 @@ router.get("/game-state", authenticateToken, isAdmin, async (req, res) => {
   }
 });
 
-// POST /api/admin/schedule - Agenda início do jogo
+// POST /api/admin/schedule - Agenda início do jogo (futuro)
 router.post("/schedule", authenticateToken, isAdmin, async (req, res) => {
   const { startTime, duration } = req.body;
 
@@ -40,15 +41,16 @@ router.post("/schedule", authenticateToken, isAdmin, async (req, res) => {
     // Duração padrão: 20 dias em segundos
     const durationSeconds = duration || (20 * 24 * 60 * 60);
     
-    const result = await startGame(startTime, durationSeconds);
+    // Usa scheduleGame (não ativa imediatamente - aguarda auto-start)
+    const result = await scheduleGame(startTime, durationSeconds);
     
     res.status(200).json({
       success: true,
-      message: "Jogo agendado/iniciado com sucesso!",
+      message: "Jogo agendado com sucesso! Iniciará automaticamente no horário definido.",
       gameState: result
     });
   } catch (error) {
-    console.error("Erro ao agendar/iniciar jogo:", error);
+    console.error("Erro ao agendar jogo:", error);
     res.status(500).json({ error: "Erro interno ao salvar a configuração." });
   }
 });
