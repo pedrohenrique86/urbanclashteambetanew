@@ -1,5 +1,5 @@
-const { query } = require('../config/database');
-const redisClient = require('../config/redisClient');
+const { query } = require("../config/database");
+const redisClient = require("../config/redisClient");
 
 // Wrapper seguro para Redis (String)
 async function safeRedisGet(key) {
@@ -26,42 +26,17 @@ async function safeRedisDel(key) {
   }
 }
 
-// Wrapper para Redis Hash (melhor para múltiplos campos)
-async function safeRedisHGetAll(key) {
-  try {
-    return await redisClient.client.hGetAll(key);
-  } catch (error) {
-    return {};
-  }
-}
-
-async function safeRedisHSet(key, fields) {
-  try {
-    return await redisClient.client.hSet(key, fields);
-  } catch (error) {
-    return null;
-  }
-}
-
-async function safeRedisHDel(key, fields) {
-  try {
-    return await redisClient.client.hDel(key, fields);
-  } catch (error) {
-    return null;
-  }
-}
-
-const GAME_STATE_CACHE_KEY = 'game:state';
-const GAME_STATUS_CACHE_KEY = 'game:status';
+const GAME_STATE_CACHE_KEY = "game:state";
+const GAME_STATUS_CACHE_KEY = "game:status";
 const CACHE_TTL_SECONDS = 3600; // 1 hora de TTL como segurança
 
 // Status possíveis do jogo
 const GameStatus = {
-  STOPPED: 'stopped',      // Jogo não iniciado/parado
-  SCHEDULED: 'scheduled',  // Agendado para iniciar
-  RUNNING: 'running',      // Em execução
-  PAUSED: 'paused',        // Pausado (se implementado futuramente)
-  FINISHED: 'finished'     // Tempo esgotado
+  STOPPED: "stopped", // Jogo não iniciado/parado
+  SCHEDULED: "scheduled", // Agendado para iniciar
+  RUNNING: "running", // Em execução
+  PAUSED: "paused", // Pausado (se implementado futuramente)
+  FINISHED: "finished", // Tempo esgotado
 };
 
 /**
@@ -83,14 +58,14 @@ const GameStatus = {
  */
 async function getGameStateFromDB() {
   try {
-    const result = await query('SELECT key, value FROM game_config');
+    const result = await query("SELECT key, value FROM game_config");
     const config = result.rows.reduce((acc, row) => {
       // Converte strings 'true'/'false' para booleanos
-      if (row.value === 'true') {
+      if (row.value === "true") {
         acc[row.key] = true;
-      } else if (row.value === 'false') {
+      } else if (row.value === "false") {
         acc[row.key] = false;
-      } else if (!isNaN(row.value) && row.value !== '') {
+      } else if (!isNaN(row.value) && row.value !== "") {
         acc[row.key] = Number(row.value);
       } else {
         acc[row.key] = row.value;
@@ -99,7 +74,7 @@ async function getGameStateFromDB() {
     }, {});
     return config;
   } catch (error) {
-    console.error('❌ Erro ao buscar game_config do PostgreSQL:', error);
+    console.error("❌ Erro ao buscar game_config do PostgreSQL:", error);
     throw error;
   }
 }
@@ -112,20 +87,25 @@ async function getGameStateFromDB() {
 function calculateGameState(rawConfig) {
   const now = new Date();
   const serverTime = now.toISOString();
-  
+
   const startTime = rawConfig.game_start_time || null;
-  const isCountdownActive = rawConfig.is_countdown_active === true || rawConfig.is_countdown_active === 'true';
-  const duration = rawConfig.game_duration ? parseInt(rawConfig.game_duration) : (20 * 24 * 60 * 60);
-  const isPaused = rawConfig.is_paused === true || rawConfig.is_paused === 'true';
-  
+  const isCountdownActive =
+    rawConfig.is_countdown_active === true ||
+    rawConfig.is_countdown_active === "true";
+  const duration = rawConfig.game_duration
+    ? parseInt(rawConfig.game_duration)
+    : 20 * 24 * 60 * 60;
+  const isPaused =
+    rawConfig.is_paused === true || rawConfig.is_paused === "true";
+
   let status = GameStatus.STOPPED;
   let endTime = null;
   let remainingTime = 0;
-  
+
   if (startTime) {
     const startDate = new Date(startTime);
-    endTime = new Date(startDate.getTime() + (duration * 1000));
-    
+    endTime = new Date(startDate.getTime() + duration * 1000);
+
     if (isPaused) {
       status = GameStatus.PAUSED;
     } else if (isCountdownActive) {
@@ -143,7 +123,7 @@ function calculateGameState(rawConfig) {
       status = GameStatus.STOPPED;
     }
   }
-  
+
   return {
     status,
     startTime,
@@ -154,7 +134,7 @@ function calculateGameState(rawConfig) {
     endTime: endTime ? endTime.toISOString() : null,
     remainingTime: Math.max(0, remainingTime),
     gameStatus: status,
-    lastUpdated: serverTime
+    lastUpdated: serverTime,
   };
 }
 
@@ -164,7 +144,7 @@ function calculateGameState(rawConfig) {
  */
 async function getGameState() {
   const serverTime = new Date().toISOString();
-  
+
   try {
     const cachedState = await safeRedisGet(GAME_STATE_CACHE_KEY);
     if (cachedState) {
@@ -174,17 +154,22 @@ async function getGameState() {
       return state;
     }
   } catch (error) {
-    console.error('❌ Erro ao buscar do Redis, fallback para DB:', error);
+    console.error("❌ Erro ao buscar do Redis, fallback para DB:", error);
   }
 
-  console.log('📦 Cache MISS: Buscando estado do PostgreSQL');
+  console.log("📦 Cache MISS: Buscando estado do PostgreSQL");
   const rawConfig = await getGameStateFromDB();
   const gameState = calculateGameState(rawConfig);
-  
+
   try {
-    await safeRedisSet(GAME_STATE_CACHE_KEY, JSON.stringify(gameState), 'EX', CACHE_TTL_SECONDS);
+    await safeRedisSet(
+      GAME_STATE_CACHE_KEY,
+      JSON.stringify(gameState),
+      "EX",
+      CACHE_TTL_SECONDS,
+    );
   } catch (error) {
-    console.error('❌ Erro ao salvar estado no Redis:', error);
+    console.error("❌ Erro ao salvar estado no Redis:", error);
   }
 
   return gameState;
@@ -201,15 +186,15 @@ async function getGameStatus() {
   } catch (error) {
     // Silent fail
   }
-  
+
   const state = await getGameState();
-  
+
   try {
-    await safeRedisSet(GAME_STATUS_CACHE_KEY, state.status, 'EX', 300);
+    await safeRedisSet(GAME_STATUS_CACHE_KEY, state.status, "EX", 300);
   } catch (error) {
     // Silent fail
   }
-  
+
   return state.status;
 }
 
@@ -227,16 +212,16 @@ async function updateGameConfig(key, value) {
        ON CONFLICT (key) DO UPDATE 
        SET value = $2, updated_at = NOW()
        RETURNING *`,
-      [key, String(value)]
+      [key, String(value)],
     );
-    
+
     await invalidateGameStateCache();
-    
+
     return {
       success: true,
       config: result.rows[0],
       key,
-      value
+      value,
     };
   } catch (error) {
     console.error(`❌ Erro ao atualizar configuração '${key}':`, error);
@@ -251,11 +236,12 @@ async function updateGameConfig(key, value) {
  * @returns {Promise<Object>} Resultado da operação
  */
 async function scheduleGame(startTime, durationSeconds = 20 * 24 * 60 * 60) {
-  const startTimeStr = startTime instanceof Date ? startTime.toISOString() : startTime;
-  
+  const startTimeStr =
+    startTime instanceof Date ? startTime.toISOString() : startTime;
+
   try {
-    await query('BEGIN');
-    
+    await query("BEGIN");
+
     // Agenda SEM ativar (is_countdown_active = 'false')
     await query(
       `INSERT INTO game_config (key, value, updated_at) VALUES 
@@ -264,23 +250,23 @@ async function scheduleGame(startTime, durationSeconds = 20 * 24 * 60 * 60) {
        ('is_countdown_active', 'false', NOW())
        ON CONFLICT (key) DO UPDATE 
        SET value = EXCLUDED.value, updated_at = NOW()`,
-      [startTimeStr, String(durationSeconds)]
+      [startTimeStr, String(durationSeconds)],
     );
-    
-    await query('COMMIT');
+
+    await query("COMMIT");
     await invalidateGameStateCache();
-    
+
     console.log(`📅 Jogo agendado para: ${startTimeStr}`);
-    
+
     return {
       success: true,
-      message: 'Jogo agendado com sucesso',
+      message: "Jogo agendado com sucesso",
       startTime: startTimeStr,
       duration: durationSeconds,
-      status: GameStatus.SCHEDULED
+      status: GameStatus.SCHEDULED,
     };
   } catch (error) {
-    await query('ROLLBACK');
+    await query("ROLLBACK");
     throw error;
   }
 }
@@ -292,11 +278,12 @@ async function scheduleGame(startTime, durationSeconds = 20 * 24 * 60 * 60) {
  * @returns {Promise<Object>} Resultado da operação
  */
 async function startGame(startTime, durationSeconds = 20 * 24 * 60 * 60) {
-  const startTimeStr = startTime instanceof Date ? startTime.toISOString() : startTime;
-  
+  const startTimeStr =
+    startTime instanceof Date ? startTime.toISOString() : startTime;
+
   try {
-    await query('BEGIN');
-    
+    await query("BEGIN");
+
     await query(
       `INSERT INTO game_config (key, value, updated_at) VALUES 
        ('game_start_time', $1, NOW()),
@@ -304,21 +291,21 @@ async function startGame(startTime, durationSeconds = 20 * 24 * 60 * 60) {
        ('is_countdown_active', 'true', NOW())
        ON CONFLICT (key) DO UPDATE 
        SET value = EXCLUDED.value, updated_at = NOW()`,
-      [startTimeStr, String(durationSeconds)]
+      [startTimeStr, String(durationSeconds)],
     );
-    
-    await query('COMMIT');
+
+    await query("COMMIT");
     await invalidateGameStateCache();
-    
+
     return {
       success: true,
-      message: 'Jogo iniciado com sucesso',
+      message: "Jogo iniciado com sucesso",
       startTime: startTimeStr,
       duration: durationSeconds,
-      status: GameStatus.RUNNING
+      status: GameStatus.RUNNING,
     };
   } catch (error) {
-    await query('ROLLBACK');
+    await query("ROLLBACK");
     throw error;
   }
 }
@@ -329,46 +316,46 @@ async function startGame(startTime, durationSeconds = 20 * 24 * 60 * 60) {
  */
 async function stopGame() {
   try {
-    await query('BEGIN');
-    
+    await query("BEGIN");
+
     await query(
       `INSERT INTO game_config (key, value, updated_at) VALUES 
        ('is_countdown_active', 'false', NOW()),
        ('is_paused', 'false', NOW())
        ON CONFLICT (key) DO UPDATE 
-       SET value = EXCLUDED.value, updated_at = NOW()`
+       SET value = EXCLUDED.value, updated_at = NOW()`,
     );
-    
+
     await query("DELETE FROM game_config WHERE key = 'game_start_time'");
-    
-    await query('COMMIT');
+
+    await query("COMMIT");
     await invalidateGameStateCache();
-    
+
     return {
       success: true,
-      message: 'Jogo parado com sucesso',
-      status: GameStatus.STOPPED
+      message: "Jogo parado com sucesso",
+      status: GameStatus.STOPPED,
     };
   } catch (error) {
-    await query('ROLLBACK');
+    await query("ROLLBACK");
     throw error;
   }
 }
 
 /**
  * Pausa/Despausa o jogo
- * @param {boolean} paused 
+ * @param {boolean} paused
  * @returns {Promise<Object>}
  */
 async function pauseGame(paused = true) {
-  await updateGameConfig('is_paused', String(paused));
+  await updateGameConfig("is_paused", String(paused));
   const state = await getGameState();
-  
+
   return {
     success: true,
-    message: paused ? 'Jogo pausado' : 'Jogo despausado',
+    message: paused ? "Jogo pausado" : "Jogo despausado",
     status: state.status,
-    isPaused: paused
+    isPaused: paused,
   };
 }
 
@@ -379,10 +366,10 @@ async function invalidateGameStateCache() {
   try {
     await Promise.all([
       safeRedisDel(GAME_STATE_CACHE_KEY),
-      safeRedisDel(GAME_STATUS_CACHE_KEY)
+      safeRedisDel(GAME_STATUS_CACHE_KEY),
     ]);
   } catch (error) {
-    console.error('❌ Erro ao invalidar cache:', error);
+    console.error("❌ Erro ao invalidar cache:", error);
   }
 }
 
@@ -396,7 +383,7 @@ async function checkAutoStart() {
     // Tenta buscar do cache primeiro (rápido)
     const cachedState = await safeRedisGet(GAME_STATE_CACHE_KEY);
     let state;
-    
+
     if (cachedState) {
       state = JSON.parse(cachedState);
       // Se já está running/finished, não precisa fazer nada
@@ -404,37 +391,41 @@ async function checkAutoStart() {
         return false;
       }
     }
-    
+
     // Se está SCHEDULED no cache, confirma no banco (evita race condition)
     // Isso só acontece quando está agendado, não a cada 30s
     const rawConfig = await getGameStateFromDB();
-    
+
     if (!rawConfig.game_start_time) {
       return false;
     }
-    
+
     const startTime = new Date(rawConfig.game_start_time);
     const now = new Date();
-    const isCountdownActive = rawConfig.is_countdown_active === true || rawConfig.is_countdown_active === 'true';
-    
+    const isCountdownActive =
+      rawConfig.is_countdown_active === true ||
+      rawConfig.is_countdown_active === "true";
+
     // Já passou do horário e countdown não está ativo?
     if (!isCountdownActive && now >= startTime) {
-      console.log(`⏰ Auto-start: Horário ${startTime.toISOString()} alcançado. Ativando countdown...`);
-      
+      console.log(
+        `⏰ Auto-start: Horário ${startTime.toISOString()} alcançado. Ativando countdown...`,
+      );
+
       await query(
         `INSERT INTO game_config (key, value, updated_at)
          VALUES ('is_countdown_active', 'true', NOW())
-         ON CONFLICT (key) DO UPDATE SET value = 'true', updated_at = NOW()`
+         ON CONFLICT (key) DO UPDATE SET value = 'true', updated_at = NOW()`,
       );
-      
+
       await invalidateGameStateCache();
-      console.log('🎮 Jogo iniciado automaticamente!');
+      console.log("🎮 Jogo iniciado automaticamente!");
       return true;
     }
-    
+
     return false;
   } catch (error) {
-    console.error('❌ Erro no checkAutoStart:', error);
+    console.error("❌ Erro no checkAutoStart:", error);
     return false;
   }
 }
@@ -445,11 +436,11 @@ module.exports = {
   getGameStatus,
   updateGameConfig,
   startGame,
-  scheduleGame,  // NOVO: Agendar para futuro
+  scheduleGame, // NOVO: Agendar para futuro
   stopGame,
   pauseGame,
   invalidateGameStateCache,
   checkAutoStart,
   getGameStateFromDB,
-  calculateGameState
+  calculateGameState,
 };
