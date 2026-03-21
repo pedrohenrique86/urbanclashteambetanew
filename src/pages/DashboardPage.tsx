@@ -11,8 +11,8 @@ export default function DashboardPage() {
   const { themeClasses, isDarkTheme } = useTheme();
   const { userProfile, loading: profileLoading } = useUserProfile();
 
-  // Loading state
-  if (profileLoading) {
+  // Se o perfil ainda não foi carregado (primeira visita), mostra o spinner de tela cheia.
+  if (profileLoading && !userProfile) {
     return (
       <div
         className={`min-h-screen ${themeClasses.bg} flex items-center justify-center`}

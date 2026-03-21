@@ -13,40 +13,8 @@ require("dotenv").config({ path: path.resolve(__dirname, "../.env") });
 const authRoutes = require("./routes/auth");
 const userRoutes = require("./routes/users");
 const clanRoutes = require("./routes/clans");
-const { connectDB, closePool, query } = require("./config/database");
-
-// Cache em memória para as configurações do jogo
-let gameSettingsCache = {};
-
-// Função para buscar e atualizar o cache de configurações do jogo
-async function updateGameSettingsCache() {
-  try {
-    const result = await query("SELECT key, value FROM game_config");
-    const newSettings = result.rows.reduce((acc, row) => {
-      acc[row.key] = row.value;
-      return acc;
-    }, {});
-
-    // Converte o valor de 'is_countdown_active' para booleano
-    if (newSettings.is_countdown_active !== undefined) {
-      newSettings.is_countdown_active =
-        newSettings.is_countdown_active === "true";
-    }
-
-    // Limpa o cache antigo e copia as novas propriedades para manter a referência do objeto
-    Object.keys(gameSettingsCache).forEach(
-      (key) => delete gameSettingsCache[key],
-    );
-    Object.assign(gameSettingsCache, newSettings);
-
-    // console.log('Cache de configurações do jogo atualizado:', gameSettingsCache); // Log para depuração
-  } catch (error) {
-    console.error(
-      "❌ Erro ao atualizar o cache de configurações do jogo:",
-      error,
-    );
-  }
-}
+const { connectDB, closePool } = require("./config/database");
+const { checkAutoStart } = require("./services/gameStateService");
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -77,8 +45,8 @@ app.use(
 
 // Rate limiting
 const limiter = rateLimit({
-  windowMs: 1 * 60 * 1000, // 1 minuto
-  max: 100, // máximo 100 requests por IP por janela
+  windowMs: 1 * 60 * 1000,
+  max: 100,
   message: { error: "Muitas tentativas, tente novamente em 1 minuto" },
   standardHeaders: true,
   legacyHeaders: false,
@@ -92,17 +60,13 @@ app.use(morgan("combined"));
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true }));
 
-// Injeta o cache e a função de atualização nas rotas
-const adminRouter = adminRoutes({ updateGameSettingsCache });
-const gameRouter = gameRoutes({ gameSettingsCache });
-
-// Rotas
+// Rotas - agora usam gameStateService com Redis
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/clans", clanRoutes);
 app.use("/api/time", timeRoutes);
-app.use("/api/admin", adminRouter);
-app.use("/api/game", gameRouter);
+app.use("/api/admin", adminRoutes);
+app.use("/api/game", gameRoutes);
 
 // Rota de health check
 app.get("/health", (req, res) => {
@@ -126,55 +90,29 @@ app.use("*", (req, res) => {
   res.status(404).json({ error: "Rota não encontrada" });
 });
 
-async function checkGameStart() {
-  try {
-    const gameStartTime = gameSettingsCache.game_start_time;
-    const isCountdownActive = gameSettingsCache.is_countdown_active;
-
-    // Se a contagem já está ativa ou não há agendamento, não faz nada
-    if (isCountdownActive || !gameStartTime) {
-      return;
+// Função para iniciar verificação periódica do estado do jogo
+async function startGameStateMonitor() {
+  await checkAutoStart();
+  
+  const interval = 30000; // 30 segundos
+  setInterval(async () => {
+    const started = await checkAutoStart();
+    if (started) {
+      console.log('🎮 Jogo iniciado automaticamente pelo monitor');
     }
-
-    const now = new Date();
-    const startTime = new Date(gameStartTime);
-
-    // Se a hora atual for maior ou igual à hora de início, ativa a contagem
-    if (now >= startTime) {
-      console.log(
-        "⏰ Hora de início do jogo alcançada! Ativando contagem regressiva...",
-      );
-      await query(
-        `INSERT INTO game_config (id, key, value)
-         VALUES (2, 'is_countdown_active', 'true')
-         ON CONFLICT (key) DO UPDATE SET value = 'true', updated_at = NOW()`,
-      );
-      // Atualiza o cache imediatamente após a mudança no banco
-      await updateGameSettingsCache();
-    }
-  } catch (error) {
-    console.error("❌ Erro ao verificar o início do jogo:", error);
-  }
-}
-
-// Função para iniciar o polling das configurações do jogo
-async function pollGameSettings() {
-  await updateGameSettingsCache(); // Carga inicial
-  setInterval(updateGameSettingsCache, 5000); // Atualiza a cada 5 segundos
-  setInterval(checkGameStart, 5000); // Verifica o início do jogo a cada 5 segundos
+  }, interval);
+  
+  console.log(`⏱️ Monitor de estado do jogo iniciado (verificação a cada ${interval}ms)`);
 }
 
 // Inicializar servidor
 async function startServer() {
   try {
-    // Conectar ao banco de dados
     await connectDB();
     console.log("✅ Conectado ao PostgreSQL");
 
-    // Iniciar o polling das configurações do jogo
-    await pollGameSettings();
+    await startGameStateMonitor();
 
-    // Iniciar servidor
     app.listen(PORT, () => {
       console.log(`🚀 Servidor rodando na porta ${PORT}`);
       console.log(`📱 Frontend URL: ${process.env.FRONTEND_URL}`);

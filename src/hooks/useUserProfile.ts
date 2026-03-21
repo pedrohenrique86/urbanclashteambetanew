@@ -28,7 +28,7 @@ export const useUserProfile = (shouldRedirect: boolean = true) => {
   // Registrar função de invalidação
   useEffect(() => {
     invalidateProfileCache = () => {
-      setUserProfile(null);
+      // setUserProfile(null); // NÃO limpe o perfil para evitar a "tremida"
       setLoading(true);
       setRefreshTrigger(prev => prev + 1);
     };
