@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # UrbanClash Team 🏙️⚔️
 
 Um sistema completo de gerenciamento de clãs urbanos com autenticação, perfis de usuário e funcionalidades avançadas.
@@ -225,3 +226,6 @@ Se encontrar problemas:
 ---
 
 **Desenvolvido com ❤️ para a comunidade UrbanClash**
+=======
+# urbanclashteambetanew
+>>>>>>> 3d056f0913a7cbe8dfd65f93749694dbeb6ea992
