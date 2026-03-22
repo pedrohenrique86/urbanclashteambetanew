@@ -1,41 +1,32 @@
 require("dotenv").config();
-const nodemailer = require("nodemailer");
+const sgMail = require("@sendgrid/mail");
 const crypto = require("crypto");
 
 class EmailService {
   constructor() {
     try {
-      this.fromEmail = "noreply@urbanclashteam.com";
       this.frontendUrl = process.env.FRONTEND_URL || "http://localhost:3000";
-      this.transporter = null;
-      this.initializeTransporter();
+      this.isEmailConfigured = false;
+      this.initializeEmailProvider();
     } catch (error) {
-      console.error("Error initializing EmailService:", error);
-      this.transporter = null;
+      console.error("❌ Erro ao inicializar o EmailService:", error);
+      this.isEmailConfigured = false;
     }
   }
 
-  initializeTransporter() {
-    if (process.env.GMAIL_USER && process.env.GMAIL_APP_PASSWORD) {
-      this.transporter = nodemailer.createTransport({
-        host: "smtp.gmail.com",
-        port: 587,
-        secure: false, // Para STARTTLS
-        auth: {
-          user: process.env.GMAIL_USER,
-          pass: process.env.GMAIL_APP_PASSWORD,
-        },
-      });
-      console.log(
-        "✅ [DIAGNÓSTICO v2] Nodemailer configurado com porta 587 (STARTTLS).",
-      );
+  initializeEmailProvider() {
+    const apiKey = process.env.SENDGRID_API_KEY;
+    const sender = process.env.SENDGRID_VERIFIED_SENDER;
+
+    if (apiKey && sender) {
+      sgMail.setApiKey(apiKey);
+      this.isEmailConfigured = true;
+      console.log("✅ Email configurado com SendGrid.");
     } else {
       console.log(
-        "⚠️  Email não configurado. Emails serão apenas logados no console.",
+        "⚠️  Email não configurado. Verifique SENDGRID_API_KEY e SENDGRID_VERIFIED_SENDER.",
       );
-      console.log("💡 Para configurar Gmail:");
-      console.log("   - GMAIL_USER=seu-email@gmail.com");
-      console.log("   - GMAIL_APP_PASSWORD=sua-senha-de-app");
+      console.log("💡 Emails serão apenas logados no console.");
     }
   }
 
@@ -44,26 +35,32 @@ class EmailService {
   }
 
   async sendEmail(to, subject, html) {
-    if (!this.transporter) {
-      console.log(`📧 [SIMULADO] Email para: ${to}`);
-      console.log(`📧 [SIMULADO] Assunto: ${subject}`);
-      return { success: true, message: "Email simulado" };
+    if (!this.isEmailConfigured) {
+      console.log(`\n📧 [SIMULADO] Email para: ${to}`);
+      console.log(`📧 [SIMULADO] Assunto: ${subject}\n`);
+      return { success: true, message: "Email simulado no console" };
     }
 
-    const mailOptions = {
-      from: `"Urban Clash Team" <${process.env.GMAIL_USER}>`,
-      replyTo: this.fromEmail,
+    const msg = {
       to: to,
+      from: {
+        name: "Urban Clash Team",
+        email: process.env.SENDGRID_VERIFIED_SENDER,
+      },
       subject: subject,
       html: html,
     };
 
     try {
-      const info = await this.transporter.sendMail(mailOptions);
-      console.log(`✅ Email enviado para ${to}: ${info.messageId}`);
+      await sgMail.send(msg);
+      console.log(`✅ Email enviado para ${to} via SendGrid.`);
       return { success: true, message: "Email enviado com sucesso" };
     } catch (error) {
-      console.error("❌ Erro detalhado ao enviar email:", error);
+      console.error("❌ Erro detalhado ao enviar email via SendGrid:", error);
+      if (error.response) {
+        // O erro do SendGrid vem com detalhes no corpo da resposta
+        console.error("❌ Detalhes do erro SendGrid:", error.response.body);
+      }
       return { success: false, message: "Erro ao enviar email" };
     }
   }
