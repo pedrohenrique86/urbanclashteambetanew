@@ -163,7 +163,10 @@ class ApiClient {
   }
 
   async confirmEmail(token: string) {
-    return this.request(`/auth/confirm-email/${token}`)
+    return this.request('/auth/confirm-email', {
+      method: 'POST',
+      body: JSON.stringify({ token }),
+    });
   }
 
   async resendConfirmation(email: string) {
