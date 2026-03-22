@@ -178,10 +178,13 @@ const TopBar: React.FC<TopBarProps> = ({ userProfile, handleLogout }) => {
               <div className="flex items-center gap-2">
                 <span className="text-xs sm:text-sm font-orbitron whitespace-nowrap">
                   <span className="text-transparent bg-gradient-to-r from-orange-400 to-orange-600 bg-clip-text font-bold">
-                    URBAN
+                    Urban
                   </span>
                   <span className="mx-1 text-transparent bg-gradient-to-r from-blue-400 to-blue-600 bg-clip-text font-bold">
-                    CLASH
+                    Clash
+                  </span>
+                  <span className="text-transparent bg-gradient-to-r from-gray-400 to-gray-600 bg-clip-text font-bold">
+                    Team
                   </span>
                 </span>
               </div>

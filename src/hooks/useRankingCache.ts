@@ -224,17 +224,19 @@ export const useRankingCache = (fullRankings: boolean = false): UseRankingCacheR
   }, [loadRankings, forceRefresh]);
 
   useEffect(() => {
-    const base = (import.meta as any).env?.VITE_API_URL || "/api";
+    const base = (import.meta as any).env?.VITE_API_URL;
+    if (!base) return;
+
     let esUsers: EventSource | null = null;
     let esClans: EventSource | null = null;
     try {
-      const url = `${base}/users/rankings/subscribe`;
-      esUsers = new EventSource(url);
+      const url = `${base}/api/users/rankings/subscribe`;
+      esUsers = new EventSource(url, { withCredentials: true });
       esUsers.addEventListener("rankings", () => {
         forceRefresh();
       });
-      const urlClans = `${base}/clans/rankings/subscribe`;
-      esClans = new EventSource(urlClans);
+      const urlClans = `${base}/api/clans/rankings/subscribe`;
+      esClans = new EventSource(urlClans, { withCredentials: true });
       esClans.addEventListener("clans_rankings", () => {
         forceRefresh();
       });
