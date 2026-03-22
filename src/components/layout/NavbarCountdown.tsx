@@ -1,4 +1,5 @@
 import React from "react";
+import { useMediaQuery } from "../../hooks/useMediaQuery"; // Importa o novo hook
 
 interface NavbarCountdownProps {
   remainingTime: number;
@@ -25,20 +26,39 @@ const formatTimeWithSeparators = (totalSeconds: number) => {
 
 const NavbarCountdown: React.FC<NavbarCountdownProps> = ({ remainingTime }) => {
   const { d, h, m, s } = formatTimeWithSeparators(remainingTime);
+  const isDesktop = useMediaQuery("(min-width: 768px)");
 
   return (
-    <div className="flex items-baseline justify-center gap-2 font-orbitron">
-      <span className="text-sm uppercase tracking-wider text-cyan-300">
-        Próxima rodada começa em:
+    <div
+      className={`flex items-center justify-center gap-2 font-orbitron ${isDesktop ? "flex-row" : "flex-col"}`}
+    >
+      <span className="text-xs uppercase tracking-wider text-cyan-300">
+        {isDesktop ? "Próxima rodada começa em:" : "Rodada começa em:"}
       </span>
       <div className="flex items-baseline gap-1 bg-gray-900/50 rounded-md px-2 py-0.5 border border-gray-700">
-        <span className="text-base font-bold text-white">{d}</span>
+        <span
+          className={`${isDesktop ? "text-base" : "text-sm"} font-bold text-white`}
+        >
+          {d}
+        </span>
         <span className="text-xs text-cyan-400 mr-1">d</span>
-        <span className="text-base font-bold text-white">{h}</span>
+        <span
+          className={`${isDesktop ? "text-base" : "text-sm"} font-bold text-white`}
+        >
+          {h}
+        </span>
         <span className="text-xs text-cyan-400 mr-1">h</span>
-        <span className="text-base font-bold text-white">{m}</span>
+        <span
+          className={`${isDesktop ? "text-base" : "text-sm"} font-bold text-white`}
+        >
+          {m}
+        </span>
         <span className="text-xs text-cyan-400 mr-1">m</span>
-        <span className="text-base font-bold text-white">{s}</span>
+        <span
+          className={`${isDesktop ? "text-base" : "text-sm"} font-bold text-white`}
+        >
+          {s}
+        </span>
         <span className="text-xs text-cyan-400">s</span>
       </div>
     </div>
