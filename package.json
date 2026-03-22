@@ -25,8 +25,7 @@
     "dev:token": "node dev_email_helper.js new",
     "dev:token-list": "node dev_email_helper.js list",
     "dev:token-clean": "node dev_email_helper.js clean",
-    "dev:token-test": "node dev_email_helper.js test",
-    "prepare": "husky"
+    "dev:token-test": "node dev_email_helper.js test"
   },
   "dependencies": {
     "@fontsource/exo-2": "^5.0.3",
