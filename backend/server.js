@@ -22,7 +22,9 @@ const { Server } = require("socket.io");
 
 const app = express();
 const server = http.createServer(app);
+const PORT = process.env.PORT || 3001;
 
+// CORS Configuration
 const allowedOrigins = [
   process.env.FRONTEND_URL, // URL de produção
   "http://localhost:5173", // Desenvolvimento local
@@ -31,7 +33,6 @@ const allowedOrigins = [
 
 const corsOptions = {
   origin: function (origin, callback) {
-    // Permite requisições sem 'origin' (ex: Postman) ou se a origem estiver na lista
     if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
@@ -40,19 +41,22 @@ const corsOptions = {
     }
   },
   credentials: true,
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"], // Garante que todos os métodos sejam permitidos
+  allowedHeaders: ["Content-Type", "Authorization"], // Cabeçalhos comuns
 };
 
+// Aplica o CORS como o primeiro middleware
+// 1. Lida com as requisições preflight (OPTIONS) para todas as rotas
+app.options("*", cors(corsOptions));
+// 2. Aplica o CORS para todas as outras requisições
+app.use(cors(corsOptions));
+
 const io = new Server(server, {
-  cors: corsOptions, // Reutiliza a mesma configuração de CORS
+  cors: corsOptions, // Reutiliza a mesma configuração de CORS para o Socket.IO
 });
 
-const PORT = process.env.PORT || 3001;
-
-// Middleware de segurança
+// Middleware de segurança (depois do CORS)
 app.use(helmet());
-
-// Aplica o CORS para todas as rotas da API
-app.use(cors(corsOptions));
 
 // Rate limiting
 const limiter = rateLimit({
