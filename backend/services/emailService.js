@@ -27,7 +27,9 @@ class EmailService {
           pass: process.env.GMAIL_APP_PASSWORD,
         },
       });
-      console.log("✅ Email configurado com Gmail");
+      console.log(
+        "✅ [DIAGNÓSTICO FINAL] Nodemailer configurado com host, porta e SSL.",
+      );
     } else {
       console.log(
         "⚠️  Email não configurado. Emails serão apenas logados no console.",
