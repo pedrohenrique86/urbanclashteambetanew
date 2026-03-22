@@ -5,9 +5,9 @@ const adminRoutes = require("./routes/admin");
 // const gameRoutes = require("./routes/game"); // Replaced by Socket.IO
 const cors = require("cors");
 const path = require("path");
-// const helmet = require("helmet");
-// const morgan = require("morgan");
-// const rateLimit = require("express-rate-limit");
+const helmet = require("helmet");
+const morgan = require("morgan");
+const rateLimit = require("express-rate-limit");
 require("dotenv").config();
 require("dotenv").config({ path: path.resolve(__dirname, "../.env") });
 
@@ -33,7 +33,6 @@ const allowedOrigins = [
 
 const corsOptions = {
   origin: function (origin, callback) {
-    // Permite requisições sem 'origin' (ex: Postman) ou se a origem estiver na lista
     if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
@@ -42,26 +41,33 @@ const corsOptions = {
     }
   },
   credentials: true,
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
 };
 
-// Aplica o CORS para todas as rotas da API (Express)
+// Middleware de segurança (configurado para não conflitar com CORS)
+app.use(helmet({ crossOriginResourcePolicy: { policy: "cross-origin" } }));
+
+// Aplica o CORS como o primeiro middleware
+app.options("*", cors(corsOptions));
 app.use(cors(corsOptions));
 
 const io = new Server(server, {
   cors: corsOptions, // Reutiliza a mesma configuração de CORS para o Socket.IO
 });
 
-// Rate limiting e logging desativados temporariamente para depuração de CORS
-// const limiter = rateLimit({
-//   windowMs: 1 * 60 * 1000,
-//   max: 100,
-//   message: { error: "Muitas tentativas, tente novamente em 1 minuto" },
-//   standardHeaders: true,
-//   legacyHeaders: false,
-// });
-// app.use(limiter);
+// Rate limiting
+const limiter = rateLimit({
+  windowMs: 1 * 60 * 1000,
+  max: 100,
+  message: { error: "Muitas tentativas, tente novamente em 1 minuto" },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+app.use(limiter);
 
-// app.use(morgan("combined"));
+// Logging
+app.use(morgan("combined"));
 
 // Body parsing
 app.use(express.json({ limit: "10mb" }));
