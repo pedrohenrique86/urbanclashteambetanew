@@ -32,30 +32,32 @@ const NavbarCountdown: React.FC<NavbarCountdownProps> = ({ remainingTime }) => {
     <div
       className={`flex items-center justify-center gap-2 font-orbitron ${isDesktop ? "flex-row" : "flex-col"}`}
     >
-      <span className="text-xs uppercase tracking-wider text-cyan-300">
+      <span
+        className={`uppercase tracking-wider text-cyan-300 ${isDesktop ? "text-2xl" : "text-xs"}`}
+      >
         {isDesktop ? "Próxima rodada começa em:" : "Rodada começa em:"}
       </span>
       <div className="flex items-baseline gap-1 bg-gray-900/50 rounded-md px-2 py-0.5 border border-gray-700">
         <span
-          className={`${isDesktop ? "text-base" : "text-sm"} font-bold text-white`}
+          className={`${isDesktop ? "text-xl" : "text-sm"} font-bold text-white`}
         >
           {d}
         </span>
         <span className="text-xs text-cyan-400 mr-1">d</span>
         <span
-          className={`${isDesktop ? "text-base" : "text-sm"} font-bold text-white`}
+          className={`${isDesktop ? "text-xl" : "text-sm"} font-bold text-white`}
         >
           {h}
         </span>
         <span className="text-xs text-cyan-400 mr-1">h</span>
         <span
-          className={`${isDesktop ? "text-base" : "text-sm"} font-bold text-white`}
+          className={`${isDesktop ? "text-xl" : "text-sm"} font-bold text-white`}
         >
           {m}
         </span>
         <span className="text-xs text-cyan-400 mr-1">m</span>
         <span
-          className={`${isDesktop ? "text-base" : "text-sm"} font-bold text-white`}
+          className={`${isDesktop ? "text-xl" : "text-sm"} font-bold text-white`}
         >
           {s}
         </span>

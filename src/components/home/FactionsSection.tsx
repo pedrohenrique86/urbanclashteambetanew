@@ -1,5 +1,5 @@
-import React from 'react';
-import { motion } from 'framer-motion';
+import React from "react";
+import { motion } from "framer-motion";
 
 export function FactionsSection() {
   const factions = [
@@ -33,7 +33,7 @@ export function FactionsSection() {
       whileInView={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.8 }}
       viewport={{ once: true }}
-      className="py-20 px-4 bg-gradient-to-b from-gray-900 to-gray-800"
+      className="py-20 px-4 bg-gradient-to-b from-gray-900 to-gray-800 scroll-mt-24"
     >
       <div className="max-w-7xl mx-auto">
         <motion.h2

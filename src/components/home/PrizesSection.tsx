@@ -1,5 +1,5 @@
-import React from 'react';
-import { motion } from 'framer-motion';
+import React from "react";
+import { motion } from "framer-motion";
 
 export function PrizesSection() {
   return (
@@ -9,7 +9,7 @@ export function PrizesSection() {
       whileInView={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.8 }}
       viewport={{ once: true }}
-      className="py-20 px-4 bg-gradient-to-b from-gray-800 to-gray-900"
+      className="py-20 px-4 bg-gradient-to-b from-gray-800 to-gray-900 scroll-mt-24"
     >
       <div className="max-w-6xl mx-auto">
         <motion.h2
@@ -30,9 +30,9 @@ export function PrizesSection() {
           className="text-center mb-12"
         >
           <p className="text-xl text-gray-300 leading-relaxed max-w-3xl mx-auto">
-            Compete pelos primeiros lugares e ganhe prêmios em dinheiro real!
-            Os melhores jogadores de cada facção e os clãs mais poderosos
-            receberão recompensas incríveis.
+            Compete pelos primeiros lugares e ganhe prêmios em dinheiro real! Os
+            melhores jogadores de cada facção e os clãs mais poderosos receberão
+            recompensas incríveis.
           </p>
         </motion.div>
 
@@ -52,9 +52,7 @@ export function PrizesSection() {
               className="bg-yellow-500/20 p-6 rounded-lg border border-yellow-500/30 hover:border-yellow-400/50 transition-all duration-300"
             >
               <div className="text-6xl mb-4">🥇</div>
-              <div className="font-bold text-2xl text-white mb-2">
-                1º Lugar
-              </div>
+              <div className="font-bold text-2xl text-white mb-2">1º Lugar</div>
               <div className="text-4xl font-orbitron text-yellow-400 font-bold">
                 R$ 300,00
               </div>
@@ -67,9 +65,7 @@ export function PrizesSection() {
               className="bg-gray-400/20 p-6 rounded-lg border border-gray-400/30 hover:border-gray-300/50 transition-all duration-300"
             >
               <div className="text-5xl mb-4">🥈</div>
-              <div className="font-bold text-2xl text-white mb-2">
-                2º Lugar
-              </div>
+              <div className="font-bold text-2xl text-white mb-2">2º Lugar</div>
               <div className="text-3xl font-orbitron text-gray-300 font-bold">
                 R$ 150,00
               </div>
@@ -82,9 +78,7 @@ export function PrizesSection() {
               className="bg-orange-500/20 p-6 rounded-lg border border-orange-500/30 hover:border-orange-400/50 transition-all duration-300"
             >
               <div className="text-5xl mb-4">🥉</div>
-              <div className="font-bold text-2xl text-white mb-2">
-                3º Lugar
-              </div>
+              <div className="font-bold text-2xl text-white mb-2">3º Lugar</div>
               <div className="text-3xl font-orbitron text-orange-400 font-bold">
                 R$ 100,00
               </div>
@@ -99,11 +93,9 @@ export function PrizesSection() {
             className="mt-8 text-center"
           >
             <p className="text-xl font-orbitron text-gray-300">
-              Top 3{" "}
-              <span className="text-orange-500 font-bold">Gangsters</span>,{" "}
-              <span className="text-blue-500 font-bold">Guardas</span> e{" "}
-              <span className="text-purple-500 font-bold">Clãs</span>{" "}
-              ganham!
+              Top 3 <span className="text-orange-500 font-bold">Gangsters</span>
+              , <span className="text-blue-500 font-bold">Guardas</span> e{" "}
+              <span className="text-purple-500 font-bold">Clãs</span> ganham!
             </p>
           </motion.div>
         </motion.div>
