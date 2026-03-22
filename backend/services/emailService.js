@@ -19,16 +19,15 @@ class EmailService {
     if (process.env.GMAIL_USER && process.env.GMAIL_APP_PASSWORD) {
       this.transporter = nodemailer.createTransport({
         host: "smtp.gmail.com",
-        port: 465,
-        secure: true, // use SSL
-        service: "gmail",
+        port: 587,
+        secure: false, // Para STARTTLS
         auth: {
           user: process.env.GMAIL_USER,
           pass: process.env.GMAIL_APP_PASSWORD,
         },
       });
       console.log(
-        "✅ [DIAGNÓSTICO FINAL] Nodemailer configurado com host, porta e SSL.",
+        "✅ [DIAGNÓSTICO v2] Nodemailer configurado com porta 587 (STARTTLS).",
       );
     } else {
       console.log(
@@ -64,7 +63,7 @@ class EmailService {
       console.log(`✅ Email enviado para ${to}: ${info.messageId}`);
       return { success: true, message: "Email enviado com sucesso" };
     } catch (error) {
-      console.error("❌ Erro ao enviar email:", error.message);
+      console.error("❌ Erro detalhado ao enviar email:", error);
       return { success: false, message: "Erro ao enviar email" };
     }
   }
