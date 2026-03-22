@@ -18,7 +18,9 @@ class EmailService {
   initializeTransporter() {
     if (process.env.GMAIL_USER && process.env.GMAIL_APP_PASSWORD) {
       this.transporter = nodemailer.createTransport({
-        host: "smtp.gmail.com", // Força o uso de IPv4
+        host: "smtp.gmail.com",
+        port: 465,
+        secure: true, // use SSL
         service: "gmail",
         auth: {
           user: process.env.GMAIL_USER,
