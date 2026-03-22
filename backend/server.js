@@ -22,11 +22,28 @@ const { Server } = require("socket.io");
 
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server, {
-  cors: {
-    origin: process.env.FRONTEND_URL || "http://localhost:5173",
-    methods: ["GET", "POST"],
+
+const allowedOrigins = [
+  process.env.FRONTEND_URL, // URL de produção
+  "http://localhost:5173", // Desenvolvimento local
+  "http://127.0.0.1:5173",
+].filter(Boolean); // Filtra valores nulos ou indefinidos
+
+const corsOptions = {
+  origin: function (origin, callback) {
+    // Permite requisições sem 'origin' (ex: Postman) ou se a origem estiver na lista
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      console.error(`❌ CORS Error: Origin ${origin} not allowed.`);
+      callback(new Error("Not allowed by CORS"));
+    }
   },
+  credentials: true,
+};
+
+const io = new Server(server, {
+  cors: corsOptions, // Reutiliza a mesma configuração de CORS
 });
 
 const PORT = process.env.PORT || 3001;
@@ -34,26 +51,8 @@ const PORT = process.env.PORT || 3001;
 // Middleware de segurança
 app.use(helmet());
 
-// CORS
-const allowedOrigins = [
-  process.env.FRONTEND_URL || "http://localhost:3000",
-  "http://localhost:5173",
-  "http://127.0.0.1:5173",
-  "http://localhost:3000",
-  "http://127.0.0.1:3000",
-];
-app.use(
-  cors({
-    origin: function (origin, callback) {
-      if (!origin || allowedOrigins.includes(origin)) {
-        callback(null, true);
-      } else {
-        callback(new Error("Not allowed by CORS"));
-      }
-    },
-    credentials: true,
-  }),
-);
+// Aplica o CORS para todas as rotas da API
+app.use(cors(corsOptions));
 
 // Rate limiting
 const limiter = rateLimit({
