@@ -42,7 +42,13 @@ export function HeroSection() {
               transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
               className="flex flex-col items-center space-y-2"
             >
-              <div className="text-white/80 font-medium text-sm font-orbitron tracking-wider drop-shadow-md">
+              <div
+                className="text-cyan-300 font-bold text-sm font-orbitron tracking-wider"
+                style={{
+                  textShadow:
+                    "-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000, 0 0 8px rgba(34, 211, 238, 0.9)",
+                }}
+              >
                 Arraste para baixo
               </div>
               <motion.div
@@ -52,7 +58,11 @@ export function HeroSection() {
                   repeat: Infinity,
                   ease: "easeInOut",
                 }}
-                className="w-6 h-10 border-2 border-white/60 rounded-full flex justify-center drop-shadow-md"
+                className="w-6 h-10 border-2 border-cyan-300 rounded-full flex justify-center"
+                style={{
+                  filter:
+                    "drop-shadow(-1px -1px 0 #000) drop-shadow(1px -1px 0 #000) drop-shadow(-1px 1px 0 #000) drop-shadow(1px 1px 0 #000) drop-shadow(0 0 5px rgba(34, 211, 238, 0.7))",
+                }}
               >
                 <motion.div
                   animate={{ y: [0, 12, 0] }}
@@ -61,7 +71,8 @@ export function HeroSection() {
                     repeat: Infinity,
                     ease: "easeInOut",
                   }}
-                  className="w-1 h-3 bg-white/90 rounded-full mt-2"
+                  className="w-1 h-3 bg-white rounded-full mt-2"
+                  style={{ filter: "drop-shadow(0 0 4px white)" }}
                 />
               </motion.div>
             </motion.div>

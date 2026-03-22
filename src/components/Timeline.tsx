@@ -136,89 +136,94 @@ const Timeline: React.FC<TimelineProps> = ({ className = "" }) => {
   };
 
   return (
-    <AnimatePresence>
-      {isVisible && (
-        <motion.div
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          exit={{ opacity: 0, x: 20 }}
-          transition={{ duration: 0.5, ease: "easeInOut" }}
-          className={`fixed sm:right-4 md:right-6 lg:right-8 top-1/2 transform -translate-y-1/2 z-40 hidden sm:block ${className}`}
-        >
-          <div className="bg-gradient-to-br from-gray-900/90 to-black/90 backdrop-blur-md border border-gray-500/30 rounded-2xl p-3 sm:p-3 md:p-4 shadow-2xl shadow-purple-500/20">
-            <div className="space-y-3 sm:space-y-3 md:space-y-4">
-              {timelineData.map((event, index) => (
-                <motion.div
-                  key={index}
-                  initial={{ opacity: 0, x: 20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: index * 0.1, duration: 0.3 }}
-                  className="relative cursor-pointer group flex items-center"
-                  onClick={() => scrollToSection(event.id)}
-                  title={event.title}
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                >
-                  {/* Modern dot indicator with glow effect */}
+    <div className="fixed inset-0 flex items-center justify-end z-40 pointer-events-none">
+      <AnimatePresence>
+        {isVisible && (
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 20 }}
+            transition={{ duration: 0.5, ease: "easeInOut" }}
+            className={`mr-4 md:mr-6 lg:mr-8 hidden sm:block pointer-events-auto ${className}`}
+          >
+            <div className="bg-gradient-to-br from-gray-900/90 to-black/90 backdrop-blur-md border border-gray-500/30 rounded-2xl p-3 sm:p-3 md:p-4 shadow-2xl shadow-purple-500/20">
+              <div className="space-y-3 sm:space-y-3 md:space-y-4">
+                {timelineData.map((event, index) => (
                   <motion.div
-                    className={`w-8 h-8 sm:w-8 sm:h-8 md:w-9 md:h-9 lg:w-10 lg:h-10 rounded-full flex items-center justify-center text-base sm:text-base md:text-lg lg:text-lg transition-all duration-500 relative ${
-                      index === activeSection
-                        ? "bg-gradient-to-r from-purple-500 to-blue-500 text-white shadow-lg shadow-purple-500/50"
-                        : "bg-gradient-to-r from-gray-700 to-gray-600 text-gray-300 hover:from-gray-600 hover:to-gray-500"
-                    }`}
-                    animate={
-                      index === activeSection
-                        ? {
-                            boxShadow: [
-                              "0 0 20px rgba(168, 85, 247, 0.5)",
-                              "0 0 30px rgba(168, 85, 247, 0.8)",
-                              "0 0 20px rgba(168, 85, 247, 0.5)",
-                            ],
-                          }
-                        : {}
-                    }
-                    transition={{ duration: 2, repeat: Infinity }}
+                    key={index}
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: index * 0.1, duration: 0.3 }}
+                    className="relative cursor-pointer group flex items-center"
+                    onClick={() => scrollToSection(event.id)}
+                    title={event.title}
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
                   >
-                    {event.icon}
-                    {index === activeSection && (
-                      <motion.div
-                        className="absolute inset-0 rounded-full bg-gradient-to-r from-purple-500/30 to-blue-500/30"
-                        animate={{ scale: [1, 1.2, 1], opacity: [0.5, 0, 0.5] }}
-                        transition={{ duration: 2, repeat: Infinity }}
-                      />
+                    {/* Modern dot indicator with glow effect */}
+                    <motion.div
+                      className={`w-8 h-8 sm:w-8 sm:h-8 md:w-9 md:h-9 lg:w-10 lg:h-10 rounded-full flex items-center justify-center text-base sm:text-base md:text-lg lg:text-lg transition-all duration-500 relative ${
+                        index === activeSection
+                          ? "bg-gradient-to-r from-purple-500 to-blue-500 text-white shadow-lg shadow-purple-500/50"
+                          : "bg-gradient-to-r from-gray-700 to-gray-600 text-gray-300 hover:from-gray-600 hover:to-gray-500"
+                      }`}
+                      animate={
+                        index === activeSection
+                          ? {
+                              boxShadow: [
+                                "0 0 20px rgba(168, 85, 247, 0.5)",
+                                "0 0 30px rgba(168, 85, 247, 0.8)",
+                                "0 0 20px rgba(168, 85, 247, 0.5)",
+                              ],
+                            }
+                          : {}
+                      }
+                      transition={{ duration: 2, repeat: Infinity }}
+                    >
+                      {event.icon}
+                      {index === activeSection && (
+                        <motion.div
+                          className="absolute inset-0 rounded-full bg-gradient-to-r from-purple-500/30 to-blue-500/30"
+                          animate={{
+                            scale: [1, 1.2, 1],
+                            opacity: [0.5, 0, 0.5],
+                          }}
+                          transition={{ duration: 2, repeat: Infinity }}
+                        />
+                      )}
+                    </motion.div>
+
+                    {/* Enhanced text label with gradient */}
+                    <motion.div
+                      className={`ml-2 sm:ml-2 md:ml-3 text-xs sm:text-xs md:text-sm font-medium transition-all duration-300 opacity-100 whitespace-nowrap ${
+                        index === activeSection
+                          ? "text-transparent bg-gradient-to-r from-purple-400 to-purple-600 bg-clip-text font-bold"
+                          : "text-purple-300"
+                      }`}
+                      initial={{ x: -10 }}
+                      whileHover={{ x: 0 }}
+                    >
+                      {event.section}
+                    </motion.div>
+
+                    {/* Modern connection line with gradient */}
+                    {index < timelineData.length - 1 && (
+                      <div
+                        className={`absolute left-5 top-10 w-0.5 h-4 transform -translate-x-1/2 transition-all duration-500 ${
+                          index === activeSection
+                            ? "bg-gradient-to-b from-purple-400 to-blue-400 shadow-sm shadow-purple-400/50"
+                            : "bg-gradient-to-b from-gray-600 to-gray-700"
+                        }`}
+                      ></div>
                     )}
                   </motion.div>
-
-                  {/* Enhanced text label with gradient */}
-                  <motion.div
-                    className={`ml-2 sm:ml-2 md:ml-3 text-xs sm:text-xs md:text-sm font-medium transition-all duration-300 opacity-100 whitespace-nowrap ${
-                      index === activeSection
-                        ? "text-transparent bg-gradient-to-r from-purple-400 to-purple-600 bg-clip-text font-bold"
-                        : "text-purple-300"
-                    }`}
-                    initial={{ x: -10 }}
-                    whileHover={{ x: 0 }}
-                  >
-                    {event.section}
-                  </motion.div>
-
-                  {/* Modern connection line with gradient */}
-                  {index < timelineData.length - 1 && (
-                    <div
-                      className={`absolute left-5 top-10 w-0.5 h-4 transform -translate-x-1/2 transition-all duration-500 ${
-                        index === activeSection
-                          ? "bg-gradient-to-b from-purple-400 to-blue-400 shadow-sm shadow-purple-400/50"
-                          : "bg-gradient-to-b from-gray-600 to-gray-700"
-                      }`}
-                    ></div>
-                  )}
-                </motion.div>
-              ))}
+                ))}
+              </div>
             </div>
-          </div>
-        </motion.div>
-      )}
-    </AnimatePresence>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
   );
 };
 

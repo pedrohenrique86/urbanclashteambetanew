@@ -33,7 +33,7 @@ const NavbarCountdown: React.FC<NavbarCountdownProps> = ({ remainingTime }) => {
       className={`flex items-center justify-center gap-2 font-orbitron ${isDesktop ? "flex-row" : "flex-col"}`}
     >
       <span
-        className={`uppercase tracking-wider text-cyan-300 ${isDesktop ? "text-2xl" : "text-xs"}`}
+        className={`underline md:underline-offset-4 uppercase tracking-wider text-cyan-300 ${isDesktop ? "text-2xl" : "text-xs"}`}
       >
         {isDesktop ? "Próxima rodada começa em:" : "Rodada começa em:"}
       </span>
