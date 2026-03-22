@@ -45,6 +45,9 @@ const corsOptions = {
   allowedHeaders: ["Content-Type", "Authorization"], // Cabeçalhos comuns
 };
 
+// Middleware de segurança (configurado para não conflitar com CORS)
+app.use(helmet({ crossOriginResourcePolicy: { policy: "cross-origin" } }));
+
 // Aplica o CORS como o primeiro middleware
 // 1. Lida com as requisições preflight (OPTIONS) para todas as rotas
 app.options("*", cors(corsOptions));
@@ -54,9 +57,6 @@ app.use(cors(corsOptions));
 const io = new Server(server, {
   cors: corsOptions, // Reutiliza a mesma configuração de CORS para o Socket.IO
 });
-
-// Middleware de segurança (depois do CORS)
-app.use(helmet());
 
 // Rate limiting
 const limiter = rateLimit({
