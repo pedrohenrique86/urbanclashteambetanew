@@ -3,6 +3,9 @@
   "description": "Backend e Frontend para o jogo Urban Clash Team",
   "version": "1.0.0",
   "private": true,
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "scripts": {
     "check:db": "node check_db.js",
     "dev": "vite",
