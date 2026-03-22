@@ -133,7 +133,6 @@ async function startServer() {
     server.listen(PORT, () => {
       console.log(`🚀 Servidor rodando na porta ${PORT}`);
       console.log(`📱 Frontend URL: ${process.env.FRONTEND_URL}`);
-      console.log(`🔗 Backend URL: http://localhost:${PORT}`);
     });
   } catch (error) {
     console.error("❌ Erro ao iniciar servidor:", error);

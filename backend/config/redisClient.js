@@ -1,19 +1,37 @@
+const { Redis } = require("@upstash/redis");
 const redis = require("redis");
 
 let client = null;
 let isReady = false;
+let isUpstash = false;
 
 async function initRedis() {
   try {
-    client = redis.createClient({
-      url: process.env.REDIS_URL || "redis://localhost:6379",
-    });
+    if (
+      process.env.UPSTASH_REDIS_REST_URL &&
+      process.env.UPSTASH_REDIS_REST_TOKEN
+    ) {
+      // Configuração para Upstash (produção)
+      client = new Redis({
+        url: process.env.UPSTASH_REDIS_REST_URL,
+        token: process.env.UPSTASH_REDIS_REST_TOKEN,
+      });
+      isUpstash = true;
+      isReady = true;
+      console.log("✅ Redis (Upstash) OK");
+    } else {
+      // Configuração para Redis local (desenvolvimento)
+      const localClient = redis.createClient({
+        url: process.env.REDIS_URL || "redis://localhost:6379",
+      });
 
-    client.on("error", () => {});
+      localClient.on("error", () => {});
 
-    await client.connect();
-    isReady = true;
-    console.log("✅ Redis OK");
+      await localClient.connect();
+      client = localClient;
+      isReady = true;
+      console.log("✅ Redis (Local) OK");
+    }
   } catch (e) {
     console.log("⚠️ Redis indisponível");
     client = null;
@@ -40,9 +58,15 @@ module.exports = {
   setAsync: async (k, v, m, t) => {
     if (!isReady) return null;
     try {
-      return m === "EX" && t
-        ? await client.setEx(k, t, String(v))
-        : await client.set(k, String(v));
+      if (isUpstash) {
+        return m === "EX" && t
+          ? await client.set(k, String(v), { ex: t })
+          : await client.set(k, String(v));
+      } else {
+        return m === "EX" && t
+          ? await client.setEx(k, t, String(v))
+          : await client.set(k, String(v));
+      }
     } catch {
       return null;
     }
