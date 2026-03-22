@@ -1,5 +1,5 @@
 // API Client para comunicação com o backend local
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api'
+const API_BASE_URL = import.meta.env.VITE_API_URL;
 
 class ApiClient {
   private baseUrl: string
@@ -24,7 +24,7 @@ class ApiClient {
   }
 
   private async request(endpoint: string, options: RequestInit = {}) {
-    const url = `${this.baseUrl}${endpoint}`
+    const url = `${this.baseUrl}/api${endpoint}`
     const token = this.getToken()
 
     const config: RequestInit = {

@@ -176,8 +176,7 @@ export default function AuthModal({
     const hashed = await sha256(codeVerifier);
     const codeChallenge = base64urlencode(hashed);
 
-    const apiBase =
-      import.meta.env?.VITE_API_URL || "http://localhost:3001/api";
+    const apiBase = import.meta.env.VITE_API_URL;
     const redirectUri = `${window.location.origin}/auth/google/callback`;
     const params = new URLSearchParams({
       redirect_uri: redirectUri,

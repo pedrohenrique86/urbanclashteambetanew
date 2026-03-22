@@ -20,7 +20,7 @@ interface ServerTime {
 }
 
 // URL do seu backend. Certifique-se de que esta variável de ambiente está configurada.
-const VITE_API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
+const VITE_API_URL = import.meta.env.VITE_API_URL;
 
 class SocketService {
   private socket: Socket | null = null;
@@ -30,7 +30,7 @@ class SocketService {
    */
   connect(): Socket {
     if (!this.socket) {
-      this.socket = io(VITE_API_BASE_URL, {
+      this.socket = io(VITE_API_URL, {
         transports: ["websocket"], // Força o uso de WebSockets para melhor performance
         reconnectionAttempts: 5,
         reconnectionDelay: 1000,
