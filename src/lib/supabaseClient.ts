@@ -187,6 +187,13 @@ class ApiClient {
     })
   }
 
+  async checkEmail(email: string): Promise<{ exists: boolean; confirmed: boolean }> {
+    return this.request('/auth/check-email', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    });
+  }
+
   // User methods
   async getUser(id: string) {
     return this.request(`/users/${id}`)

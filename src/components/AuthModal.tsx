@@ -197,7 +197,7 @@ export default function AuthModal({
     return profanityWords.some((word) => username.toLowerCase().includes(word));
   };
 
-  // Função para verificar se um email existe e está confirmado usando a função serverless
+  // Função para verificar se um email existe e está confirmado usando o apiClient
   const checkEmailExists = async (
     email: string,
   ): Promise<{ exists: boolean; confirmed: boolean }> => {
@@ -205,50 +205,13 @@ export default function AuthModal({
       // Aguardar um pouco antes de verificar para evitar verificações prematuras
       await new Promise((resolve) => setTimeout(resolve, 500));
 
-      // Chama a API do backend para verificar o email
-      const response = await fetch(
-        "http://localhost:3001/api/auth/check-email",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ email }),
-        },
-      );
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        let errorData: { error?: string } = {};
-        if (errorText) {
-          try {
-            errorData = JSON.parse(errorText);
-          } catch (e) {
-            // O erro de parsing é intencional se a resposta não for JSON
-          }
-        }
-        throw new Error(errorData.error || "Erro ao verificar email");
-      }
-
-      // Retorna o resultado da função serverless
-      const responseText = await response.text();
-
-      if (responseText) {
-        try {
-          const result = JSON.parse(responseText);
-          return result;
-        } catch (e) {
-          // Em caso de erro no parsing, não assumimos automaticamente que o email existe e está confirmado
-          // Em vez disso, retornamos que o email não existe para forçar o usuário a se registrar
-          return { exists: false, confirmed: false };
-        }
-      }
-      // Se não houver resposta, não assumimos automaticamente que o email existe e está confirmado
-      // Em vez disso, retornamos que o email não existe para forçar o usuário a se registrar
-      return { exists: false, confirmed: false };
+      // Chama a API do backend para verificar o email usando o apiClient
+      const result = await apiClient.checkEmail(email);
+      return result;
     } catch (error) {
-      // Em caso de erro, não assumimos automaticamente que o usuário existe e está confirmado
-      // Em vez disso, retornamos que o email não existe para forçar o usuário a se registrar
+      // Em caso de erro (ex: falha de rede), não assumimos que o usuário existe.
+      // Retornamos que o email não existe para forçar o usuário a se registrar ou tentar novamente.
+      console.error("Erro ao verificar email:", error);
       return { exists: false, confirmed: false };
     }
   };

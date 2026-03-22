@@ -11,6 +11,8 @@ CREATE TABLE users (
     email VARCHAR(255) UNIQUE NOT NULL,
     password_hash VARCHAR(255) NOT NULL,
     username VARCHAR(50) UNIQUE NOT NULL,
+    birth_date DATE,
+    country VARCHAR(3),
     is_email_confirmed BOOLEAN DEFAULT FALSE,
     email_confirmation_token VARCHAR(255),
     password_reset_token VARCHAR(255),
