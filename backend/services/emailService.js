@@ -18,6 +18,7 @@ class EmailService {
   initializeTransporter() {
     if (process.env.GMAIL_USER && process.env.GMAIL_APP_PASSWORD) {
       this.transporter = nodemailer.createTransport({
+        host: "smtp.gmail.com", // Força o uso de IPv4
         service: "gmail",
         auth: {
           user: process.env.GMAIL_USER,
@@ -27,7 +28,7 @@ class EmailService {
       console.log("✅ Email configurado com Gmail");
     } else {
       console.log(
-        "⚠️  Email não configurado. Emails serão apenas logados no console."
+        "⚠️  Email não configurado. Emails serão apenas logados no console.",
       );
       console.log("💡 Para configurar Gmail:");
       console.log("   - GMAIL_USER=seu-email@gmail.com");
@@ -70,7 +71,7 @@ class EmailService {
     return await this.sendEmail(
       email,
       "Confirme seu email e escolha sua facção",
-      html
+      html,
     );
   }
 
@@ -80,7 +81,7 @@ class EmailService {
     return await this.sendEmail(
       email,
       "Recuperação de senha - Urban Clash Team",
-      html
+      html,
     );
   }
 
