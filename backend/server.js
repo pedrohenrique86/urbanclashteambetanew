@@ -21,6 +21,7 @@ const http = require("http");
 const { Server } = require("socket.io");
 
 const app = express();
+app.set("trust proxy", 1); // Confia no proxy da Render para o rate limiting funcionar
 const server = http.createServer(app);
 const PORT = process.env.PORT || 3001;
 
