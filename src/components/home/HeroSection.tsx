@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 
 export function HeroSection() {
   return (
-    <section id="hero" className="relative h-screen">
+    <section id="hero" className="relative w-full min-h-screen flex flex-col">
       <motion.header
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -14,7 +14,7 @@ export function HeroSection() {
         {/* 1. Fundo Desfocado (Efeito Reflexo/Ambient Light nas laterais) */}
         <div
           className="absolute inset-0 bg-no-repeat bg-cover bg-center blur-xl opacity-40 scale-110"
-          style={{ backgroundImage: "url('/home.png')" }}
+          style={{ backgroundImage: "url('/home.svg')" }}
         ></div>
 
         {/* 2. Overlay escuro sutil para dar profundidade */}
@@ -23,7 +23,7 @@ export function HeroSection() {
         {/* 3. Imagem Principal (Ampliada e responsiva, ancorada no topo) */}
         <div
           className="absolute inset-0 top-16 bg-no-repeat bg-contain bg-top scale-110 md:scale-125 origin-top"
-          style={{ backgroundImage: "url('/home.png')" }}
+          style={{ backgroundImage: "url('/home.svg')" }}
         ></div>
         {/* Overlay escuro opcional para legibilidade */}
         {/* Hero Content - Vazio, pois o texto foi removido */}
