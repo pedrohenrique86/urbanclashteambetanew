@@ -54,8 +54,15 @@ app.use(helmet({ crossOriginResourcePolicy: { policy: "cross-origin" } }));
 app.options("*", cors(corsOptions));
 app.use(cors(corsOptions));
 
+// Configuração de CORS específica para Socket.IO
+const socketCorsOptions = {
+  origin: allowedOrigins,
+  methods: ["GET", "POST"],
+  credentials: true,
+};
+
 const io = new Server(server, {
-  cors: corsOptions, // Reutiliza a mesma configuração de CORS para o Socket.IO
+  cors: socketCorsOptions, // Usa a nova configuração de CORS para o Socket.IO
 });
 
 // Rate limiting
