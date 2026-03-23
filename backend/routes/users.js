@@ -353,6 +353,14 @@ router.post("/profile", authenticateToken, async (req, res) => {
 
     res.status(201).json(result.rows[0]);
   } catch (error) {
+    // 23505 é o código de erro do PostgreSQL para violação de constraint única (unique_violation)
+    if (error.code === "23505") {
+      console.log(
+        `⚠️ Perfil já existente detectado via constraint para o usuário ${req.user.id}`,
+      );
+      return res.status(409).json({ error: "Perfil já existe" });
+    }
+
     console.error("❌ Erro ao criar perfil do usuário:", error.message);
     res.status(500).json({ error: "Erro interno do servidor" });
   }
