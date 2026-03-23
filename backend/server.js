@@ -20,15 +20,6 @@ const { initializeSocket } = require("./socketHandler");
 const http = require("http");
 const { Server } = require("socket.io");
 
-const app = express();
-
-// Aplica o CORS como o primeiro middleware para evitar conflitos.
-app.use(cors(corsOptions));
-
-app.set("trust proxy", 1); // Confia no proxy da Render para o rate limiting funcionar
-const server = http.createServer(app);
-const PORT = process.env.PORT || 3001;
-
 // CORS Configuration
 const allowedOrigins = [
   process.env.FRONTEND_URL, // URL de produção (deve ser https://www.urbanclashteam.com)
@@ -43,6 +34,15 @@ const corsOptions = {
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
 };
+
+const app = express();
+
+// Aplica o CORS como o primeiro middleware para evitar conflitos.
+app.use(cors(corsOptions));
+
+app.set("trust proxy", 1); // Confia no proxy da Render para o rate limiting funcionar
+const server = http.createServer(app);
+const PORT = process.env.PORT || 3001;
 
 // Middleware de segurança (configurado para não conflitar com CORS)
 app.use(helmet({ crossOriginResourcePolicy: { policy: "cross-origin" } }));
