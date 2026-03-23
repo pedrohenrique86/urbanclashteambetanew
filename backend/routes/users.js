@@ -302,23 +302,36 @@ router.post("/profile", authenticateToken, async (req, res) => {
     console.log(`🎯 Criando perfil para facção: ${faction}`, factionStats);
 
     // Criar novo perfil com stats da facção (username vem da tabela users)
+    // Obter o username da tabela users, que já foi autenticado
+    const userData = await query("SELECT username FROM users WHERE id = $1", [
+      req.user.id,
+    ]);
+    const username = userData.rows[0]?.username;
+
+    if (!username) {
+      return res
+        .status(404)
+        .json({ error: "Usuário não encontrado para obter o username" });
+    }
+
     const result = await query(
       `
       INSERT INTO user_profiles (
-        user_id, faction, level, experience_points,
+        user_id, username, faction, level, experience_points,
         energy, current_xp, xp_required, action_points,
         attack, defense, focus, intimidation, discipline,
         critical_chance, critical_damage, money, money_daily_gain, victories, defeats, winning_streak,
         action_points_reset_time
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, CURRENT_TIMESTAMP)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, CURRENT_TIMESTAMP)
       RETURNING *
     `,
       [
         req.user.id,
+        username, // Adicionado o username
         faction,
         factionStats.level,
-        factionStats.current_xp,
+        factionStats.current_xp, // experience_points
         factionStats.energy,
         factionStats.current_xp,
         factionStats.xp_required,
