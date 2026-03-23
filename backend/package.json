@@ -9,6 +9,7 @@
     "test": "jest"
   },
   "dependencies": {
+    "@sendgrid/mail": "^8.1.6",
     "@upstash/redis": "^1.37.0",
     "axios": "^1.13.6",
     "bcryptjs": "^2.4.3",
