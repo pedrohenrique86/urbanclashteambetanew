@@ -271,10 +271,10 @@ router.post("/logout-all", authenticateToken, async (req, res) => {
   }
 });
 
-// GET /api/auth/confirm-email/:token - Confirmar email
-router.get("/confirm-email/:token", async (req, res) => {
+// POST /api/auth/confirm-email - Confirmar email
+router.post("/confirm-email", async (req, res) => {
   try {
-    const { token } = req.params;
+    const { token } = req.body;
     console.log("🔍 Tentativa de confirmação de email com token:", token);
 
     // Primeiro, verificar se o token existe na base de dados
