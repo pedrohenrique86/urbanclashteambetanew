@@ -27,8 +27,8 @@ const PORT = process.env.PORT || 3001;
 
 // CORS Configuration
 const allowedOrigins = [
-  process.env.FRONTEND_URL, // URL de produção
-  "https://urbanclashteam.onrender.com",
+  process.env.FRONTEND_URL, // URL de produção (deve ser https://www.urbanclashteam.com)
+  "https://www.urbanclashteam.com", // Adicionado explicitamente para garantir
   "http://localhost:5173", // Desenvolvimento local
   "http://127.0.0.1:5173",
 ].filter(Boolean); // Filtra valores nulos ou indefinidos
