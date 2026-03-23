@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { apiClient } from "../lib/supabaseClient";
 import { useToast } from "../contexts/ToastContext";
+import { invalidateUserProfile } from "../hooks/useUserProfile";
 
 const EmailConfirmationPage = () => {
   const [searchParams] = useSearchParams();
@@ -38,24 +39,23 @@ const EmailConfirmationPage = () => {
 
         console.log("✅ Email confirmado com sucesso");
 
-        // Armazenar o token para a próxima sessão
+        // Armazenar o token e invalidar o cache para forçar a atualização
         if (response.token) {
           console.log("🔑 Token recebido, salvando...");
           apiClient.setToken(response.token); // Salva o token no localStorage
         }
 
+        // Invalida o cache do perfil para forçar a atualização dos dados
+        invalidateUserProfile();
+
         // Verificar se é primeiro login para redirecionar para seleção de facção
         if (response.isFirstLogin && response.redirectTo) {
-          console.log(
-            "🔄 Redirecionando para seleção de facção (com reload)...",
-          );
-          // Usar window.location.href para forçar um recarregamento da página
-          // Isso garante que todos os scripts de inicialização (como useUserProfile) rodem novamente
-          window.location.href = response.redirectTo;
+          console.log("🔄 Redirecionando para seleção de facção...");
+          navigate(response.redirectTo);
         } else {
           // Fallback para home se não houver redirecionamento específico
-          console.log("🔄 Redirecionando para home (com reload)...");
-          window.location.href = "/";
+          console.log("🔄 Redirecionando para home...");
+          navigate("/");
         }
       } catch (error: any) {
         console.error("❌ Erro na confirmação de email:", error);
