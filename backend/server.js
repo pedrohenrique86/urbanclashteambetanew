@@ -34,14 +34,7 @@ const allowedOrigins = [
 ].filter(Boolean); // Filtra valores nulos ou indefinidos
 
 const corsOptions = {
-  origin: function (origin, callback) {
-    if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      console.error(`❌ CORS Error: Origin ${origin} not allowed.`);
-      callback(new Error("Not allowed by CORS"));
-    }
-  },
+  origin: allowedOrigins, // Usa a lista de origens permitidas diretamente.
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
@@ -50,19 +43,12 @@ const corsOptions = {
 // Middleware de segurança (configurado para não conflitar com CORS)
 app.use(helmet({ crossOriginResourcePolicy: { policy: "cross-origin" } }));
 
-// Aplica o CORS como o primeiro middleware
-app.options("*", cors(corsOptions));
+// Aplica o CORS para todas as rotas e preflight requests.
 app.use(cors(corsOptions));
 
-// Configuração de CORS específica para Socket.IO
-const socketCorsOptions = {
-  origin: allowedOrigins,
-  methods: ["GET", "POST"],
-  credentials: true,
-};
-
+// O Socket.IO pode reutilizar a mesma configuração de CORS simplificada.
 const io = new Server(server, {
-  cors: socketCorsOptions, // Usa a nova configuração de CORS para o Socket.IO
+  cors: corsOptions,
 });
 
 // Rate limiting
