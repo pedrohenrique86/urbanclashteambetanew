@@ -100,6 +100,21 @@ app.get("/health", (req, res) => {
   res.json({ status: "OK", timestamp: new Date().toISOString() });
 });
 
+// --- SERVIR ARQUIVOS ESTÁTICOS DO FRONTEND EM PRODUÇÃO ---
+if (process.env.NODE_ENV === "production") {
+  // Define o caminho para a pasta de build do frontend
+  const frontendBuildPath = path.resolve(__dirname, "../frontend/dist");
+
+  // Serve os arquivos estáticos (JS, CSS, imagens, etc.)
+  app.use(express.static(frontendBuildPath));
+
+  // Para qualquer outra rota que não seja de API, serve o index.html do frontend
+  // Isso permite que o React Router lide com o roteamento no lado do cliente
+  app.get("*", (req, res) => {
+    res.sendFile(path.join(frontendBuildPath, "index.html"));
+  });
+}
+
 // Middleware de tratamento de erros
 // eslint-disable-next-line no-unused-vars
 app.use((err, req, res, next) => {
@@ -114,6 +129,7 @@ app.use((err, req, res, next) => {
 });
 
 // Middleware para rotas não encontradas
+// Deve ser o último middleware, exceto o de tratamento de erros.
 app.use("*", (req, res) => {
   res.status(404).json({ error: "Rota não encontrada" });
 });
