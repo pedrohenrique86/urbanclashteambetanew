@@ -3,7 +3,7 @@ const express = require("express");
 const timeRoutes = require("./routes/time");
 const adminRoutes = require("./routes/admin");
 // const gameRoutes = require("./routes/game"); // Replaced by Socket.IO
-const cors = require("cors");
+// const cors = require("cors"); // Removido para implementação manual de diagnóstico
 const path = require("path");
 const helmet = require("helmet");
 const morgan = require("morgan");
@@ -37,8 +37,26 @@ const corsOptions = {
 
 const app = express();
 
-// Aplica o CORS como o primeiro middleware para evitar conflitos.
-app.use(cors(corsOptions));
+// Aplica o CORS manualmente para diagnóstico
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  if (allowedOrigins.includes(origin)) {
+    res.setHeader("Access-Control-Allow-Origin", origin);
+  }
+  res.setHeader(
+    "Access-Control-Allow-Methods",
+    "GET, POST, PUT, DELETE, OPTIONS",
+  );
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+  res.setHeader("Access-Control-Allow-Credentials", "true");
+
+  // Intercepta e responde às requisições preflight (OPTIONS)
+  if (req.method === "OPTIONS") {
+    return res.sendStatus(204);
+  }
+
+  next();
+});
 
 app.set("trust proxy", 1); // Confia no proxy da Render para o rate limiting funcionar
 const server = http.createServer(app);
