@@ -17,105 +17,11 @@ export default function FactionSelectionPage() {
   >(null);
   const [loading, setLoading] = useState(false);
   const [processing, setProcessing] = useState(false);
-  const [pageLoading, setPageLoading] = useState(true);
-  // Estado de confirmação removido pois não há mais tela de confirmação
+  const [pageLoading, setPageLoading] = useState(false); // O hook já gerencia o loading inicial
   const [factionDetails, setFactionDetails] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const navigate = useNavigate();
-
-  // Verificar se o usuário está autenticado
-  useEffect(() => {
-    let timeoutId: NodeJS.Timeout | undefined;
-    // Timeout de segurança para evitar loop infinito de carregamento
-    const safetyTimeoutId = setTimeout(() => {
-      console.log("Timeout de segurança acionado, redirecionando para home");
-      setError("Tempo limite excedido. Por favor, faça login novamente.");
-      // Forçar redirecionamento após 10 segundos se a página continuar carregando
-      setPageLoading(false); // Parar o carregamento para mostrar o erro
-      // Não redirecionamos automaticamente para permitir que o usuário veja a mensagem
-    }, 10000); // 10 segundos de timeout
-
-    const checkUser = async () => {
-      try {
-        // Aguardar um pouco para a sessão ser estabelecida após redirecionamento
-        await new Promise((resolve) => setTimeout(resolve, 1000));
-
-        // Verificar se o usuário está autenticado
-        const {
-          data: { user },
-          error,
-        } = await apiClient.getCurrentUser();
-
-        if (error || !user) {
-          console.log("Usuário não autenticado ou erro:", error);
-          // Limpar o timeout de segurança
-          if (safetyTimeoutId) clearTimeout(safetyTimeoutId);
-          // Mostrar erro e parar carregamento
-          setError("Você precisa estar logado para acessar esta página.");
-          setPageLoading(false);
-          return;
-        }
-
-        // Verificar se o usuário já tem uma facção selecionada
-        try {
-          const profileData = await apiClient.getUserProfile();
-
-          // Se já tiver facção, redirecionar para o dashboard
-          if (profileData?.faction) {
-            console.log(
-              "Usuário já tem facção selecionada:",
-              profileData.faction,
-              "redirecionando para dashboard",
-            );
-            // Limpar o timeout de segurança
-            if (safetyTimeoutId) clearTimeout(safetyTimeoutId);
-            window.location.href = "/dashboard";
-            return;
-          }
-
-          // Se chegou aqui, o usuário está autenticado mas não tem facção
-          // Limpar o timeout de segurança e mostrar a tela de seleção
-          if (safetyTimeoutId) clearTimeout(safetyTimeoutId);
-          setPageLoading(false);
-        } catch (profileCheckError: any) {
-          // Se o erro for 404 (perfil não encontrado), isso é esperado para novos usuários
-          if (
-            profileCheckError.message?.includes("404") ||
-            profileCheckError.message?.includes("Perfil não encontrado")
-          ) {
-            console.log(
-              "👤 Novo usuário detectado - perfil será criado na seleção de facção",
-            );
-          } else {
-            console.error(
-              "Erro ao verificar perfil do usuário:",
-              profileCheckError,
-            );
-          }
-          // Limpar o timeout de segurança
-          if (safetyTimeoutId) clearTimeout(safetyTimeoutId);
-          // Mesmo com erro, vamos tentar mostrar a tela de seleção
-          setPageLoading(false);
-        }
-      } catch (error) {
-        console.error("Erro ao verificar usuário:", error);
-        // Limpar o timeout de segurança
-        if (safetyTimeoutId) clearTimeout(safetyTimeoutId);
-        setError("Erro ao verificar autenticação. Por favor, tente novamente.");
-        setPageLoading(false);
-      }
-    };
-
-    // Listener removido - não necessário com API local
-
-    checkUser();
-
-    return () => {
-      if (timeoutId) clearTimeout(timeoutId);
-      if (safetyTimeoutId) clearTimeout(safetyTimeoutId);
-    };
-  }, [navigate]);
 
   const { userProfile: profile, loading: profileLoading } = useUserProfile();
 
