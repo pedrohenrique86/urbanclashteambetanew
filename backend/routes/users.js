@@ -586,7 +586,7 @@ router.put(
       }
 
       const { id } = req.params;
-      const { display_name, bio, faction, avatar_url } = req.body;
+      const { username, bio, faction, avatar_url } = req.body;
 
       // Verificar se o perfil existe
       const profileExists = await query(
@@ -628,15 +628,16 @@ router.put(
         result = await query(
           `
         INSERT INTO user_profiles (
-          user_id, display_name, bio, faction, avatar_url,
+          user_id, username, bio, faction, avatar_url,
           attack, defense, focus, critical_damage, critical_chance, intimidation, discipline
         )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+        SELECT $1, u.username, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11
+        FROM users u
+        WHERE u.id = $1
         RETURNING *
       `,
           [
             id,
-            display_name,
             bio,
             faction,
             avatar_url,
@@ -655,9 +656,9 @@ router.put(
         const updateValues = [];
         let paramCount = 1;
 
-        if (display_name !== undefined) {
-          updateFields.push(`display_name = $${paramCount++}`);
-          updateValues.push(display_name);
+        if (username !== undefined) {
+          updateFields.push(`username = ${paramCount++}`);
+          updateValues.push(username);
         }
         if (bio !== undefined) {
           updateFields.push(`bio = $${paramCount++}`);

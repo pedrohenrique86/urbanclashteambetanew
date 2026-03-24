@@ -128,181 +128,238 @@ async function seedClans() {
     console.log("ℹ️ Populando a tabela de clãs com dados iniciais...");
 
     const clansToInsert = [
+      // --- GANGSTERS (13) ---
       {
-        name: "Yakuza",
+        name: "Sindicato da Névoa",
         description:
-          "A organização criminosa mais temida do Japão, conhecida por sua disciplina rígida e códigos de honra.",
+          "Controlam as docas e o contrabando sob o véu da neblina matinal.",
         faction: "gangsters",
         leader_id: null,
         max_members: 40,
         is_recruiting: true,
       },
       {
-        name: "Bratva",
+        name: "Consórcio Escarlate",
         description:
-          "A máfia russa, famosa por sua brutalidade e operações em larga escala no mercado negro.",
+          "Uma aliança de agiotas e apostadores que opera nos cassinos de luxo.",
         faction: "gangsters",
         leader_id: null,
         max_members: 40,
         is_recruiting: true,
       },
       {
-        name: "Cartel de Medellín",
+        name: "Irmandade do Asfalto",
         description:
-          "O infame cartel colombiano, mestre do tráfico e da intimidação.",
+          "Dominam as rotas de transporte da cidade, nada entra ou sai sem a sua permissão.",
         faction: "gangsters",
         leader_id: null,
         max_members: 40,
         is_recruiting: true,
       },
       {
-        name: "Cosa Nostra",
+        name: "Quimera Urbana",
         description:
-          "A máfia ítalo-americana, com um longo histórico de controle sobre o crime organizado nos EUA.",
+          "Especialistas em falsificação e roubos de alta tecnologia.",
         faction: "gangsters",
         leader_id: null,
         max_members: 40,
         is_recruiting: true,
       },
       {
-        name: "Triads",
+        name: "Víbora de Ébano",
         description:
-          "As sociedades secretas chinesas, envolvidas em tudo, desde a extorsão até o contrabando.",
+          "Um grupo matriarcal conhecido por sua rede de informantes e uso de venenos.",
         faction: "gangsters",
         leader_id: null,
         max_members: 40,
         is_recruiting: true,
       },
       {
-        name: "The Peaky Blinders",
+        name: "Legião do Submundo",
         description:
-          "Uma gangue de rua de Birmingham, Inglaterra, conhecida por seu estilo e ambição implacável.",
+          "Mercenários que oferecem seus serviços para quem pagar mais, sem fazer perguntas.",
         faction: "gangsters",
         leader_id: null,
         max_members: 40,
         is_recruiting: true,
       },
       {
-        name: "The Sopranos",
+        name: "Titãs de Concreto",
         description:
-          "A família criminosa de Nova Jersey, mestres em equilibrar a vida familiar com os negócios da máfia.",
+          "Famosos pela extorsão em grandes canteiros de obras e pela força bruta.",
         faction: "gangsters",
         leader_id: null,
         max_members: 40,
         is_recruiting: true,
       },
       {
-        name: "The Irish Mob",
+        name: "The Gilded Vultures",
         description:
-          "A máfia irlandesa, conhecida por sua tenacidade e controle sobre os sindicatos.",
+          "They prey on the city's elite, specializing in blackmail and corporate espionage.",
         faction: "gangsters",
         leader_id: null,
         max_members: 40,
         is_recruiting: true,
       },
       {
-        name: "The Yardies",
+        name: "Rust-Heart Syndicate",
         description:
-          "Gangues jamaicanas envolvidas no tráfico de drogas e violência.",
+          "A gritty crew that controls the industrial district's scrap metal and black market parts.",
         faction: "gangsters",
         leader_id: null,
         max_members: 40,
         is_recruiting: true,
       },
       {
-        name: "The Crips",
+        name: "Midnight Phantoms",
         description:
-          "Uma das gangues de rua mais notórias de Los Angeles, identificada pela cor azul.",
+          "Known for heists that are so clean, it's as if they were never there.",
         faction: "gangsters",
         leader_id: null,
         max_members: 40,
         is_recruiting: true,
       },
       {
-        name: "SWAT",
+        name: "Crimson Tide Cartel",
         description:
-          "A unidade de elite da polícia, especializada em operações táticas de alto risco.",
+          "They manage the flow of illicit goods through the city's waterways.",
+        faction: "gangsters",
+        leader_id: null,
+        max_members: 40,
+        is_recruiting: true,
+      },
+      {
+        name: "The Alchemists",
+        description:
+          "A mysterious group that manufactures and distributes performance-enhancing street drugs.",
+        faction: "gangsters",
+        leader_id: null,
+        max_members: 40,
+        is_recruiting: true,
+      },
+      {
+        name: "Shadow Weavers",
+        description:
+          "They manipulate city politics from behind the scenes, pulling strings no one else sees.",
+        faction: "gangsters",
+        leader_id: null,
+        max_members: 40,
+        is_recruiting: true,
+      },
+
+      // --- GUARDAS (13) ---
+      {
+        name: "Baluarte da Aurora",
+        description:
+          "A primeira linha de defesa da cidade, patrulham incansavelmente do amanhecer ao anoitecer.",
         faction: "guardas",
         leader_id: null,
         max_members: 40,
         is_recruiting: true,
       },
       {
-        name: "GIGN",
+        name: "Sentinelas de Aço",
         description:
-          "A força de intervenção da Gendarmaria Francesa, uma das melhores unidades antiterroristas do mundo.",
+          "Uma força de intervenção rápida equipada com a mais alta tecnologia de combate.",
         faction: "guardas",
         leader_id: null,
         max_members: 40,
         is_recruiting: true,
       },
       {
-        name: "Spetsnaz",
+        name: "Égide da Metrópole",
         description:
-          "As forças especiais russas, conhecidas por seu treinamento rigoroso e eficácia letal.",
+          "Protegem os cidadãos e a infraestrutura crítica contra ameaças internas.",
         faction: "guardas",
         leader_id: null,
         max_members: 40,
         is_recruiting: true,
       },
       {
-        name: "BOPE",
+        name: "Falcões da Ordem",
         description:
-          "O Batalhão de Operações Policiais Especiais do Rio de Janeiro, famoso por sua atuação em favelas.",
+          "Unidade de vigilância aérea e perseguição, os olhos da lei nos céus.",
         faction: "guardas",
         leader_id: null,
         max_members: 40,
         is_recruiting: true,
       },
       {
-        name: "GSG 9",
+        name: "Vanguarda Cívica",
         description:
-          "A unidade de contraterrorismo da Polícia Federal Alemã, criada após o massacre de Munique em 1972.",
+          "Especialistas em mediação de conflitos e proteção de testemunhas.",
         faction: "guardas",
         leader_id: null,
         max_members: 40,
         is_recruiting: true,
       },
       {
-        name: "SAS",
+        name: "Legião da Justiça",
         description:
-          "O Serviço Aéreo Especial Britânico, uma das mais antigas e respeitadas forças especiais do mundo.",
+          "Detetives de elite que resolvem os casos mais complexos da cidade.",
         faction: "guardas",
         leader_id: null,
         max_members: 40,
         is_recruiting: true,
       },
       {
-        name: "Navy SEALs",
+        name: "Guardiões do Zênite",
         description:
-          "A principal força de operações especiais da Marinha dos EUA, capaz de operar em qualquer ambiente.",
+          "Protegem os distritos mais altos e ricos da cidade, uma força de elite impecável.",
         faction: "guardas",
         leader_id: null,
         max_members: 40,
         is_recruiting: true,
       },
       {
-        name: "JTF2",
+        name: "The Aegis Corps",
         description:
-          "A força-tarefa de operações especiais do Canadá, conhecida por sua discrição e eficácia.",
+          "A heavily armored unit that acts as the city's immovable shield against organized crime.",
         faction: "guardas",
         leader_id: null,
         max_members: 40,
         is_recruiting: true,
       },
       {
-        name: "GROM",
+        name: "Cerulean Wardens",
         description:
-          "A unidade de elite da Polônia, especializada em uma variedade de missões, incluindo guerra não convencional.",
+          "They patrol the city's waterways and ports, preventing smuggling and illegal entry.",
         faction: "guardas",
         leader_id: null,
         max_members: 40,
         is_recruiting: true,
       },
       {
-        name: "The Untouchables",
+        name: "Vigilant Knights",
         description:
-          "O lendário grupo de agentes federais que derrubou Al Capone em Chicago.",
+          "A precinct known for its incorruptible detectives and high-profile case-solving rate.",
+        faction: "guardas",
+        leader_id: null,
+        max_members: 40,
+        is_recruiting: true,
+      },
+      {
+        name: "The Bastion",
+        description:
+          "They maintain the city's high-security prison and are experts in containing the most dangerous criminals.",
+        faction: "guardas",
+        leader_id: null,
+        max_members: 40,
+        is_recruiting: true,
+      },
+      {
+        name: "Phoenix Division",
+        description:
+          "A special unit dedicated to rebuilding and securing districts after major conflicts.",
+        faction: "guardas",
+        leader_id: null,
+        max_members: 40,
+        is_recruiting: true,
+      },
+      {
+        name: "Shield of Veritas",
+        description:
+          "An internal affairs division ensuring that all guards operate with honor and integrity.",
         faction: "guardas",
         leader_id: null,
         max_members: 40,
