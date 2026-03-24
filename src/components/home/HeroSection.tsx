@@ -1,79 +1,71 @@
 import React from "react";
 import { motion } from "framer-motion";
+import homePngUrl from "../../assets/home.png"; // Importa a URL do PNG
 
 export function HeroSection() {
   return (
-    <section id="hero" className="relative w-full min-h-screen flex flex-col">
-      <motion.header
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 1 }}
-        className="relative h-full flex items-center justify-center overflow-hidden"
-      >
-        {/* Background Effects */}
-        {/* 1. Fundo Desfocado (REMOVIDO) */}
+    <section id="hero" className="relative w-full min-h-screen">
+      {/* Imagem de fundo com a tag <img>, a abordagem mais robusta e à prova de falhas */}
+      <img
+        src={homePngUrl}
+        alt="Urban Clash Team background"
+        // object-cover preenche a tela mantendo a proporção, sem distorcer a imagem.
+        className="absolute top-0 left-0 w-full h-full object-cover z-0"
+      />
 
-        {/* 2. Overlay escuro (REMOVIDO) */}
+      {/* Conteúdo sobre a imagem (se houver) deve ter z-index > 0 */}
+      <div className="relative z-10 h-full flex flex-col items-center justify-end pb-24">
+        {/* Espaço para texto ou outros elementos sobre a imagem */}
+      </div>
 
-        {/* 3. Imagem Principal (Ampliada e responsiva, ancorada no topo) */}
-        <div
-          className="absolute inset-0 top-16 bg-no-repeat bg-contain bg-top scale-110 md:scale-125 origin-top"
-          style={{ backgroundImage: "url('/home.svg')" }}
-        ></div>
-        {/* Overlay escuro opcional para legibilidade */}
-        {/* Hero Content - Vazio, pois o texto foi removido */}
-        <div className="relative z-10 text-center px-4 sm:px-6 lg:px-8 max-w-5xl mx-auto">
-          {/* O conteúdo de texto foi removido conforme solicitado */}
-        </div>
-        {/* Scroll Indicator - Positioned at bottom of hero section */}
-        <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 z-20">
+      {/* Indicador de Rolagem */}
+      <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 z-20">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 1.5, duration: 0.8 }}
+        >
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 1.5, duration: 0.8 }}
+            animate={{ y: [0, -8, 0] }}
+            transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+            className="flex flex-col items-center space-y-2"
           >
-            <motion.div
-              animate={{ y: [0, -8, 0] }}
-              transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-              className="flex flex-col items-center space-y-2"
+            <div
+              className="text-cyan-300 font-bold text-sm font-orbitron tracking-wider"
+              style={{
+                textShadow:
+                  "-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000, 0 0 8px rgba(34, 211, 238, 0.9)",
+              }}
             >
-              <div
-                className="text-cyan-300 font-bold text-sm font-orbitron tracking-wider"
-                style={{
-                  textShadow:
-                    "-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000, 0 0 8px rgba(34, 211, 238, 0.9)",
-                }}
-              >
-                Arraste para baixo
-              </div>
+              Role para baixo
+            </div>
+            <motion.div
+              animate={{ opacity: [0.5, 1, 0.5] }}
+              transition={{
+                duration: 1.5,
+                repeat: Infinity,
+                ease: "easeInOut",
+              }}
+              className="w-6 h-10 border-2 border-cyan-300 rounded-full flex justify-center"
+              style={{
+                filter:
+                  "drop-shadow(-1px -1px 0 #000) drop-shadow(1px -1px 0 #000) drop-shadow(-1px 1px 0 #000) drop-shadow(1px 1px 0 #000) drop-shadow(0 0 5px rgba(34, 211, 238, 0.7))",
+              }}
+            >
               <motion.div
-                animate={{ opacity: [0.5, 1, 0.5] }}
+                animate={{ y: [0, 12, 0] }}
                 transition={{
                   duration: 1.5,
                   repeat: Infinity,
                   ease: "easeInOut",
                 }}
-                className="w-6 h-10 border-2 border-cyan-300 rounded-full flex justify-center"
-                style={{
-                  filter:
-                    "drop-shadow(-1px -1px 0 #000) drop-shadow(1px -1px 0 #000) drop-shadow(-1px 1px 0 #000) drop-shadow(1px 1px 0 #000) drop-shadow(0 0 5px rgba(34, 211, 238, 0.7))",
-                }}
-              >
-                <motion.div
-                  animate={{ y: [0, 12, 0] }}
-                  transition={{
-                    duration: 1.5,
-                    repeat: Infinity,
-                    ease: "easeInOut",
-                  }}
-                  className="w-1 h-3 bg-white rounded-full mt-2"
-                  style={{ filter: "drop-shadow(0 0 4px white)" }}
-                />
-              </motion.div>
+                className="w-1 h-3 bg-white rounded-full mt-2"
+                style={{ filter: "drop-shadow(0 0 4px white)" }}
+              />
             </motion.div>
           </motion.div>
-        </div>
-      </motion.header>
+        </motion.div>
+      </div>
     </section>
   );
 }

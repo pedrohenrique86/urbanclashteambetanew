@@ -17,7 +17,7 @@ class EmailService {
 
   initializeEmailProvider() {
     const apiKey = process.env.RESEND_API_KEY;
-    const fromEmail = `Urban Clash Team <${process.env.EMAIL_FROM}>`;
+    const fromEmail = process.env.FROM_EMAIL; // CORRIGIDO: de EMAIL_FROM para FROM_EMAIL
 
     if (apiKey && fromEmail) {
       this.resend = new Resend(apiKey);
@@ -25,7 +25,7 @@ class EmailService {
       console.log("✅ Email configurado com Resend.");
     } else {
       console.log(
-        "⚠️  Email não configurado. Verifique RESEND_API_KEY e EMAIL_FROM.",
+        "⚠️  Email não configurado. Verifique RESEND_API_KEY e FROM_EMAIL.", // CORRIGIDO
       );
       console.log("💡 Emails serão apenas logados no console.");
     }
@@ -42,12 +42,12 @@ class EmailService {
       return { success: true, message: "Email simulado no console" };
     }
 
-    const fromEmail = process.env.EMAIL_FROM;
+    const fromAddress = `Urban Clash Team <${process.env.FROM_EMAIL}>`;
     const replyToEmail = process.env.EMAIL_REPLY_TO;
 
     try {
       await this.resend.emails.send({
-        from: fromEmail,
+        from: fromAddress, // CORRIGIDO: Usando a variável formatada
         to: to,
         subject: subject,
         html: html,
@@ -94,7 +94,48 @@ class EmailService {
   }
 
   async sendWelcomeEmail(email, username) {
-    const html = `<div><h2>Bem-vindo, ${username}!</h2><p>Sua conta foi ativada com sucesso!</p></div>`;
+    const factionSelectionUrl = `${this.frontendUrl}/faction-selection`;
+    const bannerUrl = `${this.frontendUrl}/banner_boas_vindas.png`; // URL pública do banner
+
+    const html = `
+      <!DOCTYPE html>
+      <html lang="pt-BR">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <style>
+          body { margin: 0; padding: 0; background-color: #111827; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+          .container { max-width: 600px; margin: 0 auto; background-color: #1f2937; color: #f3f4f6; border-radius: 8px; overflow: hidden; }
+          .banner img { width: 100%; height: auto; }
+          .content { padding: 24px; }
+          .content h1 { color: #f97316; font-size: 24px; margin-top: 0; }
+          .content p { font-size: 16px; line-height: 1.6; }
+          .button-container { text-align: center; margin: 32px 0; }
+          .button { background-color: #f97316; color: #ffffff; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 18px; display: inline-block; }
+          .footer { padding: 16px; text-align: center; font-size: 12px; color: #9ca3af; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="banner">
+            <img src="${bannerUrl}" alt="Bem-vindo ao Urban Clash Team">
+          </div>
+          <div class="content">
+            <h1>Bem-vindo(a) à arena, ${username}!</h1>
+            <p>Sua conta foi ativada e a cidade aguarda suas ordens. A guerra entre a Lei e o Caos está prestes a explodir, e cada decisão sua pode mudar o destino do conflito.</p>
+            <p>O primeiro passo na sua jornada é o mais crucial: <strong>escolher sua facção</strong>. Você irá impor a ordem com a força da lei ou irá mergulhar a cidade na anarquia?</p>
+            <div class="button-container">
+              <a href="${factionSelectionUrl}" class="button">Escolher Minha Facção Agora</a>
+            </div>
+            <p>Prepare-se. A batalha está apenas começando.</p>
+          </div>
+          <div class="footer">
+            <p>&copy; ${new Date().getFullYear()} Urban Clash Team. Todos os direitos reservados.</p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
     return await this.sendEmail(email, "Bem-vindo ao Urban Clash Team!", html);
   }
 

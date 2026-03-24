@@ -3,17 +3,11 @@ import { motion, AnimatePresence } from "framer-motion";
 
 interface TimelineProps {
   className?: string;
+  isVisible: boolean;
+  onGoToStart: () => void;
 }
 
 const timelineData = [
-  {
-    section: "Início",
-    title: "Bem-vindo ao Urban Clash Team",
-    description: "Apresentação do evento e informações gerais",
-    icon: "🏠",
-    color: "from-orange-500 to-red-500",
-    id: "hero",
-  },
   {
     section: "Facções",
     title: "Escolha Sua Facção",
@@ -49,68 +43,20 @@ const timelineData = [
   },
 ];
 
-const Timeline: React.FC<TimelineProps> = ({ className = "" }) => {
+const Timeline: React.FC<TimelineProps> = ({
+  className = "",
+  isVisible,
+  onGoToStart,
+}) => {
   const [activeSection, setActiveSection] = useState(0);
-  const [isVisible, setIsVisible] = useState(true); // Iniciar como visível
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Efeito para controlar a visibilidade com base na atividade do mouse
-  useEffect(() => {
-    const handleMouseMove = () => {
-      // Mostrar o timeline quando o mouse se move
-      setIsVisible(true);
-
-      // Limpar o timeout anterior se existir
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-      }
-
-      // Configurar um novo timeout para ocultar o timeline após 3 segundos
-      // Mas apenas se não estiver no topo da página
-      if (window.scrollY > 100) {
-        // Só esconde se não estiver no topo
-        timeoutRef.current = setTimeout(() => {
-          setIsVisible(false);
-        }, 3000); // 3 segundos
-      }
-    };
-
-    // Adicionar listener para movimento do mouse
-    window.addEventListener("mousemove", handleMouseMove);
-
-    // Limpar o listener e o timeout quando o componente for desmontado
-    return () => {
-      window.removeEventListener("mousemove", handleMouseMove);
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-      }
-    };
-  }, []);
-
-  // Efeito para atualizar a seção ativa durante a rolagem e controlar a visibilidade
+  // Efeito para atualizar a seção ativa durante a rolagem
   useEffect(() => {
     const handleScroll = () => {
       const sections = timelineData.map((item) =>
         document.getElementById(item.id),
       );
       const scrollPosition = window.scrollY + window.innerHeight / 2;
-
-      // Mostrar o timeline quando o usuário faz scroll
-      setIsVisible(true);
-
-      // Limpar o timeout anterior se existir
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-      }
-
-      // Configurar um novo timeout para ocultar o timeline após 3 segundos
-      // Mas apenas se não estiver no topo da página
-      if (window.scrollY > 100) {
-        // Só esconde se não estiver no topo
-        timeoutRef.current = setTimeout(() => {
-          setIsVisible(false);
-        }, 3000); // 3 segundos
-      }
 
       // Update active section
       for (let i = sections.length - 1; i >= 0; i--) {
@@ -148,6 +94,34 @@ const Timeline: React.FC<TimelineProps> = ({ className = "" }) => {
           >
             <div className="bg-gradient-to-br from-gray-900/90 to-black/90 backdrop-blur-md border border-gray-500/30 rounded-2xl p-3 sm:p-3 md:p-4 shadow-2xl shadow-purple-500/20">
               <div className="space-y-3 sm:space-y-3 md:space-y-4">
+                {/* Botão para voltar ao início */}
+                <motion.div
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0, duration: 0.3 }}
+                  className="relative cursor-pointer group flex items-center"
+                  onClick={onGoToStart}
+                  title="Voltar ao Início"
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  <motion.div
+                    className={`w-8 h-8 sm:w-8 sm:h-8 md:w-9 md:h-9 lg:w-10 lg:h-10 rounded-full flex items-center justify-center text-base sm:text-base md:text-lg lg:text-lg transition-all duration-500 relative bg-gradient-to-r from-gray-700 to-gray-600 text-gray-300 hover:from-gray-600 hover:to-gray-500`}
+                  >
+                    {"🏠"}
+                  </motion.div>
+                  <motion.div
+                    className={`ml-2 sm:ml-2 md:ml-3 text-xs sm:text-xs md:text-sm font-medium transition-all duration-300 opacity-100 whitespace-nowrap text-purple-300`}
+                    initial={{ x: -10 }}
+                    whileHover={{ x: 0 }}
+                  >
+                    {"Início"}
+                  </motion.div>
+                  <div
+                    className={`absolute left-5 top-10 w-0.5 h-4 transform -translate-x-1/2 transition-all duration-500 bg-gradient-to-b from-gray-600 to-gray-700`}
+                  ></div>
+                </motion.div>
+
                 {timelineData.map((event, index) => (
                   <motion.div
                     key={index}

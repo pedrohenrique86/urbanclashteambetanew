@@ -120,15 +120,17 @@ export default function FactionSelectionPage() {
   const { userProfile: profile, loading: profileLoading } = useUserProfile();
 
   const handleFactionSelect = async () => {
-    // A verificação de usuário é feita no useEffect inicial e novamente abaixo.
-    // A trava de segurança anterior baseada no hook `useAuth` foi removida.
+    // Trava de segurança para previnir condição de corrida
+    if (profileLoading || processing) {
+      setError("Aguarde a verificação do seu perfil antes de continuar.");
+      return;
+    }
+
     const {
-      data: { user: currentUser },
+      data: { user },
     } = await apiClient.getCurrentUser();
-    if (!currentUser) {
-      setError(
-        "Sessão de usuário inválida. Por favor, tente recarregar a página.",
-      );
+    if (!user) {
+      setError("Sessão de usuário inválida. Por favor, recarregue a página.");
       return;
     }
 
@@ -266,7 +268,7 @@ export default function FactionSelectionPage() {
 
           <ConfirmButton
             selectedFaction={selectedFaction}
-            loading={loading || profileLoading}
+            loading={loading || profileLoading || processing}
             processing={processing}
             onConfirm={handleFactionSelect}
           />

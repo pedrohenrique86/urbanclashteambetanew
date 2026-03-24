@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import AuthModal from "../components/AuthModal";
 import Timeline from "../components/Timeline";
@@ -17,6 +17,36 @@ export default function HomePage() {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authMode, setAuthMode] = useState<"login" | "register">("login");
   const { status, remainingTime } = useGameClock(); // Usar o hook para obter o estado do jogo
+  const [isTimelineVisible, setIsTimelineVisible] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      // Mostra o menu quando o usuário rolar para além da maior parte da primeira seção (HeroSection)
+      // Usar window.innerHeight torna isso responsivo a diferentes tamanhos de tela.
+      if (window.scrollY > window.innerHeight * 0.8) {
+        setIsTimelineVisible(true);
+      } else {
+        setIsTimelineVisible(false);
+      }
+    };
+
+    window.addEventListener("scroll", handleScroll);
+
+    // Limpa o listener quando o componente é desmontado
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+    };
+  }, []); // O array vazio garante que o efeito rode apenas uma vez (montagem/desmontagem)
+
+  const handleGoToStart = () => {
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth",
+    });
+    // O listener de scroll já vai cuidar de esconder o menu,
+    // mas podemos forçar para uma resposta mais rápida.
+    setIsTimelineVisible(false);
+  };
 
   const openAuthModal = (mode: "login" | "register") => {
     setAuthMode(mode);
@@ -27,7 +57,7 @@ export default function HomePage() {
     <div className="min-h-screen bg-gray-900 text-white font-exo relative">
       {/* Timeline visível apenas em telas grandes */}
       <div className="hidden lg:block">
-        <Timeline />
+        <Timeline isVisible={isTimelineVisible} onGoToStart={handleGoToStart} />
       </div>
       {/* Navigation */}
       <nav className="fixed top-0 w-full bg-gray-900/95 backdrop-blur-sm z-50 border-b border-gray-700">
