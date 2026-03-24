@@ -24,6 +24,9 @@ if (!process.env.DATABASE_URL) {
 
 // Função para conectar ao banco
 async function connectDB() {
+  console.log(
+    "🏁 Iniciando processo de conexão e seeding do banco de dados...",
+  );
   try {
     const client = await pool.connect();
     console.log("🔗 Testando conexão com PostgreSQL...");
