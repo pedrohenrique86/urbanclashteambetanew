@@ -794,22 +794,18 @@ router.get("/google/start", (req, res) => {
   }
 });
 
-router.get("/google/callback", async (req, res) => {
+router.post("/google/callback", async (req, res) => {
+  const { code, redirect_uri, intent, code_verifier } = req.body;
+  if (!code || !redirect_uri) {
+    return res.status(400).json({ error: "Missing code or redirect_uri" });
+  }
+
   try {
-    const { code, state } = req.query;
-    if (!code || !state) {
-      return res.status(400).json({ error: "missing_code_or_state" });
-    }
-
-    const stateData = stateStore.get(state);
-    if (!stateData) {
-      return res.status(400).json({ error: "invalid_state" });
-    }
-    stateStore.delete(state); // State is single-use
-
-    const { redirectUri, next, intent } = stateData;
-
-    const tokens = await exchangeCodeForTokens(code, redirectUri);
+    const tokens = await exchangeCodeForTokens(
+      code,
+      redirect_uri,
+      code_verifier,
+    );
     if (!tokens || !tokens.id_token) {
       return res.status(500).json({ error: "token_exchange_failed" });
     }
@@ -825,19 +821,38 @@ router.get("/google/callback", async (req, res) => {
       [email],
     );
 
-    if (intent === "login" && emailRes.rows.length === 0) {
-      const frontend = process.env.FRONTEND_URL || "http://localhost:5173";
-      const redirectUrl = `${frontend.replace(/\/+$/, "")}/?authMode=login&error=google_user_not_found`;
-      return res.redirect(302, redirectUrl);
-    }
+    const isNewUser = emailRes.rows.length === 0;
+    console.log(
+      `[AUTH_DEBUG] Verificando usuário: ${email}. É novo? ${isNewUser}`,
+    );
 
     let userId;
     let isFirstLogin = false;
     if (emailRes.rows.length > 0) {
+      // User exists, proceed with login
       userId = emailRes.rows[0].id;
+      const profileResult = await query(
+        "SELECT 1 FROM user_profiles WHERE user_id = $1",
+        [userId],
+      );
+      if (profileResult.rows.length === 0) {
+        isFirstLogin = true;
+        console.log(
+          `[AUTH_DEBUG] Usuário existente sem perfil. Forçando isFirstLogin = true.`,
+        );
+      } else {
+        isFirstLogin = false; // Garantir que seja false se o perfil existir
+        console.log(
+          `[AUTH_DEBUG] Usuário existente com perfil. isFirstLogin = false.`,
+        );
+      }
     } else {
-      // Register flow
-      isFirstLogin = true; // This is a new user, so it's their first login.
+      // User does not exist, check intent
+      if (intent === "login") {
+        return res.status(404).json({ error: "google_user_not_found" });
+      }
+
+      // Intent is 'register', so create the user
       const unameBase =
         (profile.name || email.split("@")[0] || "user")
           .replace(/[^a-zA-Z0-9_]/g, "_")
@@ -865,40 +880,90 @@ router.get("/google/callback", async (req, res) => {
       }
       const rnd = crypto.randomBytes(16).toString("hex");
       const hash = await bcrypt.hash(rnd, 12);
-      const country =
-        profile.locale && profile.locale.includes("-")
-          ? profile.locale.split("-")[1].toUpperCase()
-          : null;
 
+      let country = null;
       try {
-        const ins = await transaction(async (client) => {
-          const userResult = await client.query(
-            `INSERT INTO users (email, username, password_hash, is_email_confirmed, country) 
-             VALUES ($1, $2, $3, true, $4) RETURNING id`,
-            [email, uname, hash, country],
+        // TENTATIVA 3: Obter país via API de GeoIP
+        // Pega o IP do header (produção) ou da conexão (desenvolvimento)
+        const ip = (
+          req.headers["x-forwarded-for"] ||
+          req.socket.remoteAddress ||
+          ""
+        )
+          .split(",")[0]
+          .trim();
+        console.log(`[AUTH_DEBUG] IP detectado para GeoIP: ${ip}`);
+
+        // Evita chamar a API para IPs locais/inválidos
+        if (ip && ip !== "::1" && ip !== "127.0.0.1") {
+          const geoResponse = await axios.get(
+            `http://ip-api.com/json/${ip}?fields=status,message,countryCode`,
           );
-          const newUserId = userResult.rows[0].id;
-          // Perfil será criado na escolha da facção
-          return { id: newUserId };
-        });
-        userId = ins.id;
-      } catch (dbError) {
-        console.error("DATABASE TRANSACTION FAILED:", dbError);
-        return res.status(500).json({ error: `DB_FAIL: ${dbError.message}` });
+          if (
+            geoResponse.data &&
+            geoResponse.data.status === "success" &&
+            geoResponse.data.countryCode
+          ) {
+            country = geoResponse.data.countryCode.toUpperCase();
+            console.log(
+              `[AUTH_DEBUG] País detectado via GeoIP API: ${country}`,
+            );
+          } else {
+            console.log(
+              `[AUTH_DEBUG] Resposta da API GeoIP não continha país:`,
+              geoResponse.data.message || "sem mensagem",
+            );
+          }
+        } else {
+          console.log(
+            `[AUTH_DEBUG] IP local ou inválido, pulando busca de país.`,
+          );
+        }
+      } catch (geoError) {
+        console.error(
+          `[AUTH_DEBUG] Erro ao buscar país via GeoIP: ${geoError.message}. O cadastro continuará sem país.`,
+        );
+        country = null; // Garante que o cadastro não falhe por erro na API de geo
       }
+
+      const ins = await transaction(async (client) => {
+        const userResult = await client.query(
+          `INSERT INTO users (email, username, password_hash, is_email_confirmed, country) 
+           VALUES ($1, $2, $3, true, $4) RETURNING id`,
+          [email, uname, hash, country],
+        );
+        const newUserId = userResult.rows[0].id;
+        // Perfil será criado na escolha da facção
+        return { id: newUserId };
+      });
+      userId = ins.id;
+      isFirstLogin = true;
     }
 
-    const token = generateToken(userId);
-    await createSession(userId, token);
+    // Passo Final: Gerar um token de sessão da NOSSA aplicação, como no login manual
+    console.log(
+      `[AUTH_DEBUG] Gerando token de aplicação para o usuário: ${userId}`,
+    );
+    const appToken = generateToken(userId);
 
-    const frontend = process.env.FRONTEND_URL || "http://localhost:5173";
-    const finalRedirect = `${frontend.replace(/\/+$/, "")}/auth/google/callback?token=${encodeURIComponent(token)}&next=${encodeURIComponent(next)}&isFirstLogin=${isFirstLogin}`;
-    res.redirect(302, finalRedirect);
+    // Criar a sessão no nosso banco de dados
+    await createSession(userId, appToken);
+
+    console.log(
+      `[AUTH_DEBUG] Sessão criada. Valor FINAL de isFirstLogin a ser enviado: ${isFirstLogin}`,
+    );
+
+    res.json({
+      message: isFirstLogin
+        ? "Usuário criado com sucesso via Google."
+        : "Login com Google bem-sucedido.",
+      token: appToken, // O token da nossa aplicação para o frontend
+      isFirstLogin,
+      next: getNext(req),
+    });
   } catch (e) {
-    console.error("Google callback error:", e);
-    res
-      .status(500)
-      .json({ error: "google_callback_failed", details: e.message });
+    console.error("Google POST callback error:", e);
+    res.status(500).json({ error: `CALLBACK_FAIL: ${e.message}` });
   }
 });
 
