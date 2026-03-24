@@ -103,7 +103,9 @@ export default function FactionSelectionPage() {
           );
           try {
             // Atualiza o perfil existente com a facção selecionada.
-            await apiClient.updateUserProfile({ faction: selectedFaction });
+            await apiClient.updateUserProfile(user.id, {
+              faction: selectedFaction,
+            });
             console.log(
               "✅ Facção atualizada com sucesso no perfil existente!",
             );

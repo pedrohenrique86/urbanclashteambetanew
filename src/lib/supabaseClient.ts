@@ -310,11 +310,11 @@ class ApiClient {
     return this.request('/users/profile')
   }
 
-  async updateUserProfile(profileData: Record<string, unknown>) {
-    return this.request('/users/profile', {
+  async updateUserProfile(userId: string, profileData: Record<string, unknown>) {
+    return this.request(`/users/${userId}/profile`, {
       method: 'PUT',
       body: JSON.stringify(profileData),
-    })
+    });
   }
 
   async createUserProfile(profileData: Record<string, unknown>) {
