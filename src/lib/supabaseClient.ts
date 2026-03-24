@@ -149,16 +149,18 @@ class ApiClient {
 
   async getCurrentUser() {
     try {
-      const userData = await this.request('/auth/me')
+      // O endpoint /auth/me já retorna um objeto { user: { ... } }
+      // Retornamos diretamente a resposta para manter a consistência.
+      const response = await this.request('/auth/me');
       return {
-        data: { user: userData },
-        error: null
-      }
+        data: { user: response.user }, // Acessa o objeto aninhado
+        error: null,
+      };
     } catch (error) {
       return {
         data: { user: null },
-        error: error
-      }
+        error: error,
+      };
     }
   }
 

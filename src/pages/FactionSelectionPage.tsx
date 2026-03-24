@@ -93,11 +93,9 @@ export default function FactionSelectionPage() {
         });
         console.log("✅ Perfil criado e facção selecionada com sucesso!");
       } catch (creationError: any) {
-        // Erro de "duplicate key" indica que o perfil já existe.
-        // Isso é esperado se o usuário se registrou mas não completou a seleção de facção.
+        // Ajustado para a mensagem de erro real da API
         const isDuplicateProfile =
-          creationError.message?.includes("duplicate key") ||
-          creationError.code === "23505"; // Código de erro do Postgres para violação de unicidade
+          creationError.message?.includes("Perfil já existe");
 
         if (isDuplicateProfile) {
           console.log(
