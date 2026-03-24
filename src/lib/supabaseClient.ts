@@ -232,6 +232,10 @@ class ApiClient {
     return this.request(`/clans?${queryString}`)
   }
 
+  async getClansByFaction(faction: string) {
+    return this.request(`/clans/by-faction/${faction}`)
+  }
+
   async getClan(id: string) {
     return this.request(`/clans/${id}`)
   }

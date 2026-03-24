@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useUserProfile, invalidateUserProfile } from "../hooks/useUserProfile";
 import { redirectToDashboardWithCleanup } from "../utils/cacheUtils";
+import { apiClient } from "../lib/supabaseClient";
 
 interface Clan {
   id: string;
@@ -36,21 +37,8 @@ export default function ClanSelectionPage() {
 
     const fetchClans = async () => {
       try {
-        const response = await fetch(
-          `http://localhost:3001/api/clans/by-faction/${selectedFaction}`,
-        );
-        if (!response.ok) {
-          throw new Error("Erro ao carregar clãs");
-        }
-        const text = await response.text();
-        let data: { clans?: any[] } = {};
-        if (text) {
-          try {
-            data = JSON.parse(text);
-          } catch (e) {
-            throw new Error("Resposta inválida do servidor");
-          }
-        }
+        // Usando apiClient para garantir a URL correta (produção/local)
+        const data = await apiClient.getClansByFaction(selectedFaction);
         setClans(data.clans || []);
       } catch (error) {
         setError("Erro ao carregar clãs. Tente novamente.");
@@ -70,31 +58,8 @@ export default function ClanSelectionPage() {
     setError("");
 
     try {
-      const token = localStorage.getItem("auth_token");
-
-      const response = await fetch(
-        `http://localhost:3001/api/clans/${selectedClan}/join`,
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        },
-      );
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        let errorData = { error: "Erro desconhecido" };
-        if (errorText) {
-          try {
-            errorData = JSON.parse(errorText);
-          } catch (e) {
-            // Ignore JSON parse error
-          }
-        }
-        throw new Error(errorData.error || "Erro ao entrar no clã");
-      }
+      // Usando apiClient que já injeta o token e usa a URL correta
+      await apiClient.joinClan(selectedClan);
 
       // Invalidar cache do hook
       invalidateUserProfile();
