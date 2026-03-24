@@ -671,52 +671,6 @@ function getNext(req) {
   return req.query.next || req.body?.next || "/faction-selection";
 }
 
-// ROTA ADICIONADA: Inicia o fluxo de autenticação com o Google
-router.get("/google/start", (req, res) => {
-  try {
-    const intent = req.query.intent || "login"; // 'login' ou 'register'
-    const redirectUri = getRedirectUri(req);
-    const next = getNext(req);
-
-    // 1. Gerar state e code verifier
-    const state = crypto.randomBytes(32).toString("hex");
-    const codeVerifier = base64url(crypto.randomBytes(32));
-
-    // 2. Armazenar o code verifier e outros dados para uso no callback
-    stateStore.set(state, {
-      codeVerifier,
-      intent,
-      redirectUri,
-      next,
-    });
-
-    // 3. Gerar o code challenge
-    const codeChallenge = base64url(
-      crypto.createHash("sha256").update(codeVerifier).digest(),
-    );
-
-    // 4. Construir a URL de autorização do Google
-    const authUrl = new url.URL("https://accounts.google.com/o/oauth2/v2/auth");
-    authUrl.searchParams.set("client_id", process.env.GOOGLE_CLIENT_ID);
-    authUrl.searchParams.set("redirect_uri", redirectUri);
-    authUrl.searchParams.set("response_type", "code");
-    authUrl.searchParams.set("scope", "openid email profile");
-    authUrl.searchParams.set("state", state);
-    authUrl.searchParams.set("code_challenge", codeChallenge);
-    authUrl.searchParams.set("code_challenge_method", "S256");
-    authUrl.searchParams.set("access_type", "offline");
-    authUrl.searchParams.set("prompt", "consent");
-
-    console.log(`🚀 Redirecionando para o Google: ${authUrl.toString()}`);
-
-    // 5. Redirecionar o usuário
-    res.redirect(authUrl.toString());
-  } catch (error) {
-    console.error("❌ Erro ao iniciar autenticação com Google:", error.message);
-    res.status(500).json({ error: "Erro ao iniciar login com Google" });
-  }
-});
-
 async function exchangeCodeForTokens(code, redirectUri, codeVerifier) {
   const params = new url.URLSearchParams();
   params.set("client_id", process.env.GOOGLE_CLIENT_ID || "");
