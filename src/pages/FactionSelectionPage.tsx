@@ -69,63 +69,71 @@ export default function FactionSelectionPage() {
 
       console.log(`👤 Usuário autenticado: ${user.email}`);
 
-      // Verificar se já tem perfil
+      // Tenta criar o perfil. Se já existir, apenas atualiza a facção.
       try {
-        let existingProfile;
-        try {
-          existingProfile = await apiClient.getUserProfile();
-        } catch (profileError: any) {
-          // Se perfil não existe (404), isso é esperado para novos usuários
-          if (
-            profileError.message?.includes("Perfil não encontrado") ||
-            profileError.message?.includes("404")
-          ) {
-            console.log("👤 Perfil não existe, será criado um novo");
-            existingProfile = null;
-          } else {
-            console.error("Erro inesperado ao verificar perfil:", profileError);
-            throw profileError;
-          }
-        }
-
-        if (existingProfile?.faction) {
-          console.log(`⚠️ Usuário já tem facção: ${existingProfile.faction}`);
+        // Primeiro, verifica se o usuário já tem uma facção para evitar reescrevê-la.
+        // Usamos o perfil já carregado pelo hook `useUserProfile`.
+        if (profile?.faction) {
+          console.log(
+            `⚠️ Usuário já tem facção: ${profile.faction}. Redirecionando...`,
+          );
           navigate("/dashboard");
-          return;
+          return; // Interrompe a execução para não continuar o processo
         }
 
-        // Atualizar perfil existente ou criar novo
-        if (existingProfile) {
-          console.log("📝 Atualizando perfil existente com nova facção...");
-          await apiClient.updateUserProfile({ faction: selectedFaction });
+        // Se não tem facção, tenta criar um perfil completo.
+        // Isso pode falhar se o perfil (linha na tabela) já existir mas sem facção.
+        console.log("🆕 Tentando criar um novo perfil para o usuário...");
+        await apiClient.createUserProfile({
+          faction: selectedFaction,
+          username:
+            user.user_metadata?.username ||
+            user.email?.split("@")[0] ||
+            "Usuário",
+        });
+        console.log("✅ Perfil criado e facção selecionada com sucesso!");
+      } catch (creationError: any) {
+        // Erro de "duplicate key" indica que o perfil já existe.
+        // Isso é esperado se o usuário se registrou mas não completou a seleção de facção.
+        const isDuplicateProfile =
+          creationError.message?.includes("duplicate key") ||
+          creationError.code === "23505"; // Código de erro do Postgres para violação de unicidade
+
+        if (isDuplicateProfile) {
+          console.log(
+            "⚠️ Perfil já existente detectado. Tentando atualizar a facção...",
+          );
+          try {
+            // Atualiza o perfil existente com a facção selecionada.
+            await apiClient.updateUserProfile({ faction: selectedFaction });
+            console.log(
+              "✅ Facção atualizada com sucesso no perfil existente!",
+            );
+          } catch (updateError: any) {
+            console.error(
+              "❌ Erro crítico ao TENTAR ATUALIZAR o perfil:",
+              updateError,
+            );
+            throw new Error(
+              `O perfil já existe, mas falhou ao atualizar a facção: ${
+                updateError.message || "Erro desconhecido"
+              }`,
+            );
+          }
         } else {
-          // Criar novo perfil
-          console.log("🆕 Criando novo perfil...");
-          await apiClient.createUserProfile({
-            faction: selectedFaction,
-            username:
-              user.user_metadata?.username ||
-              user.email?.split("@")[0] ||
-              "Usuário",
-          });
+          // Se o erro não for de duplicidade, é um problema inesperado.
+          console.error("❌ Erro inesperado ao CRIAR o perfil:", creationError);
+          throw creationError; // Lança o erro original para ser tratado pelo catch externo.
         }
-
-        console.log(`✅ Facção ${selectedFaction} selecionada com sucesso!`);
-
-        // Delay adicional antes de redirecionar
-        await new Promise((resolve) => setTimeout(resolve, 1000));
-
-        console.log("🔄 Redirecionando para seleção de clãs...");
-        navigate("/clan-selection", { state: { faction: selectedFaction } });
-      } catch (profileError: any) {
-        console.error("❌ Erro detalhado:", profileError);
-        console.log("Resposta da API:", profileError.response);
-        throw new Error(
-          `Erro ao salvar facção: ${
-            profileError.message || "Erro desconhecido"
-          }`,
-        );
       }
+
+      console.log(`✅ Processo de facção (${selectedFaction}) concluído.`);
+
+      // Delay adicional para feedback visual antes de redirecionar
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+
+      console.log("🔄 Redirecionando para a seleção de clãs...");
+      navigate("/clan-selection", { state: { faction: selectedFaction } });
     } catch (error: any) {
       console.error("❌ Erro na seleção de facção:", error);
       setError(error.message || "Erro ao selecionar facção. Tente novamente.");
