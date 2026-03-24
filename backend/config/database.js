@@ -31,6 +31,8 @@ async function connectDB() {
     const result = await client.query("SELECT NOW()");
     console.log("✅ Conexão com PostgreSQL estabelecida:", result.rows[0].now);
 
+    // A chamada para seedClans será feita no início da aplicação, não na conexão.
+
     client.release();
     return true;
   } catch (error) {
@@ -110,6 +112,230 @@ async function closePool() {
   await pool.end();
 }
 
+// Função para popular a tabela de clãs se estiver vazia
+async function seedClans() {
+  try {
+    const tableClansExists = await tableExists("clans");
+    if (!tableClansExists) {
+      console.log("ℹ️ Tabela 'clans' não encontrada. O seeding será ignorado.");
+      return;
+    }
+
+    const clansExist = await query("SELECT COUNT(*) FROM clans");
+    if (clansExist.rows[0].count > 0) {
+      console.log("ℹ️ Tabela de clãs já populada. Nenhuma ação necessária.");
+      return;
+    }
+
+    console.log("ℹ️ Populando a tabela de clãs com dados iniciais...");
+
+    const clansToInsert = [
+      {
+        name: "Yakuza",
+        description:
+          "A organização criminosa mais temida do Japão, conhecida por sua disciplina rígida e códigos de honra.",
+        faction: "gangsters",
+        leader_id: null,
+        max_members: 40,
+        is_recruiting: true,
+      },
+      {
+        name: "Bratva",
+        description:
+          "A máfia russa, famosa por sua brutalidade e operações em larga escala no mercado negro.",
+        faction: "gangsters",
+        leader_id: null,
+        max_members: 40,
+        is_recruiting: true,
+      },
+      {
+        name: "Cartel de Medellín",
+        description:
+          "O infame cartel colombiano, mestre do tráfico e da intimidação.",
+        faction: "gangsters",
+        leader_id: null,
+        max_members: 40,
+        is_recruiting: true,
+      },
+      {
+        name: "Cosa Nostra",
+        description:
+          "A máfia ítalo-americana, com um longo histórico de controle sobre o crime organizado nos EUA.",
+        faction: "gangsters",
+        leader_id: null,
+        max_members: 40,
+        is_recruiting: true,
+      },
+      {
+        name: "Triads",
+        description:
+          "As sociedades secretas chinesas, envolvidas em tudo, desde a extorsão até o contrabando.",
+        faction: "gangsters",
+        leader_id: null,
+        max_members: 40,
+        is_recruiting: true,
+      },
+      {
+        name: "The Peaky Blinders",
+        description:
+          "Uma gangue de rua de Birmingham, Inglaterra, conhecida por seu estilo e ambição implacável.",
+        faction: "gangsters",
+        leader_id: null,
+        max_members: 40,
+        is_recruiting: true,
+      },
+      {
+        name: "The Sopranos",
+        description:
+          "A família criminosa de Nova Jersey, mestres em equilibrar a vida familiar com os negócios da máfia.",
+        faction: "gangsters",
+        leader_id: null,
+        max_members: 40,
+        is_recruiting: true,
+      },
+      {
+        name: "The Irish Mob",
+        description:
+          "A máfia irlandesa, conhecida por sua tenacidade e controle sobre os sindicatos.",
+        faction: "gangsters",
+        leader_id: null,
+        max_members: 40,
+        is_recruiting: true,
+      },
+      {
+        name: "The Yardies",
+        description:
+          "Gangues jamaicanas envolvidas no tráfico de drogas e violência.",
+        faction: "gangsters",
+        leader_id: null,
+        max_members: 40,
+        is_recruiting: true,
+      },
+      {
+        name: "The Crips",
+        description:
+          "Uma das gangues de rua mais notórias de Los Angeles, identificada pela cor azul.",
+        faction: "gangsters",
+        leader_id: null,
+        max_members: 40,
+        is_recruiting: true,
+      },
+      {
+        name: "SWAT",
+        description:
+          "A unidade de elite da polícia, especializada em operações táticas de alto risco.",
+        faction: "guardas",
+        leader_id: null,
+        max_members: 40,
+        is_recruiting: true,
+      },
+      {
+        name: "GIGN",
+        description:
+          "A força de intervenção da Gendarmaria Francesa, uma das melhores unidades antiterroristas do mundo.",
+        faction: "guardas",
+        leader_id: null,
+        max_members: 40,
+        is_recruiting: true,
+      },
+      {
+        name: "Spetsnaz",
+        description:
+          "As forças especiais russas, conhecidas por seu treinamento rigoroso e eficácia letal.",
+        faction: "guardas",
+        leader_id: null,
+        max_members: 40,
+        is_recruiting: true,
+      },
+      {
+        name: "BOPE",
+        description:
+          "O Batalhão de Operações Policiais Especiais do Rio de Janeiro, famoso por sua atuação em favelas.",
+        faction: "guardas",
+        leader_id: null,
+        max_members: 40,
+        is_recruiting: true,
+      },
+      {
+        name: "GSG 9",
+        description:
+          "A unidade de contraterrorismo da Polícia Federal Alemã, criada após o massacre de Munique em 1972.",
+        faction: "guardas",
+        leader_id: null,
+        max_members: 40,
+        is_recruiting: true,
+      },
+      {
+        name: "SAS",
+        description:
+          "O Serviço Aéreo Especial Britânico, uma das mais antigas e respeitadas forças especiais do mundo.",
+        faction: "guardas",
+        leader_id: null,
+        max_members: 40,
+        is_recruiting: true,
+      },
+      {
+        name: "Navy SEALs",
+        description:
+          "A principal força de operações especiais da Marinha dos EUA, capaz de operar em qualquer ambiente.",
+        faction: "guardas",
+        leader_id: null,
+        max_members: 40,
+        is_recruiting: true,
+      },
+      {
+        name: "JTF2",
+        description:
+          "A força-tarefa de operações especiais do Canadá, conhecida por sua discrição e eficácia.",
+        faction: "guardas",
+        leader_id: null,
+        max_members: 40,
+        is_recruiting: true,
+      },
+      {
+        name: "GROM",
+        description:
+          "A unidade de elite da Polônia, especializada em uma variedade de missões, incluindo guerra não convencional.",
+        faction: "guardas",
+        leader_id: null,
+        max_members: 40,
+        is_recruiting: true,
+      },
+      {
+        name: "The Untouchables",
+        description:
+          "O lendário grupo de agentes federais que derrubou Al Capone em Chicago.",
+        faction: "guardas",
+        leader_id: null,
+        max_members: 40,
+        is_recruiting: true,
+      },
+    ];
+
+    // Usar a função de transação para garantir a atomicidade
+    await transaction(async (client) => {
+      for (const clan of clansToInsert) {
+        await client.query(
+          "INSERT INTO clans (name, description, faction, leader_id, max_members, is_recruiting) VALUES ($1, $2, $3, $4, $5, $6)",
+          [
+            clan.name,
+            clan.description,
+            clan.faction,
+            clan.leader_id,
+            clan.max_members,
+            clan.is_recruiting,
+          ],
+        );
+      }
+    });
+
+    console.log(`✅ ${clansToInsert.length} clãs inseridos com sucesso.`);
+  } catch (error) {
+    console.error("❌ Erro ao popular a tabela de clãs:", error.message);
+    // Não relançar o erro para não impedir o início da aplicação
+  }
+}
+
 module.exports = {
   pool,
   query,
@@ -118,4 +344,5 @@ module.exports = {
   tableExists,
   cleanExpiredSessions,
   closePool,
+  seedClans, // Exporta a nova função
 };

@@ -114,12 +114,3 @@ $$ language 'plpgsql';
 CREATE TRIGGER update_clan_member_count_trigger
     AFTER INSERT OR DELETE ON clan_members
     FOR EACH ROW EXECUTE FUNCTION update_clan_member_count();
-
--- Dados iniciais de exemplo
-INSERT INTO clans (name, description, faction, max_members) VALUES
-('Família Corleone', 'Clã tradicional focado em negócios e território', 'gangsters', 40),
-('Cartel dos Irmãos', 'Especialistas em operações de alto risco', 'gangsters', 40),
-('Máfia Siciliana', 'Veteranos com experiência em estratégias urbanas', 'gangsters', 40),
-('Força Tática', 'Unidade de elite especializada em combate urbano', 'guardas', 40),
-('Esquadrão Alpha', 'Operações especiais e missões de resgate', 'guardas', 40),
-('Batalhão Central', 'Força principal de manutenção da ordem', 'guardas', 40);
