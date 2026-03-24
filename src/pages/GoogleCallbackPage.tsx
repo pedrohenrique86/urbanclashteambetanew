@@ -90,7 +90,7 @@ export default function GoogleCallbackPage() {
         }
 
         const res = await fetch(
-          `${(import.meta as any).env.VITE_API_URL}/auth/google/callback`,
+          `${(import.meta as any).env.VITE_API_URL}/api/auth/google/callback`,
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },
