@@ -399,10 +399,16 @@ export default function AuthModal({
           });
         }
       } catch (error: unknown) {
-        const message =
-          error instanceof Error
-            ? error.message
-            : "Ocorreu um erro durante o registro.";
+        let message = "Ocorreu um erro durante o registro.";
+        if (error instanceof Error) {
+          // Tratamento específico para erro de e-mail já cadastrado (409 Conflict)
+          if ((error as any).response?.status === 409) {
+            const responseData = (error as any).response?.data;
+            message = responseData?.message || "Este e-mail já está em uso.";
+          } else {
+            message = error.message;
+          }
+        }
         setErrors({ form: message });
       } finally {
         setIsProcessing(false); // Sempre finalizar o processamento, mesmo em caso de erro

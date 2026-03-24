@@ -90,7 +90,11 @@ router.post(
       ]);
 
       if (emailExists.rows.length > 0) {
-        return res.status(409).json({ error: "Email já está em uso" });
+        return res.status(409).json({
+          error: "E-mail já cadastrado",
+          message:
+            "Este e-mail já está em uso. Por favor, faça login ou use outro e-mail.",
+        });
       }
 
       // Verificar se username já existe
