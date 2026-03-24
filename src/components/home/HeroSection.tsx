@@ -11,14 +11,9 @@ export function HeroSection() {
         className="relative h-full flex items-center justify-center overflow-hidden"
       >
         {/* Background Effects */}
-        {/* 1. Fundo Desfocado (Efeito Reflexo/Ambient Light nas laterais) */}
-        <div
-          className="absolute inset-0 bg-no-repeat bg-cover bg-center blur-xl opacity-40 scale-110"
-          style={{ backgroundImage: "url('/home.svg')" }}
-        ></div>
+        {/* 1. Fundo Desfocado (REMOVIDO) */}
 
-        {/* 2. Overlay escuro sutil para dar profundidade */}
-        <div className="absolute inset-0 bg-black/50"></div>
+        {/* 2. Overlay escuro (REMOVIDO) */}
 
         {/* 3. Imagem Principal (Ampliada e responsiva, ancorada no topo) */}
         <div

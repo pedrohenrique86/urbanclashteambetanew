@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useUserProfile } from "../hooks/useUserProfile";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { apiClient } from "../lib/supabaseClient";
@@ -65,7 +66,7 @@ export default function FactionSelectionPage() {
             console.log(
               "Usuário já tem facção selecionada:",
               profileData.faction,
-              "redirecionando para dashboard"
+              "redirecionando para dashboard",
             );
             // Limpar o timeout de segurança
             if (safetyTimeoutId) clearTimeout(safetyTimeoutId);
@@ -84,12 +85,12 @@ export default function FactionSelectionPage() {
             profileCheckError.message?.includes("Perfil não encontrado")
           ) {
             console.log(
-              "👤 Novo usuário detectado - perfil será criado na seleção de facção"
+              "👤 Novo usuário detectado - perfil será criado na seleção de facção",
             );
           } else {
             console.error(
               "Erro ao verificar perfil do usuário:",
-              profileCheckError
+              profileCheckError,
             );
           }
           // Limpar o timeout de segurança
@@ -116,9 +117,23 @@ export default function FactionSelectionPage() {
     };
   }, [navigate]);
 
+  const { userProfile: profile, loading: profileLoading } = useUserProfile();
+
   const handleFactionSelect = async () => {
-    if (!selectedFaction || processing) {
-      if (!selectedFaction) setError("Por favor, selecione uma facção.");
+    // A verificação de usuário é feita no useEffect inicial e novamente abaixo.
+    // A trava de segurança anterior baseada no hook `useAuth` foi removida.
+    const {
+      data: { user: currentUser },
+    } = await apiClient.getCurrentUser();
+    if (!currentUser) {
+      setError(
+        "Sessão de usuário inválida. Por favor, tente recarregar a página.",
+      );
+      return;
+    }
+
+    if (!selectedFaction) {
+      setError("Por favor, selecione uma facção.");
       return;
     }
 
@@ -140,7 +155,7 @@ export default function FactionSelectionPage() {
 
       if (userError || !user) {
         throw new Error(
-          "Usuário não autenticado. Por favor, faça login novamente."
+          "Usuário não autenticado. Por favor, faça login novamente.",
         );
       }
 
@@ -200,7 +215,7 @@ export default function FactionSelectionPage() {
         throw new Error(
           `Erro ao salvar facção: ${
             profileError.message || "Erro desconhecido"
-          }`
+          }`,
         );
       }
     } catch (error: any) {
@@ -251,7 +266,7 @@ export default function FactionSelectionPage() {
 
           <ConfirmButton
             selectedFaction={selectedFaction}
-            loading={loading}
+            loading={loading || profileLoading}
             processing={processing}
             onConfirm={handleFactionSelect}
           />
