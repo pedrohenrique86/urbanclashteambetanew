@@ -17,7 +17,7 @@ export default function FactionSelectionPage() {
   >(null);
   const [loading, setLoading] = useState(false);
   const [processing, setProcessing] = useState(false);
-  const [pageLoading, setPageLoading] = useState(false); // O hook já gerencia o loading inicial
+  // O estado pageLoading foi removido para usar profileLoading do hook como fonte única da verdade.
   const [factionDetails, setFactionDetails] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -137,9 +137,9 @@ export default function FactionSelectionPage() {
 
   // Função de confirmação removida pois a seleção é feita diretamente
 
-  // Mostrar um indicador de carregamento enquanto verifica o usuário
-  if (pageLoading) {
-    return <LoadingScreen error={error} pageLoading={pageLoading} />;
+  // Mostrar um indicador de carregamento enquanto o perfil do usuário é verificado pelo hook
+  if (profileLoading) {
+    return <LoadingScreen error={error} pageLoading={profileLoading} />;
   }
 
   return (
