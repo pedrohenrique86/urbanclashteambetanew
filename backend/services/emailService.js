@@ -17,7 +17,8 @@ class EmailService {
 
   initializeEmailProvider() {
     const apiKey = process.env.RESEND_API_KEY;
-    const fromEmail = process.env.FROM_EMAIL; // CORRIGIDO: de EMAIL_FROM para FROM_EMAIL
+    // Procura por FROM_EMAIL (novo padrão) ou EMAIL_FROM (padrão antigo) para retrocompatibilidade
+    const fromEmail = process.env.FROM_EMAIL || process.env.EMAIL_FROM;
 
     if (apiKey && fromEmail) {
       this.resend = new Resend(apiKey);
@@ -25,7 +26,7 @@ class EmailService {
       console.log("✅ Email configurado com Resend.");
     } else {
       console.log(
-        "⚠️  Email não configurado. Verifique RESEND_API_KEY e FROM_EMAIL.", // CORRIGIDO
+        "⚠️  Email não configurado. Verifique RESEND_API_KEY e (FROM_EMAIL ou EMAIL_FROM).",
       );
       console.log("💡 Emails serão apenas logados no console.");
     }
@@ -42,12 +43,12 @@ class EmailService {
       return { success: true, message: "Email simulado no console" };
     }
 
-    const fromAddress = `Urban Clash Team <${process.env.FROM_EMAIL}>`;
+    const fromAddress = `Urban Clash Team <${process.env.FROM_EMAIL || process.env.EMAIL_FROM}>`;
     const replyToEmail = process.env.EMAIL_REPLY_TO;
 
     try {
       await this.resend.emails.send({
-        from: fromAddress, // CORRIGIDO: Usando a variável formatada
+        from: fromAddress, // CORRIGIDO: Agora usa a variável correta
         to: to,
         subject: subject,
         html: html,
