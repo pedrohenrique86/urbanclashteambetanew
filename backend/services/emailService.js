@@ -95,49 +95,57 @@ class EmailService {
   }
 
   async sendWelcomeEmail(email, username) {
-    const factionSelectionUrl = `${this.frontendUrl}/faction-selection`;
-    const bannerUrl = `${this.frontendUrl}/banner_boas_vindas.png`; // URL pública do banner
+    const subject = "Bem-vindo ao Urban Clash Team!";
+    // Constrói a URL completa para a imagem. Essencial para clientes de e-mail.
+    const backendUrl = process.env.BACKEND_URL || "http://localhost:3001";
+    const bannerUrl = `${backendUrl}/images/banner_boas_vindas.png`;
 
     const html = `
       <!DOCTYPE html>
       <html lang="pt-BR">
       <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <style>
-          body { margin: 0; padding: 0; background-color: #111827; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-          .container { max-width: 600px; margin: 0 auto; background-color: #1f2937; color: #f3f4f6; border-radius: 8px; overflow: hidden; }
-          .banner img { width: 100%; height: auto; }
-          .content { padding: 24px; }
-          .content h1 { color: #f97316; font-size: 24px; margin-top: 0; }
-          .content p { font-size: 16px; line-height: 1.6; }
-          .button-container { text-align: center; margin: 32px 0; }
-          .button { background-color: #f97316; color: #ffffff; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 18px; display: inline-block; }
-          .footer { padding: 16px; text-align: center; font-size: 12px; color: #9ca3af; }
-        </style>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>${subject}</title>
+          <style>
+              body { margin: 0; padding: 0; background-color: #121212; font-family: Arial, sans-serif; }
+              .container { width: 100%; max-width: 600px; margin: 0 auto; background-color: #1E1E1E; color: #E0E0E0; }
+              .header { text-align: center; }
+              .header img { max-width: 100%; height: auto; display: block; }
+              .content { padding: 20px; text-align: center; }
+              .content h1 { color: #f97316; }
+              .footer { padding: 20px; text-align: center; font-size: 12px; color: #757575; }
+          </style>
       </head>
       <body>
-        <div class="container">
-          <div class="banner">
-            <img src="${bannerUrl}" alt="Bem-vindo ao Urban Clash Team">
-          </div>
-          <div class="content">
-            <h1>Bem-vindo(a) à arena, ${username}!</h1>
-            <p>Sua conta foi ativada e a cidade aguarda suas ordens. A guerra entre a Lei e o Caos está prestes a explodir, e cada decisão sua pode mudar o destino do conflito.</p>
-            <p>O primeiro passo na sua jornada é o mais crucial: <strong>escolher sua facção</strong>. Você irá impor a ordem com a força da lei ou irá mergulhar a cidade na anarquia?</p>
-            <div class="button-container">
-              <a href="${factionSelectionUrl}" class="button">Escolher Minha Facção Agora</a>
-            </div>
-            <p>Prepare-se. A batalha está apenas começando.</p>
-          </div>
-          <div class="footer">
-            <p>&copy; ${new Date().getFullYear()} Urban Clash Team. Todos os direitos reservados.</p>
-          </div>
-        </div>
+          <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
+              <tr>
+                  <td style="padding: 20px 0;">
+                      <table align="center" border="0" cellpadding="0" cellspacing="0" width="600" style="border-collapse: collapse;" class="container">
+                          <tr>
+                              <td align="center" class="header">
+                                  <img src="${bannerUrl}" alt="Bem-vindo ao Urban Clash Team" />
+                              </td>
+                          </tr>
+                          <tr>
+                              <td class="content">
+                                  <h1>Bem-vindo(a) à arena, ${username}!</h1>
+                              </td>
+                          </tr>
+                          <tr>
+                              <td class="footer">
+                                  <p>&copy; ${new Date().getFullYear()} Urban Clash Team. Todos os direitos reservados.</p>
+                              </td>
+                          </tr>
+                      </table>
+                  </td>
+              </tr>
+          </table>
       </body>
       </html>
     `;
-    return await this.sendEmail(email, "Bem-vindo ao Urban Clash Team!", html);
+
+    return await this.sendEmail(email, subject, html);
   }
 
   // TODO: Implementar a lógica de envio de aviso de rodada

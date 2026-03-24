@@ -37,6 +37,11 @@ const corsOptions = {
 
 const app = express();
 
+// --- SERVIR ARQUIVOS ESTÁTICOS (IMAGENS PARA E-MAILS, ETC) ---
+// Disponibiliza o conteúdo da pasta 'public' na raiz do servidor.
+// Ex: /images/banner.png acessará o arquivo em public/images/banner.png
+app.use(express.static(path.join(__dirname, "public")));
+
 // Aplica o CORS manualmente para diagnóstico
 app.use((req, res, next) => {
   const origin = req.headers.origin;
