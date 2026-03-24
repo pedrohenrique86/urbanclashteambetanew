@@ -31,12 +31,7 @@ async function connectDB() {
     const client = await pool.connect();
     console.log("🔗 Testando conexão com PostgreSQL...");
 
-    const result = await client.query("SELECT NOW()");
-    console.log("✅ Conexão com PostgreSQL estabelecida:", result.rows[0].now);
-
-    // A chamada para seedClans será feita no início da aplicação, não na conexão.
-
-    client.release();
+    await client.query("SELECT NOW()");
     return true;
   } catch (error) {
     console.error("❌ Erro ao conectar com PostgreSQL:", error.message);

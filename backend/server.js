@@ -14,7 +14,7 @@ require("dotenv").config({ path: path.resolve(__dirname, "../.env") });
 const authRoutes = require("./routes/auth");
 const userRoutes = require("./routes/users");
 const clanRoutes = require("./routes/clans");
-const { connectDB, closePool } = require("./config/database");
+const { connectDB, closePool, seedClans } = require("./config/database");
 const { checkAutoStart } = require("./services/gameStateService");
 const { initializeSocket } = require("./socketHandler");
 const http = require("http");
@@ -146,6 +146,9 @@ async function startServer() {
   try {
     await connectDB();
     console.log("✅ Conectado ao PostgreSQL");
+
+    // Popula a tabela de clãs, se necessário.
+    await seedClans();
 
     await startGameStateMonitor();
 
