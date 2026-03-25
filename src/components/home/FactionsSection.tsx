@@ -1,27 +1,33 @@
 import React from "react";
 import { motion } from "framer-motion";
+import { Link } from "react-router-dom"; // Importar Link para navegação
+
+// Importar as imagens dos cards
+import cardGangsters from "../../assets/cardgangsters_home.png";
+import cardGuardas from "../../assets/cardguardas_home.png";
+import cardClans from "../../assets/cardclans_home.png";
 
 export function FactionsSection() {
   const factions = [
     {
-      icon: "🔫",
-      title: "GANGSTERS",
-      description: "Controle o submundo do crime organizado",
-      bg: "from-orange-600 to-orange-500",
+      image: cardGangsters,
+      alt: "Card da facção Gangsters",
+      link: "/login",
+      neonColor: "hover:shadow-[0_0_15px_5px_rgba(249,115,22,0.7)]", // Laranja
       delay: 0.3,
     },
     {
-      icon: "🛡️",
-      title: "GUARDAS",
-      description: "Mantenha a ordem e a justiça nas ruas",
-      bg: "from-blue-600 to-blue-400",
+      image: cardGuardas,
+      alt: "Card da facção Guardas",
+      link: "/login",
+      neonColor: "hover:shadow-[0_0_15px_5px_rgba(59,130,246,0.7)]", // Azul
       delay: 0.4,
     },
     {
-      icon: "👥",
-      title: "CLÃS",
-      description: "Una-se aos melhores e domine o servidor",
-      bg: "from-purple-600 to-purple-500",
+      image: cardClans,
+      alt: "Card sobre os Clãs",
+      link: "/clans", // Link para a página de clãs
+      neonColor: "hover:shadow-[0_0_15px_5px_rgba(168,85,247,0.7)]", // Roxo para clãs
       delay: 0.5,
     },
   ];
@@ -45,7 +51,7 @@ export function FactionsSection() {
         >
           ESCOLHA SEU DESTINO
         </motion.h2>
-        <div className="grid md:grid-cols-3 gap-8">
+        <div className="grid md:grid-cols-3 gap-10">
           {factions.map((faction, idx) => (
             <motion.div
               key={idx}
@@ -53,18 +59,16 @@ export function FactionsSection() {
               whileInView={{ opacity: 1, y: 0, scale: 1 }}
               transition={{ delay: faction.delay, duration: 0.6 }}
               viewport={{ once: true }}
-              whileHover={{ scale: 1.05, y: -10 }}
-              className={`p-8 rounded-2xl bg-gradient-to-br ${faction.bg} transform transition-all duration-300 shadow-2xl hover:shadow-3xl cursor-pointer group`}
+              whileHover={{ scale: 1.05, y: -5 }}
+              className={`relative rounded-2xl overflow-hidden transform transition-all duration-300 cursor-pointer group ${faction.neonColor} shadow-lg`}
             >
-              <div className="text-center space-y-6">
-                <div className="text-7xl group-hover:scale-110 transition-transform duration-300">
-                  {faction.icon}
-                </div>
-                <h3 className="text-3xl font-orbitron font-bold">
-                  {faction.title}
-                </h3>
-                <p className="text-lg opacity-90">{faction.description}</p>
-              </div>
+              <Link to={faction.link}>
+                <img
+                  src={faction.image}
+                  alt={faction.alt}
+                  className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
+                />
+              </Link>
             </motion.div>
           ))}
         </div>

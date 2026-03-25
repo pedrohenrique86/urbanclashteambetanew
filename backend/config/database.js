@@ -119,13 +119,7 @@ async function seedClans() {
       return;
     }
 
-    const clansExist = await query("SELECT COUNT(*) FROM clans");
-    if (clansExist.rows[0].count > 0) {
-      console.log("ℹ️ Tabela de clãs já populada. Nenhuma ação necessária.");
-      return;
-    }
-
-    console.log("ℹ️ Populando a tabela de clãs com dados iniciais...");
+    console.log("ℹ️ Verificando e populando a tabela de clãs...");
 
     const clansToInsert = [
       // --- GANGSTERS (13) ---
@@ -195,7 +189,7 @@ async function seedClans() {
       {
         name: "The Gilded Vultures",
         description:
-          "They prey on the city's elite, specializing in blackmail and corporate espionage.",
+          "Eles atacam a elite da cidade, especializando-se em chantagem e espionagem corporativa.",
         faction: "gangsters",
         leader_id: null,
         max_members: 40,
@@ -204,7 +198,7 @@ async function seedClans() {
       {
         name: "Rust-Heart Syndicate",
         description:
-          "A gritty crew that controls the industrial district's scrap metal and black market parts.",
+          "Uma equipe corajosa que controla a sucata e as peças do mercado negro do distrito industrial.",
         faction: "gangsters",
         leader_id: null,
         max_members: 40,
@@ -213,7 +207,7 @@ async function seedClans() {
       {
         name: "Midnight Phantoms",
         description:
-          "Known for heists that are so clean, it's as if they were never there.",
+          "Conhecidos por assaltos tão perfeitos que é como se nunca tivessem acontecido.",
         faction: "gangsters",
         leader_id: null,
         max_members: 40,
@@ -222,7 +216,7 @@ async function seedClans() {
       {
         name: "Crimson Tide Cartel",
         description:
-          "They manage the flow of illicit goods through the city's waterways.",
+          "Eles gerenciam o fluxo de mercadorias ilícitas através dos canais da cidade.",
         faction: "gangsters",
         leader_id: null,
         max_members: 40,
@@ -231,7 +225,7 @@ async function seedClans() {
       {
         name: "The Alchemists",
         description:
-          "A mysterious group that manufactures and distributes performance-enhancing street drugs.",
+          "Um grupo misterioso que fabrica e distribui drogas de rua para melhorar o desempenho.",
         faction: "gangsters",
         leader_id: null,
         max_members: 40,
@@ -240,7 +234,7 @@ async function seedClans() {
       {
         name: "Shadow Weavers",
         description:
-          "They manipulate city politics from behind the scenes, pulling strings no one else sees.",
+          "Eles manipulam a política da cidade nos bastidores, movendo os pauzinhos que ninguém mais vê.",
         faction: "gangsters",
         leader_id: null,
         max_members: 40,
@@ -314,7 +308,7 @@ async function seedClans() {
       {
         name: "The Aegis Corps",
         description:
-          "A heavily armored unit that acts as the city's immovable shield against organized crime.",
+          "Uma unidade fortemente blindada que atua como o escudo imóvel da cidade contra o crime organizado.",
         faction: "guardas",
         leader_id: null,
         max_members: 40,
@@ -323,7 +317,7 @@ async function seedClans() {
       {
         name: "Cerulean Wardens",
         description:
-          "They patrol the city's waterways and ports, preventing smuggling and illegal entry.",
+          "Eles patrulham os canais e portos da cidade, impedindo o contrabando e a entrada ilegal.",
         faction: "guardas",
         leader_id: null,
         max_members: 40,
@@ -332,7 +326,7 @@ async function seedClans() {
       {
         name: "Vigilant Knights",
         description:
-          "A precinct known for its incorruptible detectives and high-profile case-solving rate.",
+          "Uma delegacia conhecida por seus detetives incorruptíveis e alta taxa de resolução de casos de grande repercussão.",
         faction: "guardas",
         leader_id: null,
         max_members: 40,
@@ -341,7 +335,7 @@ async function seedClans() {
       {
         name: "The Bastion",
         description:
-          "They maintain the city's high-security prison and are experts in containing the most dangerous criminals.",
+          "Eles mantêm a prisão de alta segurança da cidade e são especialistas em conter os criminosos mais perigosos.",
         faction: "guardas",
         leader_id: null,
         max_members: 40,
@@ -350,7 +344,7 @@ async function seedClans() {
       {
         name: "Phoenix Division",
         description:
-          "A special unit dedicated to rebuilding and securing districts after major conflicts.",
+          "Uma unidade especial dedicada a reconstruir e proteger distritos após grandes conflitos.",
         faction: "guardas",
         leader_id: null,
         max_members: 40,
@@ -359,7 +353,7 @@ async function seedClans() {
       {
         name: "Shield of Veritas",
         description:
-          "An internal affairs division ensuring that all guards operate with honor and integrity.",
+          "Uma divisão de assuntos internos que garante que todos os guardas operem com honra e integridade.",
         faction: "guardas",
         leader_id: null,
         max_members: 40,
@@ -367,24 +361,38 @@ async function seedClans() {
       },
     ];
 
-    // Usar a função de transação para garantir a atomicidade
+    // Lógica de verificação e inserção individual para cada clã
     await transaction(async (client) => {
+      let insertedCount = 0;
       for (const clan of clansToInsert) {
-        await client.query(
-          "INSERT INTO clans (name, description, faction, leader_id, max_members, is_recruiting) VALUES ($1, $2, $3, $4, $5, $6)",
-          [
-            clan.name,
-            clan.description,
-            clan.faction,
-            clan.leader_id,
-            clan.max_members,
-            clan.is_recruiting,
-          ],
+        // Verifica se o clã já existe pelo nome
+        const existingClan = await client.query(
+          "SELECT 1 FROM clans WHERE name = $1",
+          [clan.name],
         );
+
+        // Se não existir, insere o novo clã
+        if (existingClan.rowCount === 0) {
+          await client.query(
+            "INSERT INTO clans (name, description, faction, leader_id, max_members, is_recruiting) VALUES ($1, $2, $3, $4, $5, $6)",
+            [
+              clan.name,
+              clan.description,
+              clan.faction,
+              clan.leader_id,
+              clan.max_members,
+              clan.is_recruiting,
+            ],
+          );
+          insertedCount++;
+        }
+      }
+      if (insertedCount > 0) {
+        console.log(`✅ ${insertedCount} novos clãs inseridos com sucesso.`);
+      } else {
+        console.log("ℹ️ Todos os 26 clãs padrão já existem no banco de dados.");
       }
     });
-
-    console.log(`✅ ${clansToInsert.length} clãs inseridos com sucesso.`);
   } catch (error) {
     console.error("❌ Erro ao popular a tabela de clãs:", error.message);
     // Não relançar o erro para não impedir o início da aplicação
