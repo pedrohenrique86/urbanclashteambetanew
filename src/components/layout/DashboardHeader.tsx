@@ -38,8 +38,9 @@ export default function DashboardHeader({ username }: DashboardHeaderProps) {
               <span className="mx-1 text-transparent bg-gradient-to-r from-blue-400 to-blue-600 bg-clip-text font-bold">
                 CLASH
               </span>
+              <span className="text-white font-bold ml-2">TEAM</span>
               <span className="text-gray-400 font-normal ml-2">
-                | Dashboard
+                | {username}
               </span>
             </h1>
           </div>

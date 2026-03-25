@@ -203,14 +203,20 @@ router.post("/login", authLimiter, loginValidation, async (req, res) => {
       });
     }
 
-    // Verificar se é o primeiro login após confirmação de email
-    const lastLoginResult = await query(
-      "SELECT last_login FROM user_profiles WHERE user_id = $1",
+    // Verificar se o usuário já tem um perfil criado.
+    // Se não houver perfil, é o primeiro login.
+    const profileResultForCheck = await query(
+      "SELECT id FROM user_profiles WHERE user_id = $1",
       [user.id],
     );
 
-    const isFirstLogin = !lastLoginResult.rows[0]?.last_login;
-    console.log("👤 Verificação de primeiro login:", { isFirstLogin });
+    const isFirstLogin = profileResultForCheck.rows.length === 0;
+    console.log(
+      "👤 Verificação de primeiro login (baseado na existência do perfil):",
+      {
+        isFirstLogin,
+      },
+    );
 
     // Gerar token JWT
     const token = generateToken(user.id);
@@ -224,7 +230,7 @@ router.post("/login", authLimiter, loginValidation, async (req, res) => {
       [user.id],
     );
 
-    // Buscar perfil do usuário
+    // Buscar perfil do usuário (reutilizando a consulta se possível ou fazendo uma nova)
     const profileResult = await query(
       "SELECT * FROM user_profiles WHERE user_id = $1",
       [user.id],
