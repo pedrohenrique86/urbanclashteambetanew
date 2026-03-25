@@ -652,6 +652,20 @@ router.put(
         );
       } else {
         // Atualizar perfil existente
+
+        // Se o username estiver sendo alterado, verificar conflitos primeiro
+        if (username !== undefined) {
+          const existingUser = await query(
+            "SELECT id FROM user_profiles WHERE username = $1 AND user_id != $2",
+            [username, id],
+          );
+          if (existingUser.rows.length > 0) {
+            return res
+              .status(409)
+              .json({ error: "Este nome de usuário já está em uso." });
+          }
+        }
+
         const updateFields = [];
         const updateValues = [];
         let paramCount = 1;
@@ -744,6 +758,14 @@ router.put(
         profile: result.rows[0],
       });
     } catch (error) {
+      if (
+        error.code === "23505" &&
+        error.constraint === "user_profiles_username_key"
+      ) {
+        return res
+          .status(409)
+          .json({ error: "Este nome de usuário já está em uso." });
+      }
       console.error("❌ Erro ao atualizar perfil:", error.message);
       res.status(500).json({ error: "Erro interno do servidor" });
     }
