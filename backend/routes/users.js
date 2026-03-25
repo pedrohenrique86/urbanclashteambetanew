@@ -434,6 +434,15 @@ router.put(
 
       res.json(result.rows[0]);
     } catch (error) {
+      // Trata o erro de violação de constraint única (username duplicado)
+      if (
+        error.code === "23505" &&
+        error.constraint === "user_profiles_username_key"
+      ) {
+        return res
+          .status(409)
+          .json({ error: "Este nome de usuário já está em uso." });
+      }
       console.error("❌ Erro ao atualizar perfil do usuário:", error.message);
       res.status(500).json({ error: "Erro interno do servidor" });
     }
@@ -596,7 +605,38 @@ router.put(
 
       let result;
       if (profileExists.rows.length === 0) {
-        // Criar perfil se não existir com valores corretos baseados na facção
+        // Lógica de CRIAÇÃO de perfil
+
+        // 1. Determinar o username a ser usado (do body ou da tabela users como fallback)
+        let usernameToInsert = username;
+        if (!usernameToInsert) {
+          const userData = await query(
+            "SELECT username FROM users WHERE id = $1",
+            [id],
+          );
+          if (userData.rows.length > 0) {
+            usernameToInsert = userData.rows[0].username;
+          } else {
+            return res.status(404).json({ error: "Usuário não encontrado." });
+          }
+        }
+
+        // 2. Verificar se o username a ser inserido já está em uso
+        const existingProfile = await query(
+          "SELECT id FROM user_profiles WHERE username = $1",
+          [usernameToInsert],
+        );
+
+        if (existingProfile.rows.length > 0) {
+          return res
+            .status(409)
+            .json({
+              error:
+                "Este nome de usuário já está em uso. Por favor, escolha outro.",
+            });
+        }
+
+        // 3. Obter stats da facção
         let stats = {};
         if (faction === "gangsters") {
           stats = {
@@ -619,25 +659,26 @@ router.put(
             discipline: 40.0,
           };
         } else {
-          // Se a facção não for válida, retornar erro
           return res
             .status(400)
-            .json({ error: "Facção deve ser: gangsters ou guardas" });
+            .json({
+              error: "Facção inválida. Escolha 'gangsters' ou 'guardas'.",
+            });
         }
 
+        // 4. Inserir o novo perfil
         result = await query(
           `
-        INSERT INTO user_profiles (
-          user_id, username, bio, faction, avatar_url,
-          attack, defense, focus, critical_damage, critical_chance, intimidation, discipline
-        )
-        SELECT $1, u.username, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11
-        FROM users u
-        WHERE u.id = $1
-        RETURNING *
-      `,
+          INSERT INTO user_profiles (
+            user_id, username, bio, faction, avatar_url,
+            attack, defense, focus, critical_damage, critical_chance, intimidation, discipline
+          )
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+          RETURNING *
+        `,
           [
             id,
+            usernameToInsert,
             bio,
             faction,
             avatar_url,
@@ -651,7 +692,7 @@ router.put(
           ],
         );
       } else {
-        // Atualizar perfil existente
+        // Lógica de ATUALIZAÇÃO de perfil existente
 
         // Se o username estiver sendo alterado, verificar conflitos primeiro
         if (username !== undefined) {
