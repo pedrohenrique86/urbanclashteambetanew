@@ -12,14 +12,17 @@ export function FactionsSection() {
     gangsters: {
       shadow: "[--shadow-color:rgba(249,115,22,0.5)]",
       hoverShadow: "[--shadow-color:rgba(249,115,22,0.8)]",
+      beam: "from-transparent via-orange-500 to-transparent",
     },
     guardas: {
       shadow: "[--shadow-color:rgba(59,130,246,0.5)]",
       hoverShadow: "[--shadow-color:rgba(59,130,246,0.8)]",
+      beam: "from-transparent via-blue-500 to-transparent",
     },
     clans: {
       shadow: "[--shadow-color:rgba(168,85,247,0.5)]",
       hoverShadow: "[--shadow-color:rgba(168,85,247,0.8)]",
+      beam: "from-transparent via-purple-500 to-transparent",
     },
   };
 
@@ -71,16 +74,32 @@ export function FactionsSection() {
               whileInView={{ opacity: 1, y: 0 }}
               transition={{ delay: faction.delay, duration: 0.6 }}
               viewport={{ once: true }}
-              className="group"
+              // Adicionado 'group' para que o hover funcione nos spans
+              // e 'relative' para posicionar os spans de animação
+              className="group relative overflow-hidden rounded-lg"
             >
               <img
                 src={faction.image}
                 alt={faction.alt}
+                // A sombra estática e a transição de intensidade no hover continuam aqui
                 className={`w-full h-full object-cover transition-all duration-300 ${faction.style.shadow} group-hover:${faction.style.hoverShadow}`}
                 style={{
                   filter: `drop-shadow(0 0 8px var(--shadow-color))`,
                 }}
               />
+              {/* Feixe de luz animado no hover */}
+              <span
+                className={`absolute top-0 left-0 w-full h-1 bg-gradient-to-r ${faction.style.beam} -translate-x-full group-hover:translate-x-0 transition-transform duration-500 ease-in-out`}
+              ></span>
+              <span
+                className={`absolute top-0 right-0 w-1 h-full bg-gradient-to-b ${faction.style.beam} -translate-y-full group-hover:translate-y-0 transition-transform duration-500 ease-in-out delay-100`}
+              ></span>
+              <span
+                className={`absolute bottom-0 right-0 w-full h-1 bg-gradient-to-l ${faction.style.beam} translate-x-full group-hover:translate-x-0 transition-transform duration-500 ease-in-out delay-200`}
+              ></span>
+              <span
+                className={`absolute top-0 left-0 w-1 h-full bg-gradient-to-t ${faction.style.beam} translate-y-full group-hover:translate-y-0 transition-transform duration-500 ease-in-out delay-300`}
+              ></span>
             </motion.div>
           ))}
         </div>

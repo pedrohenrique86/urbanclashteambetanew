@@ -187,16 +187,9 @@ export default function RankingSection() {
                 ) : (
                   // Mostrar mensagem quando não houver dados
                   <div className="text-center text-gray-400 py-4">
-                    {config === clanConfig ? (
-                      <div>
-                        <p className="mb-2">🏗️ Aguardando implementação</p>
-                        <p className="text-sm">
-                          A lógica de clãs está sendo desenvolvida
-                        </p>
-                      </div>
-                    ) : (
-                      "Nenhum jogador encontrado nesta facção"
-                    )}
+                    {config === clanConfig
+                      ? "Nenhum clã encontrado"
+                      : "Nenhum jogador encontrado nesta facção"}
                   </div>
                 )}
               </div>
