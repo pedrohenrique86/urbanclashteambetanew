@@ -85,8 +85,8 @@ const createClanValidation = [
     .isLength({ max: 500 })
     .withMessage("Descrição deve ter no máximo 500 caracteres"),
   body("faction")
-    .isIn(["north", "south", "east", "west"])
-    .withMessage("Facção deve ser: north, south, east ou west"),
+    .isIn(["gangsters", "guardas"])
+    .withMessage("Facção deve ser: gangsters ou guardas"),
   body("max_members")
     .optional()
     .isInt({ min: 5, max: 100 })

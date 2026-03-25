@@ -8,7 +8,6 @@ const path = require("path");
 const helmet = require("helmet");
 const morgan = require("morgan");
 const rateLimit = require("express-rate-limit");
-require("dotenv").config();
 require("dotenv").config({ path: path.resolve(__dirname, "../.env") });
 
 const authRoutes = require("./routes/auth");
@@ -24,7 +23,8 @@ const { Server } = require("socket.io");
 const allowedOrigins = [
   process.env.FRONTEND_URL, // URL de produção (deve ser https://www.urbanclashteam.com)
   "https://www.urbanclashteam.com", // Adicionado explicitamente para garantir
-  "http://localhost:5173", // Desenvolvimento local
+  "http://localhost:3000", // Desenvolvimento local (Vite configurado na porta 3000)
+  "http://localhost:5173", // Fallback Vite
   "http://127.0.0.1:5173",
 ].filter(Boolean); // Filtra valores nulos ou indefinidos
 

@@ -17,7 +17,7 @@ if (!process.env.DATABASE_URL) {
     user: "postgres",
     password: "W0rdPr355@@",
     host: "localhost",
-    port: 5432,
+    port: 5433,
     database: "urbanclash",
   });
 }

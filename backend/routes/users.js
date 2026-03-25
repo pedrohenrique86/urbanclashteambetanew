@@ -57,7 +57,7 @@ async function refreshRankingsCache(faction, limit) {
     `
     SELECT 
       u.id, u.username, u.country,
-      p.username as display_name, p.avatar_url, p.level, 
+      p.display_name, p.avatar_url, p.level, 
       p.experience_points, p.faction, p.victories, p.defeats, p.winning_streak,
       ROW_NUMBER() OVER (ORDER BY p.level DESC, p.experience_points DESC) as rank
     FROM users u
@@ -317,7 +317,7 @@ router.post("/profile", authenticateToken, async (req, res) => {
     const result = await query(
       `
       INSERT INTO user_profiles (
-        user_id, username, faction, level, experience_points,
+        user_id, display_name, faction, level, experience_points,
         energy, current_xp, xp_required, action_points,
         attack, defense, focus, intimidation, discipline,
         critical_chance, critical_damage, money, money_daily_gain, victories, defeats, winning_streak,
@@ -628,12 +628,10 @@ router.put(
         );
 
         if (existingProfile.rows.length > 0) {
-          return res
-            .status(409)
-            .json({
-              error:
-                "Este nome de usuário já está em uso. Por favor, escolha outro.",
-            });
+          return res.status(409).json({
+            error:
+              "Este nome de usuário já está em uso. Por favor, escolha outro.",
+          });
         }
 
         // 3. Obter stats da facção
@@ -659,11 +657,9 @@ router.put(
             discipline: 40.0,
           };
         } else {
-          return res
-            .status(400)
-            .json({
-              error: "Facção inválida. Escolha 'gangsters' ou 'guardas'.",
-            });
+          return res.status(400).json({
+            error: "Facção inválida. Escolha 'gangsters' ou 'guardas'.",
+          });
         }
 
         // 4. Inserir o novo perfil
