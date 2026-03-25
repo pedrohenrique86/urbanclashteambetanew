@@ -1187,7 +1187,7 @@ export default function AuthModal({
                     ></path>
                     <path fill="none" d="M0 0h48v48H0z"></path>
                   </svg>
-                  <span>Registro/Login com Google</span>
+                  <span>Login/Registro Google</span>
                 </button>
               </div>
             )}

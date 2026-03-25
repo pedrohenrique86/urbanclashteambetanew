@@ -105,11 +105,6 @@ export default function GoogleCallbackPage() {
 
         if (!res.ok) {
           const errorData = await res.json().catch(() => null);
-          // Se o usuário não existe, redireciona para o registro
-          if (errorData?.error === "google_user_not_found") {
-            setShowRegisterPrompt(true);
-            return; // Interrompe para mostrar o prompt de registro
-          }
           throw new Error(
             errorData?.error || "Falha na autenticação com Google.",
           );
@@ -138,41 +133,6 @@ export default function GoogleCallbackPage() {
 
     processAuth();
   }, [location.search, navigate]);
-
-  // Se o usuário não estiver cadastrado, mostramos um prompt para se registrar.
-  if (showRegisterPrompt) {
-    return (
-      <div
-        className={`min-h-screen ${themeClasses.bg} flex items-center justify-center px-4`}
-      >
-        <div
-          className={`${themeClasses.cardBg} border ${themeClasses.border} rounded-xl p-6 w-full max-w-md text-center`}
-        >
-          <div className="space-y-4">
-            <h2 className="text-xl font-bold text-white">
-              Usuário não cadastrado
-            </h2>
-            <p className={`${themeClasses.textSecondary}`}>
-              Para fazer login, primeiro você precisa se registrar com sua conta
-              Google.
-            </p>
-            <button
-              onClick={handleGoogleRegister}
-              className="w-full px-4 py-2 rounded bg-green-600 hover:bg-green-500 transition-colors font-bold text-white"
-            >
-              Clique aqui para se registrar
-            </button>
-            <button
-              onClick={() => navigate("/")}
-              className="w-full px-4 py-2 rounded bg-gray-600 hover:bg-gray-500 transition-colors font-bold text-white mt-2"
-            >
-              Voltar para o Início
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   // A página não renderiza nada durante o processamento, ficando em branco.
   return null;
