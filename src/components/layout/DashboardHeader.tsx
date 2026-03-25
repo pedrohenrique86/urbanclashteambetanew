@@ -39,7 +39,7 @@ export default function DashboardHeader({ username }: DashboardHeaderProps) {
                 CLASH
               </span>
               <span className="text-white font-bold ml-2">TEAM</span>
-              <span className="text-gray-400 font-normal ml-2">
+              <span className="text-gray-400 font-normal ml-4">
                 | {username}
               </span>
             </h1>
