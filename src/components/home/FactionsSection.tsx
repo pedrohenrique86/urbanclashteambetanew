@@ -7,23 +7,39 @@ import cardGuardas from "../../assets/cardguardas_home.png";
 import cardClans from "../../assets/cardclans_home.png";
 
 export function FactionsSection() {
+  // Definindo as cores e sombras para reutilização
+  const factionStyles = {
+    gangsters: {
+      shadow: "[--shadow-color:rgba(249,115,22,0.5)]",
+      hoverShadow: "[--shadow-color:rgba(249,115,22,0.8)]",
+    },
+    guardas: {
+      shadow: "[--shadow-color:rgba(59,130,246,0.5)]",
+      hoverShadow: "[--shadow-color:rgba(59,130,246,0.8)]",
+    },
+    clans: {
+      shadow: "[--shadow-color:rgba(168,85,247,0.5)]",
+      hoverShadow: "[--shadow-color:rgba(168,85,247,0.8)]",
+    },
+  };
+
   const factions = [
     {
       image: cardGangsters,
       alt: "Card da facção Gangsters",
-      neonColor: "bg-orange-500",
+      style: factionStyles.gangsters,
       delay: 0.3,
     },
     {
       image: cardGuardas,
       alt: "Card da facção Guardas",
-      neonColor: "bg-blue-500",
+      style: factionStyles.guardas,
       delay: 0.4,
     },
     {
       image: cardClans,
       alt: "Card sobre os Clãs",
-      neonColor: "bg-purple-500",
+      style: factionStyles.clans,
       delay: 0.5,
     },
   ];
@@ -55,26 +71,15 @@ export function FactionsSection() {
               whileInView={{ opacity: 1, y: 0 }}
               transition={{ delay: faction.delay, duration: 0.6 }}
               viewport={{ once: true }}
-              className="relative group overflow-hidden rounded-2xl shadow-lg"
+              className="group"
             >
-              {/* Efeito de borda neon animada */}
-              <span
-                className={`absolute top-0 left-0 w-0 h-1 ${faction.neonColor} transition-all duration-200 ease-out group-hover:w-full`}
-              ></span>
-              <span
-                className={`absolute top-0 right-0 w-1 h-0 ${faction.neonColor} transition-all duration-200 ease-out delay-200 group-hover:h-full`}
-              ></span>
-              <span
-                className={`absolute bottom-0 right-0 w-0 h-1 ${faction.neonColor} transition-all duration-200 ease-out delay-[400ms] group-hover:w-full`}
-              ></span>
-              <span
-                className={`absolute bottom-0 left-0 w-1 h-0 ${faction.neonColor} transition-all duration-200 ease-out delay-[600ms] group-hover:h-full`}
-              ></span>
-
               <img
                 src={faction.image}
                 alt={faction.alt}
-                className="w-full h-full object-cover"
+                className={`w-full h-full object-cover transition-all duration-300 ${faction.style.shadow} group-hover:${faction.style.hoverShadow}`}
+                style={{
+                  filter: `drop-shadow(0 0 8px var(--shadow-color))`,
+                }}
               />
             </motion.div>
           ))}

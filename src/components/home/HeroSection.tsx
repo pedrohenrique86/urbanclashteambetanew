@@ -4,13 +4,14 @@ import homePngUrl from "../../assets/home.png"; // Importa a URL do PNG
 
 export function HeroSection() {
   return (
-    <section id="hero" className="relative w-full min-h-screen">
+    <section id="hero" className="relative w-full h-screen overflow-hidden">
       {/* Imagem de fundo com a tag <img>, a abordagem mais robusta e à prova de falhas */}
       <img
         src={homePngUrl}
         alt="Urban Clash Team background"
-        // object-cover preenche a tela mantendo a proporção, sem distorcer a imagem.
-        className="absolute top-0 left-0 w-full h-full object-cover z-0"
+        // object-cover preenche a tela mantendo a proporção, sem distorcer.
+        // object-center garante que o centro da imagem seja priorizado.
+        className="absolute top-0 left-0 w-full h-full object-cover object-center z-0"
       />
 
       {/* Conteúdo sobre a imagem (se houver) deve ter z-index > 0 */}
