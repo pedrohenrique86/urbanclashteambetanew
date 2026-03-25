@@ -1,6 +1,5 @@
 import React from "react";
 import { motion } from "framer-motion";
-import { Link } from "react-router-dom"; // Importar Link para navegação
 
 // Importar as imagens dos cards
 import cardGangsters from "../../assets/cardgangsters_home.png";
@@ -12,22 +11,19 @@ export function FactionsSection() {
     {
       image: cardGangsters,
       alt: "Card da facção Gangsters",
-      link: "/login",
-      neonColor: "hover:shadow-[0_0_15px_5px_rgba(249,115,22,0.7)]", // Laranja
+      neonColor: "bg-orange-500",
       delay: 0.3,
     },
     {
       image: cardGuardas,
       alt: "Card da facção Guardas",
-      link: "/login",
-      neonColor: "hover:shadow-[0_0_15px_5px_rgba(59,130,246,0.7)]", // Azul
+      neonColor: "bg-blue-500",
       delay: 0.4,
     },
     {
       image: cardClans,
       alt: "Card sobre os Clãs",
-      link: "/clans", // Link para a página de clãs
-      neonColor: "hover:shadow-[0_0_15px_5px_rgba(168,85,247,0.7)]", // Roxo para clãs
+      neonColor: "bg-purple-500",
       delay: 0.5,
     },
   ];
@@ -55,20 +51,31 @@ export function FactionsSection() {
           {factions.map((faction, idx) => (
             <motion.div
               key={idx}
-              initial={{ opacity: 0, y: 50, scale: 0.9 }}
-              whileInView={{ opacity: 1, y: 0, scale: 1 }}
+              initial={{ opacity: 0, y: 50 }}
+              whileInView={{ opacity: 1, y: 0 }}
               transition={{ delay: faction.delay, duration: 0.6 }}
               viewport={{ once: true }}
-              whileHover={{ scale: 1.05, y: -5 }}
-              className={`relative rounded-2xl overflow-hidden transform transition-all duration-300 cursor-pointer group ${faction.neonColor} shadow-lg`}
+              className="relative group overflow-hidden rounded-2xl shadow-lg"
             >
-              <Link to={faction.link}>
-                <img
-                  src={faction.image}
-                  alt={faction.alt}
-                  className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
-                />
-              </Link>
+              {/* Efeito de borda neon animada */}
+              <span
+                className={`absolute top-0 left-0 w-0 h-1 ${faction.neonColor} transition-all duration-200 ease-out group-hover:w-full`}
+              ></span>
+              <span
+                className={`absolute top-0 right-0 w-1 h-0 ${faction.neonColor} transition-all duration-200 ease-out delay-200 group-hover:h-full`}
+              ></span>
+              <span
+                className={`absolute bottom-0 right-0 w-0 h-1 ${faction.neonColor} transition-all duration-200 ease-out delay-[400ms] group-hover:w-full`}
+              ></span>
+              <span
+                className={`absolute bottom-0 left-0 w-1 h-0 ${faction.neonColor} transition-all duration-200 ease-out delay-[600ms] group-hover:h-full`}
+              ></span>
+
+              <img
+                src={faction.image}
+                alt={faction.alt}
+                className="w-full h-full object-cover"
+              />
             </motion.div>
           ))}
         </div>

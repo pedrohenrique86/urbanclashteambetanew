@@ -110,7 +110,7 @@ async function closePool() {
   await pool.end();
 }
 
-// Função para popular a tabela de clãs se estiver vazia
+// Função para popular a tabela de clãs, garantindo exatamente 26 clãs.
 async function seedClans() {
   try {
     const tableClansExists = await tableExists("clans");
@@ -119,7 +119,9 @@ async function seedClans() {
       return;
     }
 
-    console.log("ℹ️ Verificando e populando a tabela de clãs...");
+    console.log(
+      "ℹ️ Resetando e populando a tabela de clãs com 26 clãs padrão...",
+    );
 
     const clansToInsert = [
       // --- GANGSTERS (13) ---
@@ -361,37 +363,26 @@ async function seedClans() {
       },
     ];
 
-    // Lógica de verificação e inserção individual para cada clã
     await transaction(async (client) => {
-      let insertedCount = 0;
-      for (const clan of clansToInsert) {
-        // Verifica se o clã já existe pelo nome
-        const existingClan = await client.query(
-          "SELECT 1 FROM clans WHERE name = $1",
-          [clan.name],
-        );
+      // 1. Limpa a tabela de clãs
+      await client.query("DELETE FROM clans");
+      console.log("🗑️ Tabela 'clans' limpa.");
 
-        // Se não existir, insere o novo clã
-        if (existingClan.rowCount === 0) {
-          await client.query(
-            "INSERT INTO clans (name, description, faction, leader_id, max_members, is_recruiting) VALUES ($1, $2, $3, $4, $5, $6)",
-            [
-              clan.name,
-              clan.description,
-              clan.faction,
-              clan.leader_id,
-              clan.max_members,
-              clan.is_recruiting,
-            ],
-          );
-          insertedCount++;
-        }
+      // 2. Insere todos os 26 clãs
+      for (const clan of clansToInsert) {
+        await client.query(
+          "INSERT INTO clans (name, description, faction, leader_id, max_members, is_recruiting) VALUES ($1, $2, $3, $4, $5, $6)",
+          [
+            clan.name,
+            clan.description,
+            clan.faction,
+            clan.leader_id,
+            clan.max_members,
+            clan.is_recruiting,
+          ],
+        );
       }
-      if (insertedCount > 0) {
-        console.log(`✅ ${insertedCount} novos clãs inseridos com sucesso.`);
-      } else {
-        console.log("ℹ️ Todos os 26 clãs padrão já existem no banco de dados.");
-      }
+      console.log(`✅ ${clansToInsert.length} clãs inseridos com sucesso.`);
     });
   } catch (error) {
     console.error("❌ Erro ao popular a tabela de clãs:", error.message);
