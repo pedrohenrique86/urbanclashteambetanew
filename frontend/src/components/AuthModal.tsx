@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { useAuth } from "../contexts/AuthContext";
-import { apiClient } from "../lib/apiClient";
+import { apiClient } from "../lib/supabaseClient";
 import { useToast } from "../contexts/ToastContext";
 import { Country, countries } from "../utils/countries";
 import { useNavigate } from "react-router-dom";
@@ -16,7 +15,6 @@ export default function AuthModal({
   onClose,
   initialMode = "login",
 }: AuthModalProps) {
-  const { login } = useAuth();
   const navigate = useNavigate();
   const { showToast } = useToast();
   const [activeTab, setActiveTab] = useState<AuthMode>(
@@ -168,7 +166,10 @@ export default function AuthModal({
       } else if (!/^[a-zA-Z0-9_]+$/.test(formData.username)) {
         newErrors.username =
           "Username deve conter apenas letras, números e underscore";
-      } else if (formData.username.length < 3 || formData.username.length > 20) {
+      } else if (
+        formData.username.length < 3 ||
+        formData.username.length > 20
+      ) {
         newErrors.username = "Username deve ter entre 3 e 20 caracteres";
       }
 
@@ -216,35 +217,33 @@ export default function AuthModal({
 
     try {
       if (activeTab === "login") {
-        const response = await apiClient.post("/auth/login", {
-          email: formData.email,
-          password: formData.password,
-        });
-        login(response.token, response.user);
+        const response = await apiClient.login(
+          formData.email,
+          formData.password,
+        );
         showToast("Login realizado com sucesso!", "success");
 
         if (response.isFirstLogin) {
           navigate("/faction-selection");
         } else {
           onClose();
+          navigate("/dashboard");
         }
       } else if (activeTab === "register") {
-        await apiClient.post("/auth/register", {
-          username: formData.username,
-          email: formData.email,
-          password: formData.password,
-          birth_date: formData.birthDate || null,
-          country: formData.country || null,
-        });
+        await apiClient.register(
+          formData.email,
+          formData.username,
+          formData.password,
+          formData.birthDate || undefined,
+          formData.country || undefined,
+        );
         showToast(
           "Registro realizado! Verifique seu email para confirmar a conta.",
           "success",
         );
         onClose();
       } else if (activeTab === "forgot-password") {
-        await apiClient.post("/auth/forgot-password", {
-          email: formData.email,
-        });
+        await apiClient.forgotPassword(formData.email);
         showToast(
           "Se o email estiver registrado, um link de redefinição será enviado.",
           "info",
@@ -275,7 +274,7 @@ export default function AuthModal({
   const handleResendConfirmation = async () => {
     setIsProcessing(true);
     try {
-      await apiClient.post("/auth/resend-confirmation", { email: resendEmail });
+      await apiClient.resendConfirmation(resendEmail);
       showToast("Email de confirmação reenviado!", "success");
       setShowResendConfirmation(false);
       setResendEmail("");
@@ -488,9 +487,7 @@ export default function AuthModal({
                   placeholder="seu_username"
                 />
                 {errors.username && (
-                  <p className="text-red-400 text-sm mt-1">
-                    {errors.username}
-                  </p>
+                  <p className="text-red-400 text-sm mt-1">{errors.username}</p>
                 )}
               </div>
             )}
@@ -509,9 +506,7 @@ export default function AuthModal({
                   placeholder="sua senha"
                 />
                 {errors.password && (
-                  <p className="text-red-400 text-sm mt-1">
-                    {errors.password}
-                  </p>
+                  <p className="text-red-400 text-sm mt-1">{errors.password}</p>
                 )}
               </div>
             )}
@@ -560,12 +555,12 @@ export default function AuthModal({
                   )}
                 </div>
                 <div className="relative" ref={countryDropdownRef}>
-                  <label className="block mb-2 text-white font-exo">
-                    País
-                  </label>
+                  <label className="block mb-2 text-white font-exo">País</label>
                   <button
                     type="button"
-                    onClick={() => setIsCountryDropdownOpen(!isCountryDropdownOpen)}
+                    onClick={() =>
+                      setIsCountryDropdownOpen(!isCountryDropdownOpen)
+                    }
                     className="w-full p-3 bg-gray-700 rounded-lg text-white border border-gray-600 focus:border-orange-500 focus:outline-none transition-colors flex justify-between items-center"
                   >
                     <span>{getCountryName(formData.country)}</span>
