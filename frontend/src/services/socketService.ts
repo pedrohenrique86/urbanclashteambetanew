@@ -30,7 +30,8 @@ class SocketService {
    */
   connect(): Socket {
     if (!this.socket) {
-      this.socket = io({
+      this.socket = io(VITE_API_URL, {
+        // CORREÇÃO: Passa a URL do backend
         transports: ["websocket"], // Força o uso de WebSockets para melhor performance
         reconnectionAttempts: 5,
         reconnectionDelay: 1000,

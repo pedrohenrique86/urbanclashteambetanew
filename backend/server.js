@@ -8,7 +8,8 @@ const path = require("path");
 const helmet = require("helmet");
 const morgan = require("morgan");
 const rateLimit = require("express-rate-limit");
-require("dotenv").config({ path: path.resolve(__dirname, "../.env") });
+// Carrega as variáveis de ambiente do arquivo .env na raiz da pasta 'backend'
+require("dotenv").config();
 
 const authRoutes = require("./routes/auth");
 const userRoutes = require("./routes/users");
