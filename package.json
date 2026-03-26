@@ -1,0 +1,13 @@
+{
+  "name": "urbanclash-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Orquestrador principal para o projeto UrbanClash Team",
+  "scripts": {
+    "dev": "concurrently --names \"FRONTEND,BACKEND\" --prefix-colors \"blue,green\" \"npm:dev --prefix frontend\" \"npm:dev --prefix backend\"",
+    "install:all": "npm install && npm install --prefix frontend && npm install --prefix backend"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}
