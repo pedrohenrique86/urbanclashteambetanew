@@ -14,7 +14,7 @@ export const fetchPlayerRankings = async (
     const etag = localStorage.getItem(key) || undefined;
     const params = faction ? `?faction=${faction}` : "";
     const response: any = await (apiClient as any).request(
-      `/api/users/rankings${params}`,
+      `/users/rankings${params}`,
       {
         headers: opts?.force
           ? undefined
@@ -34,7 +34,7 @@ export const fetchPlayerRankings = async (
         return parsed;
       }
       const fresh: any = await (apiClient as any).request(
-        `/api/users/rankings${params}`,
+        `/users/rankings${params}`,
       );
       if (!fresh || !fresh.leaderboard) {
         return [];
@@ -102,16 +102,13 @@ export const fetchClanRankings = async (opts?: {
 
     const key = `etag_clans_rankings_26`;
     const etag = localStorage.getItem(key) || undefined;
-    const response: any = await (apiClient as any).request(
-      `/api/clans/rankings`,
-      {
-        headers: opts?.force
-          ? undefined
-          : etag
-            ? ({ "If-None-Match": etag } as Record<string, string>)
-            : undefined,
-      },
-    );
+    const response: any = await (apiClient as any).request(`/clans/rankings`, {
+      headers: opts?.force
+        ? undefined
+        : etag
+          ? ({ "If-None-Match": etag } as Record<string, string>)
+          : undefined,
+    });
     console.log("✅ Resposta da API para clãs:", response);
 
     if (response?.__notModified) {
@@ -120,9 +117,7 @@ export const fetchClanRankings = async (opts?: {
         const parsed = JSON.parse(cached);
         return parsed;
       }
-      const fresh: any = await (apiClient as any).request(
-        `/api/clans/rankings`,
-      );
+      const fresh: any = await (apiClient as any).request(`/clans/rankings`);
       if (!fresh || !fresh.clans) {
         return [];
       }
