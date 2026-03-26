@@ -34,6 +34,10 @@ class ApiClient {
     return this.token || localStorage.getItem("auth_token");
   }
 
+  getBaseUrl() {
+    return import.meta.env.VITE_API_URL || "";
+  }
+
   private async request(endpoint: string, options: RequestInit = {}) {
     const baseUrl = import.meta.env.VITE_API_URL || "";
     const url = `${baseUrl}/api${endpoint}`;

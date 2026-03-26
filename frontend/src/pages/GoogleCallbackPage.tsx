@@ -87,16 +87,19 @@ export default function GoogleCallbackPage() {
           throw new Error("Verificador de código PKCE não encontrado.");
         }
 
-        const res = await fetch(`/api/auth/google/callback`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            code,
-            redirect_uri: `${window.location.origin}/auth/google/callback`,
-            intent,
-            code_verifier: codeVerifier,
-          }),
-        });
+        const res = await fetch(
+          `${apiClient.getBaseUrl()}/api/auth/google/callback`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              code,
+              redirect_uri: `${window.location.origin}/auth/google/callback`,
+              intent,
+              code_verifier: codeVerifier,
+            }),
+          },
+        );
 
         if (!res.ok) {
           const errorData = await res.json().catch(() => null);
