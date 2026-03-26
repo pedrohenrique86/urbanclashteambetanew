@@ -11,14 +11,11 @@ export default function DashboardPage() {
   const { themeClasses, isDarkTheme } = useTheme();
   const { userProfile, loading: profileLoading } = useUserProfile();
 
-  // Se o perfil estiver carregando ou se o usuário não tiver um perfil completo (sem facção/clã),
+  // Se o usuário não tiver um perfil completo (sem facção/clã) e não estiver carregando,
   // não renderize nada. O hook `useUserProfile` cuidará do redirecionamento necessário.
-  // Isso evita qualquer "flash" de conteúdo ou spinner durante a transição ou carregamento inicial.
   if (
-    profileLoading ||
-    !userProfile ||
-    !userProfile.faction ||
-    !userProfile.clan_id
+    !profileLoading &&
+    (!userProfile || !userProfile.faction || !userProfile.clan_id)
   ) {
     return null;
   }
