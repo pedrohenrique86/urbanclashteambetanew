@@ -39,6 +39,13 @@ const GlobalLayout: React.FC<GlobalLayoutProps> = ({ children }) => {
     return () => clearTimeout(timer);
   }, []);
 
+  useEffect(() => {
+    // Limpa a flag de transição suave quando o carregamento do perfil terminar
+    if (!loading && sessionStorage.getItem("justJoinedClan")) {
+      sessionStorage.removeItem("justJoinedClan");
+    }
+  }, [loading]);
+
   const navigateTo = (path: string) => {
     navigate(path);
   };
@@ -67,6 +74,11 @@ const GlobalLayout: React.FC<GlobalLayoutProps> = ({ children }) => {
     !userProfile.clan_id;
 
   if (showGlobalLoadingSpinner) {
+    // Se for a transição imediata após escolher o clã, não mostra o spinner, apenas o fundo
+    if (sessionStorage.getItem("justJoinedClan")) {
+      return <div className={`min-h-screen ${themeClasses.bg}`} />;
+    }
+
     return (
       <div
         className={`min-h-screen ${themeClasses.bg} flex flex-col items-center justify-center`}

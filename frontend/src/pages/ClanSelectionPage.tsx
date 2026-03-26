@@ -296,7 +296,7 @@ export default function ClanSelectionPage() {
             })}
           </div>
 
-          {clans.length === 0 && (
+          {!loading && clans.length === 0 && (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
