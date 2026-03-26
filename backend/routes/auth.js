@@ -303,12 +303,6 @@ router.get("/google/start", (req, res) => {
   }
 });
 
-// ROTA DE TESTE PARA DEBUG DE POST
-router.post("/google/test", (req, res) => {
-  console.log("✅ ROTA DE TESTE (POST /api/auth/google/test) ACESSADA");
-  res.status(200).json({ message: "POST TEST OK" });
-});
-
 // Rota de callback do Google
 router.post("/google/callback", async (req, res) => {
   const { code, code_verifier, intent, redirect_uri } = req.body;
