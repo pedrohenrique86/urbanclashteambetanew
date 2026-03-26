@@ -16,7 +16,15 @@ const {
 
 const router = express.Router();
 const crypto = require("crypto");
+const { google } = require("googleapis");
 const url = require("url");
+
+// Configuração do Cliente OAuth2
+const oauth2Client = new google.auth.OAuth2(
+  process.env.GOOGLE_CLIENT_ID,
+  process.env.GOOGLE_CLIENT_SECRET,
+  // A URI de redirecionamento é gerenciada no frontend, mas precisa ser autorizada no Google Console
+);
 
 // Rate limiting específico para autenticação
 const authLimiter = rateLimit({
@@ -261,6 +269,136 @@ router.post("/login", authLimiter, loginValidation, async (req, res) => {
   } catch (error) {
     console.error("❌ Erro no login:", error.message);
     res.status(500).json({ error: "Erro interno do servidor" });
+  }
+});
+
+// Rota para iniciar o fluxo de autenticação do Google
+router.get("/google/start", (req, res) => {
+  try {
+    const { code_challenge, code_challenge_method, intent, redirect_uri } =
+      req.query;
+
+    if (!code_challenge || !redirect_uri) {
+      return res
+        .status(400)
+        .json({
+          error: "Parâmetros code_challenge e redirect_uri são obrigatórios",
+        });
+    }
+
+    // Definir a URI de redirecionamento no cliente OAuth2 para esta requisição
+    oauth2Client.redirectUri = redirect_uri;
+
+    const scopes = [
+      "https://www.googleapis.com/auth/userinfo.email",
+      "https://www.googleapis.com/auth/userinfo.profile",
+    ];
+
+    const authorizeUrl = oauth2Client.generateAuthUrl({
+      access_type: "offline",
+      scope: scopes,
+      prompt: "consent", // Força o usuário a consentir, útil para obter refresh_token
+      state: JSON.stringify({ intent }), // Passa o intent (login/register) para o callback
+      code_challenge: code_challenge,
+      code_challenge_method: code_challenge_method || "S256",
+    });
+
+    res.redirect(authorizeUrl);
+  } catch (error) {
+    console.error("❌ Erro ao iniciar autenticação Google:", error.message);
+    res.status(500).json({ error: "Erro ao iniciar autenticação com Google" });
+  }
+});
+
+// Rota de callback do Google
+router.post("/google/callback", async (req, res) => {
+  const { code, code_verifier, intent, redirect_uri } = req.body;
+
+  if (!code || !code_verifier) {
+    return res
+      .status(400)
+      .json({ error: "Código de autorização e verificador são obrigatórios" });
+  }
+
+  try {
+    // Definir a URI de redirecionamento e o verificador de código
+    oauth2Client.redirectUri = redirect_uri;
+
+    // Trocar o código por tokens
+    const { tokens } = await oauth2Client.getToken({
+      code: code,
+      codeVerifier: code_verifier,
+    });
+    oauth2Client.setCredentials(tokens);
+
+    // Obter informações do usuário
+    const oauth2 = google.oauth2({ version: "v2", auth: oauth2Client });
+    const { data: userInfo } = await oauth2.userinfo.get();
+
+    const { id: google_id, email, name, picture } = userInfo;
+
+    if (!email) {
+      return res.status(400).json({ error: "Email não retornado pela Google" });
+    }
+
+    // Verificar se o usuário já existe
+    let userResult = await query("SELECT * FROM users WHERE google_id = $1", [
+      google_id,
+    ]);
+    let user = userResult.rows[0];
+    let isFirstLogin = false;
+
+    if (!user) {
+      // Se não encontrou por google_id, tenta por email para vincular contas
+      userResult = await query("SELECT * FROM users WHERE email = $1", [email]);
+      user = userResult.rows[0];
+
+      if (user) {
+        // Usuário com este email já existe, vincular a conta Google
+        await query("UPDATE users SET google_id = $1 WHERE id = $2", [
+          google_id,
+          user.id,
+        ]);
+      } else {
+        // Usuário não existe, criar um novo
+        isFirstLogin = true;
+        const username = name.split(" ")[0] + Math.floor(Math.random() * 9999);
+
+        const newUserResult = await query(
+          `INSERT INTO users (username, email, google_id, is_email_confirmed) 
+           VALUES ($1, $2, $3, true) RETURNING *`,
+          [username, email, google_id],
+        );
+        user = newUserResult.rows[0];
+      }
+    }
+
+    // A partir daqui, 'user' existe e está logado
+    const token = generateToken(user.id);
+    await createSession(user.id, token);
+
+    // Buscar perfil para retornar ao frontend
+    const profileResult = await query(
+      "SELECT * FROM user_profiles WHERE user_id = $1",
+      [user.id],
+    );
+
+    // Se é o primeiro login, o perfil ainda não existe
+    if (profileResult.rows.length === 0) {
+      isFirstLogin = true;
+    }
+
+    res.json({
+      token,
+      user: { ...user, profile: profileResult.rows[0] || null },
+      isFirstLogin,
+    });
+  } catch (error) {
+    console.error("❌ Erro no callback do Google:", error.message);
+    if (error.response?.data) {
+      console.error("Detalhes do erro da API Google:", error.response.data);
+    }
+    res.status(500).json({ error: "Falha na autenticação com Google" });
   }
 });
 
