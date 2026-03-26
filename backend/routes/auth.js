@@ -273,11 +273,9 @@ router.get("/google/start", (req, res) => {
       req.query;
 
     if (!code_challenge || !redirect_uri) {
-      return res
-        .status(400)
-        .json({
-          error: "Parâmetros code_challenge e redirect_uri são obrigatórios",
-        });
+      return res.status(400).json({
+        error: "Parâmetros code_challenge e redirect_uri são obrigatórios",
+      });
     }
 
     // Definir a URI de redirecionamento no cliente OAuth2 para esta requisição
@@ -297,7 +295,8 @@ router.get("/google/start", (req, res) => {
       code_challenge_method: code_challenge_method || "S256",
     });
 
-    res.json({ authorizeUrl });
+    // Em vez de retornar a URL como JSON, redireciona o usuário diretamente
+    res.redirect(authorizeUrl);
   } catch (error) {
     console.error("❌ Erro ao iniciar autenticação Google:", error.message);
     res.status(500).json({ error: "Erro ao iniciar autenticação com Google" });
