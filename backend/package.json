@@ -5,8 +5,8 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "predev": "docker-compose -f ../docker-compose.yml up -d",
-    "dev": "wait-on tcp:localhost:5433 && nodemon server.js",
+    "predev": "docker-compose -f ../docker-compose.yml up -d redis",
+    "dev": "wait-on tcp:6379 && nodemon server.js",
     "test": "jest",
     "migrate": "node-pg-migrate",
     "migrate:create": "npm run migrate -- create",

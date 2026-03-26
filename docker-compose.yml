@@ -1,25 +1,4 @@
 services:
-  postgres:
-    image: postgres:15
-    container_name: urbanclash_postgres
-    environment:
-      POSTGRES_DB: urbanclash
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: W0rdPr355@@
-    ports:
-      - "5433:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-      - ./database:/docker-entrypoint-initdb.d
-    networks:
-      - urbanclash_network
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d urbanclash"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-    restart: unless-stopped
-
   redis:
     image: redis:7
     container_name: urbanclash_redis
@@ -51,9 +30,6 @@ services:
 #    networks:
 #      - urbanclash_network
 #    restart: unless-stopped
-
-volumes:
-  postgres_data:
 
 networks:
   urbanclash_network:

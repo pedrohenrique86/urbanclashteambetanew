@@ -1,3 +1,7 @@
+// Carrega as variáveis de ambiente do arquivo .env ANTES de qualquer outro código.
+// Esta deve ser a primeira linha para garantir que todas as configurações estejam disponíveis.
+require("dotenv").config();
+
 const express = require("express");
 
 const timeRoutes = require("./routes/time");
@@ -8,8 +12,6 @@ const path = require("path");
 const helmet = require("helmet");
 const morgan = require("morgan");
 const rateLimit = require("express-rate-limit");
-// Carrega as variáveis de ambiente do arquivo .env na raiz da pasta 'backend'
-require("dotenv").config();
 
 const authRoutes = require("./routes/auth");
 const userRoutes = require("./routes/users");

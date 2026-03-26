@@ -3,24 +3,37 @@ const { Pool } = require("pg");
 // Configuração do pool de conexões PostgreSQL
 const isProduction = process.env.NODE_ENV === "production";
 
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: isProduction ? { rejectUnauthorized: false } : false,
-  max: 20, // máximo de conexões no pool
-  idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 5000,
-});
+let poolConfig;
 
-// Fallback para configuração local se DATABASE_URL não estiver definida
-if (!process.env.DATABASE_URL) {
-  Object.assign(pool.options, {
+// A lógica agora decide a configuração ANTES de criar o Pool.
+if (process.env.DATABASE_URL) {
+  // Configuração para produção ou desenvolvimento com Neon (requer SSL)
+  poolConfig = {
+    connectionString: process.env.DATABASE_URL,
+    // Garante que SSL seja usado, como exigido pelo Neon.
+    ssl: { rejectUnauthorized: false },
+  };
+} else {
+  // Fallback para configuração local (o que está causando o erro)
+  console.warn(
+    "⚠️ AVISO: DATABASE_URL não encontrada. Usando fallback para configuração local do PostgreSQL.",
+  );
+  poolConfig = {
     user: "postgres",
     password: "W0rdPr355@@",
     host: "localhost",
     port: 5433,
     database: "urbanclash",
-  });
+    ssl: false,
+  };
 }
+
+const pool = new Pool({
+  ...poolConfig, // Usa a configuração decidida acima
+  max: 20,
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 5000,
+});
 
 // Função para conectar ao banco
 async function connectDB() {
