@@ -176,7 +176,6 @@ export default function AuthModal({
     const hashed = await sha256(codeVerifier);
     const codeChallenge = base64urlencode(hashed);
 
-    const apiBase = import.meta.env.VITE_API_URL;
     const redirectUri = `${window.location.origin}/auth/google/callback`;
     const params = new URLSearchParams({
       redirect_uri: redirectUri,
@@ -185,7 +184,7 @@ export default function AuthModal({
       code_challenge_method: "S256",
     });
 
-    const startUrl = `${apiBase}/api/auth/google/start?${params.toString()}`;
+    const startUrl = `/api/auth/google/start?${params.toString()}`;
 
     window.location.href = startUrl;
   };
@@ -280,6 +279,7 @@ export default function AuthModal({
 
   const [successMessage, setSuccessMessage] = useState("");
   const [registrationSuccess, setRegistrationSuccess] = useState(false);
+  const [authMethodError, setAuthMethodError] = useState<string | null>(null);
   const [registeredEmail, setRegisteredEmail] = useState("");
   const [showResendConfirmation, setShowResendConfirmation] = useState(false);
   const [showRegisterOption, setShowRegisterOption] = useState(false);
@@ -361,6 +361,8 @@ export default function AuthModal({
     setSuccessMessage("");
     setShowResendConfirmation(false);
     setShowRegisterOption(false); // Resetar opção de registro
+    setAuthMethodError(null);
+    setErrors({});
 
     if (activeTab === "register") {
       try {
@@ -480,12 +482,23 @@ export default function AuthModal({
             window.location.href = "/faction-selection";
           }
         }
-      } catch (error: unknown) {
-        const message =
-          error instanceof Error
-            ? error.message
-            : "Ocorreu um erro durante o login.";
-        setErrors({ form: message });
+      } catch (error: any) {
+        // DEBUG: Logar o objeto de erro completo para diagnóstico
+
+        // Se for um erro 409, é um erro de método de autenticação (ex: usuário do Google tentando login com senha)
+        if (error.response?.status === 409) {
+          setAuthMethodError(
+            error.response.data.message ||
+              "Conflito de método de autenticação.",
+          );
+        } else {
+          // Para outros erros (401-credenciais inválidas, 500), use o estado de erro geral
+          const message =
+            error.response?.data?.message ||
+            error.message ||
+            "Ocorreu um erro durante o login.";
+          setErrors({ form: message });
+        }
         setIsProcessing(false);
       }
     } else if (activeTab === "forgot-password") {
@@ -684,6 +697,7 @@ export default function AuthModal({
                   setSuccessMessage("");
                   setShowResendConfirmation(false);
                   setShowRegisterOption(false);
+                  setAuthMethodError(null);
                 }}
                 className={`flex-1 px-2 sm:px-3 py-1 sm:py-2 rounded-lg font-orbitron text-xs sm:text-sm transition-colors
                 ${
@@ -705,6 +719,37 @@ export default function AuthModal({
                 role="alert"
               >
                 <span className="block sm:inline">{successMessage}</span>
+              </div>
+            )}
+
+            {/* Mensagem de Erro de Método de Autenticação (Google vs Manual) */}
+            {authMethodError && (
+              <div className="bg-blue-100 border border-blue-400 text-blue-700 px-4 py-3 rounded relative mb-4">
+                <span className="block sm:inline font-medium">
+                  {authMethodError}
+                </span>
+                <p className="text-sm mt-2">
+                  Você pode{" "}
+                  <button
+                    type="button"
+                    onClick={() => handleGoogleLogin("login")}
+                    className="text-blue-600 hover:text-blue-800 underline font-bold"
+                  >
+                    entrar com o Google
+                  </button>{" "}
+                  ou, se preferir,{" "}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAuthMethodError(null);
+                      setActiveTab("forgot-password");
+                    }}
+                    className="text-blue-600 hover:text-blue-800 underline font-bold"
+                  >
+                    definir uma senha
+                  </button>{" "}
+                  para sua conta.
+                </p>
               </div>
             )}
 

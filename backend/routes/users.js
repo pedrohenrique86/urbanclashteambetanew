@@ -173,7 +173,9 @@ router.get("/profile", authenticateToken, async (req, res) => {
     );
 
     if (profileResult.rows.length === 0) {
-      return res.status(404).json({ error: "Perfil não encontrado" });
+      // Para um novo usuário, não ter um perfil é um estado esperado.
+      // Retornamos 200 OK com null para que o frontend possa lidar com isso sem um erro de rede.
+      return res.status(200).json(null);
     }
 
     // Verificar se o usuário é membro de algum clã
@@ -480,7 +482,7 @@ router.get("/rankings", async (req, res) => {
       `
       SELECT 
         u.id, u.username, u.country,
-        p.username as display_name, p.avatar_url, p.level, 
+        p.display_name, p.avatar_url, p.level, 
         p.experience_points, p.faction, p.victories, p.defeats, p.winning_streak,
         ROW_NUMBER() OVER (ORDER BY p.level DESC, p.experience_points DESC) as rank
       FROM users u

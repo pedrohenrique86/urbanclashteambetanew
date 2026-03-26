@@ -49,9 +49,7 @@ export default function GoogleCallbackPage() {
       sessionStorage.setItem("google_code_verifier", verifier);
       sessionStorage.setItem("google_auth_intent", "register");
 
-      const startUrl = `${
-        (import.meta as any).env.VITE_API_URL
-      }/auth/google/start?code_challenge=${challenge}&code_challenge_method=S256&intent=register`;
+      const startUrl = `/api/auth/google/start?code_challenge=${challenge}&code_challenge_method=S256&intent=register`;
       window.location.href = startUrl;
     } catch (e) {
       setError("Falha ao iniciar o registro com Google. Tente novamente.");
@@ -89,19 +87,16 @@ export default function GoogleCallbackPage() {
           throw new Error("Verificador de código PKCE não encontrado.");
         }
 
-        const res = await fetch(
-          `${(import.meta as any).env.VITE_API_URL}/api/auth/google/callback`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              code,
-              redirect_uri: `${window.location.origin}/auth/google/callback`,
-              intent,
-              code_verifier: codeVerifier,
-            }),
-          },
-        );
+        const res = await fetch(`/api/auth/google/callback`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            code,
+            redirect_uri: `${window.location.origin}/auth/google/callback`,
+            intent,
+            code_verifier: codeVerifier,
+          }),
+        });
 
         if (!res.ok) {
           const errorData = await res.json().catch(() => null);

@@ -1,7 +1,0 @@
-{
-  "name": "netlify-functions",
-  "version": "1.0.0",
-  "description": "Funções serverless para o Urban Clash Team",
-  "dependencies": {
-  }
-}

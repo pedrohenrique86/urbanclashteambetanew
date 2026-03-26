@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node server.js",
     "predev": "docker-compose -f ../docker-compose.yml up -d",
-    "dev": "nodemon server.js",
+    "dev": "wait-on tcp:localhost:5433 && nodemon server.js",
     "test": "jest",
     "migrate": "node-pg-migrate",
     "migrate:create": "npm run migrate -- create",
@@ -30,7 +30,8 @@
     "redis": "^5.11.0",
     "resend": "^3.5.0",
     "socket.io": "^4.8.3",
-    "uuid": "^9.0.1"
+    "uuid": "^9.0.1",
+    "wait-on": "^9.0.4"
   },
   "devDependencies": {
     "jest": "^29.7.0",

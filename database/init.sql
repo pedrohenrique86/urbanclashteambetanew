@@ -1,7 +1,7 @@
 -- Criação do banco de dados UrbanClash
 -- Este arquivo será executado automaticamente quando o container PostgreSQL for iniciado
 
--- Limpeza inicial para garantir recriação limpa se rodado manualmente
+-- Limpeza inicial para garantir recriação limpa
 DROP TABLE IF EXISTS clan_members CASCADE;
 DROP TABLE IF EXISTS user_sessions CASCADE;
 DROP TABLE IF EXISTS game_config CASCADE;
@@ -36,6 +36,7 @@ CREATE TABLE clans (
     name VARCHAR(100) UNIQUE NOT NULL,
     description TEXT,
     faction VARCHAR(50) NOT NULL,
+    leader_id UUID REFERENCES users(id) ON DELETE SET NULL, -- <<< CORREÇÃO ADICIONADA AQUI
     member_count INTEGER DEFAULT 0,
     max_members INTEGER DEFAULT 40,
     is_recruiting BOOLEAN DEFAULT TRUE,
@@ -115,12 +116,12 @@ CREATE INDEX idx_user_sessions_expires_at ON user_sessions(expires_at);
 
 -- Triggers para atualizar updated_at automaticamente
 CREATE OR REPLACE FUNCTION update_updated_at_column()
-RETURNS TRIGGER AS $$
+RETURNS TRIGGER AS $BODY$
 BEGIN
     NEW.updated_at = CURRENT_TIMESTAMP;
     RETURN NEW;
 END;
-$$ language 'plpgsql';
+$BODY$ language 'plpgsql';
 
 CREATE TRIGGER update_users_updated_at BEFORE UPDATE ON users
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
@@ -133,7 +134,7 @@ CREATE TRIGGER update_clans_updated_at BEFORE UPDATE ON clans
 
 -- Trigger para atualizar member_count automaticamente
 CREATE OR REPLACE FUNCTION update_clan_member_count()
-RETURNS TRIGGER AS $$
+RETURNS TRIGGER AS $BODY$
 BEGIN
     IF TG_OP = 'INSERT' THEN
         UPDATE clans SET member_count = member_count + 1 WHERE id = NEW.clan_id;
@@ -144,7 +145,7 @@ BEGIN
     END IF;
     RETURN NULL;
 END;
-$$ language 'plpgsql';
+$BODY$ language 'plpgsql';
 
 CREATE TRIGGER update_clan_member_count_trigger
     AFTER INSERT OR DELETE ON clan_members

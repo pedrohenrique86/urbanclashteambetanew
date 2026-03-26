@@ -189,6 +189,17 @@ router.post("/login", authLimiter, loginValidation, async (req, res) => {
 
     const user = userResult.rows[0];
 
+    // Se o usuário tem um google_id, ele se cadastrou com o Google.
+    // Como esta é a rota de login com senha, devemos impedi-lo e instruí-lo.
+    // A exceção é se ele também tiver um hash de senha (cadastrou-se manualmente e depois vinculou o Google).
+    if (user.google_id && !user.password_hash) {
+      return res.status(409).json({
+        error: "Login com provedor externo",
+        message:
+          "Este email foi cadastrado usando uma conta Google. Por favor, faça login com o Google.",
+      });
+    }
+
     // Verificar senha
     const passwordValid = await bcrypt.compare(password, user.password_hash);
     if (!passwordValid) {

@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { apiClient } from '../lib/supabaseClient';
-import { UserProfile } from '../types';
-import { calculateLevel } from '../utils/leveling';
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { apiClient } from "../lib/supabaseClient";
+import { UserProfile } from "../types";
+import { calculateLevel } from "../utils/leveling";
 
 // Função global para invalidar cache do perfil
 let invalidateProfileCache: (() => void) | null = null;
@@ -22,17 +22,17 @@ export const useUserProfile = (shouldRedirect: boolean = true) => {
   const handleLogout = async () => {
     await apiClient.logout();
     setUserProfile(null);
-    navigate('/');
+    navigate("/");
   };
-  
+
   // Registrar função de invalidação
   useEffect(() => {
     invalidateProfileCache = () => {
       // setUserProfile(null); // NÃO limpe o perfil para evitar a "tremida"
       setLoading(true);
-      setRefreshTrigger(prev => prev + 1);
+      setRefreshTrigger((prev) => prev + 1);
     };
-    
+
     return () => {
       invalidateProfileCache = null;
     };
@@ -40,26 +40,26 @@ export const useUserProfile = (shouldRedirect: boolean = true) => {
 
   useEffect(() => {
     let isMounted = true;
-    
+
     const checkUserAndFaction = async () => {
       // Se não deve redirecionar, não verifica autenticação
       if (!shouldRedirect) {
         if (isMounted) setLoading(false);
         return;
       }
-      
+
       try {
         const userResponse = await apiClient.getCurrentUser();
-        
+
         if (!userResponse.data.user) {
-          if (isMounted && shouldRedirect) navigate('/');
+          if (isMounted && shouldRedirect) navigate("/");
           if (isMounted) setLoading(false);
           return;
         }
-        
+
         const user = userResponse.data.user;
         const profileData = await apiClient.getUserProfile();
-        
+
         if (isMounted) {
           const currentPath = window.location.pathname;
 
@@ -113,14 +113,30 @@ export const useUserProfile = (shouldRedirect: boolean = true) => {
           }
         }
       } catch (error) {
-        // Error handling silently
+        const currentPath = window.location.pathname;
+        const errorMessage =
+          error instanceof Error ? error.message : String(error);
+
+        // Se o erro for 404 (perfil não encontrado), é um novo usuário.
+        // Redireciona para a seleção de facção.
+        if (
+          errorMessage.includes("404") ||
+          errorMessage.includes("Perfil não encontrado")
+        ) {
+          if (shouldRedirect && currentPath !== "/faction-selection") {
+            navigate("/faction-selection");
+          }
+        } else {
+          // Para outros erros, apenas loga no console para não quebrar a aplicação.
+          console.error("Erro ao verificar perfil do usuário:", error);
+        }
       } finally {
         if (isMounted) setLoading(false);
       }
     };
 
     checkUserAndFaction();
-    
+
     return () => {
       isMounted = false;
     };
@@ -130,10 +146,10 @@ export const useUserProfile = (shouldRedirect: boolean = true) => {
     // Usar sempre o nível vindo do banco; não sobrescrever automaticamente
     // Calcular informações de XP apenas para exibição local quando necessário
     const levelInfo = calculateLevel(profileData.current_xp || 0);
-    
+
     // Usar os pontos de ação diretamente do banco de dados sem resetar
     const actionPoints = profileData.action_points;
-    
+
     const userProfileData = {
       id: profileData.id ? profileData.id.toString() : profileData.user_id,
       user_id: profileData.user_id,
@@ -141,7 +157,7 @@ export const useUserProfile = (shouldRedirect: boolean = true) => {
       is_admin: profileData.is_admin, // Adiciona a flag de administrador
       faction: profileData.faction,
       clan_id: profileData.clan_id,
-      username: profileData.username || 'Usuário', // username vem da tabela users via API
+      username: profileData.username || "Usuário", // username vem da tabela users via API
       created_at: profileData.created_at,
       current_xp: profileData.current_xp,
       level: Number(profileData.level ?? levelInfo.level),
@@ -162,29 +178,29 @@ export const useUserProfile = (shouldRedirect: boolean = true) => {
       energy: profileData.energy,
       max_energy: profileData.max_energy,
       intimidation: profileData.intimidation,
-      discipline: profileData.discipline
+      discipline: profileData.discipline,
     };
-    
+
     return userProfileData;
   };
 
   const createNewProfile = async (user: any) => {
     const newProfile = {
       user_id: user.id,
-      faction: user.user_metadata.faction
+      faction: user.user_metadata.faction,
       // Removido username - vem da tabela users, não precisa ser enviado
       // Removido todos os atributos - deixar o backend calcular os valores corretos
     };
-    
+
     try {
       const profileData = await apiClient.createUserProfile(newProfile);
-        
+
       if (!profileData) {
         return null;
       }
-      
+
       const levelInfo = calculateLevel(profileData.current_xp || 0);
-      
+
       const userProfileData = {
         id: profileData.id ? profileData.id.toString() : profileData.user_id,
         user_id: profileData.user_id,
@@ -192,7 +208,7 @@ export const useUserProfile = (shouldRedirect: boolean = true) => {
         is_admin: profileData.is_admin, // Adiciona a flag de administrador
         faction: profileData.faction,
         clan_id: profileData.clan_id,
-        username: profileData.username || 'Usuário', // username vem da tabela users via API
+        username: profileData.username || "Usuário", // username vem da tabela users via API
         created_at: profileData.created_at,
         current_xp: profileData.current_xp,
         level: levelInfo.level,
@@ -212,9 +228,9 @@ export const useUserProfile = (shouldRedirect: boolean = true) => {
         energy: profileData.energy,
         max_energy: profileData.max_energy,
         intimidation: profileData.intimidation,
-        discipline: profileData.discipline
+        discipline: profileData.discipline,
       };
-      
+
       return userProfileData;
     } catch (error) {
       return null;

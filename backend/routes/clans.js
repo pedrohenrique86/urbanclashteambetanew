@@ -431,6 +431,44 @@ router.get("/:id", async (req, res) => {
   }
 });
 
+// GET /api/clans/:id/chat - Obter detalhes do chat do clã (mock)
+router.get("/:id/chat", authenticateToken, async (req, res) => {
+  const { id } = req.params;
+  console.log(`Buscando dados do chat para o clã ${id}`);
+  // Mock de dados do chat
+  res.json({
+    chatId: `chat_${id}`,
+    clanId: id,
+    type: "clan",
+    createdAt: new Date().toISOString(),
+  });
+});
+
+// GET /api/clans/:id/messages - Obter mensagens do chat do clã (mock)
+router.get("/:id/messages", authenticateToken, async (req, res) => {
+  const { id } = req.params;
+  console.log(`Buscando mensagens para o clã ${id}`);
+  // Mock de mensagens
+  res.json([
+    {
+      id: "msg_1",
+      chatId: `chat_${id}`,
+      userId: "user_123",
+      username: "System",
+      content: "Bem-vindo ao chat do clã!",
+      timestamp: new Date().toISOString(),
+    },
+    {
+      id: "msg_2",
+      chatId: `chat_${id}`,
+      userId: "user_456",
+      username: "LiderDoCla",
+      content: "E aí, pessoal! Prontos para a próxima batalha?",
+      timestamp: new Date().toISOString(),
+    },
+  ]);
+});
+
 // POST /api/clans - Criar novo clã
 router.post("/", authenticateToken, createClanValidation, async (req, res) => {
   try {

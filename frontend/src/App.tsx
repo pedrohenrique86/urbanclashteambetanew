@@ -1,5 +1,5 @@
 import React, { Suspense, lazy } from "react";
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { createBrowserRouter, RouterProvider, Outlet } from "react-router-dom";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { ToastProvider } from "./contexts/ToastContext";
 import GlobalLayout from "./components/layout/GlobalLayout";
@@ -43,72 +43,63 @@ const PageLoader = () => (
   </div>
 );
 
+const AppLayout = () => (
+  <GlobalLayout>
+    <Outlet />
+  </GlobalLayout>
+);
+
+const router = createBrowserRouter([
+  {
+    path: "/",
+    element: <HomePage />,
+  },
+  {
+    path: "/auth/google/callback",
+    element: <GoogleCallbackPage />,
+  },
+  {
+    path: "/",
+    element: <AppLayout />,
+    children: [
+      { path: "dashboard", element: <DashboardPage /> },
+      { path: "faction-selection", element: <FactionSelectionPage /> },
+      { path: "clan-selection", element: <ClanSelectionPage /> },
+      { path: "email-confirmation", element: <EmailConfirmationPage /> },
+      { path: "confirm-email", element: <EmailConfirmationPage /> },
+      { path: "reset-password", element: <ResetPasswordPage /> },
+      { path: "ranking", element: <RankingPage /> },
+      { path: "clans", element: <ClansPage /> },
+      { path: "clan", element: <ClanPage /> },
+      { path: "tasks", element: <TasksPage /> },
+      { path: "duels", element: <DuelsPage /> },
+      { path: "restaurant", element: <RestaurantPage /> },
+      { path: "hospital", element: <HospitalPage /> },
+      { path: "prison", element: <PrisonPage /> },
+      { path: "territory", element: <TerritoryPage /> },
+      { path: "market", element: <MarketPage /> },
+      { path: "bank", element: <BankPage /> },
+      { path: "business", element: <BusinessPage /> },
+      { path: "square", element: <SquarePage /> },
+      { path: "gym", element: <GymPage /> },
+      { path: "profile", element: <ProfilePage /> },
+      { path: "vip", element: <VipPage /> },
+      { path: "store", element: <StorePage /> },
+      { path: "overview", element: <OverviewPage /> },
+    ],
+  },
+]);
+
 export default function App() {
   return (
     <ThemeProvider>
       <ToastProvider>
-        <Router>
-          <Suspense fallback={<PageLoader />}>
-            <Routes>
-              {/* Rotas públicas que não usam o GlobalLayout */}
-              <Route path="/" element={<HomePage />} />
-              <Route
-                path="/auth/google/callback"
-                element={<GoogleCallbackPage />}
-              />
-
-              {/* Rotas protegidas que usam o GlobalLayout */}
-              <Route
-                path="*"
-                element={
-                  <GlobalLayout>
-                    <Routes>
-                      <Route path="/dashboard" element={<DashboardPage />} />
-                      <Route
-                        path="/faction-selection"
-                        element={<FactionSelectionPage />}
-                      />
-                      <Route
-                        path="/clan-selection"
-                        element={<ClanSelectionPage />}
-                      />
-                      <Route
-                        path="/email-confirmation"
-                        element={<EmailConfirmationPage />}
-                      />
-                      <Route
-                        path="/confirm-email"
-                        element={<EmailConfirmationPage />}
-                      />
-                      <Route
-                        path="/reset-password"
-                        element={<ResetPasswordPage />}
-                      />
-                      <Route path="/ranking" element={<RankingPage />} />
-                      <Route path="/clans" element={<ClansPage />} />
-                      <Route path="/clan" element={<ClanPage />} />
-                      <Route path="/tasks" element={<TasksPage />} />
-                      <Route path="/duels" element={<DuelsPage />} />
-                      <Route path="/restaurant" element={<RestaurantPage />} />
-                      <Route path="/hospital" element={<HospitalPage />} />
-                      <Route path="/prison" element={<PrisonPage />} />
-                      <Route path="/territory" element={<TerritoryPage />} />
-                      <Route path="/market" element={<MarketPage />} />
-                      <Route path="/bank" element={<BankPage />} />
-                      <Route path="/business" element={<BusinessPage />} />
-                      <Route path="/square" element={<SquarePage />} />
-                      <Route path="/gym" element={<GymPage />} />
-                      <Route path="/profile" element={<ProfilePage />} />
-                      <Route path="/vip" element={<VipPage />} />
-                      <Route path="/store" element={<StorePage />} />
-                      <Route path="/overview" element={<OverviewPage />} />
-                    </Routes>
-                  </GlobalLayout>
-                }
-              />
-            </Routes>
-          </Suspense>
-        </Router>
+        <Suspense fallback={<PageLoader />}>
+          <RouterProvider
+            router={router}
+            future={{ v7_startTransition: true }}
+          />
+        </Suspense>
       </ToastProvider>
     </ThemeProvider>
   );

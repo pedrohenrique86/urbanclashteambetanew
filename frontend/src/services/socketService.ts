@@ -30,10 +30,11 @@ class SocketService {
    */
   connect(): Socket {
     if (!this.socket) {
-      this.socket = io(VITE_API_URL, {
+      this.socket = io({
         transports: ["websocket"], // Força o uso de WebSockets para melhor performance
         reconnectionAttempts: 5,
         reconnectionDelay: 1000,
+        path: "/socket.io/",
       });
 
       this.socket.on("connect", () => {
