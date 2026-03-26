@@ -24,14 +24,32 @@ export default function ClanSelectionPage() {
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
   const location = useLocation();
-  const { userProfile } = useUserProfile(false);
+  const { userProfile, loading: profileLoading } = useUserProfile(true);
 
-  // Obter a facção selecionada do estado da navegação
-  const selectedFaction = location.state?.faction;
+  // A facção vem do perfil do usuário, não mais do location.state
+  const selectedFaction = userProfile?.faction;
 
   useEffect(() => {
-    if (!selectedFaction) {
-      navigate("/faction-selection");
+    const handlePopState = (event: PopStateEvent) => {
+      // Impede a navegação padrão de "voltar"
+      event.preventDefault();
+      // Invalida o perfil para forçar o fluxo de login na próxima visita
+      invalidateUserProfile();
+      // Redireciona para a página inicial
+      navigate("/", { replace: true });
+    };
+
+    window.addEventListener("popstate", handlePopState);
+
+    // Limpa o listener quando o componente é desmontado
+    return () => {
+      window.removeEventListener("popstate", handlePopState);
+    };
+  }, [navigate]);
+
+  useEffect(() => {
+    // Aguarda o perfil do usuário e a facção estarem disponíveis
+    if (profileLoading || !selectedFaction) {
       return;
     }
 
@@ -48,7 +66,7 @@ export default function ClanSelectionPage() {
     };
 
     fetchClans();
-  }, [selectedFaction, navigate]);
+  }, [selectedFaction, profileLoading]);
 
   const handleJoinClan = async () => {
     if (!selectedClan) return;
@@ -122,11 +140,11 @@ export default function ClanSelectionPage() {
             <div className="flex items-center justify-center gap-2">
               <div
                 className={`w-3 h-3 rounded-full bg-gradient-to-r ${getFactionColor(
-                  selectedFaction,
+                  selectedFaction || "",
                 )}`}
               ></div>
               <span className="text-gray-300 font-medium">
-                {getFactionDisplayName(selectedFaction)}
+                {getFactionDisplayName(selectedFaction || "")}
               </span>
             </div>
           </motion.div>
@@ -178,7 +196,7 @@ export default function ClanSelectionPage() {
                   ${
                     isSelected
                       ? `bg-gradient-to-br ${getFactionColor(
-                          selectedFaction,
+                          selectedFaction || "",
                         )} shadow-2xl shadow-blue-500/25`
                       : canJoin
                         ? "bg-gray-800/80 hover:bg-gray-700/80 border border-gray-600/50 hover:border-gray-500/70"
@@ -249,8 +267,8 @@ export default function ClanSelectionPage() {
                             : memberPercentage >= 80
                               ? "bg-gradient-to-r from-yellow-500 to-orange-500"
                               : `bg-gradient-to-r from-${getFactionAccentColor(
-                                  selectedFaction,
-                                )} to-${getFactionAccentColor(selectedFaction)}`
+                                  selectedFaction || "",
+                                )} to-${getFactionAccentColor(selectedFaction || "")}`
                         }`}
                       />
                     </div>
@@ -309,7 +327,7 @@ export default function ClanSelectionPage() {
               ${
                 selectedClan && !joining && !processing
                   ? `bg-gradient-to-r ${getFactionColor(
-                      selectedFaction,
+                      selectedFaction || "",
                     )} text-white shadow-lg hover:shadow-xl border border-white/20`
                   : "bg-gray-700/50 text-gray-500 cursor-not-allowed border border-gray-600/30"
               }

@@ -6,6 +6,8 @@ import { useTheme } from "../../contexts/ThemeContext";
 import { useUserProfile } from "../../hooks/useUserProfile";
 import { apiClient } from "../../lib/supabaseClient"; // Importa o apiClient
 
+import { LoadingSpinner } from "../ui/LoadingSpinner"; // Importa o spinner
+
 interface GlobalLayoutProps {
   children: React.ReactNode;
 }
@@ -25,7 +27,7 @@ const GlobalLayout: React.FC<GlobalLayoutProps> = ({ children }) => {
   ];
   const shouldShowNav = !pagesWithoutNav.includes(location.pathname);
 
-  const { userProfile } = useUserProfile(shouldShowNav);
+  const { userProfile, loading } = useUserProfile(shouldShowNav);
 
   const navigateTo = (path: string) => {
     navigate(path);
@@ -42,6 +44,19 @@ const GlobalLayout: React.FC<GlobalLayoutProps> = ({ children }) => {
 
   if (!shouldShowNav) {
     return <>{children}</>;
+  }
+
+  // Se estiver carregando ou se o usuário não tiver o perfil completo (facção e clã),
+  // exibe apenas um fundo com spinner. O useUserProfile já está cuidando do redirecionamento.
+  // Isso evita que a TopBar e BottomNavBar pisquem na tela.
+  if (loading || !userProfile || !userProfile.faction || !userProfile.clan_id) {
+    return (
+      <div
+        className={`min-h-screen ${themeClasses.bg} flex items-center justify-center`}
+      >
+        <LoadingSpinner />
+      </div>
+    );
   }
 
   return (

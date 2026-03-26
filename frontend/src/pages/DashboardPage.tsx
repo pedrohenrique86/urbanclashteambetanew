@@ -12,7 +12,19 @@ export default function DashboardPage() {
   const { userProfile, loading: profileLoading } = useUserProfile();
 
   // Se o perfil ainda não foi carregado (primeira visita), mostra o spinner de tela cheia.
-  if (profileLoading && !userProfile) {
+  if (profileLoading || !userProfile) {
+    return (
+      <div
+        className={`min-h-screen ${themeClasses.bg} flex items-center justify-center`}
+      >
+        <LoadingSpinner />
+      </div>
+    );
+  }
+
+  // Se o usuário não tem facção ou clã, ele será redirecionado pelo useUserProfile.
+  // Retornamos null ou um spinner para evitar que o Dashboard pisque na tela.
+  if (!userProfile.faction || !userProfile.clan_id) {
     return (
       <div
         className={`min-h-screen ${themeClasses.bg} flex items-center justify-center`}

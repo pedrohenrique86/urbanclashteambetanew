@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { apiClient } from "../lib/supabaseClient";
 import { UserProfile } from "../types";
 import { calculateLevel } from "../utils/leveling";
@@ -18,6 +18,7 @@ export const useUserProfile = (shouldRedirect: boolean = true) => {
   const [loading, setLoading] = useState(true);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const navigate = useNavigate();
+  const location = useLocation();
 
   const handleLogout = async () => {
     await apiClient.logout();
@@ -61,59 +62,42 @@ export const useUserProfile = (shouldRedirect: boolean = true) => {
         const profileData = await apiClient.getUserProfile();
 
         if (isMounted) {
-          const currentPath = window.location.pathname;
+          const currentPath = location.pathname;
 
-          if (profileData?.faction) {
-            // Usuário tem facção, verificar o clã
-            if (profileData.clan_id) {
-              // Usuário totalmente configurado
-              const processedProfile = await processExistingProfile(
-                profileData,
-                user,
-              );
-              setUserProfile(processedProfile);
-              // Se estiver em uma página de configuração, redirecione para o dashboard
+          // Processa e define o perfil do usuário se os dados existirem
+          if (profileData) {
+            const processedProfile = await processExistingProfile(
+              profileData,
+              user,
+            );
+            setUserProfile(processedProfile);
+          }
+
+          // Lógica de Redirecionamento Centralizada
+          if (shouldRedirect) {
+            if (profileData?.faction && profileData.clan_id) {
+              // 1. Usuário totalmente configurado
               if (
                 currentPath === "/faction-selection" ||
                 currentPath === "/clan-selection"
               ) {
                 navigate("/dashboard");
               }
-            } else {
-              // Usuário tem facção, mas não tem clã
-              const processedProfile = await processExistingProfile(
-                profileData,
-                user,
-              );
-              setUserProfile(processedProfile);
-              if (shouldRedirect && currentPath !== "/clan-selection") {
-                navigate("/clan-selection");
-              }
-            }
-          } else if (user.user_metadata?.faction) {
-            // Fluxo de novo usuário com facção nos metadados
-            const newProfile = await createNewProfile(user);
-            if (newProfile) {
-              setUserProfile(newProfile);
-              // Após a criação do perfil, o usuário provavelmente precisará escolher um clã
-              if (shouldRedirect && currentPath !== "/clan-selection") {
+            } else if (profileData?.faction) {
+              // 2. Tem facção, mas não tem clã
+              if (currentPath !== "/clan-selection") {
                 navigate("/clan-selection");
               }
             } else {
-              // Falha na criação do perfil, redirecionar para seleção de facção
-              if (shouldRedirect && currentPath !== "/faction-selection") {
+              // 3. Não tem facção (novo usuário ou perfil incompleto)
+              if (currentPath !== "/faction-selection") {
                 navigate("/faction-selection");
               }
-            }
-          } else {
-            // Usuário não tem facção, precisa escolher uma
-            if (shouldRedirect && currentPath !== "/faction-selection") {
-              navigate("/faction-selection");
             }
           }
         }
       } catch (error) {
-        const currentPath = window.location.pathname;
+        const currentPath = location.pathname;
         const errorMessage =
           error instanceof Error ? error.message : String(error);
 
@@ -140,7 +124,7 @@ export const useUserProfile = (shouldRedirect: boolean = true) => {
     return () => {
       isMounted = false;
     };
-  }, [navigate, shouldRedirect, refreshTrigger]);
+  }, [navigate, shouldRedirect, refreshTrigger, location.pathname]);
 
   const processExistingProfile = async (profileData: any, user: any) => {
     // Usar sempre o nível vindo do banco; não sobrescrever automaticamente
