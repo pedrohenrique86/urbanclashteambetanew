@@ -1,12 +1,12 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import BottomNavBar from "./BottomNavBar";
-import TopBar from "./TopBar"; // Importa a nova TopBar
+import TopBar from "./TopBar";
 import { useTheme } from "../../contexts/ThemeContext";
 import { useUserProfile } from "../../hooks/useUserProfile";
-import { apiClient } from "../../lib/supabaseClient"; // Importa o apiClient
-
-import { LoadingSpinner } from "../ui/LoadingSpinner"; // Importa o spinner
+import { apiClient } from "../../lib/supabaseClient";
+import { LoadingSpinner } from "../ui/LoadingSpinner";
+import { motion } from "framer-motion";
 
 interface GlobalLayoutProps {
   children: React.ReactNode;
@@ -29,6 +29,16 @@ const GlobalLayout: React.FC<GlobalLayoutProps> = ({ children }) => {
 
   const { userProfile, loading } = useUserProfile(shouldShowNav);
 
+  const [minLoadingTimePassed, setMinLoadingTimePassed] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setMinLoadingTimePassed(true);
+    }, 5000); // 5 segundos
+
+    return () => clearTimeout(timer);
+  }, []);
+
   const navigateTo = (path: string) => {
     navigate(path);
   };
@@ -46,17 +56,58 @@ const GlobalLayout: React.FC<GlobalLayoutProps> = ({ children }) => {
     return <>{children}</>;
   }
 
-  // Se estiver carregando ou se o usuário não tiver o perfil completo (facção e clã),
-  // exibe apenas um fundo com spinner. O useUserProfile já está cuidando do redirecionamento.
-  // Isso evita que a TopBar e BottomNavBar pisquem na tela.
-  if (loading || !userProfile || !userProfile.faction || !userProfile.clan_id) {
+  // Se estiver carregando OU se o tempo mínimo de 10 segundos ainda não passou,
+  // OU se o usuário não tiver o perfil completo (facção e clã),
+  // exibe apenas um fundo com spinner.
+  const showGlobalLoadingSpinner =
+    loading ||
+    !minLoadingTimePassed ||
+    !userProfile ||
+    !userProfile.faction ||
+    !userProfile.clan_id;
+
+  if (showGlobalLoadingSpinner) {
     return (
       <div
-        className={`min-h-screen ${themeClasses.bg} flex items-center justify-center`}
+        className={`min-h-screen ${themeClasses.bg} flex flex-col items-center justify-center`}
       >
         <LoadingSpinner />
+        <motion.p
+          className="text-white text-lg mt-4 font-orbitron flex" // Adicionado 'flex' para alinhar as letras
+          initial="hidden"
+          animate="visible"
+          variants={{
+            hidden: { opacity: 0 },
+            visible: {
+              opacity: 1,
+              transition: {
+                staggerChildren: 0.1, // Atraso entre a animação de cada letra
+              },
+            },
+          }}
+        >
+          {"Aguarde".split("").map((char, index) => (
+            <motion.span
+              key={index}
+              variants={{
+                hidden: { opacity: 0 },
+                visible: { opacity: 1 },
+              }}
+              transition={{
+                duration: 0.5,
+                ease: "easeOut",
+              }}
+            >
+              {char === " " ? "\u00A0" : char}
+            </motion.span>
+          ))}
+        </motion.p>
       </div>
     );
+  }
+
+  if (!shouldShowNav) {
+    return <>{children}</>;
   }
 
   return (
@@ -64,10 +115,7 @@ const GlobalLayout: React.FC<GlobalLayoutProps> = ({ children }) => {
       className={`min-h-screen ${themeClasses.bg} transition-colors duration-300`}
     >
       <TopBar userProfile={userProfile} handleLogout={handleLogout} />
-      <main className="pt-28 md:pt-16 pb-24">
-        {/* Padding-top para não sobrepor o conteúdo, padding-bottom para a BottomNavBar */}
-        {children}
-      </main>
+      <main className="pt-28 md:pt-16 pb-24">{children}</main>
       <BottomNavBar navigateTo={navigateTo} userProfile={userProfile} />
     </div>
   );

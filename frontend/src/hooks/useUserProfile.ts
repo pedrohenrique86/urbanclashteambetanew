@@ -141,7 +141,7 @@ export const useUserProfile = (shouldRedirect: boolean = true) => {
       is_admin: profileData.is_admin, // Adiciona a flag de administrador
       faction: profileData.faction,
       clan_id: profileData.clan_id,
-      username: profileData.username || "Usuário", // username vem da tabela users via API
+      username: (profileData.username || "Usuário").substring(0, 10), // username vem da tabela users via API, truncado para 10 caracteres
       created_at: profileData.created_at,
       current_xp: profileData.current_xp,
       level: Number(profileData.level ?? levelInfo.level),
@@ -192,7 +192,7 @@ export const useUserProfile = (shouldRedirect: boolean = true) => {
         is_admin: profileData.is_admin, // Adiciona a flag de administrador
         faction: profileData.faction,
         clan_id: profileData.clan_id,
-        username: profileData.username || "Usuário", // username vem da tabela users via API
+        username: (profileData.username || "Usuário").substring(0, 10), // username vem da tabela users via API, truncado para 10 caracteres
         created_at: profileData.created_at,
         current_xp: profileData.current_xp,
         level: levelInfo.level,

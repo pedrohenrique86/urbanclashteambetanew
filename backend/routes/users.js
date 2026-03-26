@@ -129,10 +129,10 @@ router.get("/rankings/subscribe", (req, res) => {
 const updateProfileValidation = [
   body("username")
     .optional()
-    .isLength({ min: 3, max: 20 })
+    .isLength({ min: 3, max: 10 })
     .matches(/^[a-zA-Z0-9_]+$/)
     .withMessage(
-      "Username deve ter 3-20 caracteres e conter apenas letras, números e underscore",
+      "Username deve ter 3-10 caracteres e conter apenas letras, números e underscore",
     ),
   body("bio")
     .optional()

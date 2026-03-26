@@ -4,12 +4,12 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { apiClient } from "../lib/supabaseClient";
 import {
-  LoadingScreen,
   BackgroundEffects,
   FactionHeader,
   FactionCard,
   ConfirmButton,
 } from "../components/faction";
+import { LoadingSpinner } from "../components/ui/LoadingSpinner"; // Importa o LoadingSpinner
 
 export default function FactionSelectionPage() {
   const [selectedFaction, setSelectedFaction] = useState<
@@ -24,6 +24,17 @@ export default function FactionSelectionPage() {
   const navigate = useNavigate();
 
   const { userProfile: profile, loading: profileLoading } = useUserProfile();
+
+  const [minPageLoadingTimePassed, setMinPageLoadingTimePassed] =
+    useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setMinPageLoadingTimePassed(true);
+    }, 5000); // 5 segundos
+
+    return () => clearTimeout(timer);
+  }, []);
 
   const handleFactionSelect = async () => {
     // Trava de segurança para previnir condição de corrida
@@ -146,8 +157,43 @@ export default function FactionSelectionPage() {
   // Função de confirmação removida pois a seleção é feita diretamente
 
   // Mostrar um indicador de carregamento enquanto o perfil do usuário é verificado pelo hook
-  if (profileLoading) {
-    return <LoadingScreen error={error} pageLoading={profileLoading} />;
+  // ou se o tempo mínimo de 5 segundos ainda não passou.
+  if (profileLoading || !minPageLoadingTimePassed) {
+    return (
+      <div className="min-h-screen bg-gray-900 flex flex-col items-center justify-center">
+        <LoadingSpinner />
+        <motion.p
+          className="text-white text-lg mt-4 font-orbitron flex"
+          initial="hidden"
+          animate="visible"
+          variants={{
+            hidden: { opacity: 0 },
+            visible: {
+              opacity: 1,
+              transition: {
+                staggerChildren: 0.1,
+              },
+            },
+          }}
+        >
+          {"Aguarde".split("").map((char, index) => (
+            <motion.span
+              key={index}
+              variants={{
+                hidden: { opacity: 0 },
+                visible: { opacity: 1 },
+              }}
+              transition={{
+                duration: 0.5,
+                ease: "easeOut",
+              }}
+            >
+              {char === " " ? "\u00A0" : char}
+            </motion.span>
+          ))}
+        </motion.p>
+      </div>
+    );
   }
 
   return (

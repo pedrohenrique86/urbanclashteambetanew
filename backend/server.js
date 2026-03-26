@@ -149,7 +149,7 @@ async function startServer() {
     console.log("✅ Conectado ao PostgreSQL");
 
     // Popula a tabela de clãs, se necessário.
-    await seedClans();
+    // await seedClans(); // Desativado para evitar a limpeza dos dados dos clãs a cada reinício.
 
     await startGameStateMonitor();
 

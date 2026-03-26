@@ -547,6 +547,18 @@ router.post("/", authenticateToken, createClanValidation, async (req, res) => {
         [clan.id, userId],
       );
 
+      // Atualizar clan_id no perfil do usuário
+      await client.query(
+        "UPDATE user_profiles SET clan_id = $1 WHERE user_id = $2",
+        [clan.id, userId],
+      );
+
+      // Atualizar clan_id no perfil do usuário
+      await client.query(
+        "UPDATE user_profiles SET clan_id = $1 WHERE user_id = $2",
+        [clan.id, userId],
+      );
+
       return clan;
     });
 
