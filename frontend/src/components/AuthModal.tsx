@@ -1,22 +1,94 @@
-import React, { useState, useEffect, useRef } from "react";
-import { apiClient } from "../lib/supabaseClient";
-import { useToast } from "../contexts/ToastContext";
-import { Country, countries } from "../utils/countries";
-import { useNavigate } from "react-router-dom";
+import React from "react";
+import { useState, useRef, useEffect } from "react";
+import { apiClient } from "../lib/supabaseClient"; // Agora usando apenas o apiClient local
 
 type AuthMode = "login" | "register" | "forgot-password";
 
+interface Country {
+  code: string;
+  name: string;
+  flag?: string; // Opcional, mantido para compatibilidade
+}
+
+// Lista de países em ordem alfabética pelo nome em português
+const countries: Country[] = [
+  { code: "ZA", name: "África do Sul" },
+  { code: "DE", name: "Alemanha" },
+  { code: "AR", name: "Argentina" },
+  { code: "AU", name: "Austrália" },
+  { code: "AT", name: "Áustria" },
+  { code: "BE", name: "Bélgica" },
+  { code: "BR", name: "Brasil" },
+  { code: "BG", name: "Bulgária" },
+  { code: "CA", name: "Canadá" },
+  { code: "CL", name: "Chile" },
+  { code: "CN", name: "China" },
+  { code: "CO", name: "Colômbia" },
+  { code: "KR", name: "Coreia do Sul" },
+  { code: "CR", name: "Costa Rica" },
+  { code: "HR", name: "Croácia" },
+  { code: "DK", name: "Dinamarca" },
+  { code: "EG", name: "Egito" },
+  { code: "SV", name: "El Salvador" },
+  { code: "EC", name: "Equador" },
+  { code: "SK", name: "Eslováquia" },
+  { code: "SI", name: "Eslovênia" },
+  { code: "ES", name: "Espanha" },
+  { code: "US", name: "Estados Unidos" },
+  { code: "EE", name: "Estônia" },
+  { code: "PH", name: "Filipinas" },
+  { code: "FI", name: "Finlândia" },
+  { code: "FR", name: "França" },
+  { code: "GR", name: "Grécia" },
+  { code: "GT", name: "Guatemala" },
+  { code: "NL", name: "Holanda" },
+  { code: "HN", name: "Honduras" },
+  { code: "HU", name: "Hungria" },
+  { code: "IN", name: "Índia" },
+  { code: "ID", name: "Indonésia" },
+  { code: "IE", name: "Irlanda" },
+  { code: "IS", name: "Islândia" },
+  { code: "IL", name: "Israel" },
+  { code: "IT", name: "Itália" },
+  { code: "JP", name: "Japão" },
+  { code: "LV", name: "Letônia" },
+  { code: "LT", name: "Lituânia" },
+  { code: "LU", name: "Luxemburgo" },
+  { code: "MY", name: "Malásia" },
+  { code: "MT", name: "Malta" },
+  { code: "MX", name: "México" },
+  { code: "NI", name: "Nicarágua" },
+  { code: "NO", name: "Noruega" },
+  { code: "NZ", name: "Nova Zelândia" },
+  { code: "PA", name: "Panamá" },
+  { code: "PY", name: "Paraguai" },
+  { code: "PE", name: "Peru" },
+  { code: "PL", name: "Polônia" },
+  { code: "PT", name: "Portugal" },
+  { code: "GB", name: "Reino Unido" },
+  { code: "CZ", name: "República Tcheca" },
+  { code: "RO", name: "Romênia" },
+  { code: "RU", name: "Rússia" },
+  { code: "SG", name: "Singapura" },
+  { code: "SE", name: "Suécia" },
+  { code: "CH", name: "Suíça" },
+  { code: "TH", name: "Tailândia" },
+  { code: "TR", name: "Turquia" },
+  { code: "UA", name: "Ucrânia" },
+  { code: "UY", name: "Uruguai" },
+  { code: "VE", name: "Venezuela" },
+  { code: "VN", name: "Vietnã" },
+];
+
 interface AuthModalProps {
   onClose: () => void;
-  initialMode?: AuthMode;
+  initialMode?: "login" | "register";
 }
 
 export default function AuthModal({
   onClose,
   initialMode = "login",
 }: AuthModalProps) {
-  const navigate = useNavigate();
-  const { showToast } = useToast();
   const [activeTab, setActiveTab] = useState<AuthMode>(
     initialMode === "register" ? "register" : "login",
   );
@@ -32,9 +104,6 @@ export default function AuthModal({
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isValidating, setIsValidating] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [authMethodError, setAuthMethodError] = useState<string | null>(null); // Para erros específicos de método de autenticação
-  const [showResendConfirmation, setShowResendConfirmation] = useState(false);
-  const [resendEmail, setResendEmail] = useState("");
 
   const [isCountryDropdownOpen, setIsCountryDropdownOpen] = useState(false);
   const countryDropdownRef = useRef<HTMLDivElement>(null);
@@ -117,85 +186,90 @@ export default function AuthModal({
 
     const startUrl = `/api/auth/google/start?${params.toString()}`;
 
-    try {
-      setIsProcessing(true);
-      const response = await fetch(startUrl);
-      const data = await response.json();
+    window.location.href = startUrl;
+  };
 
-      if (response.ok && data.authorizeUrl) {
-        window.location.href = data.authorizeUrl;
-      } else {
-        throw new Error(
-          data.error || "URL de autorização não recebida do servidor.",
-        );
-      }
-    } catch (error: any) {
-      console.error("Erro ao iniciar login com Google:", error.message);
-      setErrors({
-        form:
-          error.message ||
-          "Não foi possível iniciar o login com Google. Tente novamente.",
-      });
-      setIsProcessing(false);
+  // Função para validar palavrões (simulação de API)
+  const checkProfanity = async (username: string): Promise<boolean> => {
+    // Simulação de API anti-palavrões
+    const profanityWords = ["admin", "test", "fuck", "shit", "damn", "bitch"];
+    return profanityWords.some((word) => username.toLowerCase().includes(word));
+  };
+
+  // Função para verificar se um email existe e está confirmado usando o apiClient
+  const checkEmailExists = async (
+    email: string,
+  ): Promise<{ exists: boolean; confirmed: boolean }> => {
+    try {
+      // Aguardar um pouco antes de verificar para evitar verificações prematuras
+      await new Promise((resolve) => setTimeout(resolve, 500));
+
+      // Chama a API do backend para verificar o email usando o apiClient
+      const result = await apiClient.checkEmail(email);
+      return result;
+    } catch (error) {
+      // Em caso de erro (ex: falha de rede), não assumimos que o usuário existe.
+      // Retornamos que o email não existe para forçar o usuário a se registrar ou tentar novamente.
+      console.error("Erro ao verificar email:", error);
+      return { exists: false, confirmed: false };
     }
   };
 
-  const handleInputChange = (field: string, value: string) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
-    setErrors((prev) => ({ ...prev, [field]: "" })); // Limpa o erro ao digitar
-    setAuthMethodError(null); // Limpa erro de método de autenticação
-  };
-
-  const validateForm = async (mode: AuthMode) => {
+  const validateForm = async (): Promise<boolean> => {
     const newErrors: Record<string, string> = {};
     setIsValidating(true);
 
-    // Validações comuns
-    if (!formData.email) {
-      newErrors.email = "Email é obrigatório";
-    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
+    // Validação do nome de usuário
+    if (formData.username.length < 4 || formData.username.length > 10) {
+      newErrors.username = "Nome de usuário deve ter entre 4-10 caracteres";
+    } else if (!/^[a-zA-Z0-9_]+$/.test(formData.username)) {
+      newErrors.username =
+        "Nome de usuário deve conter apenas letras, números e _";
+    } else {
+      const hasProfanity = await checkProfanity(formData.username);
+      if (hasProfanity) {
+        newErrors.username = "Nome de usuário contém palavras inadequadas";
+      }
+    }
+
+    // Validação do email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email)) {
       newErrors.email = "Email inválido";
     }
 
-    if (mode === "register") {
-      if (formData.email !== formData.confirmEmail) {
-        newErrors.confirmEmail = "Emails não coincidem";
-      }
-      if (!formData.username) {
-        newErrors.username = "Username é obrigatório";
-      } else if (!/^[a-zA-Z0-9_]+$/.test(formData.username)) {
-        newErrors.username =
-          "Username deve conter apenas letras, números e underscore";
-      } else if (
-        formData.username.length < 3 ||
-        formData.username.length > 20
-      ) {
-        newErrors.username = "Username deve ter entre 3 e 20 caracteres";
-      }
+    // Validação da confirmação de email
+    if (formData.email !== formData.confirmEmail) {
+      newErrors.confirmEmail = "Emails não coincidem";
+    }
 
-      if (!formData.password) {
-        newErrors.password = "Senha é obrigatória";
-      } else if (formData.password.length < 8) {
-        newErrors.password = "Senha deve ter no mínimo 8 caracteres";
-      } else if (
-        !/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/.test(
-          formData.password,
-        )
-      ) {
-        newErrors.password =
-          "Senha deve incluir maiúscula, minúscula, número e símbolo";
-      }
+    // Validação da senha
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,12}$/;
+    if (!passwordRegex.test(formData.password)) {
+      newErrors.password =
+        "Senha deve ter 8-12 chars, maiúsculas, minúsculas e números";
+    }
 
-      if (formData.password !== formData.confirmPassword) {
-        newErrors.confirmPassword = "Senhas não coincidem";
+    // Validação da confirmação de senha
+    if (formData.password !== formData.confirmPassword) {
+      newErrors.confirmPassword = "Senhas não coincidem";
+    }
+
+    // Validação da data de nascimento
+    if (formData.birthDate) {
+      const birthYear = new Date(formData.birthDate).getFullYear();
+      const currentYear = new Date().getFullYear();
+      const age = currentYear - birthYear;
+      if (age < 18) {
+        newErrors.birthDate = "Você deve ser maior de 18 anos";
       }
-      if (!formData.country) {
-        newErrors.country = "País é obrigatório";
-      }
-    } else if (mode === "login") {
-      if (!formData.password) {
-        newErrors.password = "Senha é obrigatória";
-      }
+    } else {
+      newErrors.birthDate = "Data de nascimento é obrigatória";
+    }
+
+    // Validação do país
+    if (!formData.country) {
+      newErrors.country = "Selecione seu país";
     }
 
     setErrors(newErrors);
@@ -203,152 +277,416 @@ export default function AuthModal({
     return Object.keys(newErrors).length === 0;
   };
 
+  const [successMessage, setSuccessMessage] = useState("");
+  const [registrationSuccess, setRegistrationSuccess] = useState(false);
+  const [authMethodError, setAuthMethodError] = useState<string | null>(null);
+  const [registeredEmail, setRegisteredEmail] = useState("");
+  const [showResendConfirmation, setShowResendConfirmation] = useState(false);
+  const [showRegisterOption, setShowRegisterOption] = useState(false);
+  const [resendCooldown, setResendCooldown] = useState(0);
+  const [isResending, setIsResending] = useState(false);
+
+  // Função para reenviar o email de confirmação
+  const handleResendConfirmation = async () => {
+    // Evita múltiplos cliques durante o cooldown ou processamento
+    if (isResending || resendCooldown > 0) return;
+
+    setIsResending(true);
+
+    try {
+      await apiClient.resendConfirmation(registeredEmail);
+
+      // Limpar mensagens de erro ao reenviar com sucesso
+      setErrors({});
+      setSuccessMessage(
+        "Email de confirmação reenviado com sucesso! Verifique sua caixa de entrada e spam.",
+      );
+
+      // Inicia o cooldown de 60 segundos (1 minuto)
+      setResendCooldown(60);
+    } catch (error: unknown) {
+      let errorMessage = "Ocorreu um erro desconhecido.";
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      }
+
+      // Se for erro de rate limiting (429), extrair o tempo restante
+      if (
+        errorMessage.includes("Aguarde") &&
+        errorMessage.includes("segundos")
+      ) {
+        const match = errorMessage.match(/(\d+) segundos/);
+        if (match) {
+          const remainingTime = parseInt(match[1]);
+          setResendCooldown(remainingTime);
+        }
+      }
+
+      setErrors({ form: `Erro ao reenviar confirmação: ${errorMessage}` });
+    } finally {
+      setIsResending(false);
+    }
+  };
+
+  // Efeito para gerenciar o contador de cooldown e limpar quando o componente for desmontado
+  useEffect(() => {
+    let countdownInterval: NodeJS.Timeout | null = null;
+
+    // Se houver um cooldown ativo, iniciar o contador
+    if (resendCooldown > 0) {
+      countdownInterval = setInterval(() => {
+        setResendCooldown((prev) => {
+          if (prev <= 1) {
+            if (countdownInterval) clearInterval(countdownInterval);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    }
+
+    // Cleanup quando o componente for desmontado
+    return () => {
+      if (countdownInterval) clearInterval(countdownInterval);
+      setResendCooldown(0);
+    };
+  }, [resendCooldown]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setErrors({});
+
+    // Impedir múltiplos cliques definindo isProcessing como true imediatamente
+    setIsProcessing(true);
+
+    setSuccessMessage("");
+    setShowResendConfirmation(false);
+    setShowRegisterOption(false); // Resetar opção de registro
     setAuthMethodError(null);
-    setIsProcessing(true);
+    setErrors({});
 
-    const isValid = await validateForm(activeTab);
-    if (!isValid) {
-      setIsProcessing(false);
-      return;
-    }
+    if (activeTab === "register") {
+      try {
+        const isValid = await validateForm();
+        if (isValid) {
+          // Registrar o usuário na API local
+          const authData = await apiClient.register(
+            formData.email,
+            formData.username,
+            formData.password,
+            formData.birthDate || undefined,
+            formData.country || undefined,
+          );
 
-    try {
-      if (activeTab === "login") {
-        const response = await apiClient.login(
-          formData.email,
-          formData.password,
-        );
-        showToast("Login realizado com sucesso!", "success");
+          // O perfil será criado automaticamente pelo trigger do banco de dados
+          // quando o usuário selecionar sua facção na próxima página
+          if (authData.user) {
+            // Opcional: pode-se adicionar um log de backend aqui se necessário
+          }
 
-        if (response.isFirstLogin) {
-          navigate("/faction-selection");
-        } else {
-          onClose();
-          navigate("/dashboard");
+          // Armazenar o email registrado para exibir na tela de sucesso
+          setRegisteredEmail(formData.email);
+
+          // Ativar a tela de sucesso
+          setRegistrationSuccess(true);
+
+          // Limpar o formulário
+          setFormData({
+            username: "",
+            email: "",
+            confirmEmail: "",
+            password: "",
+            confirmPassword: "",
+            birthDate: "",
+            country: "",
+          });
         }
-      } else if (activeTab === "register") {
-        await apiClient.register(
-          formData.email,
-          formData.username,
-          formData.password,
-          formData.birthDate || undefined,
-          formData.country || undefined,
-        );
-        showToast(
-          "Registro realizado! Verifique seu email para confirmar a conta.",
-          "success",
-        );
-        onClose();
-      } else if (activeTab === "forgot-password") {
-        await apiClient.forgotPassword(formData.email);
-        showToast(
-          "Se o email estiver registrado, um link de redefinição será enviado.",
-          "info",
-        );
-        onClose();
+      } catch (error: unknown) {
+        let message = "Ocorreu um erro durante o registro.";
+        if (error instanceof Error) {
+          // Tratamento específico para erro de e-mail já cadastrado (409 Conflict)
+          if ((error as any).response?.status === 409) {
+            const responseData = (error as any).response?.data;
+            message = responseData?.message || "Este e-mail já está em uso.";
+          } else {
+            message = error.message;
+          }
+        }
+        setErrors({ form: message });
+      } finally {
+        setIsProcessing(false); // Sempre finalizar o processamento, mesmo em caso de erro
       }
-    } catch (error: any) {
-      console.error("Erro de autenticação:", error);
-      if (error.response && error.response.data) {
-        const { error: apiError, message: apiMessage } = error.response.data;
-        if (apiError === "Login com provedor externo") {
-          setAuthMethodError(apiMessage);
-        } else if (apiError === "Email não confirmado") {
-          setErrors({ form: apiMessage });
-          setResendEmail(formData.email);
+    } else if (activeTab === "login") {
+      try {
+        // Verificar se o email existe e está confirmado antes de tentar fazer login
+        const { exists, confirmed } = await checkEmailExists(formData.email);
+
+        if (!exists) {
+          // Email não cadastrado - mostrar mensagem clara e opção de registro
+          setErrors({
+            form: "Este email não foi encontrado no banco de dados. Você precisa fazer cadastro primeiro para poder jogar.",
+          });
+          // Armazenar o email para facilitar o registro
+          setRegisteredEmail(formData.email);
+          // Mostrar opção de registro
+          setShowRegisterOption(true);
+          setIsProcessing(false);
+          return;
+        }
+
+        if (!confirmed) {
+          // Email cadastrado mas não confirmado - mostrar mensagem e opção de reenvio
+          setErrors({
+            form: "Você fez cadastro mas ainda não confirmou seu email. É necessário confirmar o email para fazer login.",
+          });
+          // Armazenar o email não confirmado para possível reenvio
+          setRegisteredEmail(formData.email);
+          // Mostrar opção de reenvio
           setShowResendConfirmation(true);
-        } else {
-          setErrors({ form: apiMessage || apiError || "Erro desconhecido" });
+          setIsProcessing(false);
+          return;
         }
-      } else {
-        setErrors({ form: "Erro de conexão. Tente novamente." });
+
+        // Se o email existe e está confirmado, tentar fazer login
+        const data = await apiClient.login(formData.email, formData.password);
+
+        // Verificar se o usuário já escolheu uma facção
+        if (data.user) {
+          try {
+            // Tentar obter os dados do perfil
+            const profileData = await apiClient.getUserProfile();
+
+            // Delay adicional para processamento
+            await new Promise((resolve) => setTimeout(resolve, 1500));
+
+            // Fechar o modal
+            onClose();
+            setIsProcessing(false);
+
+            // Verificar se é o primeiro login (após confirmação de email)
+            // O backend já envia isFirstLogin baseado na verificação de last_login
+            const isFirstLogin = data.isFirstLogin;
+
+            // Redirecionar com base na facção e se é primeiro login
+            if (isFirstLogin || !profileData?.faction) {
+              // Se for primeiro login ou não tiver facção, redirecionar para a página de seleção
+              window.location.href = "/faction-selection";
+            } else {
+              // Delay antes de redirecionar para o dashboard
+              await new Promise((resolve) => setTimeout(resolve, 1000));
+              window.location.href = "/dashboard";
+            }
+          } catch (profileError) {
+            // Se houver erro ao buscar o perfil, redirecionar para a página de seleção
+            onClose();
+            setIsProcessing(false);
+            window.location.href = "/faction-selection";
+          }
+        }
+      } catch (error: any) {
+        // DEBUG: Logar o objeto de erro completo para diagnóstico
+
+        // Se for um erro 409, é um erro de método de autenticação (ex: usuário do Google tentando login com senha)
+        if (error.response?.status === 409) {
+          setAuthMethodError(
+            error.response.data.message ||
+              "Conflito de método de autenticação.",
+          );
+        } else {
+          // Para outros erros (401-credenciais inválidas, 500), use o estado de erro geral
+          const message =
+            error.response?.data?.message ||
+            error.message ||
+            "Ocorreu um erro durante o login.";
+          setErrors({ form: message });
+        }
+        setIsProcessing(false);
       }
-    } finally {
-      setIsProcessing(false);
+    } else if (activeTab === "forgot-password") {
+      try {
+        // Verificar se o email existe e está confirmado antes de enviar o email de recuperação
+        const { exists, confirmed } = await checkEmailExists(formData.email);
+
+        if (!exists) {
+          // Email não cadastrado - mostrar mensagem clara e opção de registro
+          setErrors({
+            form: "Este email não foi encontrado no banco de dados. Você precisa fazer cadastro primeiro para poder recuperar senha.",
+          });
+          // Armazenar o email para facilitar o registro
+          setRegisteredEmail(formData.email);
+          // Mostrar opção de registro
+          setShowRegisterOption(true);
+          setIsProcessing(false);
+          return;
+        }
+
+        if (!confirmed) {
+          // Email cadastrado mas não confirmado - mostrar mensagem e opção de reenvio
+          setErrors({
+            form: "Você tem cadastro mas ainda não confirmou seu email. É necessário confirmar o email antes de recuperar a senha.",
+          });
+          // Armazenar o email não confirmado para possível reenvio
+          setRegisteredEmail(formData.email);
+          // Mostrar opção de reenvio
+          setShowResendConfirmation(true);
+          setIsProcessing(false);
+          return;
+        }
+
+        // Se o email existe e está confirmado, enviar o email de recuperação
+        await apiClient.forgotPassword(formData.email);
+
+        // Só exibe a mensagem de sucesso se o email existir, estiver confirmado e o email de recuperação for enviado com sucesso
+        setSuccessMessage(
+          "Enviamos um email com instruções para redefinir sua senha. Por favor, verifique sua caixa de entrada.",
+        );
+        setIsProcessing(false); // Finalizar processamento após sucesso
+      } catch (error: unknown) {
+        const message =
+          error instanceof Error
+            ? error.message
+            : "Ocorreu um erro durante a recuperação de senha.";
+        setErrors({ form: message });
+        setIsProcessing(false); // Finalizar processamento em caso de erro
+      }
     }
   };
 
-  const handleResendConfirmation = async () => {
-    setIsProcessing(true);
-    try {
-      await apiClient.resendConfirmation(resendEmail);
-      showToast("Email de confirmação reenviado!", "success");
-      setShowResendConfirmation(false);
-      setResendEmail("");
-    } catch (error: any) {
-      console.error("Erro ao reenviar confirmação:", error);
-      setErrors({
-        form:
-          error.response?.data?.message ||
-          error.response?.data?.error ||
-          "Erro ao reenviar email.",
-      });
-    } finally {
-      setIsProcessing(false);
+  const handleInputChange = (field: string, value: string) => {
+    setFormData({ ...formData, [field]: value });
+    // Limpar erro do campo quando o usuário começar a digitar
+    if (errors[field]) {
+      setErrors({ ...errors, [field]: "" });
     }
-  };
-
-  const handleCountrySelect = (countryCode: string) => {
-    const selectedCountry = countries.find((c) => c.code === countryCode);
-    if (selectedCountry) {
-      handleInputChange("country", selectedCountry.code);
-      setIsCountryDropdownOpen(false);
-    }
-  };
-
-  const getCountryName = (code: string) => {
-    const country = countries.find((c) => c.code === code);
-    return country ? country.name : "Selecione um País";
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
-      <div className="bg-gray-800 rounded-lg shadow-xl max-w-md w-full relative border border-gray-700">
-        {/* Close Button */}
-        <button
-          onClick={onClose}
-          className="absolute top-3 right-3 text-gray-400 hover:text-white transition-colors"
+    <div
+      className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50"
+      onClick={onClose}
+    >
+      {registrationSuccess ? (
+        <div
+          className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl w-full max-w-2xl p-4 sm:p-6 md:p-8 relative border border-gray-700 shadow-2xl text-center"
+          onClick={(e) => e.stopPropagation()}
         >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            className="h-6 w-6"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
+          {/* Botão de fechar */}
+          <button
+            onClick={onClose}
+            className="absolute top-4 right-4 text-gray-400 hover:text-white transition-colors duration-200 z-10"
           >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M6 18L18 6M6 6l12 12"
-            />
-          </svg>
-        </button>
+            <svg
+              className="w-6 h-6"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M6 18L18 6M6 6l12 12"
+              />
+            </svg>
+          </button>
 
-        {/* Title */}
-        <div className="text-center mb-6">
-          <h2 className="text-xl sm:text-2xl font-orbitron mb-1 flex items-center justify-center">
-            <span className="text-transparent bg-gradient-to-r from-orange-400 to-orange-600 bg-clip-text font-bold">
-              URBAN
-            </span>
-            <span className="mx-1 text-transparent bg-gradient-to-r from-blue-400 to-blue-600 bg-clip-text font-bold">
-              CLASH
-            </span>
-            <span className="text-transparent bg-gradient-to-r from-purple-400 to-purple-600 bg-clip-text font-bold">
-              TEAM
-            </span>
+          {/* Ícone de sucesso */}
+          <div className="flex justify-center mb-6">
+            <div className="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 rounded-full bg-green-500/20 flex items-center justify-center">
+              <svg
+                className="w-10 h-10 sm:w-12 sm:h-12 md:w-16 md:h-16 text-green-500"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M5 13l4 4L19 7"
+                />
+              </svg>
+            </div>
+          </div>
+
+          {/* Título */}
+          <h2 className="text-xl sm:text-2xl md:text-3xl font-orbitron mb-2 sm:mb-3 md:mb-4 text-transparent bg-gradient-to-r from-green-400 to-green-600 bg-clip-text font-bold">
+            CADASTRO REALIZADO!
           </h2>
-          <p className="text-gray-400 text-sm">
-            {activeTab === "login" && "Acesse sua conta"}
-            {activeTab === "register" && "Crie sua conta"}
-            {activeTab === "forgot-password" && "Recupere sua senha"}
-          </p>
-        </div>
 
-        <div className="p-6 pt-0">
+          {/* Mensagem */}
+          <div className="mb-8 space-y-4">
+            <p className="text-white text-base sm:text-lg font-exo">
+              Seu cadastro foi efetuado com sucesso!
+            </p>
+            <div className="p-4 bg-gray-700/50 rounded-lg border border-gray-600 inline-block">
+              <p className="text-gray-300 mb-2">
+                Enviamos um email de confirmação para:
+              </p>
+              <p className="text-orange-400 font-semibold">{registeredEmail}</p>
+            </div>
+            <p className="text-gray-300">
+              Por favor, verifique sua caixa de entrada e clique no link de
+              confirmação.
+            </p>
+            <p className="text-gray-300">
+              Após confirmar, você será direcionado para escolher sua facção
+              antes de acessar o dashboard.
+            </p>
+          </div>
+
+          {/* Botão de fechar */}
+          <button
+            onClick={onClose}
+            className="w-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-orbitron py-2 sm:py-3 text-sm sm:text-base rounded-lg transition-all hover:scale-105 shadow-lg"
+          >
+            ENTENDIDO
+          </button>
+        </div>
+      ) : (
+        <div
+          className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl w-full max-w-2xl p-4 sm:p-5 md:p-6 relative border border-gray-700 shadow-2xl max-h-[90vh] overflow-y-auto"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {/* Close Button */}
+          <button
+            onClick={onClose}
+            className="absolute top-4 right-4 text-gray-400 hover:text-white transition-colors duration-200 z-10"
+          >
+            <svg
+              className="w-6 h-6"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M6 18L18 6M6 6l12 12"
+              />
+            </svg>
+          </button>
+
+          {/* Title */}
+          <div className="text-center mb-6">
+            <h2 className="text-xl sm:text-2xl font-orbitron mb-1 flex items-center justify-center">
+              <span className="text-transparent bg-gradient-to-r from-orange-400 to-orange-600 bg-clip-text font-bold">
+                URBAN
+              </span>
+              <span className="mx-1 text-transparent bg-gradient-to-r from-blue-400 to-blue-600 bg-clip-text font-bold">
+                CLASH
+              </span>
+              <span className="text-transparent bg-gradient-to-r from-purple-400 to-purple-600 bg-clip-text font-bold">
+                TEAM
+              </span>
+            </h2>
+            <p className="text-gray-400 text-sm">
+              {activeTab === "login" && "Acesse sua conta"}
+              {activeTab === "register" && "Crie sua conta"}
+              {activeTab === "forgot-password" && "Recupere sua senha"}
+            </p>
+          </div>
+
           <div className="flex gap-2 mb-4">
             {tabs.map((tab) => (
               <button
@@ -356,14 +694,16 @@ export default function AuthModal({
                 onClick={() => {
                   setActiveTab(tab.id as AuthMode);
                   setErrors({});
-                  setAuthMethodError(null);
+                  setSuccessMessage("");
                   setShowResendConfirmation(false);
-                  setResendEmail("");
+                  setShowRegisterOption(false);
+                  setAuthMethodError(null);
                 }}
-                className={`flex-1 py-2 px-4 rounded-md text-sm font-orbitron transition-colors ${
+                className={`flex-1 px-2 sm:px-3 py-1 sm:py-2 rounded-lg font-orbitron text-xs sm:text-sm transition-colors
+                ${
                   activeTab === tab.id
-                    ? "bg-orange-600 text-white"
-                    : "bg-gray-700 text-gray-300 hover:bg-gray-600"
+                    ? "bg-orange-500 text-white shadow-lg"
+                    : "bg-gray-700 hover:bg-gray-600 text-gray-300"
                 }`}
               >
                 {tab.label}
@@ -371,13 +711,20 @@ export default function AuthModal({
             ))}
           </div>
 
-          <form onSubmit={handleSubmit}>
-            {/* Erro de método de autenticação (ex: "Este email foi cadastrado com Google") */}
-            {authMethodError && (
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Mensagem de sucesso */}
+            {successMessage && (
               <div
-                className="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded relative mb-4"
+                className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative mb-4"
                 role="alert"
               >
+                <span className="block sm:inline">{successMessage}</span>
+              </div>
+            )}
+
+            {/* Mensagem de Erro de Método de Autenticação (Google vs Manual) */}
+            {authMethodError && (
+              <div className="bg-blue-100 border border-blue-400 text-blue-700 px-4 py-3 rounded relative mb-4">
                 <span className="block sm:inline font-medium">
                   {authMethodError}
                 </span>
@@ -416,136 +763,271 @@ export default function AuthModal({
 
                 {/* Opção de reenvio de confirmação para emails não confirmados */}
                 {showResendConfirmation && (
-                  <p className="text-sm mt-2">
+                  <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+                    <p className="text-red-700 mb-3 font-medium">
+                      Não recebeu o email de confirmação?
+                    </p>
                     <button
                       type="button"
                       onClick={handleResendConfirmation}
-                      className="text-blue-600 hover:text-blue-800 underline font-bold"
-                      disabled={isProcessing}
+                      disabled={isResending || resendCooldown > 0}
+                      className={`w-full font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline transition-colors ${
+                        isResending || resendCooldown > 0
+                          ? "bg-gray-400 cursor-not-allowed text-gray-600"
+                          : "bg-orange-600 hover:bg-orange-700 text-white"
+                      }`}
                     >
-                      Reenviar email de confirmação
+                      {isResending
+                        ? "Reenviando email..."
+                        : resendCooldown > 0
+                          ? `Aguarde ${resendCooldown}s para reenviar`
+                          : "Reenviar email de confirmação"}
                     </button>
-                  </p>
+
+                    {/* Barra de progresso do cooldown */}
+                    {resendCooldown > 0 && (
+                      <div className="mt-3">
+                        <div className="w-full bg-gray-200 rounded-full h-2">
+                          <div
+                            className="bg-orange-500 h-2 rounded-full transition-all duration-1000"
+                            style={{
+                              width: `${((60 - resendCooldown) / 60) * 100}%`,
+                            }}
+                          ></div>
+                        </div>
+                        <p className="text-xs text-gray-500 mt-1 text-center">
+                          {resendCooldown}s restantes
+                        </p>
+                      </div>
+                    )}
+
+                    <p className="text-xs text-gray-600 mt-3 text-center">
+                      Email será reenviado para:{" "}
+                      <span className="font-medium text-orange-600">
+                        {registeredEmail}
+                      </span>
+                    </p>
+                  </div>
+                )}
+
+                {/* Opção de registro para emails não cadastrados */}
+                {showRegisterOption && (
+                  <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+                    <p className="text-green-700 mb-3 font-medium">
+                      Email não encontrado no sistema. Deseja criar uma conta?
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveTab("register");
+                        // Preencher o email no formulário de registro
+                        setFormData((prev) => ({
+                          ...prev,
+                          email: registeredEmail,
+                          confirmEmail: registeredEmail,
+                        }));
+                        setErrors({});
+                        setShowRegisterOption(false);
+                        setSuccessMessage("");
+                      }}
+                      className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline transition-colors"
+                    >
+                      Criar nova conta
+                    </button>
+                    <p className="text-xs text-gray-600 mt-3 text-center">
+                      Nova conta será criada com:{" "}
+                      <span className="font-medium text-green-600">
+                        {registeredEmail}
+                      </span>
+                    </p>
+                  </div>
                 )}
               </div>
             )}
-
             {/* LOGIN FORM */}
-            {(activeTab === "login" || activeTab === "register") && (
-              <div className="mb-4">
-                <label className="block mb-2 text-white font-exo">Email</label>
-                <input
-                  type="email"
-                  required
-                  className="w-full p-3 bg-gray-700 rounded-lg text-white border border-gray-600 focus:border-orange-500 focus:outline-none transition-colors"
-                  value={formData.email}
-                  onChange={(e) => handleInputChange("email", e.target.value)}
-                  placeholder="seu@email.com"
-                />
-                {errors.email && (
-                  <p className="text-red-400 text-sm mt-1">{errors.email}</p>
-                )}
-              </div>
-            )}
-
-            {activeTab === "register" && (
-              <div className="mb-4">
-                <label className="block mb-2 text-white font-exo">
-                  Confirmar Email
-                </label>
-                <input
-                  type="email"
-                  required
-                  className="w-full p-3 bg-gray-700 rounded-lg text-white border border-gray-600 focus:border-orange-500 focus:outline-none transition-colors"
-                  value={formData.confirmEmail}
-                  onChange={(e) =>
-                    handleInputChange("confirmEmail", e.target.value)
-                  }
-                  placeholder="confirme seu email"
-                />
-                {errors.confirmEmail && (
-                  <p className="text-red-400 text-sm mt-1">
-                    {errors.confirmEmail}
-                  </p>
-                )}
-              </div>
-            )}
-
-            {activeTab === "register" && (
-              <div className="mb-4">
-                <label className="block mb-2 text-white font-exo">
-                  Username
-                </label>
-                <input
-                  type="text"
-                  required
-                  className="w-full p-3 bg-gray-700 rounded-lg text-white border border-gray-600 focus:border-orange-500 focus:outline-none transition-colors"
-                  value={formData.username}
-                  onChange={(e) =>
-                    handleInputChange("username", e.target.value)
-                  }
-                  placeholder="seu_username"
-                />
-                {errors.username && (
-                  <p className="text-red-400 text-sm mt-1">{errors.username}</p>
-                )}
-              </div>
-            )}
-
-            {(activeTab === "login" || activeTab === "register") && (
-              <div className="mb-4">
-                <label className="block mb-2 text-white font-exo">Senha</label>
-                <input
-                  type="password"
-                  required
-                  className="w-full p-3 bg-gray-700 rounded-lg text-white border border-gray-600 focus:border-orange-500 focus:outline-none transition-colors"
-                  value={formData.password}
-                  onChange={(e) =>
-                    handleInputChange("password", e.target.value)
-                  }
-                  placeholder="sua senha"
-                />
-                {errors.password && (
-                  <p className="text-red-400 text-sm mt-1">{errors.password}</p>
-                )}
-              </div>
-            )}
-
-            {activeTab === "register" && (
-              <div className="mb-4">
-                <label className="block mb-2 text-white font-exo">
-                  Confirmar Senha
-                </label>
-                <input
-                  type="password"
-                  required
-                  className="w-full p-3 bg-gray-700 rounded-lg text-white border border-gray-600 focus:border-orange-500 focus:outline-none transition-colors"
-                  value={formData.confirmPassword}
-                  onChange={(e) =>
-                    handleInputChange("confirmPassword", e.target.value)
-                  }
-                  placeholder="confirme sua senha"
-                />
-                {errors.confirmPassword && (
-                  <p className="text-red-400 text-sm mt-1">
-                    {errors.confirmPassword}
-                  </p>
-                )}
-              </div>
-            )}
-
-            {activeTab === "register" && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            {activeTab === "login" && (
+              <>
                 <div>
                   <label className="block mb-2 text-white font-exo">
-                    Data de Nascimento (Opcional)
+                    Email
+                  </label>
+                  <input
+                    type="email"
+                    required
+                    className="w-full p-3 bg-gray-700 rounded-lg text-white border border-gray-600 focus:border-orange-500 focus:outline-none transition-colors"
+                    value={formData.email}
+                    onChange={(e) => handleInputChange("email", e.target.value)}
+                    placeholder="seu@email.com"
+                  />
+                </div>
+                <div>
+                  <label className="block mb-2 text-white font-exo">
+                    Senha
+                  </label>
+                  <input
+                    type="password"
+                    required
+                    className="w-full p-3 bg-gray-700 rounded-lg text-white border border-gray-600 focus:border-orange-500 focus:outline-none transition-colors"
+                    value={formData.password}
+                    onChange={(e) =>
+                      handleInputChange("password", e.target.value)
+                    }
+                    placeholder="Sua senha"
+                  />
+                </div>
+              </>
+            )}
+
+            {/* REGISTER FORM */}
+            {activeTab === "register" && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="md:col-span-2">
+                  <label className="block mb-2 text-white font-exo">
+                    Nome de usuário *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    className={`w-full p-3 bg-gray-700 rounded-lg text-white border transition-colors ${
+                      errors.username
+                        ? "border-red-500"
+                        : "border-gray-600 focus:border-orange-500"
+                    } focus:outline-none`}
+                    value={formData.username}
+                    onChange={(e) =>
+                      handleInputChange("username", e.target.value)
+                    }
+                    placeholder="4-10 caracteres"
+                    minLength={4}
+                    maxLength={10}
+                  />
+                  {errors.username && (
+                    <p className="text-red-400 text-sm mt-1">
+                      {errors.username}
+                    </p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block mb-2 text-white font-exo">
+                    Email *
+                  </label>
+                  <input
+                    type="email"
+                    required
+                    className={`w-full p-3 bg-gray-700 rounded-lg text-white border transition-colors ${
+                      errors.email
+                        ? "border-red-500"
+                        : "border-gray-600 focus:border-orange-500"
+                    } focus:outline-none`}
+                    value={formData.email}
+                    onChange={(e) => handleInputChange("email", e.target.value)}
+                    placeholder="seu@email.com"
+                  />
+                  {errors.email && (
+                    <p className="text-red-400 text-sm mt-1">{errors.email}</p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block mb-2 text-white font-exo">
+                    Confirmar Email *
+                  </label>
+                  <input
+                    type="email"
+                    required
+                    className={`w-full p-3 bg-gray-700 rounded-lg text-white border transition-colors ${
+                      errors.confirmEmail
+                        ? "border-red-500"
+                        : "border-gray-600 focus:border-orange-500"
+                    } focus:outline-none`}
+                    value={formData.confirmEmail}
+                    onChange={(e) =>
+                      handleInputChange("confirmEmail", e.target.value)
+                    }
+                    placeholder="Confirme seu email"
+                  />
+                  {errors.confirmEmail && (
+                    <p className="text-red-400 text-sm mt-1">
+                      {errors.confirmEmail}
+                    </p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block mb-2 text-white font-exo">
+                    Senha *
+                  </label>
+                  <input
+                    type="password"
+                    required
+                    className={`w-full p-3 bg-gray-700 rounded-lg text-white border transition-colors ${
+                      errors.password
+                        ? "border-red-500"
+                        : "border-gray-600 focus:border-orange-500"
+                    } focus:outline-none`}
+                    value={formData.password}
+                    onChange={(e) =>
+                      handleInputChange("password", e.target.value)
+                    }
+                    placeholder="8-12 chars, maiúsculas+minúsculas+números"
+                    minLength={8}
+                    maxLength={12}
+                  />
+                  {errors.password && (
+                    <p className="text-red-400 text-sm mt-1">
+                      {errors.password}
+                    </p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block mb-2 text-white font-exo">
+                    Confirmar Senha *
+                  </label>
+                  <input
+                    type="password"
+                    required
+                    className={`w-full p-3 bg-gray-700 rounded-lg text-white border transition-colors ${
+                      errors.confirmPassword
+                        ? "border-red-500"
+                        : "border-gray-600 focus:border-orange-500"
+                    } focus:outline-none`}
+                    value={formData.confirmPassword}
+                    onChange={(e) =>
+                      handleInputChange("confirmPassword", e.target.value)
+                    }
+                    placeholder="Confirme sua senha"
+                  />
+                  {errors.confirmPassword && (
+                    <p className="text-red-400 text-sm mt-1">
+                      {errors.confirmPassword}
+                    </p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block mb-2 text-white font-exo">
+                    Data de Nascimento *
                   </label>
                   <input
                     type="date"
-                    className="w-full p-3 bg-gray-700 rounded-lg text-white border border-gray-600 focus:border-orange-500 focus:outline-none transition-colors"
+                    required
+                    className={`w-full p-3 bg-gray-700 rounded-lg text-white border transition-colors ${
+                      errors.birthDate
+                        ? "border-red-500"
+                        : "border-gray-600 focus:border-orange-500"
+                    } focus:outline-none`}
                     value={formData.birthDate}
                     onChange={(e) =>
                       handleInputChange("birthDate", e.target.value)
+                    }
+                    max={
+                      new Date(
+                        new Date().setFullYear(new Date().getFullYear() - 18),
+                      )
+                        .toISOString()
+                        .split("T")[0]
                     }
                   />
                   {errors.birthDate && (
@@ -554,46 +1036,85 @@ export default function AuthModal({
                     </p>
                   )}
                 </div>
-                <div className="relative" ref={countryDropdownRef}>
-                  <label className="block mb-2 text-white font-exo">País</label>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setIsCountryDropdownOpen(!isCountryDropdownOpen)
-                    }
-                    className="w-full p-3 bg-gray-700 rounded-lg text-white border border-gray-600 focus:border-orange-500 focus:outline-none transition-colors flex justify-between items-center"
-                  >
-                    <span>{getCountryName(formData.country)}</span>
-                    <svg
-                      className={`w-4 h-4 transform transition-transform ${
-                        isCountryDropdownOpen ? "rotate-180" : ""
-                      }`}
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                      xmlns="http://www.w3.org/2000/svg"
+
+                <div>
+                  <label className="block mb-2 text-white font-exo">
+                    País *
+                  </label>
+                  <div className="relative" ref={countryDropdownRef}>
+                    <div
+                      className={`w-full p-3 bg-gray-700 rounded-lg text-white border transition-colors ${
+                        errors.country
+                          ? "border-red-500"
+                          : "border-gray-600 focus:border-orange-500"
+                      } focus:outline-none flex items-center cursor-pointer`}
+                      onClick={() =>
+                        setIsCountryDropdownOpen(!isCountryDropdownOpen)
+                      }
                     >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth="2"
-                        d="M19 9l-7 7-7-7"
-                      ></path>
-                    </svg>
-                  </button>
-                  {isCountryDropdownOpen && (
-                    <div className="absolute z-10 w-full bg-gray-700 border border-gray-600 rounded-lg mt-1 max-h-48 overflow-y-auto">
-                      {countries.map((country: Country) => (
-                        <div
-                          key={country.code}
-                          onClick={() => handleCountrySelect(country.code)}
-                          className="p-3 hover:bg-gray-600 cursor-pointer text-white"
-                        >
-                          {country.name}
-                        </div>
-                      ))}
+                      {formData.country ? (
+                        <>
+                          <img
+                            src={`https://flagcdn.com/24x18/${formData.country.toLowerCase()}.png`}
+                            srcSet={`https://flagcdn.com/48x36/${formData.country.toLowerCase()}.png 2x`}
+                            width="24"
+                            height="18"
+                            alt={
+                              countries.find((c) => c.code === formData.country)
+                                ?.name || ""
+                            }
+                            className="mr-2"
+                          />
+                          {countries.find((c) => c.code === formData.country)
+                            ?.name || "Selecione seu país"}
+                        </>
+                      ) : (
+                        "Selecione seu país"
+                      )}
+                      <svg
+                        className="w-4 h-4 ml-auto"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d={
+                            isCountryDropdownOpen
+                              ? "M5 15l7-7 7 7"
+                              : "M19 9l-7 7-7-7"
+                          }
+                        />
+                      </svg>
                     </div>
-                  )}
+
+                    {isCountryDropdownOpen && (
+                      <div className="absolute z-10 w-full bottom-full mb-1 bg-gray-800 border border-gray-700 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                        {countries.map((country) => (
+                          <div
+                            key={country.code}
+                            className="flex items-center p-3 hover:bg-gray-700 cursor-pointer"
+                            onClick={() => {
+                              handleInputChange("country", country.code);
+                              setIsCountryDropdownOpen(false);
+                            }}
+                          >
+                            <img
+                              src={`https://flagcdn.com/24x18/${country.code.toLowerCase()}.png`}
+                              srcSet={`https://flagcdn.com/48x36/${country.code.toLowerCase()}.png 2x`}
+                              width="24"
+                              height="18"
+                              alt={country.name}
+                              className="mr-2"
+                            />
+                            {country.name}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                   {errors.country && (
                     <p className="text-red-400 text-sm mt-1">
                       {errors.country}
@@ -623,8 +1144,32 @@ export default function AuthModal({
               disabled={isValidating || isProcessing}
               className="w-full md:col-span-2 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white font-orbitron py-3 rounded-lg transition-all hover:scale-105 shadow-lg disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center mt-4"
             >
-              {isProcessing ? (
-                <span className="flex items-center">
+              {isValidating ? (
+                <span className="flex items-center justify-center">
+                  <svg
+                    className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    ></circle>
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    ></path>
+                  </svg>
+                  Validando...
+                </span>
+              ) : isProcessing ? (
+                <span className="flex items-center justify-center">
                   <svg
                     className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
                     xmlns="http://www.w3.org/2000/svg"
@@ -693,7 +1238,7 @@ export default function AuthModal({
             )}
           </form>
         </div>
-      </div>
+      )}
     </div>
   );
 }
