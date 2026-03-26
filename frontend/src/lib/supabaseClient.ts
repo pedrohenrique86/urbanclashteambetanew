@@ -35,8 +35,7 @@ class ApiClient {
   }
 
   private async request(endpoint: string, options: RequestInit = {}) {
-    const baseUrl = import.meta.env.VITE_API_URL || "";
-    const url = `${baseUrl}${endpoint.startsWith("/") ? "" : "/"}${endpoint}`;
+    const url = `/api${endpoint}`;
     const token = this.getToken();
 
     const config: RequestInit = {
