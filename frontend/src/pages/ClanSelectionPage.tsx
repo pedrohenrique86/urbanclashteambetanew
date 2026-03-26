@@ -4,6 +4,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { useUserProfile, invalidateUserProfile } from "../hooks/useUserProfile";
 import { redirectToDashboardWithCleanup } from "../utils/cacheUtils";
 import { apiClient } from "../lib/supabaseClient";
+import { LoadingSpinner } from "../components/ui/LoadingSpinner"; // Importa o LoadingSpinner
 
 interface Clan {
   id: string;
@@ -22,6 +23,8 @@ export default function ClanSelectionPage() {
   const [joining, setJoining] = useState(false);
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isTransitioningToDashboard, setIsTransitioningToDashboard] =
+    useState(false); // Novo estado para a transição
   const navigate = useNavigate();
   const location = useLocation();
   const { userProfile, loading: profileLoading } = useUserProfile(true);
@@ -76,22 +79,26 @@ export default function ClanSelectionPage() {
     setError("");
 
     try {
+      // Adiciona um delay de 5 segundos para manter o botão em estado de processamento
+      await new Promise((resolve) => setTimeout(resolve, 5000));
+
       // Usando apiClient que já injeta o token e usa a URL correta
       await apiClient.joinClan(selectedClan);
+
+      // Define um indicador no sessionStorage para o Dashboard saber que é o primeiro carregamento
+      sessionStorage.setItem("justJoinedClan", "true");
 
       // Invalidar cache do hook
       invalidateUserProfile();
 
-      // Delay antes de redirecionar
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-
-      // Redirecionar com limpeza completa
-      redirectToDashboardWithCleanup();
+      setIsTransitioningToDashboard(true); // Ativa o estado de transição
+      // Navega para o dashboard de forma suave (client-side), eliminando o reload.
+      navigate("/dashboard");
     } catch (error) {
       setError(
         error instanceof Error ? error.message : "Erro ao entrar no clã",
       );
-    } finally {
+      // Reseta o estado apenas em caso de erro para o usuário poder tentar novamente
       setJoining(false);
       setProcessing(false);
     }
@@ -110,14 +117,6 @@ export default function ClanSelectionPage() {
   const getFactionAccentColor = (faction: string) => {
     return faction === "gangsters" ? "orange-500" : "blue-500";
   };
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 to-black flex items-center justify-center">
-        <div className="text-white text-xl">Carregando clãs...</div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-gray-900 text-white font-exo">
@@ -325,21 +324,24 @@ export default function ClanSelectionPage() {
               className={`
               px-8 py-2.5 rounded-xl font-bold transition-all duration-300 backdrop-blur-sm
               ${
-                selectedClan && !joining && !processing
-                  ? `bg-gradient-to-r ${getFactionColor(
-                      selectedFaction || "",
-                    )} text-white shadow-lg hover:shadow-xl border border-white/20`
-                  : "bg-gray-700/50 text-gray-500 cursor-not-allowed border border-gray-600/30"
+                selectedClan // Se um clã estiver selecionado
+                  ? `bg-gradient-to-r ${getFactionColor(selectedFaction || "")} text-white shadow-lg border border-white/20` // Aplica fundo/texto ativo
+                  : "bg-gray-700/50 text-gray-500 border border-gray-600/30" // Senão, aplica fundo/texto desabilitado
+              }
+              ${
+                !selectedClan || joining || processing // Se desabilitado (sem seleção, ou entrando/processando)
+                  ? "cursor-not-allowed" // Adiciona cursor desabilitado
+                  : "hover:shadow-xl" // Senão, adiciona sombra no hover
               }
             `}
             >
               {processing || joining ? (
                 <div className="flex items-center gap-2">
                   <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                  {processing ? "Processando..." : "Entrando..."}
+                  PROCESSANDO...
                 </div>
               ) : (
-                "Entrar no Clã →"
+                "ENTRAR NO CLÃ!"
               )}
             </motion.button>
           </motion.div>

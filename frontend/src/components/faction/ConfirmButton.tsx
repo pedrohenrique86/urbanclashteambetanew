@@ -7,7 +7,12 @@ interface ConfirmButtonProps {
   onConfirm: () => void;
 }
 
-export default function ConfirmButton({ selectedFaction, loading, processing, onConfirm }: ConfirmButtonProps) {
+export default function ConfirmButton({
+  selectedFaction,
+  loading,
+  processing,
+  onConfirm,
+}: ConfirmButtonProps) {
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -22,8 +27,8 @@ export default function ConfirmButton({ selectedFaction, loading, processing, on
           !selectedFaction
             ? "bg-gray-700 text-gray-500 cursor-not-allowed"
             : selectedFaction === "gangsters"
-            ? "bg-gradient-to-r from-orange-500 to-orange-700 hover:from-orange-400 hover:to-orange-600 text-white hover:scale-105"
-            : "bg-gradient-to-r from-blue-600 to-blue-800 hover:from-blue-500 hover:to-blue-700 text-white hover:scale-105"
+              ? "bg-gradient-to-r from-orange-500 to-orange-700 hover:from-orange-400 hover:to-orange-600 text-white hover:scale-105"
+              : "bg-gradient-to-r from-blue-600 to-blue-800 hover:from-blue-500 hover:to-blue-700 text-white hover:scale-105"
         }`}
       >
         {loading || processing ? (
@@ -48,7 +53,7 @@ export default function ConfirmButton({ selectedFaction, loading, processing, on
                 d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
               ></path>
             </svg>
-            {processing ? 'PROCESSANDO...' : 'CONFIRMANDO...'}
+            PROCESSANDO...
           </span>
         ) : (
           "CONFIRMAR ESCOLHA"

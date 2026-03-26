@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import PageContainer from "../components/layout/PageContainer";
 import { useUserProfile } from "../hooks/useUserProfile";
@@ -11,27 +11,16 @@ export default function DashboardPage() {
   const { themeClasses, isDarkTheme } = useTheme();
   const { userProfile, loading: profileLoading } = useUserProfile();
 
-  // Se o perfil ainda não foi carregado (primeira visita), mostra o spinner de tela cheia.
-  if (profileLoading || !userProfile) {
-    return (
-      <div
-        className={`min-h-screen ${themeClasses.bg} flex items-center justify-center`}
-      >
-        <LoadingSpinner />
-      </div>
-    );
-  }
-
-  // Se o usuário não tem facção ou clã, ele será redirecionado pelo useUserProfile.
-  // Retornamos null ou um spinner para evitar que o Dashboard pisque na tela.
-  if (!userProfile.faction || !userProfile.clan_id) {
-    return (
-      <div
-        className={`min-h-screen ${themeClasses.bg} flex items-center justify-center`}
-      >
-        <LoadingSpinner />
-      </div>
-    );
+  // Se o perfil estiver carregando ou se o usuário não tiver um perfil completo (sem facção/clã),
+  // não renderize nada. O hook `useUserProfile` cuidará do redirecionamento necessário.
+  // Isso evita qualquer "flash" de conteúdo ou spinner durante a transição ou carregamento inicial.
+  if (
+    profileLoading ||
+    !userProfile ||
+    !userProfile.faction ||
+    !userProfile.clan_id
+  ) {
+    return null;
   }
 
   return (

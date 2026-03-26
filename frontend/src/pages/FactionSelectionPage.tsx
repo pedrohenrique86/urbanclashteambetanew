@@ -31,7 +31,7 @@ export default function FactionSelectionPage() {
   useEffect(() => {
     const timer = setTimeout(() => {
       setMinPageLoadingTimePassed(true);
-    }, 5000); // 5 segundos
+    }, 3500); // 3.5 segundos
 
     return () => clearTimeout(timer);
   }, []);
@@ -60,8 +60,8 @@ export default function FactionSelectionPage() {
     setLoading(true);
     setError(null);
 
-    // Delay inicial para mostrar processamento
-    await new Promise((resolve) => setTimeout(resolve, 2500));
+    // Adiciona o delay de 3 segundos solicitado
+    await new Promise((resolve) => setTimeout(resolve, 3000));
 
     try {
       console.log(`🎯 Iniciando seleção de facção: ${selectedFaction}`);
@@ -140,15 +140,12 @@ export default function FactionSelectionPage() {
 
       console.log(`✅ Processo de facção (${selectedFaction}) concluído.`);
 
-      // Delay adicional para feedback visual antes de redirecionar
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-
       console.log("🔄 Redirecionando para a seleção de clãs...");
-      navigate("/clan-selection", { state: { faction: selectedFaction } });
+      navigate("/clan-selection", { state: { fromFactionSelection: true } });
     } catch (error: any) {
       console.error("❌ Erro na seleção de facção:", error);
       setError(error.message || "Erro ao selecionar facção. Tente novamente.");
-    } finally {
+      // Reseta o estado apenas em caso de erro para o usuário poder tentar novamente
       setLoading(false);
       setProcessing(false);
     }
