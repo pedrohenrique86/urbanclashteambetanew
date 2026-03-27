@@ -184,7 +184,9 @@ export default function AuthModal({
       code_challenge_method: "S256",
     });
 
-    const startUrl = `/api/auth/google/start?${params.toString()}`;
+    const startUrl = apiClient.getApiUrl(
+      `/auth/google/start?${params.toString()}`,
+    );
 
     window.location.href = startUrl;
   };

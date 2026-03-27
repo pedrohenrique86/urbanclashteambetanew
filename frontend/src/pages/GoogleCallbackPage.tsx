@@ -87,30 +87,15 @@ export default function GoogleCallbackPage() {
           throw new Error("Verificador de código PKCE não encontrado.");
         }
 
-        const res = await fetch(
-          `${apiClient.getBaseUrl()}/api/auth/google/callback`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              code,
-              redirect_uri: `${window.location.origin}/auth/google/callback`,
-              intent,
-              code_verifier: codeVerifier,
-            }),
-          },
+        const data = await apiClient.googleCallback(
+          code,
+          codeVerifier,
+          intent,
+          `${window.location.origin}/auth/google/callback`,
         );
-
-        if (!res.ok) {
-          const errorData = await res.json().catch(() => null);
-          throw new Error(
-            errorData?.error || "Falha na autenticação com Google.",
-          );
-        }
-
-        const data = await res.json();
         if (data.token) {
-          apiClient.setToken(data.token);
+          // O método googleCallback no apiClient já cuida de chamar o setToken.
+          // Apenas precisamos navegar o usuário.
 
           // Lógica de redirecionamento corrigida e final:
           // Se não é o primeiro login, vai direto para o dashboard.

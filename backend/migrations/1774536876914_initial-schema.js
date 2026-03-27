@@ -15,7 +15,7 @@ exports.up = (pgm) => {
       default: pgm.func("uuid_generate_v4()"),
     },
     email: { type: "varchar(255)", unique: true, notNull: true },
-    password_hash: { type: "varchar(255)", notNull: false },
+    password_hash: { type: "varchar(255)" }, // Tornar anulável para permitir login social sem senha
     username: { type: "varchar(50)", unique: true, notNull: true },
     birth_date: { type: "date" },
     country: { type: "varchar(3)" },

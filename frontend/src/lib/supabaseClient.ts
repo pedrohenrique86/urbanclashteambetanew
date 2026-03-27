@@ -38,6 +38,12 @@ class ApiClient {
     return import.meta.env.VITE_API_URL || "";
   }
 
+  public getApiUrl(endpoint: string = "") {
+    const baseUrl = this.getBaseUrl();
+    const finalEndpoint = endpoint.startsWith("/") ? endpoint : `/${endpoint}`;
+    return `${baseUrl}${finalEndpoint}`;
+  }
+
   private async request(endpoint: string, options: RequestInit = {}) {
     const baseUrl = import.meta.env.VITE_API_URL || "";
     const url = `${baseUrl}/api${endpoint}`;
@@ -233,6 +239,29 @@ class ApiClient {
     });
   }
 
+  async googleCallback(
+    code: string,
+    codeVerifier: string,
+    intent: string,
+    redirectUri: string,
+  ) {
+    const response = await this.request("/auth/google/callback", {
+      method: "POST",
+      body: JSON.stringify({
+        code,
+        code_verifier: codeVerifier,
+        intent,
+        redirect_uri: redirectUri,
+      }),
+    });
+
+    if (response.token) {
+      this.setToken(response.token);
+    }
+
+    return response;
+  }
+
   // User methods
   async getUser(id: string) {
     return this.request(`/users/${id}`);
@@ -387,6 +416,7 @@ class ApiClient {
   }
 }
 
-export const apiClient = new ApiClient();
+const apiClient = new ApiClient();
+export { apiClient, HttpError };
 
 // Não há mais compatibilidade com Supabase - removido
