@@ -47,8 +47,40 @@ const GameStatus = {
   FINISHED: "finished",
 };
 
+async function seedInitialGameState() {
+  try {
+    const result = await query("SELECT COUNT(*) FROM game_config");
+    if (parseInt(result.rows[0].count, 10) === 0) {
+      console.log(
+        "🌱 Tabela 'game_config' vazia. Semeando com valores padrão...",
+      );
+      const defaultConfig = {
+        is_paused: "false",
+        is_countdown_active: "false",
+        game_duration: "1728000", // 20 dias em segundos
+      };
+
+      const promises = Object.entries(defaultConfig).map(([key, value]) =>
+        query(
+          `INSERT INTO game_config (key, value) VALUES ($1, $2) ON CONFLICT (key) DO NOTHING`,
+          [key, value],
+        ),
+      );
+
+      await Promise.all(promises);
+      console.log("✅ Tabela 'game_config' semeada com sucesso.");
+    }
+  } catch (error) {
+    console.error("❌ Erro ao semear 'game_config':", error);
+    // Não lançar o erro para não impedir o início do servidor
+  }
+}
+
 async function getGameStateFromDB() {
   try {
+    // Garante que a configuração inicial exista antes de tentar ler
+    await seedInitialGameState();
+
     const result = await query("SELECT key, value FROM game_config");
     const config = result.rows.reduce((acc, row) => {
       if (row.value === "true") {

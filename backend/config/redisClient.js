@@ -87,6 +87,30 @@ module.exports = {
       return null;
     }
   },
+  hGetAsync: async (k, f) => {
+    if (!isReady) return null;
+    try {
+      return await client.hGet(k, f);
+    } catch {
+      return null;
+    }
+  },
+  expireAsync: async (k, t) => {
+    if (!isReady) return null;
+    try {
+      return await client.expire(k, t);
+    } catch {
+      return null;
+    }
+  },
+  expireAsync: async (k, t) => {
+    if (!isReady) return null;
+    try {
+      return await client.expire(k, t);
+    } catch {
+      return null;
+    }
+  },
   hGetAllAsync: async (k) => {
     if (!isReady) return null;
     try {
@@ -94,5 +118,17 @@ module.exports = {
     } catch {
       return null;
     }
+  },
+  scanIterator: (options) => {
+    if (!isReady || isUpstash) {
+      // Esta implementação é para o pacote local 'redis'.
+      // Upstash tem um método de scan diferente que precisaria de uma implementação separada.
+      async function* empty() {
+        yield* [];
+      }
+      return empty();
+    }
+    // Retorna diretamente o iterador assíncrono do cliente node-redis
+    return client.scanIterator(options);
   },
 };

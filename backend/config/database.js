@@ -31,8 +31,9 @@ if (process.env.DATABASE_URL) {
 const pool = new Pool({
   ...poolConfig, // Usa a configuração decidida acima
   max: 20,
-  idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 5000,
+  idleTimeoutMillis: 600000, // 10 minutos
+  connectionTimeoutMillis: 10000, // 10 segundos
+  allowExitOnIdle: process.env.NODE_ENV !== "production", // Permite que o processo saia se apenas o pool estiver ativo (útil em dev)
 });
 
 // Função para conectar ao banco

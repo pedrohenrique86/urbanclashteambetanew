@@ -13,6 +13,7 @@ const {
   invalidateAllSessions,
   authenticateToken,
 } = require("../middleware/auth");
+const { loadPlayerState } = require("../services/playerStateService");
 
 const router = express.Router();
 const crypto = require("crypto");
@@ -92,6 +93,10 @@ router.post(
       const emailExists = await query("SELECT id FROM users WHERE email = $1", [
         email,
       ]);
+
+      // Carrega o estado do jogador para o cache Redis em segundo plano
+      // Não precisa do await para não bloquear a resposta de login
+      loadPlayerState(user.id);
 
       res.json({ exists: emailExists.rows.length > 0 });
     } catch (error) {

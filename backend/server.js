@@ -18,6 +18,7 @@ const userRoutes = require("./routes/users");
 const clanRoutes = require("./routes/clans");
 const { connectDB, closePool, seedClans } = require("./config/database");
 const { checkAutoStart } = require("./services/gameStateService");
+const { schedulePersistence } = require("./services/playerStateService");
 const { initializeSocket } = require("./socketHandler");
 const http = require("http");
 const { Server } = require("socket.io");
@@ -159,6 +160,8 @@ async function startServer() {
     await startGameStateMonitor();
 
     initializeSocket(io);
+
+    schedulePersistence(); // Inicia o worker de persistência de estado do jogador
 
     server.listen(PORT, () => {
       console.log(`🚀 Servidor rodando na porta ${PORT}`);
