@@ -55,7 +55,10 @@ app.use((req, res, next) => {
     "Access-Control-Allow-Methods",
     "GET, POST, PUT, DELETE, OPTIONS",
   );
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+  res.setHeader(
+    "Access-Control-Allow-Headers",
+    "Content-Type, Authorization, If-None-Match",
+  );
   res.setHeader("Access-Control-Allow-Credentials", "true");
 
   // Intercepta e responde às requisições preflight (OPTIONS)

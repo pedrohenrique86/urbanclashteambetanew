@@ -9,7 +9,11 @@ exports.up = (pgm) => {
 
   // Tabela: users
   pgm.createTable("users", {
-    id: { type: "uuid", primaryKey: true, default: pgm.func("uuid_generate_v4()") },
+    id: {
+      type: "uuid",
+      primaryKey: true,
+      default: pgm.func("uuid_generate_v4()"),
+    },
     email: { type: "varchar(255)", unique: true, notNull: true },
     password_hash: { type: "varchar(255)", notNull: true },
     username: { type: "varchar(50)", unique: true, notNull: true },
@@ -19,6 +23,7 @@ exports.up = (pgm) => {
     email_confirmation_token: { type: "varchar(255)" },
     password_reset_token: { type: "varchar(255)" },
     password_reset_expires: { type: "timestamp" },
+    google_id: { type: "varchar(255)", unique: true }, // Adicionado para autenticação Google
     is_admin: { type: "boolean", default: false },
     created_at: { type: "timestamp", default: pgm.func("CURRENT_TIMESTAMP") },
     updated_at: { type: "timestamp", default: pgm.func("CURRENT_TIMESTAMP") },
@@ -26,7 +31,11 @@ exports.up = (pgm) => {
 
   // Tabela: clans
   pgm.createTable("clans", {
-    id: { type: "uuid", primaryKey: true, default: pgm.func("uuid_generate_v4()") },
+    id: {
+      type: "uuid",
+      primaryKey: true,
+      default: pgm.func("uuid_generate_v4()"),
+    },
     name: { type: "varchar(100)", unique: true, notNull: true },
     description: { type: "text" },
     faction: { type: "varchar(50)", notNull: true },
@@ -41,7 +50,11 @@ exports.up = (pgm) => {
 
   // Tabela: user_profiles
   pgm.createTable("user_profiles", {
-    id: { type: "uuid", primaryKey: true, default: pgm.func("uuid_generate_v4()") },
+    id: {
+      type: "uuid",
+      primaryKey: true,
+      default: pgm.func("uuid_generate_v4()"),
+    },
     user_id: { type: "uuid", references: '"users"', onDelete: "CASCADE" },
     clan_id: { type: "uuid", references: '"clans"', onDelete: "SET NULL" },
     display_name: { type: "varchar(100)" },
@@ -66,20 +79,29 @@ exports.up = (pgm) => {
     victories: { type: "integer", default: 0 },
     defeats: { type: "integer", default: 0 },
     winning_streak: { type: "integer", default: 0 },
-    action_points_reset_time: { type: "timestamp", default: pgm.func("CURRENT_TIMESTAMP") },
+    action_points_reset_time: {
+      type: "timestamp",
+      default: pgm.func("CURRENT_TIMESTAMP"),
+    },
     created_at: { type: "timestamp", default: pgm.func("CURRENT_TIMESTAMP") },
     updated_at: { type: "timestamp", default: pgm.func("CURRENT_TIMESTAMP") },
   });
 
   // Tabela: clan_members
   pgm.createTable("clan_members", {
-    id: { type: "uuid", primaryKey: true, default: pgm.func("uuid_generate_v4()") },
+    id: {
+      type: "uuid",
+      primaryKey: true,
+      default: pgm.func("uuid_generate_v4()"),
+    },
     clan_id: { type: "uuid", references: '"clans"', onDelete: "CASCADE" },
     user_id: { type: "uuid", references: '"users"', onDelete: "CASCADE" },
     role: { type: "varchar(50)", default: "member" },
     joined_at: { type: "timestamp", default: pgm.func("CURRENT_TIMESTAMP") },
   });
-  pgm.addConstraint("clan_members", "unique_clan_user", { unique: ["clan_id", "user_id"] });
+  pgm.addConstraint("clan_members", "unique_clan_user", {
+    unique: ["clan_id", "user_id"],
+  });
 
   // Tabela: game_config
   pgm.createTable("game_config", {
@@ -91,7 +113,11 @@ exports.up = (pgm) => {
 
   // Tabela: user_sessions
   pgm.createTable("user_sessions", {
-    id: { type: "uuid", primaryKey: true, default: pgm.func("uuid_generate_v4()") },
+    id: {
+      type: "uuid",
+      primaryKey: true,
+      default: pgm.func("uuid_generate_v4()"),
+    },
     user_id: { type: "uuid", references: '"users"', onDelete: "CASCADE" },
     token_hash: { type: "varchar(255)", notNull: true },
     expires_at: { type: "timestamp", notNull: true },
@@ -189,7 +215,7 @@ exports.down = (pgm) => {
   pgm.dropTable("user_profiles", { cascade: true });
   pgm.dropTable("clans", { cascade: true });
   pgm.dropTable("users", { cascade: true });
-  
+
   pgm.sql(`
     DROP FUNCTION IF EXISTS update_updated_at_column() CASCADE;
     DROP FUNCTION IF EXISTS update_clan_member_count() CASCADE;

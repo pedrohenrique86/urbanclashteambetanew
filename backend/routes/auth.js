@@ -74,6 +74,33 @@ const loginValidation = [
   body("password").notEmpty().withMessage("Senha é obrigatória"),
 ];
 
+// POST /api/auth/check-email - Verificar se o email já existe
+router.post(
+  "/check-email",
+  [body("email").isEmail().normalizeEmail().withMessage("Email inválido")],
+  async (req, res) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({
+          error: "Email inválido",
+          details: errors.array(),
+        });
+      }
+
+      const { email } = req.body;
+      const emailExists = await query("SELECT id FROM users WHERE email = $1", [
+        email,
+      ]);
+
+      res.json({ exists: emailExists.rows.length > 0 });
+    } catch (error) {
+      console.error("❌ Erro ao verificar email:", error.message);
+      res.status(500).json({ error: "Erro interno do servidor" });
+    }
+  },
+);
+
 // POST /api/auth/register - Registrar novo usuário
 router.post(
   "/register",
@@ -314,8 +341,12 @@ router.post("/google/callback", async (req, res) => {
   }
 
   try {
+    console.log("DEBUG: 1. Iniciando try-catch no Google Callback.");
+    console.log("DEBUG: req.body:", req.body);
+
     // Definir a URI de redirecionamento e o verificador de código
     oauth2Client.redirectUri = redirect_uri;
+    console.log("DEBUG: 2. redirectUri definido:", oauth2Client.redirectUri);
 
     // Trocar o código por tokens
     const { tokens } = await oauth2Client.getToken({
@@ -323,64 +354,89 @@ router.post("/google/callback", async (req, res) => {
       codeVerifier: code_verifier,
     });
     oauth2Client.setCredentials(tokens);
+    console.log("DEBUG: 3. Tokens obtidos com sucesso.");
 
     // Obter informações do usuário
     const oauth2 = google.oauth2({ version: "v2", auth: oauth2Client });
     const { data: userInfo } = await oauth2.userinfo.get();
+    console.log("DEBUG: 4. Informações do usuário Google obtidas:", userInfo);
 
     const { id: google_id, email, name, picture } = userInfo;
+    console.log("DEBUG: 5. google_id:", google_id, "email:", email);
 
     if (!email) {
+      console.log("DEBUG: 6. Email não retornado pela Google.");
       return res.status(400).json({ error: "Email não retornado pela Google" });
     }
 
     // Verificar se o usuário já existe
+    console.log("DEBUG: 7. Verificando usuário por google_id:", google_id);
     let userResult = await query("SELECT * FROM users WHERE google_id = $1", [
       google_id,
     ]);
     let user = userResult.rows[0];
     let isFirstLogin = false;
+    console.log("DEBUG: 8. Resultado da busca por google_id:", user);
 
     if (!user) {
+      console.log(
+        "DEBUG: 9. Usuário não encontrado por google_id. Tentando por email:",
+        email,
+      );
       // Se não encontrou por google_id, tenta por email para vincular contas
       userResult = await query("SELECT * FROM users WHERE email = $1", [email]);
       user = userResult.rows[0];
+      console.log("DEBUG: 10. Resultado da busca por email:", user);
 
       if (user) {
+        console.log(
+          "DEBUG: 11. Usuário encontrado por email. Vinculando Google ID.",
+        );
         // Usuário com este email já existe, vincular a conta Google
         await query("UPDATE users SET google_id = $1 WHERE id = $2", [
           google_id,
           user.id,
         ]);
+        console.log("DEBUG: 12. Google ID vinculado ao usuário existente.");
       } else {
+        console.log("DEBUG: 13. Usuário não existe. Criando novo usuário.");
         // Usuário não existe, criar um novo
         isFirstLogin = true;
         const username = name.split(" ")[0] + Math.floor(Math.random() * 9999);
 
         const newUserResult = await query(
-          `INSERT INTO users (username, email, google_id, is_email_confirmed) 
+          `INSERT INTO users (username, email, google_id, is_email_confirmed)
            VALUES ($1, $2, $3, true) RETURNING *`,
           [username, email, google_id],
         );
         user = newUserResult.rows[0];
+        console.log("DEBUG: 14. Novo usuário criado:", user);
       }
     }
 
+    console.log("DEBUG: 15. Usuário final para login:", user);
     // A partir daqui, 'user' existe e está logado
     const token = generateToken(user.id);
+    console.log("DEBUG: 16. Token JWT gerado.");
     await createSession(user.id, token);
+    console.log("DEBUG: 17. Sessão criada.");
 
     // Buscar perfil para retornar ao frontend
     const profileResult = await query(
       "SELECT * FROM user_profiles WHERE user_id = $1",
       [user.id],
     );
+    console.log("DEBUG: 18. Perfil do usuário buscado:", profileResult.rows[0]);
 
     // Se é o primeiro login, o perfil ainda não existe
     if (profileResult.rows.length === 0) {
       isFirstLogin = true;
+      console.log(
+        "DEBUG: 19. isFirstLogin definido como true (perfil não encontrado).",
+      );
     }
 
+    console.log("DEBUG: 20. Enviando resposta JSON.");
     res.json({
       token,
       user: { ...user, profile: profileResult.rows[0] || null },
@@ -403,6 +459,36 @@ router.post("/logout", authenticateToken, async (req, res) => {
     res.json({ message: "Logout bem-sucedido" });
   } catch (error) {
     console.error("❌ Erro no logout:", error.message);
+    res.status(500).json({ error: "Erro interno do servidor" });
+  }
+});
+
+// GET /api/auth/me - Obter informações do usuário autenticado
+router.get("/me", authenticateToken, async (req, res) => {
+  try {
+    // O middleware authenticateToken já adicionou o user.id ao req.user
+    const userResult = await query(
+      "SELECT id, email, username, is_email_confirmed, google_id FROM users WHERE id = $1",
+      [req.user.id],
+    );
+
+    if (userResult.rows.length === 0) {
+      return res.status(404).json({ error: "Usuário não encontrado" });
+    }
+
+    const user = userResult.rows[0];
+
+    // Buscar perfil do usuário
+    const profileResult = await query(
+      "SELECT * FROM user_profiles WHERE user_id = $1",
+      [user.id],
+    );
+
+    res.json({
+      user: { ...user, profile: profileResult.rows[0] || null },
+    });
+  } catch (error) {
+    console.error("❌ Erro ao obter informações do usuário:", error.message);
     res.status(500).json({ error: "Erro interno do servidor" });
   }
 });
