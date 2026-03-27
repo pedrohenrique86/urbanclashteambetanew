@@ -114,42 +114,9 @@ CREATE INDEX idx_clan_members_user_id ON clan_members(user_id);
 CREATE INDEX idx_user_sessions_user_id ON user_sessions(user_id);
 CREATE INDEX idx_user_sessions_expires_at ON user_sessions(expires_at);
 
--- Triggers para atualizar updated_at automaticamente
-CREATE OR REPLACE FUNCTION update_updated_at_column()
-RETURNS TRIGGER AS $BODY$
-BEGIN
-    NEW.updated_at = CURRENT_TIMESTAMP;
-    RETURN NEW;
-END;
-$BODY$ language 'plpgsql';
 
-CREATE TRIGGER update_users_updated_at BEFORE UPDATE ON users
-    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
-CREATE TRIGGER update_user_profiles_updated_at BEFORE UPDATE ON user_profiles
-    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
-CREATE TRIGGER update_clans_updated_at BEFORE UPDATE ON clans
-    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-
--- Trigger para atualizar member_count automaticamente
-CREATE OR REPLACE FUNCTION update_clan_member_count()
-RETURNS TRIGGER AS $BODY$
-BEGIN
-    IF TG_OP = 'INSERT' THEN
-        UPDATE clans SET member_count = member_count + 1 WHERE id = NEW.clan_id;
-        RETURN NEW;
-    ELSIF TG_OP = 'DELETE' THEN
-        UPDATE clans SET member_count = member_count - 1 WHERE id = OLD.clan_id;
-        RETURN OLD;
-    END IF;
-    RETURN NULL;
-END;
-$BODY$ language 'plpgsql';
-
-CREATE TRIGGER update_clan_member_count_trigger
-    AFTER INSERT OR DELETE ON clan_members
-    FOR EACH ROW EXECUTE FUNCTION update_clan_member_count();
 
 -- Inserir os 26 clãs iniciais
 INSERT INTO clans (name, faction, points, description) VALUES

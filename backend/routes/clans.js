@@ -549,13 +549,7 @@ router.post("/", authenticateToken, createClanValidation, async (req, res) => {
 
       // Atualizar clan_id no perfil do usuário
       await client.query(
-        "UPDATE user_profiles SET clan_id = $1 WHERE user_id = $2",
-        [clan.id, userId],
-      );
-
-      // Atualizar clan_id no perfil do usuário
-      await client.query(
-        "UPDATE user_profiles SET clan_id = $1 WHERE user_id = $2",
+        "UPDATE user_profiles SET clan_id = $1, updated_at = CURRENT_TIMESTAMP WHERE user_id = $2",
         [clan.id, userId],
       );
 
@@ -713,9 +707,9 @@ router.post("/:id/join", authenticateToken, async (req, res) => {
         [id, userId],
       );
 
-      // Incrementar member_count do clã
+      // Incrementar member_count e atualizar timestamp do clã
       await client.query(
-        "UPDATE clans SET member_count = member_count + 1 WHERE id = $1",
+        "UPDATE clans SET member_count = member_count + 1, updated_at = CURRENT_TIMESTAMP WHERE id = $1",
         [id],
       );
     });
@@ -765,6 +759,11 @@ router.post("/:id/leave", authenticateToken, async (req, res) => {
       await transaction(async (client) => {
         await client.query("DELETE FROM clan_members WHERE clan_id = $1", [id]);
         await client.query("DELETE FROM clans WHERE id = $1", [id]);
+        // Limpar clan_id no perfil do usuário
+        await client.query(
+          "UPDATE user_profiles SET clan_id = NULL, updated_at = CURRENT_TIMESTAMP WHERE user_id = $1",
+          [userId],
+        );
       });
 
       broadcastToClan(id, "clan_deleted", { clanId: id });
@@ -778,9 +777,9 @@ router.post("/:id/leave", authenticateToken, async (req, res) => {
         "DELETE FROM clan_members WHERE clan_id = $1 AND user_id = $2",
         [id, userId],
       );
-      // Decrementa a contagem de membros
+      // Decrementa a contagem de membros e atualiza timestamp
       await client.query(
-        "UPDATE clans SET member_count = member_count - 1 WHERE id = $1",
+        "UPDATE clans SET member_count = member_count - 1, updated_at = CURRENT_TIMESTAMP WHERE id = $1",
         [id],
       );
     });
@@ -868,9 +867,9 @@ router.post(
             `DELETE FROM clan_members WHERE clan_id = $1 AND user_id = $2`,
             [clanId, targetUserId],
           );
-          // Decrementar member_count
+          // Decrementar member_count e atualizar timestamp
           await client.query(
-            `UPDATE clans SET member_count = member_count - 1 WHERE id = $1`,
+            `UPDATE clans SET member_count = member_count - 1, updated_at = CURRENT_TIMESTAMP WHERE id = $1`,
             [clanId],
           );
           // Limpar os votos para este usuário
@@ -948,9 +947,9 @@ router.post("/:id/kick/:userId", authenticateToken, async (req, res) => {
         [id, targetUserId],
       );
 
-      // Decrementar a contagem de membros
+      // Decrementar a contagem de membros e atualizar timestamp
       await client.query(
-        "UPDATE clans SET member_count = member_count - 1 WHERE id = $1",
+        "UPDATE clans SET member_count = member_count - 1, updated_at = CURRENT_TIMESTAMP WHERE id = $1",
         [id],
       );
 
@@ -1060,8 +1059,16 @@ router.delete("/:id", authenticateToken, async (req, res) => {
         .json({ error: "Apenas o líder pode deletar o clã" });
     }
 
-    // Deletar clã (cascade irá deletar membros)
-    await query("DELETE FROM clans WHERE id = $1", [id]);
+    // Deletar clã e atualizar perfis de usuário em uma transação
+    await transaction(async (client) => {
+      // Limpar clan_id nos perfis dos membros e atualizar updated_at
+      await client.query(
+        "UPDATE user_profiles SET clan_id = NULL, updated_at = CURRENT_TIMESTAMP WHERE clan_id = $1",
+        [id],
+      );
+      // Deletar clã (ON DELETE CASCADE cuidará dos clan_members)
+      await client.query("DELETE FROM clans WHERE id = $1", [id]);
+    });
 
     res.json({ message: "Clã deletado com sucesso" });
   } catch (error) {

@@ -134,47 +134,6 @@ exports.up = (pgm) => {
   pgm.createIndex("user_sessions", "user_id");
   pgm.createIndex("user_sessions", "expires_at");
 
-  // Função e Triggers para updated_at
-  pgm.sql(`
-    CREATE OR REPLACE FUNCTION update_updated_at_column()
-    RETURNS TRIGGER AS $$
-    BEGIN
-        NEW.updated_at = CURRENT_TIMESTAMP;
-        RETURN NEW;
-    END;
-    $$ language 'plpgsql';
-
-    CREATE TRIGGER update_users_updated_at BEFORE UPDATE ON users
-        FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-
-    CREATE TRIGGER update_user_profiles_updated_at BEFORE UPDATE ON user_profiles
-        FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-
-    CREATE TRIGGER update_clans_updated_at BEFORE UPDATE ON clans
-        FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-  `);
-
-  // Função e Trigger para member_count
-  pgm.sql(`
-    CREATE OR REPLACE FUNCTION update_clan_member_count()
-    RETURNS TRIGGER AS $$
-    BEGIN
-        IF TG_OP = 'INSERT' THEN
-            UPDATE clans SET member_count = member_count + 1 WHERE id = NEW.clan_id;
-            RETURN NEW;
-        ELSIF TG_OP = 'DELETE' THEN
-            UPDATE clans SET member_count = member_count - 1 WHERE id = OLD.clan_id;
-            RETURN OLD;
-        END IF;
-        RETURN NULL;
-    END;
-    $$ language 'plpgsql';
-
-    CREATE TRIGGER update_clan_member_count_trigger
-        AFTER INSERT OR DELETE ON clan_members
-        FOR EACH ROW EXECUTE FUNCTION update_clan_member_count();
-  `);
-
   // Inserir clãs iniciais
   pgm.sql(`
     INSERT INTO clans (name, faction, points, description) VALUES
