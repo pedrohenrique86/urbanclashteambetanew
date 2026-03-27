@@ -347,6 +347,11 @@ router.post("/google/callback", async (req, res) => {
     // Definir a URI de redirecionamento e o verificador de código
     oauth2Client.redirectUri = redirect_uri;
     console.log("DEBUG: 2. redirectUri definido:", oauth2Client.redirectUri);
+    console.log("DEBUG: Parâmetros para getToken:", {
+      code: code,
+      codeVerifier: code_verifier,
+      redirectUri: oauth2Client.redirectUri,
+    });
 
     // Trocar o código por tokens
     const { tokens } = await oauth2Client.getToken({
@@ -393,21 +398,42 @@ router.post("/google/callback", async (req, res) => {
           "DEBUG: 11. Usuário encontrado por email. Vinculando Google ID.",
         );
         // Usuário com este email já existe, vincular a conta Google
-        await query("UPDATE users SET google_id = $1 WHERE id = $2", [
-          google_id,
-          user.id,
-        ]);
-        console.log("DEBUG: 12. Google ID vinculado ao usuário existente.");
+        await query(
+          "UPDATE users SET google_id = $1, is_email_confirmed = TRUE WHERE id = $2",
+          [google_id, user.id],
+        );
+        console.log(
+          "DEBUG: 12. Google ID vinculado ao usuário existente e email confirmado.",
+        );
       } else {
         console.log("DEBUG: 13. Usuário não existe. Criando novo usuário.");
         // Usuário não existe, criar um novo
         isFirstLogin = true;
-        const username = name.split(" ")[0] + Math.floor(Math.random() * 9999);
+        let baseUsername = name.replace(/\s/g, "_").substring(0, 10); // Substitui espaços por _ e limita a 10 caracteres
+        if (!baseUsername) {
+          baseUsername = "user"; // Fallback se o nome estiver vazio
+        }
+        let uniqueUsername = baseUsername;
+        let counter = 0;
+        let usernameExistsInDb = true;
+
+        while (usernameExistsInDb) {
+          const existingUsernameCheck = await query(
+            "SELECT id FROM users WHERE username = $1",
+            [uniqueUsername],
+          );
+          if (existingUsernameCheck.rows.length === 0) {
+            usernameExistsInDb = false;
+          } else {
+            counter++;
+            uniqueUsername = `${baseUsername}${counter}`;
+          }
+        }
 
         const newUserResult = await query(
           `INSERT INTO users (username, email, google_id, is_email_confirmed)
            VALUES ($1, $2, $3, true) RETURNING *`,
-          [username, email, google_id],
+          [uniqueUsername, email, google_id],
         );
         user = newUserResult.rows[0];
         console.log("DEBUG: 14. Novo usuário criado:", user);
