@@ -40,13 +40,14 @@ class ApiClient {
 
   public getApiUrl(endpoint: string = "") {
     const baseUrl = this.getBaseUrl();
+    // Garante que o endpoint comece com /api
     const finalEndpoint = endpoint.startsWith("/") ? endpoint : `/${endpoint}`;
-    return `${baseUrl}${finalEndpoint}`;
+    return `${baseUrl}/api${finalEndpoint}`;
   }
 
   private async request(endpoint: string, options: RequestInit = {}) {
-    const baseUrl = import.meta.env.VITE_API_URL || "";
-    const url = `${baseUrl}/api${endpoint}`;
+    // O getApiUrl agora é a fonte da verdade para a URL completa.
+    const url = this.getApiUrl(endpoint);
     const token = this.getToken();
 
     const config: RequestInit = {
