@@ -321,7 +321,7 @@ router.get("/google/start", (req, res) => {
     const authorizeUrl = oauth2Client.generateAuthUrl({
       access_type: "offline",
       scope: scopes,
-      prompt: "consent", // Força o usuário a consentir, útil para obter refresh_token
+      prompt: "select_account", // Garante que a seleção de conta seja sempre exibida
       state: JSON.stringify({ intent }), // Passa o intent (login/register) para o callback
       code_challenge: code_challenge,
       code_challenge_method: code_challenge_method || "S256",
