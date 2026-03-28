@@ -1,44 +1,31 @@
-# 🚀 NEXT STEPS — Urban Clash Team (Atualizado)
+# Status da Tarefa: Refatoração da Barra de Navegação Responsiva
 
-## 🥇 Prioridade 0: Tempo Real e Performance (CRÍTICO)
+Este documento registra o estado atual da tarefa de ajuste da responsividade da barra de navegação principal.
 
-- Implementar cronômetro global com Redis  
-- Garantir sincronização entre todos os jogadores  
-- Implementar hora do servidor centralizada  
-- Backend como fonte única de tempo  
-- Evitar consultas repetitivas no banco  
-- Usar Redis como cache  
-- Testar com múltiplos usuários simultâneos (100+)  
+## O que já foi feito
 
-**Objetivo:**  
-Garantir funcionamento correto em tempo real antes de escalar funcionalidades.
+- **Refatoração Completa do Layout da Navbar (`HomePage.tsx`):** A estrutura da barra de navegação foi completamente refeita para utilizar uma abordagem de `flex-wrap`. Isso unificou o código e eliminou a necessidade de layouts separados para mobile e desktop.
+- **Correção de Bugs de Layout:** Foram corrigidos múltiplos bugs de layout que ocorriam em telas de tamanho intermediário (tablets), incluindo:
+    - Sobreposição do cronômetro sobre os botões.
+    - Elementos sendo "empurrados" para fora da tela.
+    - Layout "tumultuado" e sem fluidez.
+- **Ajuste Fino do Cronômetro (`NavbarCountdown.tsx`):**
+    - O componente foi ajustado para usar múltiplos breakpoints de tamanho de fonte (`xs`, `md`, `lg`), garantindo uma adaptação suave a diferentes larguras de tela.
+    - Foi adicionada a propriedade `whitespace-nowrap` para impedir que o texto do cronômetro quebre em múltiplas linhas.
+- **Reordenação Estrutural:** Os elementos (Logo, Cronômetro, Botões) foram reordenados e as classes de `flexbox` (`flex-grow`, `order`) foram aplicadas para garantir um comportamento previsível e robusto em todas as resoluções.
 
----
+## O que ficou parcialmente feito
 
-## 🧱 Prioridade 1: Estabilização
+- Nenhum item ficou parcialmente feito. A tarefa de refatoração da barra de navegação foi concluída através de múltiplas iterações e correções.
 
-- Implementar testes unitários (Jest)  
-- Criar testes de integração (Supertest)  
-- Configurar CI/CD básico  
+## O que ainda falta
 
----
+- **Validação Final do Usuário:** Confirmação em múltiplos dispositivos e larguras de tela de que o comportamento atual do layout é o desejado e atende a todos os casos de uso.
 
-## 🧩 Prioridade 2: Estrutura
+## Qual deve ser o próximo passo exato
 
-- Implementar logging (Pino ou Winston)  
-- Revisar segurança das rotas  
-- Garantir validação completa de dados  
-
----
-
-## 🚀 Prioridade 3: Evolução
-
-- Melhorar frontend  
-- Criar novas funcionalidades  
-- Otimizar queries do banco  
-
----
-
-## 🎯 Direção
-
-Focar primeiro em tempo real e performance (multiplayer), depois estabilidade, depois evolução.
+1.  **Teste Exaustivo:** O usuário deve realizar testes completos na página inicial, focando na barra de navegação.
+    - **Ação:** Redimensionar a janela do navegador lentamente de ponta a ponta.
+    - **Ação:** Testar em um dispositivo móvel real (ou no modo de desenvolvedor do navegador).
+    - **Objetivo:** Garantir que a quebra de linha do cronômetro ocorra de forma suave e que nenhum elemento se sobreponha ou seja cortado em qualquer resolução.
+2.  **Aprovação Final:** Se os testes forem bem-sucedidos, o usuário deve aprovar formalmente a conclusão da tarefa.

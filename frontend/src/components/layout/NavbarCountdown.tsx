@@ -28,17 +28,25 @@ const NavbarCountdown: React.FC<NavbarCountdownProps> = ({ remainingTime }) => {
 
   return (
     <div className="flex flex-row items-center justify-center gap-2 font-orbitron">
-      <span className="text-xs uppercase tracking-wider text-cyan-300 underline md:text-xl md:underline-offset-4">
+      <span className="whitespace-nowrap text-xs uppercase tracking-wider text-cyan-300 underline md:text-base lg:text-xl md:underline-offset-4">
         Próxima rodada começa em:
       </span>
       <div className="flex items-baseline gap-1 rounded-md border border-gray-700 bg-gray-900/50 px-2 py-0.5">
-        <span className="text-sm font-bold text-white md:text-lg">{d}</span>
+        <span className="text-sm font-bold text-white md:text-base lg:text-lg">
+          {d}
+        </span>
         <span className="text-xs text-cyan-400 mr-1">d</span>
-        <span className="text-sm font-bold text-white md:text-lg">{h}</span>
+        <span className="text-sm font-bold text-white md:text-base lg:text-lg">
+          {h}
+        </span>
         <span className="text-xs text-cyan-400 mr-1">h</span>
-        <span className="text-sm font-bold text-white md:text-lg">{m}</span>
+        <span className="text-sm font-bold text-white md:text-base lg:text-lg">
+          {m}
+        </span>
         <span className="text-xs text-cyan-400 mr-1">m</span>
-        <span className="text-sm font-bold text-white md:text-lg">{s}</span>
+        <span className="text-sm font-bold text-white md:text-base lg:text-lg">
+          {s}
+        </span>
         <span className="text-xs text-cyan-400">s</span>
       </div>
     </div>
