@@ -54,7 +54,7 @@ export default function HomePage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white font-exo relative">
+    <div className="min-h-screen bg-gray-900 text-white font-exo relative overflow-x-hidden">
       {/* Timeline visível apenas em telas grandes */}
       <div className="hidden lg:block">
         <Timeline isVisible={isTimelineVisible} onGoToStart={handleGoToStart} />
