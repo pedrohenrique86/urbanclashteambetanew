@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { motion } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import AuthModal from "../components/AuthModal";
-import Timeline from "../components/Timeline";
 import RankingSection from "../components/RankingSection";
 import {
   HeroSection,
@@ -17,16 +16,15 @@ export default function HomePage() {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authMode, setAuthMode] = useState<"login" | "register">("login");
   const { status, remainingTime } = useGameClock(); // Usar o hook para obter o estado do jogo
-  const [isTimelineVisible, setIsTimelineVisible] = useState(false);
+  const [showBackToTop, setShowBackToTop] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => {
-      // Mostra o menu quando o usuário rolar para além da maior parte da primeira seção (HeroSection)
-      // Usar window.innerHeight torna isso responsivo a diferentes tamanhos de tela.
-      if (window.scrollY > window.innerHeight * 0.8) {
-        setIsTimelineVisible(true);
+      // Mostra o botão quando o usuário rolar para além de uma certa altura
+      if (window.scrollY > 400) {
+        setShowBackToTop(true);
       } else {
-        setIsTimelineVisible(false);
+        setShowBackToTop(false);
       }
     };
 
@@ -36,16 +34,13 @@ export default function HomePage() {
     return () => {
       window.removeEventListener("scroll", handleScroll);
     };
-  }, []); // O array vazio garante que o efeito rode apenas uma vez (montagem/desmontagem)
+  }, []);
 
   const handleGoToStart = () => {
     window.scrollTo({
       top: 0,
       behavior: "smooth",
     });
-    // O listener de scroll já vai cuidar de esconder o menu,
-    // mas podemos forçar para uma resposta mais rápida.
-    setIsTimelineVisible(false);
   };
 
   const openAuthModal = (mode: "login" | "register") => {
@@ -55,10 +50,6 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-gray-900 text-white font-exo relative overflow-x-hidden">
-      {/* Timeline visível apenas em telas grandes */}
-      <div className="hidden lg:block">
-        <Timeline isVisible={isTimelineVisible} onGoToStart={handleGoToStart} />
-      </div>
       {/* Navigation */}
       <nav className="fixed top-0 w-full bg-gray-900/75 backdrop-blur-sm z-50 border-b border-gray-700">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -127,6 +118,35 @@ export default function HomePage() {
           initialMode={authMode}
         />
       )}
+
+      {/* Botão Voltar ao Topo */}
+      <AnimatePresence>
+        {showBackToTop && (
+          <motion.button
+            initial={{ opacity: 0, scale: 0.5 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.5 }}
+            onClick={handleGoToStart}
+            className="fixed bottom-8 right-8 bg-purple-600 hover:bg-purple-700 text-white rounded-full p-3 shadow-lg z-50"
+            aria-label="Voltar ao topo"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-6 w-6"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M5 15l7-7 7 7"
+              />
+            </svg>
+          </motion.button>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
