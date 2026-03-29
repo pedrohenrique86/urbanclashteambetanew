@@ -1,6 +1,6 @@
-# ⚙️ CODE MODE — Execução de Código com Fallback Seguro
+# ⚙️ CODE MODE — Execução de Código com Fallback Seguro (Gemini)
 
-Este arquivo define como a IA deve se comportar ao gerar ou modificar código dentro do projeto.
+Este arquivo define como o Gemini Code Assist deve se comportar ao gerar ou modificar código.
 
 ---
 
@@ -9,32 +9,32 @@ Este arquivo define como a IA deve se comportar ao gerar ou modificar código de
 Garantir:
 
 - Entrega de código SEM falhas
-- Uso de apply automático quando possível
-- Fallback imediato quando necessário
+- Uso do Agent Mode para aplicar alterações automaticamente quando possível
+- Fallback imediato com código completo quando necessário
 - Zero respostas vazias ou incompletas
 
 ---
 
 ## 🧠 MODO DE OPERAÇÃO
 
-A IA deve operar em **modo execução**, NÃO em modo explicação.
+O Gemini deve operar em **modo execução**, NÃO em modo explicação.
 
 Após entender o problema:
 
-→ EXECUTAR  
-→ ENTREGAR  
-→ FINALIZAR  
+→ AGIR (usar Agent Mode)  
+→ APLICAR (alterações)  
+→ FINALIZAR
 
 ---
 
 ## 🚫 PROIBIDO
 
-A IA NÃO pode:
+O Gemini NÃO pode:
 
-- Parar após análise
-- Repetir explicações sem executar
-- Enviar "abaixo segue preview" sem conteúdo
-- Depender apenas de apply/preview
+- Parar após análise sem executar
+- Repetir explicações sem aplicar alterações
+- Enviar "abaixo segue preview" sem código real
+- Depender apenas de respostas textuais quando há suporte a agent
 - Enviar código incompleto
 - Omitir partes do código
 - Inventar código não solicitado
@@ -43,27 +43,20 @@ A IA NÃO pode:
 
 ## ✅ OBRIGATÓRIO
 
-A IA DEVE sempre:
+O Gemini DEVE sempre:
 
-1. Entregar uma solução completa
+1. Entregar uma solução completa (aplicada ou em fallback)
 2. Garantir que o código pode ser usado imediatamente
-3. Trabalhar com arquivos reais do projeto
+3. Trabalhar com arquivos reais do projeto (usar `@` para referenciar)
 4. Seguir a arquitetura definida em `.ai`
-5. Seguir comportamento definido em `.trae`
+5. Seguir comportamento definido em `.trae` (se existir)
 
 ---
 
 ## ⚡ MODO HÍBRIDO (PADRÃO)
 
-A IA pode usar:
-
-- preview
-- apply
-- patch
-
-MAS:
-
-→ fallback é obrigatório
+**Prioridade 1:** Usar **Agent Mode** para aplicar as alterações diretamente nos arquivos.  
+**Prioridade 2:** Se o Agent Mode não estiver disponível ou falhar, fornecer **código completo** para substituição manual.
 
 ---
 
@@ -71,13 +64,16 @@ MAS:
 
 Se QUALQUER problema ocorrer:
 
-- preview não aparecer
-- apply falhar
-- resposta truncada
-- dúvida na execução
+- Agent Mode não conseguir aplicar
+- Resposta truncada
+- Dúvida na execução
+- Arquivo não encontrado
 
-A IA deve IMEDIATAMENTE enviar:
+O Gemini deve IMEDIATAMENTE enviar o **código completo do(s) arquivo(s) afetado(s)** no formato:
 
-### ✔ Código completo do arquivo
+```markdown
+### 📄 arquivo: [caminho/do/arquivo]
 
-Formato:
+\```[linguagem]
+[código completo]
+\```

@@ -310,15 +310,20 @@ router.get("/google/start", (req, res) => {
       });
     }
 
-    // Definir a URI de redirecionamento no cliente OAuth2 para esta requisição
-    oauth2Client.redirectUri = redirect_uri;
-
     const scopes = [
       "https://www.googleapis.com/auth/userinfo.email",
       "https://www.googleapis.com/auth/userinfo.profile",
     ];
 
-    const authorizeUrl = oauth2Client.generateAuthUrl({
+    // Criar uma nova instância ou garantir que a URI seja passada corretamente
+    // para evitar problemas de concorrência em produção
+    const authUrlClient = new google.auth.OAuth2(
+      process.env.GOOGLE_CLIENT_ID,
+      process.env.GOOGLE_CLIENT_SECRET,
+      redirect_uri,
+    );
+
+    const authorizeUrl = authUrlClient.generateAuthUrl({
       access_type: "offline",
       scope: scopes,
       prompt: "select_account", // Garante que a seleção de conta seja sempre exibida
@@ -349,25 +354,23 @@ router.post("/google/callback", async (req, res) => {
     console.log("DEBUG: 1. Iniciando try-catch no Google Callback.");
     console.log("DEBUG: req.body:", req.body);
 
-    // Definir a URI de redirecionamento e o verificador de código
-    oauth2Client.redirectUri = redirect_uri;
-    console.log("DEBUG: 2. redirectUri definido:", oauth2Client.redirectUri);
-    console.log("DEBUG: Parâmetros para getToken:", {
-      code: code,
-      codeVerifier: code_verifier,
-      redirectUri: oauth2Client.redirectUri,
-    });
+    // Criar cliente específico para esta transação de callback
+    const callbackClient = new google.auth.OAuth2(
+      process.env.GOOGLE_CLIENT_ID,
+      process.env.GOOGLE_CLIENT_SECRET,
+      redirect_uri,
+    );
 
     // Trocar o código por tokens
-    const { tokens } = await oauth2Client.getToken({
+    const { tokens } = await callbackClient.getToken({
       code: code,
       codeVerifier: code_verifier,
     });
-    oauth2Client.setCredentials(tokens);
+    callbackClient.setCredentials(tokens);
     console.log("DEBUG: 3. Tokens obtidos com sucesso.");
 
     // Obter informações do usuário
-    const oauth2 = google.oauth2({ version: "v2", auth: oauth2Client });
+    const oauth2 = google.oauth2({ version: "v2", auth: callbackClient });
     const { data: userInfo } = await oauth2.userinfo.get();
     console.log("DEBUG: 4. Informações do usuário Google obtidas:", userInfo);
 

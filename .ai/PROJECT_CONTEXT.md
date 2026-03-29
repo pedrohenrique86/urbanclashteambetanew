@@ -1,5 +1,10 @@
 # 🧠 PROJECT CONTEXT — UrbanClash Team
 
+> Este arquivo serve como contexto fixo para o Gemini Code Assist.  
+> Sempre que você for gerar ou modificar código, **consulte este documento** para entender a estrutura, dependências e regras de negócio.
+
+---
+
 ## 📌 Visão Geral do Projeto
 
 O **UrbanClash Team** é uma aplicação web full-stack estruturada como um **monorepo**, composta por:
@@ -52,30 +57,31 @@ O ambiente de desenvolvimento é orquestrado com `concurrently`, permitindo roda
 ---
 
 ## 📁 Estrutura do Projeto
-
 urbanclashteam/
 ├── backend/
-│   ├── config/
-│   ├── middleware/
-│   ├── migrations/
-│   ├── routes/
-│   ├── services/
-│   ├── package.json
-│   └── server.js
+│ ├── config/
+│ ├── middleware/
+│ ├── migrations/
+│ ├── routes/
+│ ├── services/
+│ ├── package.json
+│ └── server.js
 ├── frontend/
-│   ├── public/
-│   ├── src/
-│   │   ├── components/
-│   │   ├── lib/
-│   │   ├── pages/
-│   │   └── services/
-│   ├── package.json
-│   └── vite.config.ts
+│ ├── public/
+│ ├── src/
+│ │ ├── components/
+│ │ ├── lib/
+│ │ ├── pages/
+│ │ └── services/
+│ ├── package.json
+│ └── vite.config.ts
 ├── config/
-│   └── scripts/
+│ └── scripts/
 ├── docker-compose.yml
 ├── package.json
 └── README.md
+
+text
 
 ---
 
@@ -102,23 +108,17 @@ urbanclashteam/
 
 ---
 
-## ⚙️ Setup
+## ⚙️ Setup do Projeto
 
-npm run install:all  
-npm run dev  
-docker-compose up -d  
-npm run migrate:up --prefix backend  
+```bash
+# Instalar todas as dependências (root, frontend, backend)
+npm run install:all
 
----
+# Rodar frontend e backend em modo desenvolvimento (concurrently)
+npm run dev
 
-## ⚠️ Pontos de Atenção
+# Subir banco de dados (PostgreSQL) com Docker
+docker-compose up -d
 
-- Evitar sobrecarga no banco  
-- Garantir consistência Redis + PostgreSQL  
-- Padronizar lógica no backend  
-
----
-
-## 🎯 Objetivo
-
-Servir como contexto principal para IA entender o projeto e continuar o desenvolvimento em qualquer ambiente sem perder consistência.
+# Rodar migrations no backend
+npm run migrate:up --prefix backend
