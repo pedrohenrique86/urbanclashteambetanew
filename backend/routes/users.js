@@ -71,46 +71,52 @@ async function refreshRankingsCache(faction, limit) {
   setCachedRankings({ faction, limit }, leaderboardResult.rows);
   broadcastRankingsUpdate({ faction, limit });
 }
-function scheduleUsersRefresh() {
-  query("SELECT NOW() as now")
-    .then((result) => {
-      const now = new Date(result.rows[0].now);
-      const minutes = now.getMinutes();
-      const seconds = now.getSeconds();
-      const milliseconds = now.getMilliseconds();
-      const minutesToNextInterval = 10 - (minutes % 10);
-      const delay =
-        (minutesToNextInterval * 60 - seconds) * 1000 - milliseconds;
-      setTimeout(
-        async () => {
-          try {
-            await refreshRankingsCache("gangsters", 26);
-            await refreshRankingsCache("guardas", 26);
-            await refreshRankingsCache(undefined, 26);
-          } catch (e) {
-            void e;
-          } finally {
-            scheduleUsersRefresh();
-          }
-        },
-        Math.max(0, delay),
-      );
-    })
-    .catch(() => {
-      setTimeout(async () => {
-        try {
-          await refreshRankingsCache("gangsters", 26);
-          await refreshRankingsCache("guardas", 26);
-          await refreshRankingsCache(undefined, 26);
-        } catch (e) {
-          void e;
-        } finally {
-          scheduleUsersRefresh();
-        }
-      }, RANKINGS_CACHE_TTL_MS);
-    });
+
+/**
+ * Inicializa o cache imediatamente no boot e agenda atualizações a cada 10min cravados
+ */
+async function scheduleUsersRefresh() {
+  try {
+    // Carga inicial imediata para evitar rankings vazios após restart do servidor
+    await Promise.all([
+      refreshRankingsCache("gangsters", 26),
+      refreshRankingsCache("guardas", 26),
+      refreshRankingsCache(undefined, 26),
+    ]);
+  } catch (e) {
+    console.error(
+      "❌ Erro na carga inicial do ranking de usuários:",
+      e.message,
+    );
+  }
+
+  // Uso do relógio do sistema para evitar overhead de rede com o DB
+  const now = new Date();
+  const minutes = now.getMinutes();
+  const seconds = now.getSeconds();
+  const milliseconds = now.getMilliseconds();
+  const minutesToNextInterval = 10 - (minutes % 10);
+  const delay = (minutesToNextInterval * 60 - seconds) * 1000 - milliseconds;
+
+  setTimeout(
+    async () => {
+      try {
+        await Promise.all([
+          refreshRankingsCache("gangsters", 26),
+          refreshRankingsCache("guardas", 26),
+          refreshRankingsCache(undefined, 26),
+        ]);
+      } catch (e) {
+        console.error("❌ Falha no refresh agendado de usuários:", e.message);
+      } finally {
+        scheduleUsersRefresh();
+      }
+    },
+    Math.max(0, delay),
+  );
 }
-scheduleUsersRefresh();
+
+void scheduleUsersRefresh();
 
 router.get("/rankings/subscribe", (req, res) => {
   res.set({

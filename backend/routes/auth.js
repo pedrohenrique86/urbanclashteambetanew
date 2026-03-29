@@ -13,6 +13,7 @@ const {
   invalidateAllSessions,
   authenticateToken,
 } = require("../middleware/auth");
+const { getGameState } = require("../services/gameStateService");
 const { loadPlayerState } = require("../services/playerStateService");
 
 const router = express.Router();
@@ -93,10 +94,6 @@ router.post(
       const emailExists = await query("SELECT id FROM users WHERE email = $1", [
         email,
       ]);
-
-      // Carrega o estado do jogador para o cache Redis em segundo plano
-      // Não precisa do await para não bloquear a resposta de login
-      loadPlayerState(user.id);
 
       res.json({ exists: emailExists.rows.length > 0 });
     } catch (error) {
@@ -281,6 +278,8 @@ router.post("/login", authLimiter, loginValidation, async (req, res) => {
       [user.id],
     );
 
+    const gameState = await getGameState();
+
     // Buscar perfil do usuário (reutilizando a consulta se possível ou fazendo uma nova)
     const profileResult = await query(
       "SELECT * FROM user_profiles WHERE user_id = $1",
@@ -289,7 +288,7 @@ router.post("/login", authLimiter, loginValidation, async (req, res) => {
 
     res.json({
       token,
-      user: { ...user, profile: profileResult.rows[0] || null },
+      user: { ...user, profile: profileResult.rows[0] || null, gameState },
       isFirstLogin,
     });
   } catch (error) {
@@ -471,9 +470,11 @@ router.post("/google/callback", async (req, res) => {
     }
 
     console.log("DEBUG: 20. Enviando resposta JSON.");
+    const gameState = await getGameState();
+
     res.json({
       token,
-      user: { ...user, profile: profileResult.rows[0] || null },
+      user: { ...user, profile: profileResult.rows[0] || null, gameState },
       isFirstLogin,
     });
   } catch (error) {
@@ -518,8 +519,10 @@ router.get("/me", authenticateToken, async (req, res) => {
       [user.id],
     );
 
+    const gameState = await getGameState();
+
     res.json({
-      user: { ...user, profile: profileResult.rows[0] || null },
+      user: { ...user, profile: profileResult.rows[0] || null, gameState },
     });
   } catch (error) {
     console.error("❌ Erro ao obter informações do usuário:", error.message);

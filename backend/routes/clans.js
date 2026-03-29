@@ -271,42 +271,43 @@ async function refreshClansCache(limit) {
   setCachedClans({ limit }, rankingResult.rows);
   broadcastClansRankingsUpdate({ limit });
 }
-function scheduleClansRefresh() {
-  query("SELECT NOW() as now")
-    .then((result) => {
-      const now = new Date(result.rows[0].now);
-      const minutes = now.getMinutes();
-      const seconds = now.getSeconds();
-      const milliseconds = now.getMilliseconds();
-      const minutesToNextInterval = 10 - (minutes % 10);
-      const delay =
-        (minutesToNextInterval * 60 - seconds) * 1000 - milliseconds;
-      setTimeout(
-        async () => {
-          try {
-            await refreshClansCache(26);
-          } catch (e) {
-            void e;
-          } finally {
-            scheduleClansRefresh();
-          }
-        },
-        Math.max(0, delay),
-      );
-    })
-    .catch(() => {
-      setTimeout(async () => {
-        try {
-          await refreshClansCache(26);
-        } catch (e) {
-          void e;
-        } finally {
-          scheduleClansRefresh();
-        }
-      }, CLANS_CACHE_TTL_MS);
-    });
+
+/**
+ * Inicializa o cache do ranking imediatamente e agenda as próximas atualizações
+ */
+async function scheduleClansRefresh() {
+  try {
+    // Executa a primeira carga imediatamente para evitar ranking vazio em produção
+    console.log("📊 Inicializando cache de rankings de clãs...");
+    await refreshClansCache(26);
+  } catch (e) {
+    console.error("❌ Erro na carga inicial do ranking de clãs:", e.message);
+  }
+
+  // Sincronização usando o relógio do sistema (mais eficiente que query ao DB)
+  const now = new Date();
+  const minutes = now.getMinutes();
+  const seconds = now.getSeconds();
+  const milliseconds = now.getMilliseconds();
+  const minutesToNextInterval = 10 - (minutes % 10);
+  const delay = (minutesToNextInterval * 60 - seconds) * 1000 - milliseconds;
+
+  setTimeout(
+    async () => {
+      try {
+        await refreshClansCache(26);
+      } catch (e) {
+        console.error("❌ Falha no refresh agendado de clãs:", e.message);
+      } finally {
+        scheduleClansRefresh();
+      }
+    },
+    Math.max(0, delay),
+  );
 }
-scheduleClansRefresh();
+
+// Inicia o ciclo de vida do cache
+void scheduleClansRefresh();
 
 // GET /api/clans/rankings - Ranking de clãs
 router.get("/rankings", async (req, res) => {
@@ -325,6 +326,7 @@ router.get("/rankings", async (req, res) => {
       return res.json({ clans: cached.data });
     }
 
+    // Fallback seguro: se não houver cache, busca uma única vez e popula
     const rankingResult = await query(
       `
       SELECT 
@@ -346,9 +348,7 @@ router.get("/rankings", async (req, res) => {
     );
 
     setCachedClans({ limit }, rankingResult.rows);
-    const entry = getCachedClans({ limit });
     res.set("Cache-Control", "public, max-age=600");
-    res.set("ETag", entry?.etag || computeETag(rankingResult.rows));
     res.json({ clans: rankingResult.rows });
   } catch (error) {
     res.status(500).json({ error: "Erro interno do servidor" });
