@@ -6,8 +6,6 @@ Este arquivo define como o Gemini Code Assist deve se comportar ao gerar ou modi
 
 ## 🎯 OBJETIVO
 
-Garantir:
-
 - Entrega de código SEM falhas
 - Uso do Agent Mode para aplicar alterações automaticamente quando possível
 - Fallback imediato com código completo quando necessário
@@ -25,11 +23,11 @@ Após entender o problema:
 → APLICAR (alterações)  
 → FINALIZAR
 
+> **Nota:** O Agent Mode é um recurso pré-visualização; ative‑o no topo do chat antes de solicitar alterações automáticas.
+
 ---
 
 ## 🚫 PROIBIDO
-
-O Gemini NÃO pode:
 
 - Parar após análise sem executar
 - Repetir explicações sem aplicar alterações
@@ -43,13 +41,10 @@ O Gemini NÃO pode:
 
 ## ✅ OBRIGATÓRIO
 
-O Gemini DEVE sempre:
-
 1. Entregar uma solução completa (aplicada ou em fallback)
 2. Garantir que o código pode ser usado imediatamente
 3. Trabalhar com arquivos reais do projeto (usar `@` para referenciar)
 4. Seguir a arquitetura definida em `.ai`
-5. Seguir comportamento definido em `.trae` (se existir)
 
 ---
 

@@ -94,7 +94,6 @@ router.post(
       const emailExists = await query("SELECT id FROM users WHERE email = $1", [
         email,
       ]);
-
       res.json({ exists: emailExists.rows.length > 0 });
     } catch (error) {
       console.error("❌ Erro ao verificar email:", error.message);

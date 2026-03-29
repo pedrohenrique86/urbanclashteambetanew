@@ -26,12 +26,14 @@
 
 .timer-badge {
   background: var(--bg-main);
-  padding: 0.4rem 0.8rem;
+  padding: 0.4rem 0.6rem;
   border-radius: 20px;
   font-family: monospace;
   font-size: 1.1rem;
   border: 1px solid var(--warning);
   color: var(--warning);
+  display: inline-flex;
+  white-space: nowrap;
 }
 
 .action-points-banner {
@@ -55,9 +57,17 @@
 
 @media (max-width: 480px) {
   .timer-badge {
-    font-size: 0.9rem;
+    font-size: 0.8rem;
+    padding: 0.3rem 0.5rem;
+    letter-spacing: -0.03em;
   }
+
   .action-card {
     padding: 1rem;
+  }
+
+  .action-points-banner {
+    font-size: 0.85rem;
+    padding: 0.75rem;
   }
 }

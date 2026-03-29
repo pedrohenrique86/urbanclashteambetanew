@@ -3,6 +3,8 @@ const crypto = require("crypto");
 const { body, validationResult } = require("express-validator");
 const { query, transaction } = require("../config/database");
 const { authenticateToken } = require("../middleware/auth");
+const redisClient = require("../config/redisClient");
+const { getGameState } = require("../services/gameStateService");
 
 const router = express.Router();
 
@@ -225,28 +227,27 @@ router.get("/by-faction/:faction", async (req, res) => {
 });
 
 const CLANS_CACHE_TTL_MS = 10 * 60 * 1000;
-const clansCache = new Map();
+const CLANS_REDIS_PREFIX = "rankings:clans:";
+
 function getClansCacheKey(params) {
   const limit = params?.limit || 26;
-  return `clans:${limit}`;
+  return `${CLANS_REDIS_PREFIX}${limit}`;
 }
-function getCachedClans(params) {
+async function getCachedClans(params) {
   const key = getClansCacheKey(params);
-  const entry = clansCache.get(key);
-  if (entry && Date.now() - entry.timestamp < CLANS_CACHE_TTL_MS) {
-    return entry;
-  }
-  return null;
+  const cached = await redisClient.getAsync(key);
+  return cached ? JSON.parse(cached) : null;
 }
 function computeETag(data) {
   const h = crypto.createHash("sha1");
   h.update(JSON.stringify(data));
   return `W/"${h.digest("hex")}"`;
 }
-function setCachedClans(params, data) {
+async function setCachedClans(params, data) {
   const key = getClansCacheKey(params);
   const etag = computeETag(data);
-  clansCache.set(key, { data, etag, timestamp: Date.now() });
+  const entry = { data, etag, timestamp: Date.now() };
+  await redisClient.setAsync(key, JSON.stringify(entry), "EX", 600);
 }
 async function refreshClansCache(limit) {
   const rankingResult = await query(
@@ -268,7 +269,7 @@ async function refreshClansCache(limit) {
   `,
     [limit],
   );
-  setCachedClans({ limit }, rankingResult.rows);
+  await setCachedClans({ limit }, rankingResult.rows);
   broadcastClansRankingsUpdate({ limit });
 }
 
@@ -313,7 +314,7 @@ void scheduleClansRefresh();
 router.get("/rankings", async (req, res) => {
   try {
     const { limit = 26 } = req.query;
-    const cached = getCachedClans({ limit });
+    const cached = await getCachedClans({ limit });
     if (cached) {
       const ifNoneMatch = req.headers["if-none-match"];
       if (ifNoneMatch && ifNoneMatch === cached.etag) {
@@ -347,8 +348,9 @@ router.get("/rankings", async (req, res) => {
       [limit],
     );
 
-    setCachedClans({ limit }, rankingResult.rows);
+    await setCachedClans({ limit }, rankingResult.rows);
     res.set("Cache-Control", "public, max-age=600");
+    res.set("ETag", computeETag(rankingResult.rows));
     res.json({ clans: rankingResult.rows });
   } catch (error) {
     res.status(500).json({ error: "Erro interno do servidor" });

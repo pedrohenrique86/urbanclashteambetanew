@@ -5,6 +5,8 @@ const { body, validationResult } = require("express-validator");
 const { query, transaction } = require("../config/database");
 const { authenticateToken, requireOwnership } = require("../middleware/auth");
 const ActionPointsService = require("../services/actionPointsService");
+const redisClient = require("../config/redisClient");
+const { getGameState } = require("../services/gameStateService");
 
 const router = express.Router();
 
@@ -22,29 +24,29 @@ function broadcastRankingsUpdate(payload) {
 }
 // Cache simples para rankings (TTL 10 minutos)
 const RANKINGS_CACHE_TTL_MS = 10 * 60 * 1000;
-const rankingsCache = new Map();
+const RANKINGS_REDIS_PREFIX = "rankings:users:";
+
 function getCacheKey(params) {
   const faction = params?.faction || "all";
   const limit = params?.limit || 26;
-  return `${faction}:${limit}`;
+  return `${RANKINGS_REDIS_PREFIX}${faction}:${limit}`;
 }
-function getCachedRankings(params) {
+
+async function getCachedRankings(params) {
   const key = getCacheKey(params);
-  const entry = rankingsCache.get(key);
-  if (entry && Date.now() - entry.timestamp < RANKINGS_CACHE_TTL_MS) {
-    return entry;
-  }
-  return null;
+  const cached = await redisClient.getAsync(key);
+  return cached ? JSON.parse(cached) : null;
 }
 function computeETag(data) {
   const h = crypto.createHash("sha1");
   h.update(JSON.stringify(data));
   return `W/"${h.digest("hex")}"`;
 }
-function setCachedRankings(params, data) {
+async function setCachedRankings(params, data) {
   const key = getCacheKey(params);
   const etag = computeETag(data);
-  rankingsCache.set(key, { data, etag, timestamp: Date.now() });
+  const entry = { data, etag, timestamp: Date.now() };
+  await redisClient.setAsync(key, JSON.stringify(entry), "EX", 600); // 10 min TTL
 }
 async function refreshRankingsCache(faction, limit) {
   let whereClause = "WHERE u.is_email_confirmed = true AND p.id IS NOT NULL";
@@ -68,7 +70,7 @@ async function refreshRankingsCache(faction, limit) {
   `,
     [...queryParams, limit],
   );
-  setCachedRankings({ faction, limit }, leaderboardResult.rows);
+  await setCachedRankings({ faction, limit }, leaderboardResult.rows);
   broadcastRankingsUpdate({ faction, limit });
 }
 
@@ -463,7 +465,7 @@ router.get("/rankings", async (req, res) => {
     const { faction, limit = 26 } = req.query;
 
     // Tenta usar cache
-    const cached = getCachedRankings({ faction, limit });
+    const cached = await getCachedRankings({ faction, limit });
     if (cached) {
       const ifNoneMatch = req.headers["if-none-match"];
       if (ifNoneMatch && ifNoneMatch === cached.etag) {
@@ -510,10 +512,9 @@ router.get("/rankings", async (req, res) => {
       leaderboardResult.rows[0]?.country,
     );
 
-    setCachedRankings({ faction, limit }, leaderboardResult.rows);
-    const entry = getCachedRankings({ faction, limit });
+    await setCachedRankings({ faction, limit }, leaderboardResult.rows);
     res.set("Cache-Control", "public, max-age=600");
-    res.set("ETag", entry?.etag || computeETag(leaderboardResult.rows));
+    res.set("ETag", computeETag(leaderboardResult.rows));
     res.json({ leaderboard: leaderboardResult.rows });
   } catch (error) {
     console.error("❌ [RANKINGS] Erro:", error.message);
@@ -1032,40 +1033,9 @@ router.get("/", async (req, res) => {
 
 // GET /api/users/leaderboard - Ranking de usuários
 router.get("/leaderboard", async (req, res) => {
-  try {
-    const { faction, limit = 50 } = req.query;
-
-    let whereClause = "WHERE u.is_email_confirmed = true";
-    const queryParams = [];
-
-    if (faction) {
-      whereClause += " AND p.faction = $1";
-      queryParams.push(faction);
-    }
-
-    const leaderboardResult = await query(
-      `
-      SELECT 
-        u.id, u.username,
-        p.display_name, p.avatar_url, p.level, 
-        p.experience_points, p.faction,
-        ROW_NUMBER() OVER (ORDER BY p.experience_points DESC, p.level DESC) as rank
-      FROM users u
-      INNER JOIN user_profiles p ON u.id = p.user_id
-      ${whereClause}
-      ORDER BY p.experience_points DESC, p.level DESC
-      LIMIT $${queryParams.length + 1}
-    `,
-      [...queryParams, limit],
-    );
-
-    res.json({
-      leaderboard: leaderboardResult.rows,
-    });
-  } catch (error) {
-    console.error("❌ Erro ao buscar leaderboard:", error.message);
-    res.status(500).json({ error: "Erro interno do servidor" });
-  }
+  // Redireciona para a lógica de rankings com cache para consistência na Home
+  req.url = "/rankings";
+  return router.handle(req, res);
 });
 
 // GET /api/users/action-points - Obter pontos de ação atuais

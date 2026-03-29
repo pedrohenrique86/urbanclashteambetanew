@@ -69,12 +69,52 @@
 
 ---
 
+## 5. Arquivos Centrais do Projeto (para orientação do agente)
+
+Para que o assistente (Gemini Code Assist) entenda rapidamente a espinha dorsal do projeto, estes são os arquivos mais importantes e seus papéis:
+
+### Backend
+| Arquivo | Responsabilidade |
+|---------|------------------|
+| `backend/server.js` | Ponto de entrada do servidor Express. Configura middlewares, rotas e inicializa o servidor. |
+| `backend/config/db.js` | Configuração da conexão com PostgreSQL (pool de conexões). |
+| `backend/config/redis.js` | Configuração do cliente Redis (Upstash ou local). |
+| `backend/middleware/auth.js` | Middleware de autenticação JWT. |
+| `backend/routes/index.js` | Agregador de todas as rotas da API. |
+| `backend/services/index.js` | Agregador de serviços (lógica de negócio). |
+| `backend/services/gameStateService.js` | Gerencia o estado do jogo (cronômetro, rodadas). |
+| `backend/migrations/` | Pasta com as migrações do banco de dados (gerenciadas por `node-pg-migrate`). |
+
+### Frontend
+| Arquivo | Responsabilidade |
+|---------|------------------|
+| `frontend/src/main.tsx` | Ponto de entrada da aplicação React. |
+| `frontend/src/App.tsx` | Componente raiz, define rotas e provedores (SWR, etc.). |
+| `frontend/src/pages/HomePage.tsx` | Página inicial (dashboard do jogador). |
+| `frontend/src/components/NavbarCountdown.tsx` | Componente de cronômetro (estado do jogo). |
+| `frontend/src/lib/api.ts` | Cliente HTTP (axios) com base URL e interceptadores. |
+| `frontend/src/services/playerService.ts` | Serviços para buscar dados do jogador. |
+| `frontend/tailwind.config.cjs` | Configuração de tema do Tailwind (cores, fontes). |
+| `frontend/tsconfig.json` | Configuração do TypeScript (inclui path aliases). |
+
+### Raiz / Configuração
+| Arquivo | Responsabilidade |
+|---------|------------------|
+| `package.json` (raiz) | Orquestração com `concurrently` e scripts globais. |
+| `docker-compose.yml` | Orquestração de serviços (PostgreSQL, Redis). |
+| `.env` (não versionado) | Variáveis de ambiente (exemplo em `.env.example`). |
+
+> **Nota para a IA:** Ao planejar alterações, consulte primeiro os arquivos centrais relevantes para a tarefa. Eles contêm a estrutura e a lógica base que devem ser respeitadas.
+
+---
+
 ## 🤖 Como o Gemini deve usar este arquivo
 
 - **Sempre que for gerar ou modificar código**, consulte este ADR para entender a arquitetura e padrões.
 - **Ao sugerir novas rotas ou serviços**, siga o padrão de serviços no backend e a estrutura de componentes no frontend.
 - **Respeite as convenções de proxy, aliases de caminho e variáveis de ambiente** descritas acima.
 - **Quando houver dúvida entre abordagens**, priorize as decisões arquiteturais registradas aqui.
+- **Use a lista de arquivos centrais** para localizar rapidamente onde implementar mudanças.
 
 ---
 
