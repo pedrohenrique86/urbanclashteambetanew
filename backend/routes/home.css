@@ -1,0 +1,58 @@
+/* 
+ * HOME.CSS - UrbanClash Team
+ */
+
+.hero-section {
+  padding: 4rem 0;
+  text-align: center;
+  background: radial-gradient(
+    circle at center,
+    rgba(31, 111, 235, 0.1) 0%,
+    transparent 70%
+  );
+}
+
+.hero-title {
+  font-size: clamp(2rem, 8vw, 4rem);
+  background: linear-gradient(180deg, #fff 0%, #8b949e 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin-bottom: 1.5rem;
+}
+
+.faction-selector {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+  margin-top: 3rem;
+}
+
+.faction-card {
+  cursor: pointer;
+  text-align: center;
+  padding: 2.5rem;
+  border-width: 2px;
+}
+
+.faction-card.gangsters:hover {
+  border-color: var(--gangster-color);
+}
+.faction-card.guardas:hover {
+  border-color: var(--guard-color);
+}
+
+/* Mobile Adjustments */
+@media (max-width: 768px) {
+  .hero-section {
+    padding: 2rem 0;
+  }
+
+  .faction-selector {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .faction-card {
+    padding: 1.5rem;
+  }
+}

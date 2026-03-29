@@ -1,0 +1,63 @@
+/* 
+ * GAME.CSS - UrbanClash Team
+ * Dashboard, Action Area, Timers
+ */
+
+.game-dashboard {
+  display: grid;
+  grid-template-areas:
+    "header header"
+    "actions sidebar";
+  grid-template-columns: 1fr 320px;
+  gap: 1.5rem;
+}
+
+.action-card {
+  background: linear-gradient(
+    135deg,
+    var(--bg-card) 0%,
+    var(--bg-surface) 100%
+  );
+  min-height: 200px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.timer-badge {
+  background: var(--bg-main);
+  padding: 0.4rem 0.8rem;
+  border-radius: 20px;
+  font-family: monospace;
+  font-size: 1.1rem;
+  border: 1px solid var(--warning);
+  color: var(--warning);
+}
+
+.action-points-banner {
+  background: var(--bg-surface);
+  padding: 1rem;
+  border-radius: var(--radius-md);
+  text-align: center;
+  border: 1px dashed var(--text-muted);
+}
+
+/* Mobile Dashboard */
+@media (max-width: 1024px) {
+  .game-dashboard {
+    grid-template-areas:
+      "header"
+      "actions"
+      "sidebar";
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .timer-badge {
+    font-size: 0.9rem;
+  }
+  .action-card {
+    padding: 1rem;
+  }
+}
