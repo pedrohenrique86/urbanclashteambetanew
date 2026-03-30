@@ -24,7 +24,7 @@ export default function ClanRankingItem({
       case 2:
         return "text-gray-300"; // Prata
       case 3:
-        return "text-yellow-600"; // Bronze
+        return "text-orange-500"; // Bronze
       case 4:
       case 5:
         return "text-purple-400"; // Roxo
@@ -33,27 +33,46 @@ export default function ClanRankingItem({
     }
   };
 
+  // Função para exibir troféu ou número
+  const getPositionDisplay = (position?: number) => {
+    if (!position) return "—";
+    switch (position) {
+      case 1:
+        return "🏆";
+      case 2:
+        return "🥈";
+      case 3:
+        return "🥉";
+      default:
+        return `${position}º`;
+    }
+  };
+
   return (
     <div className={`bg-gradient-to-r ${gradient} p-[1px] rounded-lg`}>
-      <div className="bg-gray-800 p-3 rounded-lg">
-        <div className="flex items-center space-x-2">
+      <div className="bg-gray-800 p-2 sm:p-3 rounded-lg">
+        <div className="flex items-center space-x-1 sm:space-x-2 min-w-0">
           {/* Posição no ranking */}
           <span
-            className={`text-sm font-bold min-w-[30px] ${getPositionColor(clan.position || 0)}`}
+            className={`text-lg sm:text-xl font-bold min-w-[24px] sm:min-w-[30px] text-center flex-shrink-0 ${getPositionColor(
+              clan.position || 0,
+            )}`}
           >
-            {clan.position}º
+            {getPositionDisplay(clan.position)}
           </span>
 
           {/* Escudo do clã */}
-          <span className="text-sm">{getClanShield(clan.faction)}</span>
+          <span className="text-sm flex-shrink-0">
+            {getClanShield(clan.faction)}
+          </span>
 
           {/* Nome do clã */}
-          <span className="text-white font-medium flex-grow truncate text-sm">
+          <span className="text-white font-medium flex-grow truncate text-xs sm:text-sm">
             {clan.name}
           </span>
 
           {/* Pontuação */}
-          <span className="text-purple-400 font-bold text-sm">
+          <span className="text-purple-400 font-bold text-xs sm:text-sm flex-shrink-0">
             {clan.score} pts
           </span>
         </div>

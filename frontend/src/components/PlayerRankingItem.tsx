@@ -28,7 +28,7 @@ export default function PlayerRankingItem({
       case 2:
         return "text-gray-300"; // Prata
       case 3:
-        return "text-yellow-600"; // Bronze
+        return "text-orange-500"; // Bronze
       case 4:
       case 5:
         if (faction === "guardas") return "text-blue-400";
@@ -36,6 +36,21 @@ export default function PlayerRankingItem({
         return "text-gray-400"; // Fallback
       default:
         return "text-gray-400";
+    }
+  };
+
+  // Função para exibir troféu ou número
+  const getPositionDisplay = (position?: number) => {
+    if (!position) return "—";
+    switch (position) {
+      case 1:
+        return "🏆";
+      case 2:
+        return "🥈";
+      case 3:
+        return "🥉";
+      default:
+        return `${position}º`;
     }
   };
 
@@ -49,12 +64,12 @@ export default function PlayerRankingItem({
         <div className="flex items-center space-x-1 sm:space-x-2 min-w-0">
           {/* Posição no ranking */}
           <span
-            className={`text-xs sm:text-sm font-bold min-w-[16px] sm:min-w-[20px] flex-shrink-0 ${getPositionColor(
+            className={`text-lg sm:text-xl font-bold min-w-[24px] sm:min-w-[30px] text-center flex-shrink-0 ${getPositionColor(
               player.position,
               player.faction,
             )}`}
           >
-            {player.position}º
+            {getPositionDisplay(player.position)}
           </span>
 
           {/* Bandeira do país */}
@@ -67,7 +82,7 @@ export default function PlayerRankingItem({
           )}
 
           {/* Nome do usuário */}
-          <span className="text-white font-medium flex-grow min-w-0 text-xs sm:text-sm">
+          <span className="text-white font-medium flex-grow min-w-0 text-xs sm:text-sm truncate">
             {player.username}
           </span>
 
