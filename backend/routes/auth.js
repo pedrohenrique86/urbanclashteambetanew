@@ -236,18 +236,22 @@ router.post("/login", authLimiter, loginValidation, async (req, res) => {
       });
     }
 
+    console.log("👤 Verificando status de confirmação de email para:", {
+      email: user.email,
+      is_email_confirmed: user.is_email_confirmed,
+    });
+    // Verificar se email foi confirmado ANTES de checar a senha
+    if (!user.is_email_confirmed) {
+      return res.status(403).json({
+        error: "Email não confirmado",
+        message: "Por favor, confirme seu email antes de fazer login. Verifique sua caixa de entrada.",
+      });
+    }
+
     // Verificar senha
     const passwordValid = await bcrypt.compare(password, user.password_hash);
     if (!passwordValid) {
       return res.status(401).json({ error: "Email ou senha incorretos" });
-    }
-
-    // Verificar se email foi confirmado
-    if (!user.is_email_confirmed) {
-      return res.status(403).json({
-        error: "Email não confirmado",
-        message: "Por favor, confirme seu email antes de fazer login",
-      });
     }
 
     // Verificar se o usuário já tem um perfil criado.
