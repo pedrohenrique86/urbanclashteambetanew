@@ -11,13 +11,6 @@ export default function RankingSection() {
   const { data, loading, error, lastUpdated } = useRankingCache(false);
   const [showNotification, setShowNotification] = useState(false);
 
-  // Limpar cache antigo na primeira renderização (apenas uma vez)
-  React.useEffect(() => {
-    // Limpar localStorage antigo para forçar nova busca com limitação correta
-    localStorage.removeItem("ranking_cache");
-    localStorage.removeItem("ranking_cache_timestamp");
-  }, []);
-
   // Extrair dados do cache
   const { gangsters, guardas, clans } = data;
 

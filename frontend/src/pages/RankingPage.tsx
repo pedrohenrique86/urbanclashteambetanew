@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Player, Clan } from "../types/ranking";
 import { useRankingCache } from "../hooks/useRankingCache";
@@ -19,44 +19,66 @@ const PlayerRankingItem: React.FC<{ player: Player; gradient: string }> = ({
   const getPositionColor = (position: number) => {
     switch (position) {
       case 1:
-        return "bg-yellow-500 text-black"; // Ouro
+        return "text-yellow-400"; // Ouro
       case 2:
-        return "bg-gray-300 text-black"; // Prata
+        return "text-gray-300"; // Prata
       case 3:
-        return "bg-orange-600 text-white"; // Bronze
+        return "text-orange-500"; // Bronze
       default:
-        return "bg-gray-700 text-white";
+        return "text-gray-400";
+    }
+  };
+
+  // Função para exibir troféu ou número
+  const getPositionDisplay = (position?: number) => {
+    if (!position) return "—";
+    switch (position) {
+      case 1:
+        return "🏆";
+      case 2:
+        return "🥈";
+      case 3:
+        return "🥉";
+      default:
+        return position;
     }
   };
 
   return (
     <motion.div
-      className={`relative overflow-hidden rounded-lg p-4 ${gradient} backdrop-blur-sm border border-white/10`}
+      className={`bg-gradient-to-r ${gradient} p-[1px] rounded-lg mb-2`}
       whileHover={{ scale: 1.02 }}
       transition={{ duration: 0.2 }}
     >
-      <div className="flex items-center justify-between min-w-0">
-        <div className="flex items-center space-x-3 min-w-0 flex-1">
-          <div
-            className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${getPositionColor(player.position ?? 0)}`}
-          >
-            {player.position ?? 0}
+      <div className="bg-gray-800/80 backdrop-blur-sm rounded-lg p-3">
+        <div className="flex items-center justify-between min-w-0">
+          <div className="flex items-center space-x-3 min-w-0 flex-1">
+            <div
+              className={`w-8 text-center text-2xl font-bold flex-shrink-0 ${getPositionColor(
+                player.position ?? 0,
+              )}`}
+            >
+              {getPositionDisplay(player.position)}
+            </div>
+            <span className="text-sm flex-shrink-0">
+              {getCountryFlag(player.country) ? (
+                <img
+                  src={getCountryFlag(player.country)!}
+                  alt={player.country}
+                  title={player.country}
+                />
+              ) : (
+                "🏳️"
+              )}
+            </span>
+            <span className="text-white font-bold text-sm min-w-0 flex-1 truncate">
+              {player.username}
+            </span>
           </div>
-
-          {getCountryFlag(player.country) && (
-            <img
-              src={getCountryFlag(player.country)!}
-              alt={`Bandeira de ${player.country}`}
-              className="w-6 h-4 object-cover rounded-sm flex-shrink-0"
-            />
-          )}
-          <span className="font-medium text-white text-sm min-w-0 flex-1">
-            {player.username}
-          </span>
-        </div>
-        <div className="text-right flex-shrink-0 ml-1">
-          <div className="text-sm font-bold text-white whitespace-nowrap">
-            Nv.{player.level}
+          <div className="text-right flex-shrink-0 ml-1">
+            <div className="text-sm font-bold text-white whitespace-nowrap">
+              Nível {player.level}
+            </div>
           </div>
         </div>
       </div>
@@ -78,40 +100,56 @@ const ClanRankingItem: React.FC<{ clan: Clan; gradient: string }> = ({
   const getPositionColor = (position: number) => {
     switch (position) {
       case 1:
-        return "bg-yellow-500 text-black"; // Ouro
+        return "text-yellow-400"; // Ouro
       case 2:
-        return "bg-gray-300 text-black"; // Prata
+        return "text-gray-300"; // Prata
       case 3:
-        return "bg-orange-600 text-white"; // Bronze
+        return "text-orange-500"; // Bronze
       default:
-        return "bg-gray-700 text-white";
+        return "text-gray-400";
+    }
+  };
+
+  // Função para exibir troféu ou número
+  const getPositionDisplay = (position?: number) => {
+    if (!position) return "—";
+    switch (position) {
+      case 1:
+        return "🏆";
+      case 2:
+        return "🥈";
+      case 3:
+        return "🥉";
+      default:
+        return position;
     }
   };
 
   return (
     <motion.div
-      className={`relative overflow-hidden rounded-lg p-4 ${gradient} backdrop-blur-sm border border-white/10`}
+      className={`bg-gradient-to-r ${gradient} p-[1px] rounded-lg mb-2`}
       whileHover={{ scale: 1.02 }}
       transition={{ duration: 0.2 }}
     >
-      <div className="flex items-center justify-between min-w-0">
-        <div className="flex items-center space-x-3 min-w-0 flex-1">
-          <div
-            className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${getPositionColor(clan.position ?? 0)}`}
-          >
-            {clan.position ?? 0}
+      <div className="bg-gray-800/80 backdrop-blur-sm rounded-lg p-3">
+        <div className="flex items-center justify-between min-w-0">
+          <div className="flex items-center space-x-3 min-w-0 flex-1">
+            <div
+              className={`w-8 text-center text-2xl font-bold flex-shrink-0 ${getPositionColor(
+                clan.position ?? 0,
+              )}`}
+            >
+              {getPositionDisplay(clan.position)}
+            </div>
+            <span className="text-sm">{getClanIcon(clan.faction)}</span>
+            <span className="text-white font-bold text-sm min-w-0 flex-1 truncate">
+              {clan.name}
+            </span>
           </div>
-
-          {/* Ícone da facção */}
-          <span className="text-sm">{getClanIcon(clan.faction)}</span>
-
-          <span className="font-medium text-white text-sm min-w-0 flex-1">
-            {clan.name}
-          </span>
-        </div>
-        <div className="text-right flex-shrink-0 ml-1">
-          <div className="text-sm font-bold text-white whitespace-nowrap">
-            {clan.score?.toLocaleString() || 0}pts
+          <div className="text-right flex-shrink-0 ml-1">
+            <div className="text-sm font-bold text-purple-400 whitespace-nowrap">
+              {clan.score} pts
+            </div>
           </div>
         </div>
       </div>
@@ -161,14 +199,24 @@ const EmptyRankingItem: React.FC<{
     </div>
   );
 };
+
 export default function RankingPage() {
   const [selectedRanking, setSelectedRanking] = useState(0);
+
+  // Limpa o cache antigo do localStorage apenas uma vez
+  useEffect(() => {
+    const cacheCleared = localStorage.getItem("ranking_cache_cleared_v1");
+    if (!cacheCleared) {
+      localStorage.removeItem("ranking_cache");
+      localStorage.setItem("ranking_cache_cleared_v1", "true");
+    }
+  }, []);
 
   // Usar o hook de cache para gerenciar os rankings (com rankings completos)
   const { data, loading: isLoading, error } = useRankingCache(true);
 
-  // Extrair dados do cache
-  const { gangsters, guardas, clans } = data;
+  // Extrair dados do cache, com fallback para objeto vazio
+  const { gangsters, guardas, clans } = data || { gangsters: [], guardas: [], clans: [] };
 
   const rankingConfigs = [
     {
@@ -194,6 +242,8 @@ export default function RankingPage() {
     },
   ];
 
+  const currentConfig = rankingConfigs[selectedRanking];
+
   return (
     <div className="max-w-7xl mx-auto px-4 pb-8">
       {/* Informação de atualização */}
@@ -209,41 +259,25 @@ export default function RankingPage() {
         {error && <p className="text-red-400 text-sm mt-2">⚠️ {error}</p>}
       </motion.div>
 
-      {/* Seletor de Ranking para Mobile */}
-      <div className="lg:hidden mb-6">
-        <select
-          value={selectedRanking}
-          onChange={(e) => setSelectedRanking(Number(e.target.value))}
-          className="w-full p-3 bg-gray-800 border border-gray-700 rounded-lg text-white font-orbitron"
-        >
-          {rankingConfigs.map((config, index) => (
-            <option key={index} value={index}>
-              {config.title}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      {/* Grid dos rankings para Desktop */}
-      <div className="hidden lg:grid lg:grid-cols-3 gap-8">
-        {rankingConfigs.map((config, configIdx) => (
-          <RankingColumn
-            key={configIdx}
-            config={config}
-            isLoading={isLoading}
-          />
+      {/* Seletores de Ranking */}
+      <div className="flex justify-center mb-8 space-x-2">
+        {rankingConfigs.map((config, index) => (
+          <button
+            key={config.title}
+            onClick={() => setSelectedRanking(index)}
+            className={`px-4 py-2 text-sm font-orbitron rounded-lg transition-all duration-300 ${
+              selectedRanking === index
+                ? `bg-gradient-to-r ${config.gradient} text-white shadow-lg`
+                : "bg-gray-700/50 text-gray-300 hover:bg-gray-600/70"
+            }`}
+          >
+            {config.title}
+          </button>
         ))}
       </div>
 
-      {/* Ranking selecionado para Mobile */}
-      <div className="lg:hidden">
-        {rankingConfigs[selectedRanking] && (
-          <RankingColumn
-            config={rankingConfigs[selectedRanking]}
-            isLoading={isLoading}
-          />
-        )}
-      </div>
+      {/* Coluna de Ranking */}
+      <RankingColumn config={currentConfig} isLoading={isLoading} />
     </div>
   );
 }
@@ -257,12 +291,12 @@ const RankingColumn: React.FC<{ config: any; isLoading: boolean }> = ({
     initial={{ opacity: 0, y: 50 }}
     animate={{ opacity: 1, y: 0 }}
     transition={{ duration: 0.6 }}
-    className={`bg-gradient-to-br from-gray-800 to-gray-900 p-6 rounded-2xl border ${config.borderColor} shadow-2xl`}
+    className={`bg-gray-900/50 p-4 sm:p-6 rounded-2xl border ${config.borderColor} shadow-2xl`}
   >
     {/* Título da seção */}
     <div className="text-center mb-6">
       <h2
-        className={`text-2xl font-orbitron font-bold bg-gradient-to-r ${config.gradient} bg-clip-text text-transparent`}
+        className={`text-xl sm:text-2xl font-orbitron font-bold bg-gradient-to-r ${config.gradient} bg-clip-text text-transparent`}
       >
         {config.title}
       </h2>
@@ -278,36 +312,30 @@ const RankingColumn: React.FC<{ config: any; isLoading: boolean }> = ({
           Array.from({ length: 26 }, (_, i) => (
             <div
               key={i}
-              className="animate-pulse h-14 bg-gray-700 rounded-lg"
+              className="animate-pulse h-14 bg-gray-700/50 rounded-lg"
             ></div>
           ))
         : // Renderizar sempre 26 posições
           Array.from({ length: 26 }, (_, idx) => {
             const position = idx + 1;
-            const item = config.data[idx];
-            const gradient = `bg-gradient-to-r ${config.gradient}`;
+            const item = config.data.find((d: any) => d.position === position);
+            const gradient = config.gradient;
 
             if (item) {
-              // Renderizar item real
-              if (config.type === "player") {
-                return (
-                  <PlayerRankingItem
-                    key={item.id || idx}
-                    player={{ ...(item as Player), position }}
-                    gradient={gradient}
-                  />
-                );
-              } else {
-                return (
-                  <ClanRankingItem
-                    key={item.id || idx}
-                    clan={{ ...(item as Clan), position }}
-                    gradient={gradient}
-                  />
-                );
-              }
+              return config.type === "player" ? (
+                <PlayerRankingItem
+                  key={item.id}
+                  player={item}
+                  gradient={gradient}
+                />
+              ) : (
+                <ClanRankingItem
+                  key={item.id}
+                  clan={item}
+                  gradient={gradient}
+                />
+              );
             } else {
-              // Renderizar placeholder para posição vazia
               return (
                 <EmptyRankingItem
                   key={`empty-${position}`}
@@ -320,31 +348,3 @@ const RankingColumn: React.FC<{ config: any; isLoading: boolean }> = ({
     </div>
   </motion.div>
 );
-
-// Estilos customizados para scrollbar
-const styles = `
-.custom-scrollbar::-webkit-scrollbar {
-  width: 6px;
-}
-
-.custom-scrollbar::-webkit-scrollbar-track {
-  background: rgba(55, 65, 81, 0.3);
-  border-radius: 3px;
-}
-
-.custom-scrollbar::-webkit-scrollbar-thumb {
-  background: rgba(156, 163, 175, 0.5);
-  border-radius: 3px;
-}
-
-.custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: rgba(156, 163, 175, 0.7);
-}
-`;
-
-// Adicionar estilos ao head
-if (typeof document !== "undefined") {
-  const styleSheet = document.createElement("style");
-  styleSheet.textContent = styles;
-  document.head.appendChild(styleSheet);
-}

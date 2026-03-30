@@ -1,36 +1,353 @@
-import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import PageContainer from "../components/layout/PageContainer";
+import React from "react";
 import { useUserProfile } from "../hooks/useUserProfile";
-import { useTheme } from "../contexts/ThemeContext";
-import { StatsCards, NavigationButtons } from "../components/dashboard";
-import { LoadingSpinner } from "../components/ui/LoadingSpinner";
+import homePngUrl from "../assets/beco1.png";
+import {
+  HomeIcon,
+  PlayIcon,
+  ClipboardDocumentListIcon,
+  UserGroupIcon,
+  SparklesIcon,
+  BoltIcon,
+  BanknotesIcon,
+  ShieldCheckIcon,
+  ChartBarIcon,
+  Bars3Icon,
+} from "@heroicons/react/24/outline";
 
+// --- Componente de Painel Genérico ---
+const DashboardPanel: React.FC<{
+  title: string;
+  children: React.ReactNode;
+  className?: string;
+  icon?: React.ReactNode;
+}> = ({ title, children, className = "", icon }) => (
+  <div
+    className={`bg-black/60 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-4 flex flex-col shadow-lg ${className}`}
+    style={{
+      boxShadow:
+        "inset 0 1px 1px rgba(255, 255, 255, 0.05), 0 0 30px rgba(0, 0, 0, 0.5)",
+    }}
+  >
+    <div className="flex items-center justify-between mb-4">
+      <h2 className="text-lg font-bold text-slate-200 font-orbitron uppercase tracking-wider">
+        {title}
+      </h2>
+      {icon}
+    </div>
+    <div className="flex-1">{children}</div>
+  </div>
+);
+
+// --- Painel de Nível ---
+const CircularProgressBar: React.FC<{ progress: number }> = ({ progress }) => {
+  const size = 140;
+  const strokeWidth = 10;
+  const center = size / 2;
+  const radius = center - strokeWidth / 2;
+  const circumference = 2 * Math.PI * radius;
+  const offset = circumference - (progress / 100) * circumference;
+
+  return (
+    <div
+      className="relative"
+      style={{
+        width: size,
+        height: size,
+        filter: "drop-shadow(0 0 7px #f97316)",
+      }}
+    >
+      <svg width={size} height={size} className="transform -rotate-90">
+        <circle
+          cx={center}
+          cy={center}
+          r={radius}
+          stroke="rgba(0, 0, 0, 0.5)"
+          strokeWidth={strokeWidth}
+          fill="transparent"
+        />
+        <circle
+          cx={center}
+          cy={center}
+          r={radius}
+          stroke="url(#levelGradient)"
+          strokeWidth={strokeWidth}
+          fill="transparent"
+          strokeDasharray={circumference}
+          strokeDashoffset={offset}
+          strokeLinecap="round"
+          style={{ transition: "stroke-dashoffset 0.5s easea_in-out" }}
+        />
+        <defs>
+          <linearGradient
+            id="levelGradient"
+            x1="0%"
+            y1="0%"
+            x2="100%"
+            y2="100%"
+          >
+            <stop offset="0%" stopColor="#fb923c" />
+            <stop offset="100%" stopColor="#ea580c" />
+          </linearGradient>
+        </defs>
+      </svg>
+    </div>
+  );
+};
+
+const LevelPanel: React.FC<{ user: any }> = ({ user }) => {
+  const progress = user.xp_needed ? (user.xp / user.xp_needed) * 100 : 0;
+  return (
+    <DashboardPanel
+      title="NÍVEL"
+      icon={<BoltIcon className="w-6 h-6 text-orange-400" />}
+    >
+      <div className="flex items-center justify-around h-full">
+        <CircularProgressBar progress={progress} />
+        <div className="text-slate-300 space-y-2 text-sm">
+          <p>
+            <span className="font-bold text-white">
+              {user.xp} / {user.xp_needed} XP
+            </span>
+          </p>
+          <p>
+            Total:{" "}
+            <span className="font-bold text-white">
+              {user.total_xp ?? 0} XP
+            </span>
+          </p>
+          <p>
+            Progresso:{" "}
+            <span className="font-bold text-white">{user.level}</span>
+          </p>
+        </div>
+      </div>
+    </DashboardPanel>
+  );
+};
+
+// --- Painel de Recursos ---
+const GreenLineChart: React.FC = () => (
+  <svg
+    viewBox="0 0 100 40"
+    className="w-full h-16"
+    style={{ filter: "drop-shadow(0 0 5px #22c55e)" }}
+  >
+    <defs>
+      <linearGradient id="greenGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+        <stop offset="0%" stopColor="#22c55e" stopOpacity="0.4" />
+        <stop offset="100%" stopColor="#22c55e" stopOpacity="0" />
+      </linearGradient>
+    </defs>
+    <path
+      d="M 0 30 L 10 25 L 20 28 L 30 20 L 40 22 L 50 15 L 60 18 L 70 25 L 80 22 L 90 28 L 100 20"
+      stroke="#22c55e"
+      strokeWidth="2"
+      fill="url(#greenGradient)"
+    />
+    <circle
+      cx="50"
+      cy="15"
+      r="3"
+      fill="#22c55e"
+      stroke="black"
+      strokeWidth="1"
+    />
+  </svg>
+);
+
+const ResourcesPanel: React.FC<{ user: any }> = ({ user }) => (
+  <DashboardPanel
+    title="RECURSOS"
+    icon={<BanknotesIcon className="w-6 h-6 text-green-400" />}
+  >
+    <div className="h-full flex flex-col justify-between text-slate-300">
+      <div>
+        <p className="text-sm">
+          Cash:{" "}
+          <span className="font-bold text-white">
+            ${(user.cash ?? 1000).toLocaleString()}
+          </span>
+        </p>
+        <p className="text-sm">
+          Ganhos diários: <span className="font-bold text-white">+$0</span>
+        </p>
+      </div>
+      <GreenLineChart />
+    </div>
+  </DashboardPanel>
+);
+
+// --- Painel de Facção ---
+const FactionPanel: React.FC<{ user: any }> = ({ user }) => (
+  <DashboardPanel
+    title="FACÇÃO"
+    icon={<ShieldCheckIcon className="w-6 h-6 text-orange-400" />}
+  >
+    <div className="h-full flex flex-col justify-center items-center text-center text-slate-300">
+      <div className="mb-2" style={{ filter: "drop-shadow(0 0 8px #f97316)" }}>
+        <img
+          src="/gangstersa_icon.png"
+          alt="Gangsters"
+          className="w-16 h-16 mx-auto"
+        />
+      </div>
+      <h3
+        className="text-2xl font-orbitron text-orange-400 uppercase"
+        style={{ textShadow: "0 0 5px #f97316" }}
+      >
+        {user.faction?.name ?? "GANGSTERS"}
+      </h3>
+      <p className="text-sm mt-2">
+        Habilidade Especial:{" "}
+        <span className="font-bold text-white">Intimidação</span>
+      </p>
+      <p className="text-xs">
+        Valor: <span className="font-bold text-white">35.0%</span>
+      </p>
+      <p className="text-xs">Reduz a defesa do oponente</p>
+    </div>
+  </DashboardPanel>
+);
+
+// --- Painel de Estatísticas ---
+const OrangeLineChart: React.FC = () => (
+  <svg
+    viewBox="0 0 100 25"
+    className="w-full h-12"
+    style={{ filter: "drop-shadow(0 0 4px #f97316)" }}
+  >
+    <path
+      d="M 0 20 L 20 15 L 40 18 L 60 10 L 80 15 L 100 5"
+      stroke="#f97316"
+      strokeWidth="1.5"
+      fill="none"
+    />
+  </svg>
+);
+
+const StatisticsPanel: React.FC<{ user: any }> = ({ user }) => (
+  <DashboardPanel
+    title="ESTATÍSTICAS"
+    icon={<ChartBarIcon className="w-6 h-6 text-cyan-400" />}
+  >
+    <div className="h-full flex flex-col justify-between text-slate-300 text-sm">
+      <div className="grid grid-cols-3 text-center">
+        <div>
+          <p className="text-slate-400">Vitórias</p>
+          <p className="font-bold text-white text-lg">{user.wins ?? 0}</p>
+        </div>
+        <div>
+          <p className="text-slate-400">Derrotas</p>
+          <p className="font-bold text-white text-lg">{user.losses ?? 0}</p>
+        </div>
+        <div>
+          <p className="text-slate-400">Sequência</p>
+          <p className="font-bold text-white text-lg">{user.streak ?? 0}</p>
+        </div>
+      </div>
+      <div>
+        <OrangeLineChart />
+        <p className="text-center mt-1">
+          Taxa de Vitória: <span className="font-bold text-white">0%</span>
+        </p>
+      </div>
+    </div>
+  </DashboardPanel>
+);
+
+// --- Componente da Barra Lateral ---
+const Sidebar: React.FC = () => {
+  const [isCollapsed, setIsCollapsed] = React.useState(false);
+
+  const navItems = [
+    { name: "Principal", icon: <HomeIcon className="w-6 h-6" /> },
+    { name: "Jogo", icon: <PlayIcon className="w-6 h-6" /> },
+    {
+      name: "Atividades",
+      icon: <ClipboardDocumentListIcon className="w-6 h-6" />,
+    },
+    { name: "Social", icon: <UserGroupIcon className="w-6 h-6" /> },
+    { name: "Premium", icon: <SparklesIcon className="w-6 h-6" /> },
+  ];
+
+  return (
+    <aside
+      className={`bg-black/50 backdrop-blur-lg border-r border-slate-800/50 flex-shrink-0 flex flex-col items-center py-6 transition-all duration-300 ${
+        isCollapsed ? "w-20" : "w-48"
+      }`}
+      style={{
+        boxShadow: "inset -5px 0 15px -5px rgba(0,0,0,0.5)",
+      }}
+    >
+      <div className="w-full px-4 mb-6">
+        <button
+          onClick={() => setIsCollapsed(!isCollapsed)}
+          className="w-full flex justify-center items-center p-2 text-slate-400 hover:text-white hover:bg-slate-700/50 rounded-lg transition-colors"
+        >
+          <Bars3Icon className="w-6 h-6" />
+        </button>
+      </div>
+      <nav className="flex flex-col gap-4 w-full">
+        {navItems.map((item, index) => (
+          <a
+            key={item.name}
+            href="#"
+            className={`flex items-center py-3 text-slate-400 hover:text-white hover:bg-orange-500/10 transition-all duration-200 border-l-4 ${
+              index === 0
+                ? "border-orange-500 text-white bg-orange-500/10"
+                : "border-transparent"
+            } ${isCollapsed ? "justify-center" : "justify-start pl-8"}`}
+            title={item.name}
+          >
+            {item.icon}
+            <span
+              className={`ml-4 font-semibold whitespace-nowrap transition-opacity duration-200 ${
+                isCollapsed ? "opacity-0 hidden" : "opacity-100"
+              }`}
+            >
+              {item.name}
+            </span>
+          </a>
+        ))}
+      </nav>
+    </aside>
+  );
+};
+
+// --- Página Principal do Dashboard ---
 export default function DashboardPage() {
-  const navigate = useNavigate();
-  const { themeClasses, isDarkTheme } = useTheme();
   const { userProfile, loading: profileLoading } = useUserProfile();
 
-  // Se o usuário não tiver um perfil completo (sem facção/clã) e não estiver carregando,
-  // não renderize nada. O hook `useUserProfile` cuidará do redirecionamento necessário.
-  if (
-    !profileLoading &&
-    (!userProfile || !userProfile.faction || !userProfile.clan_id)
-  ) {
+  if (profileLoading) {
+    return (
+      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
+        <p className="text-white font-orbitron">Carregando Perfil...</p>
+      </div>
+    );
+  }
+
+  if (!userProfile || !userProfile.faction || !userProfile.clan_id) {
     return null;
   }
 
   return (
-    <PageContainer>
-      {/* Stats Cards */}
-      <StatsCards
-        userProfile={userProfile}
-        themeClasses={themeClasses}
-        isDarkTheme={isDarkTheme}
-      />
-
-      {/* Navigation Buttons */}
-      <NavigationButtons />
-    </PageContainer>
+    <div
+      className="min-h-screen bg-cover bg-center font-exo text-white"
+      style={{ backgroundImage: `url(${homePngUrl})` }}
+    >
+      <div className="flex h-screen bg-black/20">
+        <Sidebar />
+        <div className="flex-1 flex flex-col overflow-hidden">
+          <main className="flex-1 flex justify-center p-6 overflow-y-auto">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 w-full max-w-2xl">
+              <LevelPanel user={userProfile} />
+              <ResourcesPanel user={userProfile} />
+              <FactionPanel user={userProfile} />
+              <StatisticsPanel user={userProfile} />
+            </div>
+          </main>
+        </div>
+      </div>
+    </div>
   );
 }

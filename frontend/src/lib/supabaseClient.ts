@@ -91,7 +91,11 @@ class ApiClient {
       }
 
       const etag = response.headers.get("ETag") || undefined;
-      return etag ? { ...data, __etag: etag } : data;
+      if (etag) {
+        data.__etag = etag;
+      }
+
+      return data;
     } catch (error: unknown) {
       // Verificamos se o erro é a nossa classe customizada HttpError.
       if (error instanceof HttpError) {

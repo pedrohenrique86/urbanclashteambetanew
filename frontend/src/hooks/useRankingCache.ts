@@ -1,7 +1,10 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
-import { Player, Clan } from '../types/ranking';
-import { fetchAllRankings, fetchFullRankings } from '../services/rankingService';
-import { apiClient } from '../lib/supabaseClient';
+import { useState, useEffect, useRef, useCallback } from "react";
+import { Player, Clan } from "../types/ranking";
+import {
+  fetchAllRankings,
+  fetchFullRankings,
+} from "../services/rankingService";
+import { apiClient } from "../lib/supabaseClient";
 
 interface RankingData {
   gangsters: Player[];
@@ -18,10 +21,10 @@ interface UseRankingCacheReturn {
 }
 
 const CACHE_DURATION = 10 * 60 * 1000; // 10 minutos em milissegundos
-const STORAGE_KEY_LIMITED = 'ranking_cache_limited';
-const STORAGE_KEY_FULL = 'ranking_cache_full';
-const TIMESTAMP_KEY_LIMITED = 'ranking_cache_timestamp_limited';
-const TIMESTAMP_KEY_FULL = 'ranking_cache_timestamp_full';
+const STORAGE_KEY_LIMITED = "ranking_cache_limited";
+const STORAGE_KEY_FULL = "ranking_cache_full";
+const TIMESTAMP_KEY_LIMITED = "ranking_cache_timestamp_limited";
+const TIMESTAMP_KEY_FULL = "ranking_cache_timestamp_full";
 
 // Função para verificar se o cache é válido
 const isCacheValid = (timestamp: number): boolean => {
@@ -37,11 +40,13 @@ let globalCacheFull: RankingData | null = null;
 let globalTimestampFull: number | null = null;
 let globalPromiseFull: Promise<RankingData> | null = null;
 
-export const useRankingCache = (fullRankings: boolean = false): UseRankingCacheReturn => {
+export const useRankingCache = (
+  fullRankings: boolean = false,
+): UseRankingCacheReturn => {
   const [data, setData] = useState<RankingData>({
     gangsters: [],
     guardas: [],
-    clans: []
+    clans: [],
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -50,52 +55,67 @@ export const useRankingCache = (fullRankings: boolean = false): UseRankingCacheR
   const mountedRef = useRef(true);
 
   // 1. saveToStorage: Não tem dependências de outras funções do hook
-  const saveToStorage = useCallback((rankingData: RankingData, timestamp: number): void => {
-    const storageKey = fullRankings ? STORAGE_KEY_FULL : STORAGE_KEY_LIMITED;
-    const timestampKey = fullRankings ? TIMESTAMP_KEY_FULL : TIMESTAMP_KEY_LIMITED;
-    
-    localStorage.setItem(storageKey, JSON.stringify(rankingData));
-    localStorage.setItem(timestampKey, timestamp.toString());
-  }, [fullRankings]);
+  const saveToStorage = useCallback(
+    (rankingData: RankingData, timestamp: number): void => {
+      const storageKey = fullRankings ? STORAGE_KEY_FULL : STORAGE_KEY_LIMITED;
+      const timestampKey = fullRankings
+        ? TIMESTAMP_KEY_FULL
+        : TIMESTAMP_KEY_LIMITED;
+
+      localStorage.setItem(storageKey, JSON.stringify(rankingData));
+      localStorage.setItem(timestampKey, timestamp.toString());
+    },
+    [fullRankings],
+  );
 
   // 2. fetchRankings: Depende de saveToStorage
-  const fetchRankings = useCallback(async (force = false): Promise<RankingData> => {
-    const apiData = fullRankings ? await fetchFullRankings(force) : await fetchAllRankings(force);
-    const rankingData: RankingData = {
-      gangsters: apiData.gangsters || [],
-      guardas: apiData.guardas || [],
-      clans: apiData.clans || []
-    };
-    
-    const timestamp = Date.now();
-    
-    if (fullRankings) {
-      globalCacheFull = rankingData;
-      globalTimestampFull = timestamp;
-    } else {
-      globalCacheLimited = rankingData;
-      globalTimestampLimited = timestamp;
-    }
-    
-    saveToStorage(rankingData, timestamp);
-    
-    return rankingData;
-  }, [fullRankings, saveToStorage]);
+  const fetchRankings = useCallback(
+    async (force = false): Promise<RankingData> => {
+      const apiData = fullRankings
+        ? await fetchFullRankings(force)
+        : await fetchAllRankings(force);
+      const rankingData: RankingData = {
+        gangsters: apiData.gangsters || [],
+        guardas: apiData.guardas || [],
+        clans: apiData.clans || [],
+      };
+
+      const timestamp = Date.now();
+
+      if (fullRankings) {
+        globalCacheFull = rankingData;
+        globalTimestampFull = timestamp;
+      } else {
+        globalCacheLimited = rankingData;
+        globalTimestampLimited = timestamp;
+      }
+
+      saveToStorage(rankingData, timestamp);
+
+      return rankingData;
+    },
+    [fullRankings, saveToStorage],
+  );
 
   // 3. loadFromStorage: Não tem dependências de outras funções do hook
-  const loadFromStorage = useCallback((): { data: RankingData | null; timestamp: number | null } => {
+  const loadFromStorage = useCallback((): {
+    data: RankingData | null;
+    timestamp: number | null;
+  } => {
     const storageKey = fullRankings ? STORAGE_KEY_FULL : STORAGE_KEY_LIMITED;
-    const timestampKey = fullRankings ? TIMESTAMP_KEY_FULL : TIMESTAMP_KEY_LIMITED;
-    
+    const timestampKey = fullRankings
+      ? TIMESTAMP_KEY_FULL
+      : TIMESTAMP_KEY_LIMITED;
+
     const cachedData = localStorage.getItem(storageKey);
     const cachedTimestamp = localStorage.getItem(timestampKey);
-    
+
     if (cachedData && cachedTimestamp) {
       const timestamp = parseInt(cachedTimestamp, 10);
       if (isCacheValid(timestamp)) {
         return {
           data: JSON.parse(cachedData),
-          timestamp
+          timestamp,
         };
       }
     }
@@ -103,74 +123,104 @@ export const useRankingCache = (fullRankings: boolean = false): UseRankingCacheR
   }, [fullRankings]);
 
   // 4. loadRankings: Depende de loadFromStorage e fetchRankings
-  const loadRankings = useCallback(async (forceRefresh = false): Promise<void> => {
-    if (!mountedRef.current) return;
-    
-    try {
-      setLoading(true);
-      setError(null);
-      
-      let rankingData: RankingData;
-      let timestamp: number;
-      
-      const currentGlobalCache = fullRankings ? globalCacheFull : globalCacheLimited;
-      const currentGlobalTimestamp = fullRankings ? globalTimestampFull : globalTimestampLimited;
-      const currentGlobalPromise = fullRankings ? globalPromiseFull : globalPromiseLimited;
-      
-      if (!forceRefresh && currentGlobalCache && currentGlobalTimestamp && isCacheValid(currentGlobalTimestamp)) {
-        rankingData = currentGlobalCache;
-        timestamp = currentGlobalTimestamp;
-      } else {
-        const { data: cachedData, timestamp: cachedTimestamp } = loadFromStorage();
-        
-        if (!forceRefresh && cachedData && cachedTimestamp && isCacheValid(cachedTimestamp)) {
-          rankingData = cachedData;
-          timestamp = cachedTimestamp;
-          
-          if (fullRankings) {
-            globalCacheFull = cachedData;
-            globalTimestampFull = cachedTimestamp;
-          } else {
-            globalCacheLimited = cachedData;
-            globalTimestampLimited = cachedTimestamp;
-          }
+  const loadRankings = useCallback(
+    async (forceRefresh = false): Promise<void> => {
+      if (!mountedRef.current) return;
+
+      // Apenas mostra o "loading" principal se não houver absolutamente nenhum dado em tela.
+      const hasData =
+        data.gangsters.length > 0 ||
+        data.guardas.length > 0 ||
+        data.clans.length > 0;
+
+      try {
+        if (!hasData) {
+          setLoading(true);
+        }
+        setError(null);
+
+        let rankingData: RankingData;
+        let timestamp: number;
+
+        const currentGlobalCache = fullRankings
+          ? globalCacheFull
+          : globalCacheLimited;
+        const currentGlobalTimestamp = fullRankings
+          ? globalTimestampFull
+          : globalTimestampLimited;
+        const currentGlobalPromise = fullRankings
+          ? globalPromiseFull
+          : globalPromiseLimited;
+
+        if (
+          !forceRefresh &&
+          currentGlobalCache &&
+          currentGlobalTimestamp &&
+          isCacheValid(currentGlobalTimestamp)
+        ) {
+          rankingData = currentGlobalCache;
+          timestamp = currentGlobalTimestamp;
         } else {
-          if (currentGlobalPromise) {
-            rankingData = await currentGlobalPromise;
-            timestamp = currentGlobalTimestamp || Date.now();
-          } else {
-            const newPromise = fetchRankings(forceRefresh);
+          const { data: cachedData, timestamp: cachedTimestamp } =
+            loadFromStorage();
+
+          if (
+            !forceRefresh &&
+            cachedData &&
+            cachedTimestamp &&
+            isCacheValid(cachedTimestamp)
+          ) {
+            rankingData = cachedData;
+            timestamp = cachedTimestamp;
+
             if (fullRankings) {
-              globalPromiseFull = newPromise;
+              globalCacheFull = cachedData;
+              globalTimestampFull = cachedTimestamp;
             } else {
-              globalPromiseLimited = newPromise;
+              globalCacheLimited = cachedData;
+              globalTimestampLimited = cachedTimestamp;
             }
-            rankingData = await newPromise;
-            timestamp = (fullRankings ? globalTimestampFull : globalTimestampLimited) || Date.now();
-            
-            if (fullRankings) {
-              globalPromiseFull = null;
+          } else {
+            if (currentGlobalPromise) {
+              rankingData = await currentGlobalPromise;
+              timestamp = currentGlobalTimestamp || Date.now();
             } else {
-              globalPromiseLimited = null;
+              const newPromise = fetchRankings(forceRefresh);
+              if (fullRankings) {
+                globalPromiseFull = newPromise;
+              } else {
+                globalPromiseLimited = newPromise;
+              }
+              rankingData = await newPromise;
+              timestamp =
+                (fullRankings ? globalTimestampFull : globalTimestampLimited) ||
+                Date.now();
+
+              if (fullRankings) {
+                globalPromiseFull = null;
+              } else {
+                globalPromiseLimited = null;
+              }
             }
           }
         }
+
+        if (mountedRef.current) {
+          setData(rankingData);
+          setLastUpdated(new Date());
+        }
+      } catch (err) {
+        if (mountedRef.current) {
+          setError("Erro ao carregar os rankings. Tente novamente.");
+        }
+      } finally {
+        if (mountedRef.current) {
+          setLoading(false);
+        }
       }
-      
-      if (mountedRef.current) {
-        setData(rankingData);
-        setLastUpdated(new Date());
-      }
-    } catch (err) {
-      if (mountedRef.current) {
-        setError('Erro ao carregar os rankings. Tente novamente.');
-      }
-    } finally {
-      if (mountedRef.current) {
-        setLoading(false);
-      }
-    }
-  }, [fullRankings, fetchRankings, loadFromStorage]); // Corrigido // Corrigido
+    },
+    [fullRankings, fetchRankings, loadFromStorage, data],
+  );
 
   // Função para forçar atualização
   const forceRefresh = useCallback(async (): Promise<void> => {
@@ -190,21 +240,24 @@ export const useRankingCache = (fullRankings: boolean = false): UseRankingCacheR
         const minutes = now.getMinutes();
         const seconds = now.getSeconds();
         const milliseconds = now.getMilliseconds();
-        
+
         // Calcula o tempo até o próximo intervalo de 10 minutos
         const minutesToNextInterval = 10 - (minutes % 10);
-        const delay = (minutesToNextInterval * 60 - seconds) * 1000 - milliseconds;
+        const delay =
+          (minutesToNextInterval * 60 - seconds) * 1000 - milliseconds;
 
-        const timeoutId = setTimeout(() => {
-          forceRefresh();
-          if (intervalRef.current) clearInterval(intervalRef.current); 
-          intervalRef.current = setInterval(forceRefresh, CACHE_DURATION);
-        }, Math.max(0, delay));
+        const timeoutId = setTimeout(
+          () => {
+            forceRefresh();
+            if (intervalRef.current) clearInterval(intervalRef.current);
+            intervalRef.current = setInterval(forceRefresh, CACHE_DURATION);
+          },
+          Math.max(0, delay),
+        );
 
         // Armazena o ID do timeout para limpeza
         if (intervalRef.current) clearTimeout(intervalRef.current);
         intervalRef.current = timeoutId;
-
       } catch (error) {
         // Fallback: se não conseguir obter a hora do servidor, usa o intervalo padrão
         if (intervalRef.current) clearInterval(intervalRef.current);
@@ -240,7 +293,9 @@ export const useRankingCache = (fullRankings: boolean = false): UseRankingCacheR
       esClans.addEventListener("clans_rankings", () => {
         forceRefresh();
       });
-    } catch (e) { void e }
+    } catch (e) {
+      void e;
+    }
     return () => {
       if (esUsers) {
         esUsers.close();
@@ -258,6 +313,6 @@ export const useRankingCache = (fullRankings: boolean = false): UseRankingCacheR
     loading,
     error,
     lastUpdated,
-    forceRefresh
+    forceRefresh,
   };
 };

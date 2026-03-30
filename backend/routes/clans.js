@@ -241,7 +241,16 @@ function getClansCacheKey(params) {
 async function getCachedClans(params) {
   const key = getClansCacheKey(params);
   const cached = await redisClient.getAsync(key);
-  return cached ? cached : null;
+  if (!cached) {
+    return null;
+  }
+  try {
+    // Retorna o objeto de cache inteiro para uso do ETag e dos dados
+    return JSON.parse(cached);
+  } catch (e) {
+    console.error("❌ Erro ao fazer parse do cache de clãs:", e);
+    return null;
+  }
 }
 function computeETag(data) {
   const h = crypto.createHash("sha1");
@@ -322,7 +331,7 @@ router.get("/rankings", async (req, res) => {
     const cached = await getCachedClans({ limit });
     const gameState = await getGameState();
 
-    if (cached) {
+    if (cached && cached.data) {
       const ifNoneMatch = req.headers["if-none-match"];
       if (ifNoneMatch && ifNoneMatch === cached.etag) {
         res.set("Cache-Control", "public, max-age=600");

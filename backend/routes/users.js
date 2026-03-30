@@ -35,7 +35,7 @@ function getCacheKey(params) {
 async function getCachedRankings(params) {
   const key = getCacheKey(params);
   const cached = await redisClient.getAsync(key);
-  return cached ? cached : null;
+  return cached ? JSON.parse(cached) : null;
 }
 function computeETag(data) {
   const h = crypto.createHash("sha1");
@@ -63,7 +63,7 @@ async function refreshRankingsCache(faction, limit) {
       p.experience_points, p.faction, p.victories, p.defeats, p.winning_streak,
       ROW_NUMBER() OVER (ORDER BY p.level DESC, p.experience_points DESC) as rank
     FROM users u
-    LEFT JOIN user_profiles p ON u.id = p.user_id
+    INNER JOIN user_profiles p ON u.id = p.user_id
     ${whereClause}
     ORDER BY p.level DESC, p.experience_points DESC
     LIMIT $${queryParams.length + 1}
@@ -225,6 +225,74 @@ router.get("/profile", authenticateToken, async (req, res) => {
     res.json({ ...convertedProfile, gameState });
   } catch (error) {
     console.error("❌ Erro ao buscar perfil do usuário:", error.message);
+    res.status(500).json({ error: "Erro interno do servidor" });
+  }
+});
+
+// DELETE /api/users/:id - Excluir um usuário (somente admin)
+router.delete("/:id", authenticateToken, async (req, res) => {
+  // Apenas administradores podem excluir usuários
+  if (!req.user.is_admin) {
+    return res
+      .status(403)
+      .json({
+        error: "Acesso negado. Somente administradores podem excluir usuários.",
+      });
+  }
+
+  try {
+    const { id } = req.params;
+
+    // Usar transação para garantir a integridade dos dados
+    await transaction(async (client) => {
+      // A exclusão na tabela 'users' deve propagar para 'user_profiles' via ON DELETE CASCADE
+      const deleteResult = await client.query(
+        "DELETE FROM users WHERE id = $1",
+        [id],
+      );
+
+      if (deleteResult.rowCount === 0) {
+        // Lançar um erro se o usuário não for encontrado para rollback da transação
+        throw new Error("Usuário não encontrado para exclusão.");
+      }
+    });
+
+    // Após a exclusão bem-sucedida, invalidar o cache do ranking de usuários
+    try {
+      const stream = redisClient.scanStream({
+        match: `${RANKINGS_REDIS_PREFIX}*`, // Invalida todos os rankings de usuários
+        count: 100,
+      });
+
+      const keys = [];
+      stream.on("data", (resultKeys) => {
+        // Adiciona as chaves encontradas ao array
+        keys.push(...resultKeys);
+      });
+
+      stream.on("end", async () => {
+        if (keys.length > 0) {
+          await redisClient.del(keys);
+          console.log(
+            `🧹 Cache do ranking de usuários invalidado. Chaves removidas: ${keys.length}`,
+          );
+        }
+      });
+    } catch (cacheError) {
+      // Logar o erro de cache, mas não falhar a requisição, pois o usuário já foi excluído
+      console.error(
+        "❌ Erro ao tentar invalidar o cache do ranking de usuários:",
+        cacheError.message,
+      );
+    }
+
+    res.status(200).json({ message: "Usuário excluído com sucesso." });
+  } catch (error) {
+    // Capturar o erro de "usuário não encontrado" e retornar 404
+    if (error.message.includes("Usuário não encontrado")) {
+      return res.status(404).json({ error: error.message });
+    }
+    console.error("❌ Erro ao excluir usuário:", error.message);
     res.status(500).json({ error: "Erro interno do servidor" });
   }
 });
@@ -497,7 +565,7 @@ router.get("/rankings", async (req, res) => {
         p.experience_points, p.faction, p.victories, p.defeats, p.winning_streak,
         ROW_NUMBER() OVER (ORDER BY p.level DESC, p.experience_points DESC) as rank
       FROM users u
-      LEFT JOIN user_profiles p ON u.id = p.user_id
+      INNER JOIN user_profiles p ON u.id = p.user_id
       ${whereClause}
       ORDER BY p.level DESC, p.experience_points DESC
       LIMIT $${queryParams.length + 1}
@@ -525,9 +593,75 @@ router.get("/rankings", async (req, res) => {
       stack: error.stack,
       query: req.query,
     });
-    res.status(500).json({
-      error: "Erro interno do servidor",
+    res.status(500).json({ error: "Erro interno do servidor" });
+  }
+});
+
+// DELETE /api/users/:id - Excluir um usuário (somente admin)
+router.delete("/:id", authenticateToken, async (req, res) => {
+  // Esta é uma operação sensível, então verificamos se o usuário logado é um admin.
+  if (!req.user.is_admin) {
+    return res.status(403).json({
+      error: "Acesso negado. Somente administradores podem excluir usuários.",
     });
+  }
+
+  try {
+    const { id } = req.params;
+
+    // O ideal é usar uma transação para garantir a integridade dos dados.
+    await transaction(async (client) => {
+      // A exclusão na tabela 'users' deve ser configurada no banco de dados para usar ON DELETE CASCADE
+      // e remover automaticamente os registros em 'user_profiles', 'clan_members', etc.
+      // Se não estiver configurado, você precisaria deletar manualmente de cada tabela aqui.
+      const deleteResult = await client.query(
+        "DELETE FROM users WHERE id = $1",
+        [id],
+      );
+
+      if (deleteResult.rowCount === 0) {
+        // Usamos um erro customizado para ser capturado pelo bloco catch da transação e acionar um ROLLBACK.
+        throw new Error("Usuário não encontrado para exclusão.");
+      }
+    });
+
+    // Após a exclusão bem-sucedida, invalidamos o cache do ranking.
+    try {
+      const stream = redisClient.scanStream({
+        match: `${RANKINGS_REDIS_PREFIX}*`,
+        count: 100,
+      });
+
+      const keys = [];
+      stream.on("data", (resultKeys) => {
+        keys.push(...resultKeys);
+      });
+
+      stream.on("end", async () => {
+        if (keys.length > 0) {
+          await redisClient.del(keys);
+          console.log(
+            `🧹 Cache do ranking de usuários invalidado. Chaves removidas: ${keys.length}`,
+          );
+        }
+      });
+    } catch (cacheError) {
+      console.error(
+        "❌ Erro ao tentar invalidar o cache do ranking de usuários:",
+        cacheError.message,
+      );
+      // Opcional: decidir se um erro de cache deve retornar um erro na resposta principal.
+      // Neste caso, a operação principal (exclusão) foi bem-sucedida, então apenas logamos o erro.
+    }
+
+    res.status(200).json({ message: "Usuário excluído com sucesso." });
+  } catch (error) {
+    // O erro pode vir da transação (usuário não encontrado) ou de outras falhas.
+    if (error.message.includes("Usuário não encontrado")) {
+      return res.status(404).json({ error: error.message });
+    }
+    console.error("❌ Erro ao excluir usuário:", error.message);
+    res.status(500).json({ error: "Erro interno do servidor" });
   }
 });
 
