@@ -328,10 +328,12 @@ void scheduleClansRefresh();
 router.get("/rankings", async (req, res) => {
   try {
     const { limit = 26 } = req.query;
+    const cacheKey = getClansCacheKey({ limit });
     const cached = await getCachedClans({ limit });
     const gameState = await getGameState();
 
     if (cached && cached.data) {
+      console.log(`CACHE HIT: Retornando ranking de clãs em cache para a chave: ${cacheKey}`);
       const ifNoneMatch = req.headers["if-none-match"];
       if (ifNoneMatch && ifNoneMatch === cached.etag) {
         res.set("Cache-Control", "public, max-age=600");
@@ -342,6 +344,8 @@ router.get("/rankings", async (req, res) => {
       res.set("ETag", cached.etag);
       return res.json({ clans: cached.data, gameState });
     }
+
+    console.log(`CACHE MISS: Ranking de clãs não encontrado no cache para a chave: ${cacheKey}. Buscando no banco de dados.`);
 
     // Fallback seguro: se não houver cache, busca uma única vez e popula
     const rankingResult = await query(

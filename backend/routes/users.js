@@ -35,7 +35,30 @@ function getCacheKey(params) {
 async function getCachedRankings(params) {
   const key = getCacheKey(params);
   const cached = await redisClient.getAsync(key);
-  return cached ? JSON.parse(cached) : null;
+
+  if (!cached) {
+    return null;
+  }
+
+  // Se o cliente Redis (como @upstash/redis) já desserializou os dados, retorne-os.
+  if (typeof cached === "object") {
+    return cached;
+  }
+
+  try {
+    // Caso contrário, se for uma string, faça o parse.
+    return JSON.parse(cached);
+  } catch (e) {
+    // Se o parse falhar (ex: "[object Object]"), o cache está corrompido.
+    console.error("❌ Falha ao fazer parse do ranking em cache. Invalidando a chave:", {
+      key,
+      value: cached,
+      error: e.message,
+    });
+    // Invalida a chave corrompida para auto-correção na próxima requisição.
+    await redisClient.del(key);
+    return null;
+  }
 }
 function computeETag(data) {
   const h = crypto.createHash("sha1");
