@@ -578,13 +578,21 @@ router.post("/confirm-email", async (req, res) => {
     const isFirstLogin = profileResult.rows.length === 0;
     const gameState = await getGameState();
 
-    res.json({ 
+    // Constrói a resposta base
+    const response = {
       message: "Email confirmado com sucesso",
       token: authToken,
       user: { ...user, is_email_confirmed: true, profile: null },
       gameState,
-      isFirstLogin
-    });
+      isFirstLogin,
+    };
+
+    // Se for o primeiro login, adiciona o campo de redirecionamento
+    if (isFirstLogin) {
+      response.redirectTo = "/choose-faction";
+    }
+
+    res.json(response);
   } catch (error) {
     console.error("❌ Erro ao confirmar email:", error.message);
     res.status(500).json({ error: "Erro interno do servidor" });
