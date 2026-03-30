@@ -8,7 +8,7 @@ import RankingUpdateNotification from "./RankingUpdateNotification";
 
 export default function RankingSection() {
   // Usar o hook de cache para gerenciar os rankings (limitado a 5 para home page)
-  const { data, loading, error, lastUpdated } = useRankingCache(false);
+  const { data, loading, error, lastUpdated } = useRankingCache(true);
   const [showNotification, setShowNotification] = useState(false);
 
   // Extrair dados do cache
