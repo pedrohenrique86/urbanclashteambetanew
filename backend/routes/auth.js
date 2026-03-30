@@ -265,6 +265,8 @@ router.post("/login", authLimiter, loginValidation, async (req, res) => {
       },
     );
 
+    const { password_hash, ...userWithoutPassword } = user;
+
     // Gerar token JWT
     const token = generateToken(user.id);
 
@@ -287,7 +289,8 @@ router.post("/login", authLimiter, loginValidation, async (req, res) => {
 
     res.json({
       token,
-      user: { ...user, profile: profileResult.rows[0] || null, gameState },
+      user: { ...userWithoutPassword, profile: profileResult.rows[0] || null },
+      gameState,
       isFirstLogin,
     });
   } catch (error) {
@@ -470,10 +473,12 @@ router.post("/google/callback", async (req, res) => {
 
     console.log("DEBUG: 20. Enviando resposta JSON.");
     const gameState = await getGameState();
+    const { password_hash, ...userWithoutPassword } = user;
 
     res.json({
       token,
-      user: { ...user, profile: profileResult.rows[0] || null, gameState },
+      user: { ...userWithoutPassword, profile: profileResult.rows[0] || null },
+      gameState,
       isFirstLogin,
     });
   } catch (error) {
@@ -490,7 +495,11 @@ router.post("/logout", authenticateToken, async (req, res) => {
   try {
     const token = req.headers.authorization.split(" ")[1];
     await invalidateSession(req.user.id, token);
-    res.json({ message: "Logout bem-sucedido" });
+    
+    // Retorna o gameState público para que a página de redirecionamento (Home)
+    // possa renderizar o cronômetro imediatamente sem nova requisição.
+    const gameState = await getGameState();
+    res.json({ message: "Logout bem-sucedido", gameState });
   } catch (error) {
     console.error("❌ Erro no logout:", error.message);
     res.status(500).json({ error: "Erro interno do servidor" });
@@ -521,7 +530,8 @@ router.get("/me", authenticateToken, async (req, res) => {
     const gameState = await getGameState();
 
     res.json({
-      user: { ...user, profile: profileResult.rows[0] || null, gameState },
+      user: { ...user, profile: profileResult.rows[0] || null },
+      gameState
     });
   } catch (error) {
     console.error("❌ Erro ao obter informações do usuário:", error.message);
@@ -541,7 +551,7 @@ router.post("/confirm-email", async (req, res) => {
 
   try {
     const userResult = await query(
-      "SELECT id FROM users WHERE email_confirmation_token = $1",
+      "SELECT id, email, username, is_email_confirmed, google_id FROM users WHERE email_confirmation_token = $1",
       [token],
     );
 
@@ -549,14 +559,32 @@ router.post("/confirm-email", async (req, res) => {
       return res.status(400).json({ error: "Token de confirmação inválido" });
     }
 
-    const userId = userResult.rows[0].id;
+    const user = userResult.rows[0];
 
     await query(
       "UPDATE users SET is_email_confirmed = TRUE, email_confirmation_token = NULL WHERE id = $1",
-      [userId],
+      [user.id],
     );
 
-    res.json({ message: "Email confirmado com sucesso" });
+    // Auto-login: Gera sessão e token imediatamente para evitar redirecionamento para Home deslogado
+    const authToken = generateToken(user.id);
+    await createSession(user.id, authToken);
+
+    // Verifica se é o primeiro acesso (sem perfil)
+    const profileResult = await query(
+      "SELECT id FROM user_profiles WHERE user_id = $1",
+      [user.id]
+    );
+    const isFirstLogin = profileResult.rows.length === 0;
+    const gameState = await getGameState();
+
+    res.json({ 
+      message: "Email confirmado com sucesso",
+      token: authToken,
+      user: { ...user, is_email_confirmed: true, profile: null },
+      gameState,
+      isFirstLogin
+    });
   } catch (error) {
     console.error("❌ Erro ao confirmar email:", error.message);
     res.status(500).json({ error: "Erro interno do servidor" });

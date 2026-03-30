@@ -221,7 +221,8 @@ router.get("/profile", authenticateToken, async (req, res) => {
       winning_streak: Number(profile.winning_streak),
     };
 
-    res.json(convertedProfile);
+    const gameState = await getGameState();
+    res.json({ ...convertedProfile, gameState });
   } catch (error) {
     console.error("❌ Erro ao buscar perfil do usuário:", error.message);
     res.status(500).json({ error: "Erro interno do servidor" });
@@ -466,6 +467,8 @@ router.get("/rankings", async (req, res) => {
 
     // Tenta usar cache
     const cached = await getCachedRankings({ faction, limit });
+    const gameState = await getGameState();
+
     if (cached) {
       const ifNoneMatch = req.headers["if-none-match"];
       if (ifNoneMatch && ifNoneMatch === cached.etag) {
@@ -475,7 +478,7 @@ router.get("/rankings", async (req, res) => {
       }
       res.set("Cache-Control", "public, max-age=600");
       res.set("ETag", cached.etag);
-      return res.json({ leaderboard: cached.data });
+      return res.json({ leaderboard: cached.data, gameState });
     }
 
     let whereClause = "WHERE u.is_email_confirmed = true AND p.id IS NOT NULL";
@@ -515,7 +518,7 @@ router.get("/rankings", async (req, res) => {
     await setCachedRankings({ faction, limit }, leaderboardResult.rows);
     res.set("Cache-Control", "public, max-age=600");
     res.set("ETag", computeETag(leaderboardResult.rows));
-    res.json({ leaderboard: leaderboardResult.rows });
+    res.json({ leaderboard: leaderboardResult.rows, gameState });
   } catch (error) {
     console.error("❌ [RANKINGS] Erro:", error.message);
     res.status(500).json({

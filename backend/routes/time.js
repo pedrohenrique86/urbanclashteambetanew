@@ -1,6 +1,32 @@
 const express = require('express');
 const router = express.Router();
-const { getGameState } = require('../services/gameStateService');
+const { getGameState, sseGameStateEmitter } = require('../services/gameStateService');
+
+/**
+ * SSE para atualizações em tempo real do estado do jogo e cronômetro.
+ * Permite que o frontend reaja instantaneamente a mudanças sem refresh.
+ */
+router.get('/updates', (req, res) => {
+  res.set({
+    'Content-Type': 'text/event-stream',
+    'Cache-Control': 'no-cache',
+    'Connection': 'keep-alive',
+  });
+  res.flushHeaders();
+
+  const sendState = (state) => {
+    res.write(`data: ${JSON.stringify(state)}\n\n`);
+  };
+
+  // Envia o estado atual imediatamente na conexão
+  getGameState().then(sendState).catch(() => {});
+
+  sseGameStateEmitter.on('gameStateChanged', sendState);
+
+  req.on('close', () => {
+    sseGameStateEmitter.removeListener('gameStateChanged', sendState);
+  });
+});
 
 /**
  * @swagger

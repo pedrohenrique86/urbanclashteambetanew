@@ -315,6 +315,8 @@ router.get("/rankings", async (req, res) => {
   try {
     const { limit = 26 } = req.query;
     const cached = await getCachedClans({ limit });
+    const gameState = await getGameState();
+
     if (cached) {
       const ifNoneMatch = req.headers["if-none-match"];
       if (ifNoneMatch && ifNoneMatch === cached.etag) {
@@ -324,7 +326,7 @@ router.get("/rankings", async (req, res) => {
       }
       res.set("Cache-Control", "public, max-age=600");
       res.set("ETag", cached.etag);
-      return res.json({ clans: cached.data });
+      return res.json({ clans: cached.data, gameState });
     }
 
     // Fallback seguro: se não houver cache, busca uma única vez e popula
@@ -351,7 +353,7 @@ router.get("/rankings", async (req, res) => {
     await setCachedClans({ limit }, rankingResult.rows);
     res.set("Cache-Control", "public, max-age=600");
     res.set("ETag", computeETag(rankingResult.rows));
-    res.json({ clans: rankingResult.rows });
+    res.json({ clans: rankingResult.rows, gameState });
   } catch (error) {
     res.status(500).json({ error: "Erro interno do servidor" });
   }
