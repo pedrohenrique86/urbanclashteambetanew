@@ -91,10 +91,18 @@ router.post(
       }
 
       const { email } = req.body;
-      const emailExists = await query("SELECT id FROM users WHERE email = $1", [
+      const emailExists = await query("SELECT id, is_email_confirmed FROM users WHERE email = $1", [
         email,
       ]);
-      res.json({ exists: emailExists.rows.length > 0 });
+      
+      if (emailExists.rows.length > 0) {
+        res.json({ 
+          exists: true, 
+          confirmed: emailExists.rows[0].is_email_confirmed 
+        });
+      } else {
+        res.json({ exists: false, confirmed: false });
+      }
     } catch (error) {
       console.error("❌ Erro ao verificar email:", error.message);
       res.status(500).json({ error: "Erro interno do servidor" });
