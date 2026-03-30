@@ -1,17 +1,22 @@
 import React from "react";
 import { motion } from "framer-motion";
-import homePngUrl from "../../assets/home.png"; // Importa a URL do PNG
+import homePngUrl from "../../assets/home.png";
+import homeMobilePngUrl from "../../assets/home-mobile.png";
 
 export function HeroSection() {
   return (
     <section id="hero" className="relative w-full h-screen overflow-hidden">
-      {/* Imagem de fundo com a tag <img>, a abordagem mais robusta e à prova de falhas */}
+      {/* Imagem de fundo para mobile */}
+      <img
+        src={homeMobilePngUrl}
+        alt="Urban Clash Team background"
+        className="absolute top-0 left-0 w-full h-full object-cover object-top z-0 md:hidden"
+      />
+      {/* Imagem de fundo para desktop */}
       <img
         src={homePngUrl}
         alt="Urban Clash Team background"
-        // object-cover preenche a tela mantendo a proporção, sem distorcer.
-        // object-center garante que o centro da imagem seja priorizado.
-        className="absolute top-0 left-0 w-full h-full object-cover object-center z-0"
+        className="absolute top-0 left-0 w-full h-full object-cover object-center z-0 hidden md:block"
       />
 
       {/* Conteúdo sobre a imagem (se houver) deve ter z-index > 0 */}
