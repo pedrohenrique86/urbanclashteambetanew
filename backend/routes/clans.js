@@ -189,6 +189,11 @@ router.get("/", async (req, res) => {
     });
   } catch (error) {
     console.error("❌ Erro ao listar clãs:", error.message);
+    console.error("❌ Erro ao buscar ranking de clãs:", {
+      message: error.message,
+      stack: error.stack,
+      query: req.query,
+    });
     res.status(500).json({ error: "Erro interno do servidor" });
   }
 });

@@ -520,7 +520,11 @@ router.get("/rankings", async (req, res) => {
     res.set("ETag", computeETag(leaderboardResult.rows));
     res.json({ leaderboard: leaderboardResult.rows, gameState });
   } catch (error) {
-    console.error("❌ [RANKINGS] Erro:", error.message);
+    console.error("❌ [RANKINGS] Erro:", {
+      message: error.message,
+      stack: error.stack,
+      query: req.query,
+    });
     res.status(500).json({
       error: "Erro interno do servidor",
     });

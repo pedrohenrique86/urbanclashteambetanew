@@ -589,7 +589,7 @@ router.post("/confirm-email", async (req, res) => {
 
     // Se for o primeiro login, adiciona o campo de redirecionamento
     if (isFirstLogin) {
-      response.redirectTo = "/choose-faction";
+      response.redirectTo = "/selection-faction";
     }
 
     res.json(response);
