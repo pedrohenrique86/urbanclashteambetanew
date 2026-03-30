@@ -1,40 +1,37 @@
-# 📋 Status da Tarefa: Refatoração da Barra de Navegação Responsiva
+# Status do Projeto e Próximos Passos
 
-> **Instrução para a IA:**  
-> Este arquivo reflete o estado atual da tarefa. Consulte-o antes de sugerir qualquer nova ação relacionada à barra de navegação. Siga os próximos passos descritos para concluir o trabalho.
-
----
+Este documento resume o estado atual do desenvolvimento, as tarefas concluídas, as pendentes e o próximo passo recomendado.
 
 ## O que já foi feito
 
-- **Refatoração Completa do Layout da Navbar (`HomePage.tsx`):** A estrutura da barra de navegação foi completamente refeita para utilizar uma abordagem de `flex-wrap`. Isso unificou o código e eliminou a necessidade de layouts separados para mobile e desktop.
-- **Correção de Bugs de Layout:** Foram corrigidos múltiplos bugs de layout que ocorriam em telas de tamanho intermediário (tablets), incluindo:
-    - Sobreposição do cronômetro sobre os botões.
-    - Elementos sendo "empurrados" para fora da tela.
-    - Layout "tumultuado" e sem fluidez.
-- **Ajuste Fino do Cronômetro (`NavbarCountdown.tsx`):**
-    - O componente foi ajustado para usar múltiplos breakpoints de tamanho de fonte (`xs`, `md`, `lg`), garantindo uma adaptação suave a diferentes larguras de tela.
-    - Foi adicionada a propriedade `whitespace-nowrap` para impedir que o texto do cronômetro quebre em múltiplas linhas.
-- **Reordenação Estrutural:** Os elementos (Logo, Cronômetro, Botões) foram reordenados e as classes de `flexbox` (`flex-grow`, `order`) foram aplicadas para garantir um comportamento previsível e robusto em todas as resoluções.
+- **Correção da Página de Ranking (`RankingPage.tsx`):**
+  - Resolvido o problema de não carregamento dos dados de ranking (jogadores e clãs).
+  - Restaurada a formatação de cores para as posições (ouro, prata, bronze) e os fundos das seções.
+  - Unificado o estilo visual dos itens de ranking (jogadores e clãs) para usar uma borda com gradiente.
+  - Implementada a exibição de troféus (🏆, 🥈, 🥉) para as 3 primeiras posições, substituindo os números.
 
----
+- **Atualização da Página Inicial (`HomePage`):**
+  - A lógica de exibição de troféus foi estendida para os componentes de ranking (`PlayerRankingItem.tsx` e `ClanRankingItem.tsx` na pasta `src/components/`) que são exibidos na página inicial.
+
+- **Correções de Bugs e Melhorias de Cache:**
+  - Corrigida uma condição de corrida no hook `useRankingCache.ts` que fazia os dados do ranking desaparecerem.
+  - Ajustado o serviço `rankingService.ts` para lidar corretamente com a resposta da API.
+  - Proposta uma solução no backend (`backend/routes/users.js`) para remover "usuários fantasmas", invalidando o cache do Redis após a exclusão de um usuário.
 
 ## O que ficou parcialmente feito
 
-- Nenhum item ficou parcialmente feito. A tarefa de refatoração da barra de navegação foi concluída através de múltiplas iterações e correções.
-
----
+- **Refatoração do Dashboard (`DashboardPage.tsx`):**
+  - Foram feitas várias alterações na interface (imagem de fundo, layout dos cards, remoção de elementos), mas a implementação completa do menu "sanduíche" superior e o polimento final do design cyberpunk ainda estão pendentes.
 
 ## O que ainda falta
 
-- **Validação Final do Usuário:** Confirmação em múltiplos dispositivos e larguras de tela de que o comportamento atual do layout é o desejado e atende a todos os casos de uso.
+- **Menu Sanduíche do Dashboard:** Implementar a funcionalidade do menu "sanduíche" colapsável na parte superior da `DashboardPage`.
+- **Atraso no Ranking de Clãs:** Investigar e corrigir o atraso de 10 minutos no carregamento do ranking na página de clãs.
+- **Implementação no Backend:** Aplicar e testar a rota de exclusão de usuários no backend para resolver permanentemente o problema dos "usuários fantasmas".
+- **Polimento Final do Dashboard:** Realizar os ajustes finos de espaçamento, cores e detalhes nos painéis do dashboard.
 
----
+## Próximo Passo Recomendado
 
-## Qual deve ser o próximo passo exato
+**Investigar e corrigir o atraso de 10 minutos no carregamento do ranking na página de clãs.**
 
-1. **Teste Exaustivo:** O usuário deve realizar testes completos na página inicial, focando na barra de navegação.
-    - **Ação:** Redimensionar a janela do navegador lentamente de ponta a ponta.
-    - **Ação:** Testar em um dispositivo móvel real (ou no modo de desenvolvedor do navegador).
-    - **Objetivo:** Garantir que a quebra de linha do cronômetro ocorra de forma suave e que nenhum elemento se sobreponha ou seja cortado em qualquer resolução.
-2. **Aprovação Final:** Se os testes forem bem-sucedidos, o usuário deve aprovar formalmente a conclusão da tarefa.
+Isso garantirá que todas as seções de ranking da aplicação estejam funcionando de forma consistente e com bom desempenho antes de prosseguirmos com novas funcionalidades de interface.
