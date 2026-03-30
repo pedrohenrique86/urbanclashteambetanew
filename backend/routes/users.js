@@ -35,7 +35,7 @@ function getCacheKey(params) {
 async function getCachedRankings(params) {
   const key = getCacheKey(params);
   const cached = await redisClient.getAsync(key);
-  return cached ? JSON.parse(cached) : null;
+  return cached ? cached : null;
 }
 function computeETag(data) {
   const h = crypto.createHash("sha1");
