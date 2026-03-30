@@ -27,9 +27,9 @@ const NavbarCountdown: React.FC<NavbarCountdownProps> = ({ remainingTime }) => {
   const { d, h, m, s } = formatTimeWithSeparators(remainingTime);
 
   return (
-    <div className="flex flex-row items-center justify-center gap-2 font-orbitron">
-      <span className="whitespace-nowrap text-xs uppercase tracking-wider text-cyan-300 underline md:text-base lg:text-xl md:underline-offset-4">
-        Próxima rodada começa em:
+    <div className="flex flex-col md:flex-row items-center justify-center gap-1 md:gap-2 font-orbitron">
+      <span className="whitespacea_nowrap text-xs uppercase tracking-wider text-cyan-300 underline md:text-base lg:text-xl md:underline-offset-4">
+        Próxima rodada começa em
       </span>
       <div className="flex items-baseline gap-1 rounded-md border border-gray-700 bg-gray-900/50 px-2 py-0.5">
         <span className="text-sm font-bold text-white md:text-base lg:text-lg">

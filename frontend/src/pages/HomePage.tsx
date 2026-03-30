@@ -53,7 +53,7 @@ export default function HomePage() {
       {/* Navigation */}
       <nav className="fixed top-0 w-full bg-gray-900/75 backdrop-blur-sm z-50 border-b border-gray-700">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-wrap items-center justify-center md:justify-between min-h-16 gap-4 py-2">
+          <div className="flex flex-wrap items-center justify-between min-h-16 gap-4 py-2">
             {/* Logo - Sempre visível, não encolhe */}
             <div className="flex-shrink-0">
               <h1 className="text-base sm:text-xl md:text-2xl font-orbitron flex items-center">
