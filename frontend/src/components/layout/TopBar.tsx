@@ -209,11 +209,14 @@ const TopBar: React.FC<TopBarProps> = ({
                   <span className="mx-1 text-transparent bg-gradient-to-r from-blue-400 to-blue-600 bg-clip-text font-bold">
                     Clash
                   </span>
-                  <span className="text-transparent bg-gradient-to-r from-gray-400 to-gray-600 bg-clip-text font-bold">
+                  <span className="text-transparent bg-gradient-to-r from-purple-400 to-purple-600 bg-clip-text font-bold">
                     Team
                   </span>
                 </span>
               </div>
+
+              {/* Separador */}
+              <div className="hidden sm:block mx-2 h-6 w-px bg-gray-600"></div>
 
               {/* User info and mobile logout */}
               <div className="flex items-center gap-3">

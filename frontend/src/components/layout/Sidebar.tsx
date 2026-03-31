@@ -5,7 +5,13 @@ import {
   getCriticalDamageExplanation,
 } from "../../utils/combat";
 import UserInfoCard from "../dashboard/UserInfoCard";
-import SidebarMenu from "./SidebarMenu";
+import {
+  BriefcaseIcon,
+  ScaleIcon,
+  UsersIcon,
+  SparklesIcon,
+  ChevronRightIcon,
+} from "@heroicons/react/24/outline";
 
 interface User {
   level?: number;
@@ -67,32 +73,19 @@ export const Sidebar: React.FC<SidebarProps> = ({
   };
 
   // Definições dos menus
-  const gameMenuItems = [
-    { icon: "📋", label: "Tarefas", path: "/tasks" },
-    { icon: "⚔️", label: "Duelos", path: "/duels" },
-    { icon: "🍽️", label: "Restaurante", path: "/restaurant" },
-    { icon: "🏥", label: "Hospital", path: "/hospital" },
-    { icon: "🔒", label: "Prisão", path: "/prison" },
-  ];
-
-  const activitiesMenuItems = [
-    { icon: "🗺️", label: "Territórios", path: "/territory" },
-    { icon: "🛒", label: "Mercado Negro", path: "/market" },
-    { icon: "🏦", label: "Banco", path: "/bank" },
-    { icon: "🏢", label: "Empresas", path: "/business" },
-  ];
-
-  const socialMenuItems = [
-    { icon: "🏴", label: "Clãs", path: "/clans" },
-    { icon: "🏆", label: "Ranking", path: "/ranking" },
-    { icon: "🏛️", label: "Praça", path: "/square" },
-    { icon: "💪", label: "Academia", path: "/gym" },
-    { icon: "👤", label: "Perfil", path: "/profile" },
-  ];
-
-  const premiumMenuItems = [
-    { icon: "💎", label: "Assinatura VIP", path: "/vip" },
-    { icon: "🛍️", label: "Loja Premium", path: "/store" },
+  const menuItems = [
+    {
+      title: "Operações",
+      path: "/operacoes",
+      icon: <BriefcaseIcon className="w-6 h-6" />,
+    },
+    {
+      title: "Economia",
+      path: "/economia",
+      icon: <ScaleIcon className="w-6 h-6" />,
+    },
+    { title: "Rede", path: "/rede", icon: <UsersIcon className="w-6 h-6" /> },
+    { title: "Elite", path: "/elite", icon: <SparklesIcon className="w-6 h-6" /> },
   ];
 
   return (
@@ -238,200 +231,45 @@ export const Sidebar: React.FC<SidebarProps> = ({
       <nav
         className={`${isCompact ? "px-2" : "px-4"} flex-1 overflow-y-auto custom-scrollbar pb-4`}
       >
-        <ul className="space-y-2">
-          {/* Menus - ocultos no modo compacto */}
-          {!isCompact && (
-            <>
-              {/* Menu: Operações */}
-              <li className="mt-4">
-                <SidebarMenu
-                  title="Operações"
-                  icon="🎮"
-                  items={gameMenuItems}
-                  isOpen={openMenus.operacoes}
-                  isCompact={isCompact}
-                  themeClasses={themeClasses}
-                  onToggle={() => toggleMenu("operacoes")}
-                  onNavigate={navigateTo}
-                  activeItem={currentPath}
-                  onItemClick={() => keepMenuOpen("operacoes")}
-                />
+        <ul className="space-y-2 mt-4">
+          {!isCompact ? (
+            menuItems.map((item) => (
+              <li key={item.path}>
+                <button
+                  onClick={() => navigateTo(item.path)}
+                  className={`w-full flex items-center justify-between p-3 rounded-lg transition-colors ${
+                    currentPath?.startsWith(item.path)
+                      ? "bg-gray-700/50 text-white"
+                      : "text-gray-400 hover:bg-gray-700/30 hover:text-white"
+                  }`}
+                >
+                  <div className="flex items-center">
+                    <span className="w-6 h-6">{item.icon}</span>
+                    <span className="ml-4 text-lg font-medium">
+                      {item.title}
+                    </span>
+                  </div>
+                  <ChevronRightIcon className="w-5 h-5 text-gray-500" />
+                </button>
               </li>
-
-              {/* Menu: Economia */}
-              <li className="mt-2">
-                <SidebarMenu
-                  title="Economia"
-                  icon="🎯"
-                  items={activitiesMenuItems}
-                  isOpen={openMenus.economia}
-                  isCompact={isCompact}
-                  themeClasses={themeClasses}
-                  onToggle={() => toggleMenu("economia")}
-                  onNavigate={navigateTo}
-                  activeItem={currentPath}
-                  onItemClick={() => keepMenuOpen("economia")}
-                />
-              </li>
-
-              {/* Menu: Rede */}
-              <li className="mt-2">
-                <SidebarMenu
-                  title="Rede"
-                  icon="👥"
-                  items={socialMenuItems}
-                  isOpen={openMenus.rede}
-                  isCompact={isCompact}
-                  themeClasses={themeClasses}
-                  onToggle={() => toggleMenu("rede")}
-                  onNavigate={navigateTo}
-                  activeItem={currentPath}
-                  onItemClick={() => keepMenuOpen("rede")}
-                />
-              </li>
-
-              {/* Menu: Elite */}
-              <li className="mt-2">
-                <SidebarMenu
-                  title="Elite"
-                  icon="💎"
-                  items={premiumMenuItems}
-                  isOpen={openMenus.elite}
-                  isCompact={isCompact}
-                  themeClasses={themeClasses}
-                  onToggle={() => toggleMenu("elite")}
-                  onNavigate={navigateTo}
-                  activeItem={currentPath}
-                  onItemClick={() => keepMenuOpen("elite")}
-                />
-              </li>
-            </>
-          )}
-
-          {/* Navegação direta no modo compacto */}
-          {isCompact && (
-            <>
-              {/* Botões de navegação rápida */}
-              <li className="mt-4">
-                <div className="space-y-1">
-                  {/* Jogo */}
-                  {gameMenuItems.map((item, index) => {
-                    const isGangster = userProfile?.faction === "gangsters";
-                    const hoverColor = isGangster
-                      ? "hover:bg-orange-500"
-                      : "hover:bg-blue-500";
-                    const activeColor = isGangster
-                      ? "bg-orange-500"
-                      : "bg-blue-500";
-                    const ringColor = isGangster
-                      ? "ring-orange-400"
-                      : "ring-blue-400";
-
-                    return (
-                      <button
-                        key={index}
-                        className={`w-full ${themeClasses.text} ${hoverColor} hover:bg-opacity-30 font-orbitron py-2 px-2 rounded transition-colors text-center text-sm ${
-                          currentPath === item.path
-                            ? `${activeColor} bg-opacity-30 ring-2 ${ringColor}`
-                            : ""
-                        }`}
-                        onClick={() => navigateTo(item.path)}
-                        title={item.label}
-                      >
-                        {item.icon}
-                      </button>
-                    );
-                  })}
-
-                  {/* Atividades */}
-                  {activitiesMenuItems.map((item, index) => {
-                    const isGangster = userProfile?.faction === "gangsters";
-                    const hoverColor = isGangster
-                      ? "hover:bg-orange-500"
-                      : "hover:bg-blue-500";
-                    const activeColor = isGangster
-                      ? "bg-orange-500"
-                      : "bg-blue-500";
-                    const ringColor = isGangster
-                      ? "ring-orange-400"
-                      : "ring-blue-400";
-
-                    return (
-                      <button
-                        key={index}
-                        className={`w-full ${themeClasses.text} ${hoverColor} hover:bg-opacity-30 font-orbitron py-2 px-2 rounded transition-colors text-center text-sm ${
-                          currentPath === item.path
-                            ? `${activeColor} bg-opacity-30 ring-2 ${ringColor}`
-                            : ""
-                        }`}
-                        onClick={() => navigateTo(item.path)}
-                        title={item.label}
-                      >
-                        {item.icon}
-                      </button>
-                    );
-                  })}
-
-                  {/* Social */}
-                  {socialMenuItems.map((item, index) => {
-                    const isGangster = userProfile?.faction === "gangsters";
-                    const hoverColor = isGangster
-                      ? "hover:bg-orange-500"
-                      : "hover:bg-blue-500";
-                    const activeColor = isGangster
-                      ? "bg-orange-500"
-                      : "bg-blue-500";
-                    const ringColor = isGangster
-                      ? "ring-orange-400"
-                      : "ring-blue-400";
-
-                    return (
-                      <button
-                        key={index}
-                        className={`w-full ${themeClasses.text} ${hoverColor} hover:bg-opacity-30 font-orbitron py-2 px-2 rounded transition-colors text-center text-sm ${
-                          currentPath === item.path
-                            ? `${activeColor} bg-opacity-30 ring-2 ${ringColor}`
-                            : ""
-                        }`}
-                        onClick={() => navigateTo(item.path)}
-                        title={item.label}
-                      >
-                        {item.icon}
-                      </button>
-                    );
-                  })}
-
-                  {/* Premium */}
-                  {premiumMenuItems.map((item, index) => {
-                    const isGangster = userProfile?.faction === "gangsters";
-                    const hoverColor = isGangster
-                      ? "hover:bg-orange-500"
-                      : "hover:bg-blue-500";
-                    const activeColor = isGangster
-                      ? "bg-orange-500"
-                      : "bg-blue-500";
-                    const ringColor = isGangster
-                      ? "ring-orange-400"
-                      : "ring-blue-400";
-
-                    return (
-                      <button
-                        key={index}
-                        className={`w-full ${themeClasses.text} ${hoverColor} hover:bg-opacity-30 font-orbitron py-2 px-2 rounded transition-colors text-center text-sm ${
-                          currentPath === item.path
-                            ? `${activeColor} bg-opacity-30 ring-2 ${ringColor}`
-                            : ""
-                        }`}
-                        onClick={() => navigateTo(item.path)}
-                        title={item.label}
-                      >
-                        {item.icon}
-                      </button>
-                    );
-                  })}
-                </div>
-              </li>
-            </>
+            ))
+          ) : (
+            <div className="space-y-2">
+              {menuItems.map((item) => (
+                <button
+                  key={item.path}
+                  onClick={() => navigateTo(item.path)}
+                  title={item.title}
+                  className={`w-full flex items-center justify-center p-3 rounded-lg transition-colors ${
+                    currentPath?.startsWith(item.path)
+                      ? "bg-gray-700/50 text-white"
+                      : "text-gray-400 hover:bg-gray-700/30 hover:text-white"
+                  }`}
+                >
+                  {item.icon}
+                </button>
+              ))}
+            </div>
           )}
         </ul>
       </nav>
