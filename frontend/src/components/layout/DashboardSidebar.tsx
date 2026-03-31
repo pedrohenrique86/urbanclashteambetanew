@@ -44,11 +44,6 @@ interface NavItem {
 // Nova estrutura de dados do menu
 const navItems: NavItem[] = [
   {
-    name: "Dashboard",
-    path: "/dashboard",
-    icon: <HomeIcon className="w-6 h-6" />,
-  },
-  {
     name: "Operações",
     icon: <BriefcaseIcon className="w-6 h-6" />,
     subItems: [
@@ -193,13 +188,27 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
       className="bg-black/40 backdrop-blur-xl border-r border-slate-700/50 flex-shrink-0 flex flex-col items-center pt-24 pb-6 relative z-10 h-full overflow-y-auto overflow-x-hidden custom-scrollbar"
       style={{ boxShadow: "inset -5px 0 15px -5px rgba(0,0,0,0.5)" }}
     >
-      <div className="w-full px-4 mb-6 flex justify-between items-center">
+      <div
+        className={`w-full px-4 mb-6 flex ${isCollapsed ? "flex-col gap-4" : "justify-center gap-4"} items-center relative`}
+      >
+        <Link
+          to="/dashboard"
+          onClick={onMobileClose}
+          className={`flex justify-center items-center p-2 rounded-lg transition-colors ${
+            location.pathname === "/dashboard"
+              ? "text-orange-400 bg-orange-500/10"
+              : "text-slate-400 hover:text-white hover:bg-slate-700/50"
+          }`}
+          title="Dashboard"
+        >
+          <HomeIcon className="w-6 h-6" />
+        </Link>
         <button
           onClick={() => {
             setIsCollapsed(!isCollapsed);
             if (!isCollapsed) setOpenMenu(null); // Fecha submenus ao colapsar
           }}
-          className="hidden md:flex justify-center items-center p-2 text-slate-400 hover:text-white hover:bg-slate-700/50 rounded-lg transition-colors w-full"
+          className="hidden md:flex justify-center items-center p-2 text-slate-400 hover:text-white hover:bg-slate-700/50 rounded-lg transition-colors"
         >
           <Bars3Icon className="w-6 h-6" />
         </button>
@@ -207,7 +216,7 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
         {onMobileClose && (
           <button
             onClick={onMobileClose}
-            className="md:hidden flex justify-center items-center p-2 text-slate-400 hover:text-white hover:bg-slate-700/50 rounded-lg transition-colors ml-auto"
+            className="md:hidden absolute right-4 flex justify-center items-center p-2 text-slate-400 hover:text-white hover:bg-slate-700/50 rounded-lg transition-colors"
           >
             <svg
               className="w-6 h-6"
