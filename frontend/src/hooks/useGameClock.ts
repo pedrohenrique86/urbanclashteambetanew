@@ -9,7 +9,6 @@ interface GameClock {
   remainingTime: number;
   isActive: boolean;
   isPaused: boolean;
-  serverTime: Date | null; // Adiciona a hora do servidor
 }
 
 /**
@@ -19,10 +18,6 @@ interface GameClock {
 export const useGameClock = (): GameClock => {
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [displayTime, setDisplayTime] = useState<number>(0);
-  const [serverTime, setServerTime] = useState<Date | null>(null);
-
-  const animationFrameId = useRef<number | null>(null);
-  const lastServerUpdateTime = useRef<number>(0);
 
   useEffect(() => {
     // Conecta ao socket, registra os listeners e pede o estado atual
@@ -31,111 +26,85 @@ export const useGameClock = (): GameClock => {
 
     // Ouve o estado inicial do jogo, enviado pelo servidor no momento da conexão.
     const handleInitialState = (initialState: GameState) => {
-      console.log('🎮 Estado inicial do jogo recebido:', initialState);
+      console.log("🎮 Estado inicial do jogo recebido:", initialState);
       setGameState(initialState);
-      setDisplayTime(initialState.remainingTime);
-      lastServerUpdateTime.current = Date.now();
     };
 
     // Ouve as atualizações de estado subsequentes, transmitidas para todos os clientes.
     const handleStateUpdate = (updatedState: GameState) => {
-      console.log('🔄 Estado do jogo atualizado:', updatedState);
+      console.log("🔄 Estado do jogo atualizado:", updatedState);
       setGameState(updatedState);
-      setDisplayTime(updatedState.remainingTime);
-      lastServerUpdateTime.current = Date.now();
     };
 
-    socketService.on<GameState>('gameState', handleInitialState);
-    socketService.on<GameState>('gameStateUpdated', handleStateUpdate);
+    socketService.on<GameState>("gameState", handleInitialState);
+    socketService.on<GameState>("gameStateUpdated", handleStateUpdate);
 
     // Função de limpeza: remove os listeners quando o componente que usa o hook é desmontado.
     return () => {
       console.log("🧹 Limpando listeners do useGameClock.");
-      socketService.off('gameState');
-      socketService.off('gameStateUpdated');
-      if (animationFrameId.current) {
-        cancelAnimationFrame(animationFrameId.current);
-      }
+      socketService.off("gameState");
+      socketService.off("gameStateUpdated");
       // Considerar desconectar se for o último listener, mas por enquanto deixamos a conexão ativa.
-      // socketService.disconnect(); 
+      // socketService.disconnect();
     };
   }, []);
 
-  // Efeito para controlar o loop de animação do cronômetro.
+  // Efeito para controlar o cronômetro com setInterval, garantindo estabilidade.
   useEffect(() => {
-    const tick = () => {
-      if (!gameState) return;
+    // Se não houver estado do jogo, não faz nada.
+    if (!gameState) return;
 
-      const now = Date.now();
-      const currentServerTime = gameState.serverTime 
-        ? new Date(new Date(gameState.serverTime).getTime() + (now - lastServerUpdateTime.current))
-        : new Date();
-
-      // Atualiza o relógio do servidor para a UI
-      setServerTime(currentServerTime);
-
-      // --- LÓGICA DE TRANSIÇÃO DE ESTADO AUTÔNOMA ---
-      if (gameState.status === 'scheduled' && gameState.startTime) {
-        const startTime = new Date(gameState.startTime).getTime();
-        if (currentServerTime.getTime() >= startTime) {
-          // O tempo de agendamento acabou. Promove para 'running' no frontend!
-          console.log("🚀 Frontend promovendo estado para RUNNING!");
-          setGameState(prev => {
-            if (!prev) return null;
-            const newEndTime = new Date(startTime + (prev.duration ?? 0) * 1000);
-            const newRemainingTime = Math.floor((newEndTime.getTime() - currentServerTime.getTime()) / 1000);
-            return {
-              ...prev,
-              status: 'running',
-              remainingTime: newRemainingTime,
-            };
-          });
-          setDisplayTime(Math.floor((new Date(startTime + (gameState.duration ?? 0) * 1000).getTime() - currentServerTime.getTime()) / 1000));
-          lastServerUpdateTime.current = now;
-          animationFrameId.current = requestAnimationFrame(tick);
-          return; // Sai do tick atual para recomeçar com o novo estado
-        }
-      }
-
-      // --- LÓGICA DE CONTAGEM REGRESSIVA ---
-      if (gameState.status === 'running' || gameState.status === 'scheduled') {
-        const elapsedTimeInSeconds = (now - lastServerUpdateTime.current) / 1000;
-        const newRemainingTime = Math.max(0, gameState.remainingTime - elapsedTimeInSeconds);
-        setDisplayTime(newRemainingTime);
-
-        if (newRemainingTime <= 0 && gameState.status === 'running') {
-          setGameState(prev => prev ? { ...prev, status: 'finished' } : null);
-        }
-      }
-
-      animationFrameId.current = requestAnimationFrame(tick);
-    };
-
-    // Inicia o loop de animação se tivermos um estado
-    if (gameState) {
-      lastServerUpdateTime.current = Date.now();
-      animationFrameId.current = requestAnimationFrame(tick);
-    } else {
-      // Cancela animação se não houver estado
-      if (animationFrameId.current) {
-        cancelAnimationFrame(animationFrameId.current);
-      }
+    // Se o jogo não está em contagem (correndo ou agendado),
+    // apenas exibe o tempo restante estático e para qualquer timer.
+    if (gameState.status !== "running" && gameState.status !== "scheduled") {
+      setDisplayTime(gameState.remainingTime);
+      return; // Sai do efeito sem criar um intervalo.
     }
 
-    // Função de limpeza
-    return () => {
-      if (animationFrameId.current) {
-        cancelAnimationFrame(animationFrameId.current);
+    // Cria um intervalo que roda a cada segundo.
+    const intervalId = setInterval(() => {
+      let remaining = 0;
+
+      // Se o jogo está correndo, calcula o tempo restante até o fim.
+      if (gameState.status === "running" && gameState.endTime) {
+        const endTime = new Date(gameState.endTime).getTime();
+        remaining = Math.floor((endTime - Date.now()) / 1000);
       }
+      // Se o jogo está agendado, calcula o tempo restante até o início.
+      else if (gameState.status === "scheduled" && gameState.startTime) {
+        const startTime = new Date(gameState.startTime).getTime();
+        remaining = Math.floor((startTime - Date.now()) / 1000);
+      }
+
+      // Garante que o tempo exibido nunca seja negativo.
+      setDisplayTime(Math.max(0, remaining));
+
+      // Se o tempo acabou, o frontend precisa saber o que fazer.
+      if (remaining <= 0) {
+        // Se a rodada estava correndo, ela terminou. Pode-se mudar o estado localmente.
+        if (gameState.status === "running") {
+          setGameState(prev => (prev ? { ...prev, status: "finished" } : null));
+        }
+        // Se a rodada estava agendada, ela deve começar.
+        // A fonte da verdade é o backend, então pedimos o novo estado.
+        if (gameState.status === "scheduled") {
+          socketService.emit("getGameState");
+        }
+      }
+    }, 1000);
+
+    // Função de limpeza: é CRUCIAL para evitar vazamentos de memória.
+    // Ela é chamada quando o componente é desmontado ou quando o `gameState` muda.
+    return () => {
+      clearInterval(intervalId);
     };
-  }, [gameState]); // Este efeito depende do gameState.
+  }, [gameState]); // Este efeito depende SOMENTE do gameState.
 
   // Retorna o estado simplificado para a UI consumir.
   return {
-    status: gameState?.status || 'loading',
+    status: gameState?.status || "loading",
     remainingTime: Math.floor(displayTime),
     isActive: gameState?.isActive || false,
     isPaused: gameState?.isPaused || false,
-    serverTime, // Expõe a hora do servidor
   };
 };

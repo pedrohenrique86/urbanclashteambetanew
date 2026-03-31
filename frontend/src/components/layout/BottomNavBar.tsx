@@ -16,7 +16,7 @@ const BottomNavBar: React.FC<BottomNavBarProps> = ({
 }) => {
   const [openMenu, setOpenMenu] = useState<string | null>(null);
   const [isAdminMenuOpen, setAdminMenuOpen] = useState(false);
-  const { remainingTime, status, serverTime } = useGameClock(); // Usa o novo hook
+  const { remainingTime, status } = useGameClock(); // Usa o novo hook
 
   const isAdmin = userProfile?.is_admin === true;
   const menuRef = useRef<HTMLDivElement>(null);
@@ -108,7 +108,6 @@ const BottomNavBar: React.FC<BottomNavBarProps> = ({
         <GameClockDisplay
           remainingTime={remainingTime}
           status={status}
-          serverTime={serverTime}
         />
       </div>
 

@@ -12,7 +12,6 @@ import { IoMdTime } from "react-icons/io";
 interface GameClockDisplayProps {
   remainingTime: number;
   status: string;
-  serverTime: Date | null;
 }
 
 const formatRemainingTime = (totalSeconds: number): string => {
@@ -26,21 +25,12 @@ const formatRemainingTime = (totalSeconds: number): string => {
   return `${days}d ${String(hours).padStart(2, "0")}h ${String(minutes).padStart(2, "0")}m ${String(seconds).padStart(2, "0")}s`;
 };
 
-const formatServerTime = (date: Date | null): string => {
-  if (!date) return "--:--:--";
-  const hours = String(date.getHours()).padStart(2, "0");
-  const minutes = String(date.getMinutes()).padStart(2, "0");
-  const seconds = String(date.getSeconds()).padStart(2, "0");
-  return `${hours}:${minutes}:${seconds}`;
-};
 
 const GameClockDisplay: React.FC<GameClockDisplayProps> = ({
   remainingTime,
   status,
-  serverTime,
 }) => {
   const remainingTimeStr = formatRemainingTime(remainingTime);
-  const serverTimeStr = formatServerTime(serverTime);
 
   const getStatusInfo = () => {
     switch (status) {
@@ -96,8 +86,8 @@ const GameClockDisplay: React.FC<GameClockDisplayProps> = ({
         Removido gradiente, blur e borda dinâmica para eliminar qualquer fonte de flicker.
       */}
       <div className="w-full bg-slate-900 rounded-xl shadow-lg shadow-black/30 border-t-2 border-slate-600">
-        <div className="flex items-center justify-between px-3 py-1">
-          {/* Bloco da Esquerda: Status + Cronômetro */}
+        <div className="flex items-center justify-center px-3 py-1">
+          {/* Bloco Central: Status + Cronômetro */}
           <div className="flex items-center gap-2">
             <div className={`flex items-center gap-1.5 ${statusColor}`}>
               <span className="text-base">{statusIcon}</span>
@@ -112,30 +102,8 @@ const GameClockDisplay: React.FC<GameClockDisplayProps> = ({
               {remainingTimeStr}
             </span>
           </div>
-
-          {/* Bloco da Direita: Separador + Hora do Servidor */}
-          <div className="flex items-center gap-1.5">
-            <span className="text-slate-600 font-light">|</span>
-            <div
-              data-tooltip-id="server-time-tooltip"
-              data-tooltip-content="Hora do Servidor"
-              className="flex items-center gap-1 text-gray-300 cursor-pointer hover:text-white transition-colors"
-            >
-              <IoMdTime className="text-base" />
-              {/* Largura fixa com 'w-[8ch]' para o relógio do servidor */}
-              <span className="font-mono text-sm block w-[8ch]">
-                {serverTimeStr}
-              </span>
-            </div>
-          </div>
         </div>
       </div>
-
-      <Tooltip
-        id="server-time-tooltip"
-        place="top"
-        className="!bg-slate-700 !bg-opacity-80 !backdrop-blur-sm !text-white !rounded-lg !px-3 !py-1 !text-xs !font-sans"
-      />
     </>
   );
 };
