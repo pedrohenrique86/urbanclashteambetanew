@@ -303,8 +303,6 @@ export const useRankingCache = (
         eventSource = null;
       }
     };
-    // O useEffect agora não tem dependências que mudam, rodando apenas uma vez na montagem.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return {
