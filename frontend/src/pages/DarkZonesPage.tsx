@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 
-export default function PrisonPage() {
+export default function DarkZonesPage() {
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -9,7 +9,7 @@ export default function PrisonPage() {
       className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-8"
     >
       <div className="text-center">
-        <h2 className="text-2xl font-bold text-gray-300 mb-4">Prisão</h2>
+        <h2 className="text-2xl font-bold text-gray-300 mb-4">Zonas Sombrias</h2>
         <p className="text-gray-400">Esta página está em desenvolvimento.</p>
       </div>
     </motion.div>

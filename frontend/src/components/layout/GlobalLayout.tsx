@@ -59,7 +59,7 @@ const GlobalLayout: React.FC<GlobalLayoutProps> = ({ children }) => {
     >
       <TopBar userProfile={userProfile} handleLogout={handleLogout} />
       <main className="pt-28 md:pt-16 pb-24">{children}</main>
-      <BottomNavBar navigateTo={navigateTo} userProfile={userProfile} />
+      <BottomNavBar userProfile={userProfile} />
     </div>
   );
 };

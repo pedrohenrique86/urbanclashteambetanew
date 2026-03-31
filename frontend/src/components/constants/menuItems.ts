@@ -7,52 +7,57 @@ export interface MenuItem {
 const mainMenuItems: MenuItem[] = [];
 
 const gameMenuItems: MenuItem[] = [
-  { icon: '📋', label: 'Tarefas', path: '/tasks' },
-  { icon: '⚔️', label: 'Duelos', path: '/duels' },
-  { icon: '🍽️', label: 'Restaurante', path: '/restaurant' },
-  { icon: '🏥', label: 'Hospital', path: '/hospital' },
-  { icon: '🔒', label: 'Prisão', path: '/prison' },
+  { icon: "📋", label: "Tarefas", path: "/tasks" },
+  { icon: "⚔️", label: "Duelos", path: "/duels" },
+  { icon: "🍽️", label: "Restaurante", path: "/restaurant" },
+  { icon: "🏥", label: "Hospital", path: "/hospital" },
+  { icon: "🔒", label: "Prisão", path: "/prison" },
 ];
 
 const activitiesMenuItems: MenuItem[] = [
-  { icon: '🗺️', label: 'Territórios', path: '/territory' },
-  { icon: '🛒', label: 'Mercado Negro', path: '/market' },
-  { icon: '🏦', label: 'Banco', path: '/bank' },
-  { icon: '🏢', label: 'Empresas', path: '/business' },
+  { icon: "🗺️", label: "Territórios", path: "/territory" },
+  { icon: "🛒", label: "Mercado Negro", path: "/market" },
+  { icon: "🏦", label: "Banco", path: "/bank" },
+  { icon: "🏢", label: "Empresas", path: "/business" },
 ];
 
 const socialMenuItems: MenuItem[] = [
-  { icon: '🏴', label: 'Clã', path: '/clan' },
-  { icon: '🏆', label: 'Ranking', path: '/ranking' },
-  { icon: '🏛️', label: 'Praça', path: '/square' },
-  { icon: '💪', label: 'Academia', path: '/gym' },
-  { icon: '👤', label: 'Perfil', path: '/profile' },
+  { icon: "🏴", label: "Clã", path: "/clan" },
+  { icon: "🏆", label: "Ranking", path: "/ranking" },
+  { icon: "🏛️", label: "Praça", path: "/square" },
+  { icon: "💪", label: "Academia", path: "/gym" },
+  { icon: "👤", label: "Perfil", path: "/profile" },
 ];
 
 const premiumMenuItems: MenuItem[] = [
-  { icon: '💎', label: 'VIP', path: '/vip' },
-  { icon: '🛍️', label: 'Loja Premium', path: '/store' },
+  { icon: "💎", label: "VIP", path: "/vip" },
+  { icon: "🛍️", label: "Loja Premium", path: "/store" },
 ];
 
 export const menuCategories = {
-  operacoes: {
-    title: 'Operações',
-    icon: '🎒',
+  principal: {
+    title: "Principal",
+    icon: "🏠",
+    items: [],
+  },
+  jogo: {
+    title: "Jogo",
+    icon: "🎮",
     items: gameMenuItems,
   },
-  economia: {
-    title: 'Economia',
-    icon: '🎯',
+  atividades: {
+    title: "Atividades",
+    icon: "🎯",
     items: activitiesMenuItems,
   },
-  rede: {
-    title: 'Rede',
-    icon: '👥',
+  social: {
+    title: "Social",
+    icon: "👥",
     items: socialMenuItems,
   },
-  elite: {
-    title: 'Elite',
-    icon: '💎',
+  premium: {
+    title: "Premium",
+    icon: "💎",
     items: premiumMenuItems,
   },
 };

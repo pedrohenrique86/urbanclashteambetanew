@@ -9,28 +9,26 @@ import { LoadingSpinner } from "./components/ui/LoadingSpinner"; // Um spinner p
 const HomePage = lazy(() => import("./pages/HomePage"));
 const DashboardPage = lazy(() => import("./pages/DashboardPage"));
 const FactionSelectionPage = lazy(() => import("./pages/FactionSelectionPage"));
-const ClanSelectionPage = lazy(() => import("./pages/ClanSelectionPage"));
 const EmailConfirmationPage = lazy(
   () => import("./pages/EmailConfirmationPage"),
 );
 const ResetPasswordPage = lazy(() => import("./pages/ResetPasswordPage"));
 const RankingPage = lazy(() => import("./pages/RankingPage"));
-const ClansPage = lazy(() => import("./pages/ClansPage"));
-const TasksPage = lazy(() => import("./pages/TasksPage"));
-const DuelsPage = lazy(() => import("./pages/DuelsPage"));
-const RestaurantPage = lazy(() => import("./pages/RestaurantPage"));
-const HospitalPage = lazy(() => import("./pages/HospitalPage"));
-const PrisonPage = lazy(() => import("./pages/PrisonPage"));
-const TerritoryPage = lazy(() => import("./pages/TerritoryPage"));
-const MarketPage = lazy(() => import("./pages/MarketPage"));
-const BankPage = lazy(() => import("./pages/BankPage"));
-const BusinessPage = lazy(() => import("./pages/BusinessPage"));
-const SquarePage = lazy(() => import("./pages/SquarePage"));
-const GymPage = lazy(() => import("./pages/GymPage"));
+const ContractsPage = lazy(() => import("./pages/ContractsPage"));
+const ReckoningPage = lazy(() => import("./pages/ReckoningPage"));
 const ProfilePage = lazy(() => import("./pages/ProfilePage"));
-const VipPage = lazy(() => import("./pages/VipPage"));
-const StorePage = lazy(() => import("./pages/StorePage"));
-const OverviewPage = lazy(() => import("./pages/OverviewPage"));
+const SupplyExtractionPage = lazy(() => import("./pages/SupplyExtractionPage"));
+const RecoveryBasePage = lazy(() => import("./pages/RecoveryBasePage"));
+const IsolationPage = lazy(() => import("./pages/IsolationPage"));
+const DarkZonesPage = lazy(() => import("./pages/DarkZonesPage"));
+const ParallelNetworkPage = lazy(() => import("./pages/ParallelNetworkPage"));
+const SafePage = lazy(() => import("./pages/SafePage"));
+const CorporationsPage = lazy(() => import("./pages/CorporationsPage"));
+const SocialZonePage = lazy(() => import("./pages/SocialZonePage"));
+const TrainingPage = lazy(() => import("./pages/TrainingPage"));
+const DigitalIdentityPage = lazy(() => import("./pages/DigitalIdentityPage"));
+const VipAccessPage = lazy(() => import("./pages/VipAccessPage"));
+const RestrictedStorePage = lazy(() => import("./pages/RestrictedStorePage"));
 const ClanPage = lazy(() => import("./pages/ClanPage"));
 const GoogleCallbackPage = lazy(() => import("./pages/GoogleCallbackPage"));
 
@@ -62,30 +60,39 @@ const router = createBrowserRouter([
     path: "/",
     element: <AppLayout />,
     children: [
+      // Rotas de Autenticação e Seleção
       { path: "dashboard", element: <DashboardPage /> },
       { path: "faction-selection", element: <FactionSelectionPage /> },
-      { path: "clan-selection", element: <ClanSelectionPage /> },
       { path: "email-confirmation", element: <EmailConfirmationPage /> },
       { path: "confirm-email", element: <EmailConfirmationPage /> },
       { path: "reset-password", element: <ResetPasswordPage /> },
-      { path: "ranking", element: <RankingPage /> },
-      { path: "clans", element: <ClansPage /> },
+
+      // Rotas de Operações
+      { path: "contracts", element: <ContractsPage /> },
+      { path: "reckoning", element: <ReckoningPage /> },
+      { path: "supply-extraction", element: <SupplyExtractionPage /> },
+      { path: "recovery-base", element: <RecoveryBasePage /> },
+      { path: "isolation", element: <IsolationPage /> },
+
+      // Rotas de Economia
+      { path: "dark-zones", element: <DarkZonesPage /> },
+      { path: "parallel-network", element: <ParallelNetworkPage /> },
+      { path: "safe", element: <SafePage /> },
+      { path: "corporations", element: <CorporationsPage /> },
+
+      // Rotas de Rede
       { path: "clan", element: <ClanPage /> },
-      { path: "tasks", element: <TasksPage /> },
-      { path: "duels", element: <DuelsPage /> },
-      { path: "restaurant", element: <RestaurantPage /> },
-      { path: "hospital", element: <HospitalPage /> },
-      { path: "prison", element: <PrisonPage /> },
-      { path: "territory", element: <TerritoryPage /> },
-      { path: "market", element: <MarketPage /> },
-      { path: "bank", element: <BankPage /> },
-      { path: "business", element: <BusinessPage /> },
-      { path: "square", element: <SquarePage /> },
-      { path: "gym", element: <GymPage /> },
+      { path: "social-zone", element: <SocialZonePage /> },
+      { path: "training", element: <TrainingPage /> },
+      { path: "digital-identity", element: <DigitalIdentityPage /> },
+
+      // Rotas Elite
+      { path: "vip-access", element: <VipAccessPage /> },
+      { path: "restricted-store", element: <RestrictedStorePage /> },
+
+      // Outras rotas
+      { path: "ranking", element: <RankingPage /> },
       { path: "profile", element: <ProfilePage /> },
-      { path: "vip", element: <VipPage /> },
-      { path: "store", element: <StorePage /> },
-      { path: "overview", element: <OverviewPage /> },
     ],
   },
 ]);

@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 
-export default function TasksPage() {
+export default function SocialZonePage() {
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -9,7 +9,7 @@ export default function TasksPage() {
       className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-8"
     >
       <div className="text-center">
-        <h2 className="text-2xl font-bold text-gray-300 mb-4">Tarefas</h2>
+        <h2 className="text-2xl font-bold text-gray-300 mb-4">Zona Social</h2>
         <p className="text-gray-400">Esta página está em desenvolvimento.</p>
       </div>
     </motion.div>
