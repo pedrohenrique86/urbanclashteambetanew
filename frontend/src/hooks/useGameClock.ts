@@ -9,6 +9,7 @@ interface GameClock {
   remainingTime: number;
   isActive: boolean;
   isPaused: boolean;
+  serverTime: Date | null; // Adiciona a hora do servidor
 }
 
 /**
@@ -18,6 +19,12 @@ interface GameClock {
 export const useGameClock = (): GameClock => {
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [displayTime, setDisplayTime] = useState<number>(0);
+  const [serverTime, setServerTime] = useState<Date | null>(null);
+
+  // Ref para armazenar a última sincronização de tempo com o servidor.
+  const lastServerUpdateTime = useRef<{ serverTime: string; localTime: number } | null>(
+    null,
+  );
 
   useEffect(() => {
     // Conecta ao socket, registra os listeners e pede o estado atual
@@ -28,12 +35,24 @@ export const useGameClock = (): GameClock => {
     const handleInitialState = (initialState: GameState) => {
       console.log("🎮 Estado inicial do jogo recebido:", initialState);
       setGameState(initialState);
+      if (initialState.serverTime) {
+        lastServerUpdateTime.current = {
+          serverTime: initialState.serverTime,
+          localTime: Date.now(),
+        };
+      }
     };
 
     // Ouve as atualizações de estado subsequentes, transmitidas para todos os clientes.
     const handleStateUpdate = (updatedState: GameState) => {
       console.log("🔄 Estado do jogo atualizado:", updatedState);
       setGameState(updatedState);
+      if (updatedState.serverTime) {
+        lastServerUpdateTime.current = {
+          serverTime: updatedState.serverTime,
+          localTime: Date.now(),
+        };
+      }
     };
 
     socketService.on<GameState>("gameState", handleInitialState);
@@ -63,6 +82,16 @@ export const useGameClock = (): GameClock => {
 
     // Cria um intervalo que roda a cada segundo.
     const intervalId = setInterval(() => {
+      // --- LÓGICA DE ATUALIZAÇÃO DA HORA DO SERVIDOR ---
+      if (lastServerUpdateTime.current) {
+        const elapsed = Date.now() - lastServerUpdateTime.current.localTime;
+        const currentServerTime = new Date(
+          new Date(lastServerUpdateTime.current.serverTime).getTime() + elapsed,
+        );
+        setServerTime(currentServerTime);
+      }
+
+      // --- LÓGICA DE CONTAGEM REGRESSIVA DO JOGO ---
       let remaining = 0;
 
       // Se o jogo está correndo, calcula o tempo restante até o fim.
@@ -106,5 +135,6 @@ export const useGameClock = (): GameClock => {
     remainingTime: Math.floor(displayTime),
     isActive: gameState?.isActive || false,
     isPaused: gameState?.isPaused || false,
+    serverTime, // Expõe a hora do servidor
   };
 };
