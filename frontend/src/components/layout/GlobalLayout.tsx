@@ -1,12 +1,13 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import BottomNavBar from "./BottomNavBar";
 import TopBar from "./TopBar";
+import DashboardSidebar from "./DashboardSidebar";
 import { useTheme } from "../../contexts/ThemeContext";
 import { useUserProfile } from "../../hooks/useUserProfile";
 import { apiClient } from "../../lib/supabaseClient";
-import { LoadingSpinner } from "../ui/LoadingSpinner";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
+import homePngUrl from "../../assets/beco1.png"; // Importa a imagem de fundo
 
 interface GlobalLayoutProps {
   children: React.ReactNode;
@@ -16,6 +17,7 @@ const GlobalLayout: React.FC<GlobalLayoutProps> = ({ children }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const { themeClasses } = useTheme();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const pagesWithoutNav = [
     "/",
@@ -28,10 +30,6 @@ const GlobalLayout: React.FC<GlobalLayoutProps> = ({ children }) => {
   const shouldShowNav = !pagesWithoutNav.includes(location.pathname);
 
   const { userProfile, loading } = useUserProfile(shouldShowNav);
-
-  const navigateTo = (path: string) => {
-    navigate(path);
-  };
 
   const handleLogout = async () => {
     try {
@@ -46,20 +44,70 @@ const GlobalLayout: React.FC<GlobalLayoutProps> = ({ children }) => {
     return <>{children}</>;
   }
 
-  // The loading screen logic has been removed to allow for instant rendering.
-  // We still need a guard to prevent rendering with incomplete data, which could cause a crash.
   if (loading || !userProfile || !userProfile.faction || !userProfile.clan_id) {
-    // Render a simple blank background while data is loading, avoiding the full animated spinner.
     return <div className={`min-h-screen ${themeClasses.bg}`} />;
   }
 
+  const isDashboard = location.pathname === "/dashboard";
+
+  const backgroundStyle = isDashboard
+    ? { backgroundImage: `url(${homePngUrl})` }
+    : {};
+
+  const layoutClasses = isDashboard
+    ? "bg-cover bg-center"
+    : themeClasses.bg;
+
   return (
     <div
-      className={`min-h-screen ${themeClasses.bg} transition-colors duration-300`}
+      className={`h-screen font-exo text-white overflow-hidden ${layoutClasses}`}
+      style={backgroundStyle}
     >
-      <TopBar userProfile={userProfile} handleLogout={handleLogout} />
-      <main className="pt-28 md:pt-16 pb-24">{children}</main>
-      <BottomNavBar userProfile={userProfile} />
+      <div className={`flex h-full ${isDashboard ? "bg-black/20" : ""}`}>
+        {/* Sidebar para desktop, fixa na lateral */}
+        <div className="hidden md:flex md:flex-shrink-0 z-20">
+          <DashboardSidebar />
+        </div>
+
+        {/* Sidebar para mobile (Drawer) */}
+        <AnimatePresence>
+          {isMobileMenuOpen && (
+            <>
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 md:hidden"
+              />
+              <motion.div
+                initial={{ x: "-100%" }}
+                animate={{ x: 0 }}
+                exit={{ x: "-100%" }}
+                transition={{ type: "spring", bounce: 0, duration: 0.4 }}
+                className="fixed inset-y-0 left-0 z-50 flex md:hidden"
+              >
+                <DashboardSidebar
+                  onMobileClose={() => setIsMobileMenuOpen(false)}
+                />
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>
+
+        {/* Conteúdo principal */}
+        <div className="flex flex-col flex-1 w-0">
+          <TopBar
+            userProfile={userProfile}
+            handleLogout={handleLogout}
+            onMenuToggle={() => setIsMobileMenuOpen(true)}
+          />
+          <main className="flex-1 relative overflow-y-auto focus:outline-none pb-24 pt-28 md:pt-16">
+            {children}
+          </main>
+          <BottomNavBar userProfile={userProfile} />
+        </div>
+      </div>
     </div>
   );
 };

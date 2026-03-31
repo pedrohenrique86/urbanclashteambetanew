@@ -150,7 +150,13 @@ const navItems: NavItem[] = [
   },
 ];
 
-const DashboardSidebar: React.FC = () => {
+interface DashboardSidebarProps {
+  onMobileClose?: () => void;
+}
+
+const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
+  onMobileClose,
+}) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [openMenu, setOpenMenu] = useState<string | null>(null);
   const location = useLocation();
@@ -184,19 +190,40 @@ const DashboardSidebar: React.FC = () => {
       animate={isCollapsed ? "collapsed" : "expanded"}
       variants={sidebarVariants}
       transition={{ duration: 0.3, ease: "easeInOut" }}
-      className="bg-black/50 backdrop-blur-lg border-r border-slate-800/50 flex-shrink-0 flex flex-col items-center py-6 relative z-10"
+      className="bg-black/40 backdrop-blur-xl border-r border-slate-700/50 flex-shrink-0 flex flex-col items-center py-6 relative z-10 h-full overflow-y-auto overflow-x-hidden custom-scrollbar"
       style={{ boxShadow: "inset -5px 0 15px -5px rgba(0,0,0,0.5)" }}
     >
-      <div className="w-full px-4 mb-6">
+      <div className="w-full px-4 mb-6 flex justify-between items-center">
         <button
           onClick={() => {
             setIsCollapsed(!isCollapsed);
             if (!isCollapsed) setOpenMenu(null); // Fecha submenus ao colapsar
           }}
-          className="w-full flex justify-center items-center p-2 text-slate-400 hover:text-white hover:bg-slate-700/50 rounded-lg transition-colors"
+          className="hidden md:flex justify-center items-center p-2 text-slate-400 hover:text-white hover:bg-slate-700/50 rounded-lg transition-colors w-full"
         >
           <Bars3Icon className="w-6 h-6" />
         </button>
+        {/* Botão de fechar apenas no mobile */}
+        {onMobileClose && (
+          <button
+            onClick={onMobileClose}
+            className="md:hidden flex justify-center items-center p-2 text-slate-400 hover:text-white hover:bg-slate-700/50 rounded-lg transition-colors ml-auto"
+          >
+            <svg
+              className="w-6 h-6"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M6 18L18 6M6 6l12 12"
+              />
+            </svg>
+          </button>
+        )}
       </div>
       <nav className="flex flex-col gap-2 w-full">
         {navItems.map((item) => {
@@ -263,6 +290,7 @@ const DashboardSidebar: React.FC = () => {
                           >
                             <Link
                               to={subItem.path}
+                              onClick={onMobileClose}
                               className={`w-full flex items-center gap-3 py-2.5 text-sm rounded-md transition-colors duration-200 ${
                                 isActive
                                   ? "text-orange-400"
@@ -287,6 +315,7 @@ const DashboardSidebar: React.FC = () => {
             <Link
               key={item.name}
               to={item.path || "#"}
+              onClick={onMobileClose}
               className={`flex items-center py-3 text-slate-400 hover:text-white hover:bg-orange-500/10 transition-all duration-200 border-l-4 ${
                 location.pathname === item.path
                   ? "border-orange-500 text-white bg-orange-500/10"

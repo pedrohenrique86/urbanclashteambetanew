@@ -1,13 +1,11 @@
 import React from "react";
 import { useUserProfile } from "../hooks/useUserProfile";
-import homePngUrl from "../assets/beco1.png";
 import {
   BoltIcon,
   BanknotesIcon,
   ShieldCheckIcon,
   ChartBarIcon,
 } from "@heroicons/react/24/outline";
-import DashboardSidebar from "../components/layout/DashboardSidebar";
 
 // --- Componente de Painel Genérico ---
 const DashboardPanel: React.FC<{
@@ -29,7 +27,7 @@ const DashboardPanel: React.FC<{
       </h2>
       {icon}
     </div>
-    <div className="flex-1">{children}</div>
+    <div className="flex-1\">{children}</div>
   </div>
 );
 
@@ -70,7 +68,7 @@ const CircularProgressBar: React.FC<{ progress: number }> = ({ progress }) => {
           strokeDasharray={circumference}
           strokeDashoffset={offset}
           strokeLinecap="round"
-          style={{ transition: "stroke-dashoffset 0.5s easea_in-out" }}
+          style={{ transition: "stroke-dashoffset 0.5s ease-in-out" }}
         />
         <defs>
           <linearGradient
@@ -96,9 +94,9 @@ const LevelPanel: React.FC<{ user: any }> = ({ user }) => {
       title="NÍVEL"
       icon={<BoltIcon className="w-6 h-6 text-orange-400" />}
     >
-      <div className="flex items-center justify-around h-full">
+      <div className="flex flex-col sm:flex-row items-center justify-center sm:justify-around text-center sm:text-left h-full gap-4 p-2">
         <CircularProgressBar progress={progress} />
-        <div className="text-slate-300 space-y-2 text-sm">
+        <div className="text-slate-300 space-y-1 text-sm">
           <p>
             <span className="font-bold text-white">
               {user.xp} / {user.xp_needed} XP
@@ -256,7 +254,7 @@ export default function DashboardPage() {
 
   if (profileLoading) {
     return (
-      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
+      <div className="flex items-center justify-center h-full">
         <p className="text-white font-orbitron">Carregando Perfil...</p>
       </div>
     );
@@ -267,22 +265,12 @@ export default function DashboardPage() {
   }
 
   return (
-    <div
-      className="min-h-screen bg-cover bg-center font-exo text-white"
-      style={{ backgroundImage: `url(${homePngUrl})` }}
-    >
-      <div className="flex h-screen bg-black/20">
-        <DashboardSidebar />
-        <div className="flex-1 flex flex-col overflow-hidden">
-          <main className="flex-1 flex justify-center p-6 overflow-y-auto">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 w-full max-w-2xl">
-              <LevelPanel user={userProfile} />
-              <ResourcesPanel user={userProfile} />
-              <FactionPanel user={userProfile} />
-              <StatisticsPanel user={userProfile} />
-            </div>
-          </main>
-        </div>
+    <div className="flex justify-center p-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-2xl">
+        <LevelPanel user={userProfile} />
+        <ResourcesPanel user={userProfile} />
+        <FactionPanel user={userProfile} />
+        <StatisticsPanel user={userProfile} />
       </div>
     </div>
   );

@@ -6,9 +6,14 @@ import { calculateCombatStats } from "../../utils/combat";
 interface TopBarProps {
   userProfile: UserProfile | null;
   handleLogout: () => void;
+  onMenuToggle?: () => void;
 }
 
-const TopBar: React.FC<TopBarProps> = ({ userProfile, handleLogout }) => {
+const TopBar: React.FC<TopBarProps> = ({
+  userProfile,
+  handleLogout,
+  onMenuToggle,
+}) => {
   const { themeClasses } = useTheme();
   const usernameGradient =
     userProfile?.faction === "gangsters"
@@ -176,6 +181,27 @@ const TopBar: React.FC<TopBarProps> = ({ userProfile, handleLogout }) => {
             {/* Top part on mobile, left part on desktop */}
             <div className="flex items-center justify-between w-full md:w-auto shrink-0 h-12 px-2 md:px-0">
               <div className="flex items-center gap-2">
+                {/* Mobile Menu Toggle */}
+                <button
+                  onClick={onMenuToggle}
+                  className="md:hidden text-slate-400 hover:text-white transition-colors p-1"
+                  title="Menu"
+                >
+                  <svg
+                    className="w-6 h-6"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      d="M4 6h16M4 12h16M4 18h16"
+                    ></path>
+                  </svg>
+                </button>
                 <span className="text-xs sm:text-sm font-orbitron whitespace-nowrap">
                   <span className="text-transparent bg-gradient-to-r from-orange-400 to-orange-600 bg-clip-text font-bold">
                     Urban
