@@ -20,6 +20,7 @@ export const useGameClock = (): GameClock => {
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [displayTime, setDisplayTime] = useState<number>(0);
   const [serverTime, setServerTime] = useState<Date | null>(null);
+  const [isTimeSynced, setIsTimeSynced] = useState(false);
 
   // Ref para armazenar a última sincronização de tempo com o servidor.
   const lastServerUpdateTime = useRef<{ serverTime: string; localTime: number } | null>(
@@ -40,6 +41,7 @@ export const useGameClock = (): GameClock => {
           serverTime: initialState.serverTime,
           localTime: Date.now(),
         };
+        setIsTimeSynced(true); // Marca que a sincronização inicial ocorreu
       }
     };
 
@@ -52,6 +54,7 @@ export const useGameClock = (): GameClock => {
           serverTime: updatedState.serverTime,
           localTime: Date.now(),
         };
+        setIsTimeSynced(true); // Garante a sincronização em atualizações
       }
     };
 
@@ -68,7 +71,7 @@ export const useGameClock = (): GameClock => {
     };
   }, []);
 
-  // Efeito para controlar o cronômetro com setInterval, garantindo estabilidade.
+  // Efeito para controlar o cronômetro do jogo com setInterval.
   useEffect(() => {
     // Se não houver estado do jogo, não faz nada.
     if (!gameState) return;
@@ -82,15 +85,6 @@ export const useGameClock = (): GameClock => {
 
     // Cria um intervalo que roda a cada segundo.
     const intervalId = setInterval(() => {
-      // --- LÓGICA DE ATUALIZAÇÃO DA HORA DO SERVIDOR ---
-      if (lastServerUpdateTime.current) {
-        const elapsed = Date.now() - lastServerUpdateTime.current.localTime;
-        const currentServerTime = new Date(
-          new Date(lastServerUpdateTime.current.serverTime).getTime() + elapsed,
-        );
-        setServerTime(currentServerTime);
-      }
-
       // --- LÓGICA DE CONTAGEM REGRESSIVA DO JOGO ---
       let remaining = 0;
 
@@ -128,6 +122,25 @@ export const useGameClock = (): GameClock => {
       clearInterval(intervalId);
     };
   }, [gameState]); // Este efeito depende SOMENTE do gameState.
+
+  // Efeito dedicado para o relógio do servidor, independente do estado do jogo.
+  useEffect(() => {
+    if (!isTimeSynced) return;
+
+    const intervalId = setInterval(() => {
+      if (lastServerUpdateTime.current) {
+        const elapsed = Date.now() - lastServerUpdateTime.current.localTime;
+        const currentServerTime = new Date(
+          new Date(lastServerUpdateTime.current.serverTime).getTime() + elapsed,
+        );
+        setServerTime(currentServerTime);
+      }
+    }, 1000);
+
+    return () => {
+      clearInterval(intervalId);
+    };
+  }, [isTimeSynced]);
 
   // Retorna o estado simplificado para a UI consumir.
   return {

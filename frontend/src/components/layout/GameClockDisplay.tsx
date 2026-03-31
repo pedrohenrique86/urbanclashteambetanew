@@ -28,11 +28,34 @@ const formatRemainingTime = (totalSeconds: number): string => {
 
 
 const formatServerTime = (date: Date | null): string => {
-  if (!date) return "--:--:--";
-  const hours = String(date.getHours()).padStart(2, "0");
-  const minutes = String(date.getMinutes()).padStart(2, "0");
-  const seconds = String(date.getSeconds()).padStart(2, "0");
-  return `${hours}:${minutes}:${seconds}`;
+  if (!date) return "--:--:-- BRT | --:--:-- UTC";
+
+  // Opções para formatar a hora nos fusos específicos.
+  const options: Intl.DateTimeFormatOptions = {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  };
+
+  // Formata para São Paulo (BRT/BRST)
+  const saoPauloTime = date.toLocaleString("en-GB", {
+    ...options,
+    timeZone: "America/Sao_Paulo",
+  });
+
+  // Formata para UTC
+  const utcTime = date.toLocaleString("en-GB", { ...options, timeZone: "UTC" });
+
+  // Pega a sigla do fuso horário de São Paulo (ex: BRT ou BRST)
+  const saoPauloTimeZoneName = new Intl.DateTimeFormat("pt-BR", {
+    timeZoneName: "short",
+    timeZone: "America/Sao_Paulo",
+  })
+    .formatToParts(date)
+    .find((part) => part.type === "timeZoneName")?.value;
+
+  return `${saoPauloTime} ${saoPauloTimeZoneName || "BRT"} | ${utcTime} UTC`;
 };
 
 const GameClockDisplay: React.FC<GameClockDisplayProps> = ({
@@ -119,12 +142,12 @@ const GameClockDisplay: React.FC<GameClockDisplayProps> = ({
             <span className="text-slate-600 font-light">|</span>
             <div
               data-tooltip-id="server-time-tooltip"
-              data-tooltip-content="Hora do Servidor São Paulo/BR"
+              data-tooltip-content="Horário de São Paulo | Horário Coordenado Universal"
               className="flex items-center gap-1 text-gray-300 cursor-pointer hover:text-white transition-colors"
             >
               <IoMdTime className="text-base" />
-              {/* Largura fixa com 'w-[8ch]' para o relógio do servidor */}
-              <span className="font-mono text-sm block w-[8ch]">
+              {/* Aumenta a largura para acomodar os dois horários */}
+              <span className="font-mono text-sm min-w-max whitespace-nowrap">
                 {serverTimeStr}
               </span>
             </div>
