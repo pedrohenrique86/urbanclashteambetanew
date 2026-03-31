@@ -35,28 +35,23 @@ const premiumMenuItems: MenuItem[] = [
 ];
 
 export const menuCategories = {
-  principal: {
-    title: 'Principal',
-    icon: '🏠',
-    items: mainMenuItems,
-  },
-  jogo: {
-    title: 'Jogo',
+  operacoes: {
+    title: 'Operações',
     icon: '🎒',
     items: gameMenuItems,
   },
-  atividades: {
-    title: 'Atividades',
+  economia: {
+    title: 'Economia',
     icon: '🎯',
     items: activitiesMenuItems,
   },
-  social: {
-    title: 'Social',
+  rede: {
+    title: 'Rede',
     icon: '👥',
     items: socialMenuItems,
   },
-  premium: {
-    title: 'Premium',
+  elite: {
+    title: 'Elite',
     icon: '💎',
     items: premiumMenuItems,
   },
