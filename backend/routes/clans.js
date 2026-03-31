@@ -61,18 +61,7 @@ router.get("/:id/events", authenticateToken, (req, res) => {
   });
 });
 
-const clansSseClients = new Set();
-function broadcastClansRankingsUpdate(payload) {
-  const data = JSON.stringify(payload || {});
-  clansSseClients.forEach((res) => {
-    try {
-      res.write(`event: clans_rankings\n`);
-      res.write(`data: ${data}\n\n`);
-    } catch (e) {
-      void e;
-    }
-  });
-}
+const sseService = require("../services/sseService");
 
 // Validações
 const createClanValidation = [
@@ -284,7 +273,8 @@ async function refreshClansCache(limit) {
     [limit],
   );
   await setCachedClans({ limit }, rankingResult.rows);
-  broadcastClansRankingsUpdate({ limit });
+  // Notifica todos os clientes sobre a atualização do ranking de clãs
+  sseService.broadcast("rankings", { updated: true, type: 'clans' });
 }
 
 /**
@@ -377,19 +367,6 @@ router.get("/rankings", async (req, res) => {
   }
 });
 
-router.get("/rankings/subscribe", (req, res) => {
-  res.set({
-    "Content-Type": "text/event-stream",
-    "Cache-Control": "no-cache",
-    Connection: "keep-alive",
-  });
-  res.flushHeaders && res.flushHeaders();
-  res.write("\n");
-  clansSseClients.add(res);
-  req.on("close", () => {
-    clansSseClients.delete(res);
-  });
-});
 
 // GET /api/clans/:id - Obter detalhes do clã
 router.get("/:id", async (req, res) => {

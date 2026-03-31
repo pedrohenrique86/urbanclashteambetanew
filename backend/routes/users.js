@@ -10,18 +10,7 @@ const { getGameState } = require("../services/gameStateService");
 
 const router = express.Router();
 
-const sseClients = new Set();
-function broadcastRankingsUpdate(payload) {
-  const data = JSON.stringify(payload || {});
-  sseClients.forEach((res) => {
-    try {
-      res.write(`event: rankings\n`);
-      res.write(`data: ${data}\n\n`);
-    } catch (e) {
-      void e;
-    }
-  });
-}
+const sseService = require("../services/sseService");
 // Cache simples para rankings (TTL 10 minutos)
 const RANKINGS_CACHE_TTL_MS = 10 * 60 * 1000;
 const RANKINGS_REDIS_PREFIX = "rankings:users:";
@@ -94,7 +83,8 @@ async function refreshRankingsCache(faction, limit) {
     [...queryParams, limit],
   );
   await setCachedRankings({ faction, limit }, leaderboardResult.rows);
-  broadcastRankingsUpdate({ faction, limit });
+  // Notifica todos os clientes sobre a atualização do ranking
+  sseService.broadcast("rankings", { updated: true, type: 'users', faction });
 }
 
 /**
@@ -151,9 +141,11 @@ router.get("/rankings/subscribe", (req, res) => {
   });
   res.flushHeaders && res.flushHeaders();
   res.write("\n");
-  sseClients.add(res);
+
+  sseService.addClient(res);
+
   req.on("close", () => {
-    sseClients.delete(res);
+    sseService.removeClient(res);
   });
 });
 // Validações

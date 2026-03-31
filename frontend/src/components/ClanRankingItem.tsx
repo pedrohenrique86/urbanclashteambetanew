@@ -33,6 +33,14 @@ export default function ClanRankingItem({
     }
   };
 
+  // Função para definir o tamanho da fonte com base na posição
+  const getPositionSizeClass = (position?: number) => {
+    if (!position || position <= 3) {
+      return "text-lg sm:text-xl"; // Tamanho maior para Top 3
+    }
+    return "text-base sm:text-lg"; // Tamanho menor para 4+
+  };
+
   // Função para exibir troféu ou número
   const getPositionDisplay = (position?: number) => {
     if (!position) return "—";
@@ -54,7 +62,9 @@ export default function ClanRankingItem({
         <div className="flex items-center space-x-1 sm:space-x-2 min-w-0">
           {/* Posição no ranking */}
           <span
-            className={`text-lg sm:text-xl font-bold min-w-[24px] sm:min-w-[30px] text-center flex-shrink-0 ${getPositionColor(
+            className={`${getPositionSizeClass(
+              clan.position,
+            )} font-bold min-w-[24px] sm:min-w-[30px] text-center flex-shrink-0 ${getPositionColor(
               clan.position || 0,
             )}`}
           >

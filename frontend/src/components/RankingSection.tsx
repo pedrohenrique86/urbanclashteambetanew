@@ -34,7 +34,7 @@ export default function RankingSection() {
     gradient: "from-orange-600 to-orange-500",
     borderColor: "border-orange-500/30",
     delay: 0.3,
-    data: gangsters || [],
+    data: (gangsters || []).slice(0, 5),
     renderItem: (item: Player, index: number) => (
       <PlayerRankingItem
         key={`gangster-${index}`}
@@ -49,7 +49,7 @@ export default function RankingSection() {
     gradient: "from-blue-600 to-blue-400",
     borderColor: "border-blue-500/30",
     delay: 0.4,
-    data: guardas || [],
+    data: (guardas || []).slice(0, 5),
     renderItem: (item: Player, index: number) => (
       <PlayerRankingItem
         key={`guarda-${index}`}
@@ -65,7 +65,7 @@ export default function RankingSection() {
     gradient: "from-purple-600 to-purple-500",
     borderColor: "border-purple-500/30",
     delay: 0.5,
-    data: clans || [],
+    data: (clans || []).slice(0, 5),
     // Especificando o tipo correto para o item
     renderItem: (item: Clan, index: number) => (
       <ClanRankingItem

@@ -276,37 +276,36 @@ export const useRankingCache = (
     };
   }, [loadRankings, forceRefresh]);
 
+  // Usamos uma ref para manter a versão mais recente da função forceRefresh.
+  // Isso evita que o useEffect do SSE seja recriado a cada renderização, prevenindo múltiplas conexões.
+  const forceRefreshRef = useRef(forceRefresh);
+  forceRefreshRef.current = forceRefresh;
+
   useEffect(() => {
     const base = (import.meta as any).env?.VITE_API_URL;
     if (!base) return;
 
-    let esUsers: EventSource | null = null;
-    let esClans: EventSource | null = null;
+    let eventSource: EventSource | null = null;
     try {
       const url = `${base}/api/users/rankings/subscribe`;
-      esUsers = new EventSource(url, { withCredentials: true });
-      esUsers.addEventListener("rankings", () => {
-        forceRefresh();
-      });
-      const urlClans = `${base}/api/clans/rankings/subscribe`;
-      esClans = new EventSource(urlClans, { withCredentials: true });
-      esClans.addEventListener("clans_rankings", () => {
-        forceRefresh();
+      eventSource = new EventSource(url, { withCredentials: true });
+      // O evento 'rankings' agora cobre tanto usuários quanto clãs
+      eventSource.addEventListener("rankings", () => {
+        // Chama a versão mais recente da função através da ref para evitar dependência direta.
+        forceRefreshRef.current();
       });
     } catch (e) {
       void e;
     }
     return () => {
-      if (esUsers) {
-        esUsers.close();
-        esUsers = null;
-      }
-      if (esClans) {
-        esClans.close();
-        esClans = null;
+      if (eventSource) {
+        eventSource.close();
+        eventSource = null;
       }
     };
-  }, [forceRefresh]);
+    // O useEffect agora não tem dependências que mudam, rodando apenas uma vez na montagem.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return {
     data,
