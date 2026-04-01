@@ -27,7 +27,6 @@ const formatRemainingTime = (totalSeconds: number): string => {
   return `${days}d ${String(hours).padStart(2, "0")}h ${String(minutes).padStart(2, "0")}m ${String(seconds).padStart(2, "0")}s`;
 };
 
-
 const formatServerTime = (date: Date | null): string => {
   if (!date) return "--:--:-- BRT | --:--:-- UTC";
 
@@ -118,7 +117,9 @@ const GameClockDisplay: React.FC<GameClockDisplayProps> = ({
   return (
     <>
       <div
-        className="w-full bg-slate-900/50 rounded-lg shadow-lg border border-slate-700/50 p-2 flex flex-col items-center justify-center gap-1"
+        className={`rounded-lg shadow-lg flex flex-col items-center justify-center gap-1 ${
+          isCollapsed ? "p-1 w-auto" : "p-2 w-full border border-slate-700/50"
+        }`}
         data-tooltip-id="game-clock-tooltip"
         data-tooltip-content={`${statusText} ${remainingTimeStr}`}
       >
@@ -136,7 +137,9 @@ const GameClockDisplay: React.FC<GameClockDisplayProps> = ({
             </div>
 
             {/* Linha 2: Cronômetro */}
-            <div className={`w-full font-mono font-bold text-[10px] ${statusColor} text-center`}>
+            <div
+              className={`w-full font-mono font-bold text-[10px] ${statusColor} text-center`}
+            >
               {remainingTimeStr}
             </div>
 
@@ -154,8 +157,7 @@ const GameClockDisplay: React.FC<GameClockDisplayProps> = ({
           </div>
         ) : (
           <div className="flex flex-col items-center justify-center gap-2 py-1">
-            <span className={`${statusColor}`}>{statusIcon}</span>
-            <IoMdTime className="text-gray-400" />
+            <span className={`${statusColor} text-sm`}>{statusIcon}</span>
           </div>
         )}
       </div>

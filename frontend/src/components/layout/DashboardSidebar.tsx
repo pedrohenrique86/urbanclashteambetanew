@@ -158,7 +158,7 @@ const navItems: NavItem[] = [
 interface DashboardSidebarProps {
   onMobileClose?: () => void;
   username?: string;
-  faction?: 'gangsters' | 'guardas';
+  faction?: "gangsters" | "guardas";
   handleLogout: () => void;
 }
 
@@ -196,7 +196,7 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
 
   const sidebarVariants = {
     expanded: { width: "14rem" }, // 224px
-    collapsed: { width: "5rem" }, // 80px
+    collapsed: { width: "2.5rem" }, // 40px
   };
 
   const subMenuVariants = {
@@ -244,7 +244,7 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
                 </span>
               </span>
               <div
-                className={`mt-1 font-orbitron font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r ${faction === 'gangsters' ? 'from-orange-300 to-orange-600' : 'from-blue-300 to-blue-600'} text-xs whitespace-nowrap`}
+                className={`mt-1 font-orbitron font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r ${faction === "gangsters" ? "from-orange-300 to-orange-600" : "from-blue-300 to-blue-600"} text-xs whitespace-nowrap`}
               >
                 {username || "Usuário"}
               </div>
@@ -261,8 +261,8 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
           onClick={onMobileClose}
           className={`flex justify-center items-center p-2 rounded-lg transition-colors ${
             location.pathname === "/dashboard"
-              ? "text-orange-400 bg-orange-500/10"
-              : "text-slate-400 hover:text-white hover:bg-slate-700/50"
+              ? "text-purple-400 bg-purple-500/10"
+              : "text-slate-400 hover:text-white hover:bg-purple-500/10"
           }`}
           title="Dashboard"
         >
@@ -273,13 +273,13 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
             setIsCollapsed(!isCollapsed);
             if (!isCollapsed) setOpenMenu(null); // Fecha submenus ao colapsar
           }}
-          className="hidden md:flex justify-center items-center p-2 text-slate-400 hover:text-white hover:bg-slate-700/50 rounded-lg transition-colors"
+          className="hidden md:flex justify-center items-center p-2 text-slate-400 hover:text-white hover:bg-purple-500/10 rounded-lg transition-colors"
         >
           <Bars3Icon className="w-4 h-4" />
         </button>
         <button
           onClick={handleLogout}
-          className="hidden md:flex justify-center items-center p-2 text-slate-400 hover:text-white hover:bg-red-500/50 rounded-lg transition-colors"
+          className="hidden md:flex justify-center items-center p-2 text-slate-400 hover:text-white hover:bg-purple-500/10 rounded-lg transition-colors"
           title="Sair"
         >
           <ArrowLeftOnRectangleIcon className="w-4 h-4" />
@@ -318,9 +318,9 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
               <div key={item.name} className="overflow-hidden">
                 <button
                   onClick={() => handleMenuToggle(item.name)}
-                  className={`w-full flex items-center py-2 text-slate-400 hover:text-white hover:bg-orange-500/10 transition-all duration-200 border-l-4 ${
+                  className={`w-full flex items-center py-2 text-slate-400 hover:text-white hover:bg-purple-500/10 transition-all duration-200 border-l-4 ${
                     isSubMenuActive && !isMenuOpen
-                      ? "border-orange-500"
+                      ? "border-purple-500"
                       : "border-transparent"
                   } ${isCollapsed ? "justify-center" : "justify-between px-8"}`}
                 >
@@ -377,7 +377,7 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
                               }}
                               className={`w-full flex items-center gap-2 py-1.5 text-xs rounded-md transition-colors duration-200 ${
                                 isActive
-                                  ? "text-orange-400"
+                                  ? "text-purple-400"
                                   : "text-slate-400 hover:text-white"
                               }`}
                             >
@@ -400,9 +400,9 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
               key={item.name}
               to={item.path || "#"}
               onClick={onMobileClose}
-              className={`flex items-center py-2 text-slate-400 hover:text-white hover:bg-orange-500/10 transition-all duration-200 border-l-4 ${
+              className={`flex items-center py-2 text-slate-400 hover:text-white hover:bg-purple-500/10 transition-all duration-200 border-l-4 ${
                 location.pathname === item.path
-                  ? "border-orange-500 text-white bg-orange-500/10"
+                  ? "border-purple-500 text-white bg-purple-500/10"
                   : "border-transparent"
               } ${isCollapsed ? "justify-center" : "justify-start px-8"}`}
               title={item.name}
@@ -412,7 +412,11 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
                 {!isCollapsed && (
                   <motion.span
                     initial={{ opacity: 0, width: 0, marginLeft: 0 }}
-                    animate={{ opacity: 1, width: "auto", marginLeft: "0.75rem" }}
+                    animate={{
+                      opacity: 1,
+                      width: "auto",
+                      marginLeft: "0.75rem",
+                    }}
                     exit={{ opacity: 0, width: 0, marginLeft: 0 }}
                     transition={{ duration: 0.2 }}
                     className="font-semibold whitespace-nowrap"
