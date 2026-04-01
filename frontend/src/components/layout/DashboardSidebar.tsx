@@ -184,7 +184,7 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
   };
 
   const sidebarVariants = {
-    expanded: { width: "14rem" }, // 224px
+    expanded: { width: "12rem" }, // 192px
     collapsed: { width: "2.5rem" }, // 40px
   };
 
@@ -243,35 +243,35 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
       </div>
 
       <div
-        className={`w-full px-4 mb-4 flex ${isCollapsed ? "flex-col gap-4" : "justify-center gap-4"} items-center relative`}
+        className={`w-full mb-4 flex ${isCollapsed ? "flex-col space-y-4" : "justify-center gap-4 px-4"} items-center relative`}
       >
         <Link
           to="/dashboard"
           onClick={onMobileClose}
-          className={`flex justify-center items-center p-2 rounded-lg transition-colors ${
+          className={`flex justify-center items-center p-2 transition-colors ${isCollapsed ? "rounded-none" : "rounded-lg"} ${
             location.pathname === "/dashboard"
               ? "text-purple-400 bg-purple-500/10"
               : "text-slate-400 hover:text-white hover:bg-purple-500/10"
           }`}
-          title="Dashboard"
+          title="Home"
         >
-          <HomeIcon className="w-4 h-4" />
+          <HomeIcon className="w-5 h-5" />
         </Link>
         <button
           onClick={() => {
             setIsCollapsed(!isCollapsed);
             if (!isCollapsed) setOpenMenu(null); // Fecha submenus ao colapsar
           }}
-          className="hidden md:flex justify-center items-center p-2 text-slate-400 hover:text-white hover:bg-purple-500/10 rounded-lg transition-colors"
+          className={`hidden md:flex justify-center items-center p-2 text-slate-400 hover:text-white hover:bg-purple-500/10 transition-colors ${isCollapsed ? "rounded-none" : "rounded-lg"}`}
         >
-          <Bars3Icon className="w-4 h-4" />
+          <Bars3Icon className="w-5 h-5" />
         </button>
         <button
           onClick={handleLogout}
-          className="hidden md:flex justify-center items-center p-2 text-slate-400 hover:text-white hover:bg-purple-500/10 rounded-lg transition-colors"
+          className={`hidden md:flex justify-center items-center p-2 text-slate-400 hover:text-white hover:bg-purple-500/10 transition-colors ${isCollapsed ? "rounded-none" : "rounded-lg"}`}
           title="Sair"
         >
-          <ArrowLeftOnRectangleIcon className="w-4 h-4" />
+          <ArrowLeftOnRectangleIcon className="w-5 h-5" />
         </button>
         {/* Botão de fechar apenas no mobile */}
         {onMobileClose && (
@@ -307,11 +307,7 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
               <div key={item.name} className="overflow-hidden">
                 <button
                   onClick={() => handleMenuToggle(item.name)}
-                  className={`w-full flex items-center py-2 text-slate-400 hover:text-white hover:bg-purple-500/10 transition-all duration-200 border-l-4 ${
-                    isSubMenuActive && !isMenuOpen
-                      ? "border-purple-500"
-                      : "border-transparent"
-                  } ${isCollapsed ? "justify-center" : "justify-between px-8"}`}
+                  className={`w-full flex items-center py-2 text-slate-400 hover:text-white hover:bg-purple-500/10 transition-all duration-200 ${isCollapsed ? "border-l-0 justify-center px-0" : `border-l-4 ${isSubMenuActive && !isMenuOpen ? "border-purple-500" : "border-transparent"} justify-between px-8`}`}
                 >
                   <div className="flex items-center">
                     {item.icon}
@@ -389,11 +385,7 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
               key={item.name}
               to={item.path || "#"}
               onClick={onMobileClose}
-              className={`flex items-center py-2 text-slate-400 hover:text-white hover:bg-purple-500/10 transition-all duration-200 border-l-4 ${
-                location.pathname === item.path
-                  ? "border-purple-500 text-white bg-purple-500/10"
-                  : "border-transparent"
-              } ${isCollapsed ? "justify-center" : "justify-start px-8"}`}
+              className={`flex items-center py-2 text-slate-400 hover:text-white hover:bg-purple-500/10 transition-all duration-200 ${isCollapsed ? "border-l-0 justify-center px-0" : `border-l-4 ${location.pathname === item.path ? "border-purple-500 text-white bg-purple-500/10" : "border-transparent"} justify-start px-8`}`}
               title={item.name}
             >
               {item.icon}
@@ -421,11 +413,7 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
         {isAdmin && (
           <button
             onClick={() => setIsAdminMenuOpen(!isAdminMenuOpen)}
-            className={`w-full flex items-center py-2 text-slate-400 hover:text-white hover:bg-purple-500/10 transition-all duration-200 border-l-4 ${
-              isAdminMenuOpen
-                ? "border-purple-500 text-white bg-purple-500/10"
-                : "border-transparent"
-            } ${isCollapsed ? "justify-center" : "justify-start px-8"}`}
+            className={`w-full flex items-center py-2 text-slate-400 hover:text-white hover:bg-purple-500/10 transition-all duration-200 ${isCollapsed ? "border-l-0 justify-center px-0" : `border-l-4 ${isAdminMenuOpen ? "border-purple-500 text-white bg-purple-500/10" : "border-transparent"} justify-start px-8`}`}
             title="Admin"
           >
             <ShieldCheckIcon className="w-5 h-5" />
