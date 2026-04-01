@@ -158,7 +158,7 @@ const ResourcesPanel: React.FC<{ user: any }> = ({ user }) => (
         <p className="text-sm">
           Cash:{" "}
           <span className="font-bold text-white">
-            ${(user.cash ?? 1000).toLocaleString()}
+            $ {(user?.money ?? 0).toLocaleString("pt-BR")}
           </span>
         </p>
         <p className="text-sm">

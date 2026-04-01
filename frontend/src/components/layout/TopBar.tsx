@@ -97,7 +97,7 @@ const TopBar: React.FC<TopBarProps> = ({
     },
     {
       label: "Cash",
-      value: `${(userProfile?.money ?? 0).toLocaleString("pt-BR")}`,
+      value: `$${(userProfile?.money ?? 0).toLocaleString("pt-BR")}`,
       className: "text-lime-400",
       glowColor: "#84cc16",
       tooltip: "Dinheiro",
