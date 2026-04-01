@@ -160,7 +160,7 @@ const GameClockDisplay: React.FC<GameClockDisplayProps> = ({
               <div
                 data-tooltip-id="server-time-tooltip"
                 data-tooltip-content="Horário de São Paulo (BRT) | Horário Coordenado Universal (UTC)"
-                className="w-full flex items-center justify-center gap-1 text-gray-400 cursor-pointer hover:text-white transition-colors"
+                className="w-full flex items-center justify-center gap-1 text-gray-400 transition-colors"
               >
                 <IoMdTime className="text-[10px]" />
                 <span className="font-mono text-[10px] min-w-max whitespace-nowrap">
