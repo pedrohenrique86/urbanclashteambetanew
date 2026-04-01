@@ -53,9 +53,7 @@ const GlobalLayout: React.FC<GlobalLayoutProps> = ({ children }) => {
     ? { backgroundImage: `url(${dashbgangster})` }
     : {};
 
-  const layoutClasses = isDashboard
-    ? "bg-cover bg-center"
-    : themeClasses.bg;
+  const layoutClasses = isDashboard ? "bg-cover bg-center" : themeClasses.bg;
 
   return (
     <div
@@ -69,6 +67,7 @@ const GlobalLayout: React.FC<GlobalLayoutProps> = ({ children }) => {
             username={userProfile.username}
             faction={userProfile.faction}
             handleLogout={handleLogout}
+            isAdmin={userProfile.is_admin}
           />
         </div>
 
@@ -95,6 +94,7 @@ const GlobalLayout: React.FC<GlobalLayoutProps> = ({ children }) => {
                   username={userProfile.username}
                   faction={userProfile.faction}
                   handleLogout={handleLogout}
+                  isAdmin={userProfile.is_admin}
                 />
               </motion.div>
             </>

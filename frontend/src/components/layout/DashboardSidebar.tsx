@@ -27,10 +27,12 @@ import {
   ChartBarIcon,
   FireIcon,
   ArrowLeftOnRectangleIcon,
+  ShieldCheckIcon,
 } from "@heroicons/react/24/outline";
 
 import { useGameClock } from "../../hooks/useGameClock";
 import GameClockDisplay from "./GameClockDisplay";
+import AdminMenu from "../admin/AdminMenu";
 
 // Tipagem para os itens de menu e sub-menu
 interface SubMenuItem {
@@ -160,6 +162,7 @@ interface DashboardSidebarProps {
   username?: string;
   faction?: "gangsters" | "guardas";
   handleLogout: () => void;
+  isAdmin?: boolean;
 }
 
 const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
@@ -167,10 +170,12 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
   username,
   faction,
   handleLogout,
+  isAdmin,
 }) => {
   const { remainingTime, status, serverTime } = useGameClock();
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [openMenu, setOpenMenu] = useState<string | null>(null);
+  const [isAdminMenuOpen, setIsAdminMenuOpen] = useState(false);
   const location = useLocation();
   const sidebarRef = useRef<HTMLElement>(null);
 
@@ -428,6 +433,37 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
             </Link>
           );
         })}
+
+        {isAdmin && (
+          <button
+            onClick={() => setIsAdminMenuOpen(!isAdminMenuOpen)}
+            className={`w-full flex items-center py-2 text-slate-400 hover:text-white hover:bg-purple-500/10 transition-all duration-200 border-l-4 ${
+              isAdminMenuOpen
+                ? "border-purple-500 text-white bg-purple-500/10"
+                : "border-transparent"
+            } ${isCollapsed ? "justify-center" : "justify-start px-8"}`}
+            title="Admin"
+          >
+            <ShieldCheckIcon className="w-5 h-5" />
+            <AnimatePresence>
+              {!isCollapsed && (
+                <motion.span
+                  initial={{ opacity: 0, width: 0, marginLeft: 0 }}
+                  animate={{
+                    opacity: 1,
+                    width: "auto",
+                    marginLeft: "0.75rem",
+                  }}
+                  exit={{ opacity: 0, width: 0, marginLeft: 0 }}
+                  transition={{ duration: 0.2 }}
+                  className="font-semibold whitespace-nowrap"
+                >
+                  Admin
+                </motion.span>
+              )}
+            </AnimatePresence>
+          </button>
+        )}
       </nav>
 
       {/* Game Clock Display */}
@@ -439,6 +475,13 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
           isCollapsed={isCollapsed}
         />
       </div>
+
+      {/* Admin Menu */}
+      <AnimatePresence>
+        {isAdminMenuOpen && (
+          <AdminMenu onClose={() => setIsAdminMenuOpen(false)} />
+        )}
+      </AnimatePresence>
     </motion.aside>
   );
 };
