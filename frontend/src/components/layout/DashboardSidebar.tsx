@@ -183,22 +183,6 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
     setOpenMenu(openMenu === name ? null : name);
   };
 
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        sidebarRef.current &&
-        !sidebarRef.current.contains(event.target as Node)
-      ) {
-        setOpenMenu(null);
-      }
-    };
-
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, []);
-
   const sidebarVariants = {
     expanded: { width: "14rem" }, // 224px
     collapsed: { width: "2.5rem" }, // 40px
