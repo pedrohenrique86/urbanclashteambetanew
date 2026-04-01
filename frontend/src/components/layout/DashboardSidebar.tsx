@@ -225,7 +225,7 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
       animate={isCollapsed ? "collapsed" : "expanded"}
       variants={sidebarVariants}
       transition={{ duration: 0.3, ease: "easeInOut" }}
-      className="bg-black/20 backdrop-blur-xl border-r border-slate-700/50 flex-shrink-0 flex flex-col items-center relative z-10 h-full rounded-r-xl pb-[76px] overflow-x-hidden overflow-y-hidden"
+      className="bg-black/20 backdrop-blur-xl border-r border-slate-700/50 flex-shrink-0 flex flex-col items-center relative z-10 h-full rounded-r-xl pb-[76px] overflow-x-hidden"
       style={{ boxShadow: "inset -5px 0 15px -5px rgba(0,0,0,0.5)" }}
     >
       <div className="w-full px-4 pt-2 pb-2 text-center">

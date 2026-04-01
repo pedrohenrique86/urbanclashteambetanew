@@ -7,6 +7,7 @@ import { useUserProfile } from "../../hooks/useUserProfile";
 import { apiClient } from "../../lib/supabaseClient";
 import { motion, AnimatePresence } from "framer-motion";
 import dashbgangster from "../../assets/dashbgangster.webp";
+import { Tooltip } from "react-tooltip";
 
 interface GlobalLayoutProps {
   children: React.ReactNode;
@@ -57,7 +58,7 @@ const GlobalLayout: React.FC<GlobalLayoutProps> = ({ children }) => {
 
   return (
     <div
-      className={`h-screen font-exo text-white overflow-hidden ${layoutClasses}`}
+      className={`h-screen font-exo text-white ${layoutClasses}`}
       style={backgroundStyle}
     >
       <div className={`flex h-full ${isDashboard ? "bg-black/20" : ""}`}>
@@ -102,7 +103,7 @@ const GlobalLayout: React.FC<GlobalLayoutProps> = ({ children }) => {
         </AnimatePresence>
 
         {/* Conteúdo principal */}
-        <div className="flex flex-col flex-1 w-0 overflow-hidden">
+        <div className="flex flex-col flex-1 w-0">
           {/* Container para o conteúdo que rola, sem padding */}
           <div className="flex-1 relative overflow-y-auto overflow-x-hidden">
             <TopBar
@@ -116,6 +117,18 @@ const GlobalLayout: React.FC<GlobalLayoutProps> = ({ children }) => {
           </div>
         </div>
       </div>
+      <Tooltip
+        id="server-time-tooltip"
+        place="top-end"
+        style={{ zIndex: 99999 }}
+        className="!bg-slate-700 !bg-opacity-80 !backdrop-blur-sm !text-white !rounded-lg !px-3 !py-1 !text-[8px] !font-sans"
+      />
+      <Tooltip
+        id="game-clock-tooltip"
+        place="top-end"
+        style={{ zIndex: 99999 }}
+        className="!bg-slate-700 !bg-opacity-80 !backdrop-blur-sm !text-white !rounded-lg !px-3 !py-1 !text-[8px] !font-sans"
+      />
     </div>
   );
 };
