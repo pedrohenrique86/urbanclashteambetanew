@@ -71,7 +71,7 @@ const GameClockDisplay: React.FC<GameClockDisplayProps> = ({
     switch (status) {
       case "running":
         return {
-          text: "Tempo Restante:",
+          text: "Tempo Restante",
           color: "text-lime-400",
           icon: <FaPlay />,
         };
@@ -89,13 +89,13 @@ const GameClockDisplay: React.FC<GameClockDisplayProps> = ({
         };
       case "stopped":
         return {
-          text: "Parado",
-          color: "text-gray-400",
+          text: "Rodada Parada",
+          color: "text-red-500",
           icon: <FaStop />,
         };
       case "scheduled":
         return {
-          text: "Inicia em:",
+          text: "Aguardando Início",
           color: "text-cyan-400",
           icon: <FaHourglassHalf />,
         };
