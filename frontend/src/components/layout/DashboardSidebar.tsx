@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -25,6 +25,7 @@ import {
   StarIcon,
   ShoppingBagIcon,
   ChartBarIcon,
+  FireIcon,
 } from "@heroicons/react/24/outline";
 
 // Tipagem para os itens de menu e sub-menu
@@ -56,6 +57,11 @@ const navItems: NavItem[] = [
         name: "Acerto de Contas",
         path: "/reckoning",
         icon: <ShieldExclamationIcon className="w-5 h-5" />,
+      },
+      {
+        name: "Guerra de Esquadrão",
+        path: "/squad-war",
+        icon: <FireIcon className="w-5 h-5" />,
       },
       {
         name: "Extração de Suprimentos",
@@ -155,10 +161,27 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [openMenu, setOpenMenu] = useState<string | null>(null);
   const location = useLocation();
+  const sidebarRef = useRef<HTMLElement>(null);
 
   const handleMenuToggle = (name: string) => {
     setOpenMenu(openMenu === name ? null : name);
   };
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        sidebarRef.current &&
+        !sidebarRef.current.contains(event.target as Node)
+      ) {
+        setOpenMenu(null);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
 
   const sidebarVariants = {
     expanded: { width: "14rem" }, // 224px
@@ -182,14 +205,15 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
 
   return (
     <motion.aside
+      ref={sidebarRef}
       animate={isCollapsed ? "collapsed" : "expanded"}
       variants={sidebarVariants}
       transition={{ duration: 0.3, ease: "easeInOut" }}
-      className="bg-black/40 backdrop-blur-xl border-r border-slate-700/50 flex-shrink-0 flex flex-col items-center pt-24 pb-6 relative z-10 h-full overflow-y-auto overflow-x-hidden custom-scrollbar"
+      className="bg-black/40 backdrop-blur-xl border-r border-slate-700/50 flex-shrink-0 flex flex-col items-center pt-12 relative z-10 h-full overflow-x-hidden"
       style={{ boxShadow: "inset -5px 0 15px -5px rgba(0,0,0,0.5)" }}
     >
       <div
-        className={`w-full px-4 mb-6 flex ${isCollapsed ? "flex-col gap-4" : "justify-center gap-4"} items-center relative`}
+        className={`w-full px-4 mb-4 flex ${isCollapsed ? "flex-col gap-4" : "justify-center gap-4"} items-center relative`}
       >
         <Link
           to="/dashboard"
@@ -234,7 +258,7 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
           </button>
         )}
       </div>
-      <nav className="flex flex-col gap-2 w-full">
+      <nav className="flex flex-col gap-1 w-full flex-1 overflow-y-auto custom-scrollbar pb-6">
         {navItems.map((item) => {
           const isSubMenuActive = item.subItems?.some((sub) =>
             location.pathname.startsWith(sub.path),
@@ -246,7 +270,7 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
               <div key={item.name}>
                 <button
                   onClick={() => handleMenuToggle(item.name)}
-                  className={`w-full flex items-center py-3 text-slate-400 hover:text-white hover:bg-orange-500/10 transition-all duration-200 border-l-4 ${
+                  className={`w-full flex items-center py-2 text-slate-400 hover:text-white hover:bg-orange-500/10 transition-all duration-200 border-l-4 ${
                     isSubMenuActive && !isMenuOpen
                       ? "border-orange-500"
                       : "border-transparent"
@@ -261,7 +285,7 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
                           animate={{
                             opacity: 1,
                             width: "auto",
-                            marginLeft: "1rem",
+                            marginLeft: "0.75rem",
                           }}
                           exit={{ opacity: 0, width: 0, marginLeft: 0 }}
                           transition={{ duration: 0.2 }}
@@ -300,7 +324,7 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
                             <Link
                               to={subItem.path}
                               onClick={onMobileClose}
-                              className={`w-full flex items-center gap-3 py-2.5 text-sm rounded-md transition-colors duration-200 ${
+                              className={`w-full flex items-center gap-3 py-2 text-sm rounded-md transition-colors duration-200 ${
                                 isActive
                                   ? "text-orange-400"
                                   : "text-slate-400 hover:text-white"
@@ -325,7 +349,7 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
               key={item.name}
               to={item.path || "#"}
               onClick={onMobileClose}
-              className={`flex items-center py-3 text-slate-400 hover:text-white hover:bg-orange-500/10 transition-all duration-200 border-l-4 ${
+              className={`flex items-center py-2 text-slate-400 hover:text-white hover:bg-orange-500/10 transition-all duration-200 border-l-4 ${
                 location.pathname === item.path
                   ? "border-orange-500 text-white bg-orange-500/10"
                   : "border-transparent"
@@ -337,7 +361,7 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
                 {!isCollapsed && (
                   <motion.span
                     initial={{ opacity: 0, width: 0, marginLeft: 0 }}
-                    animate={{ opacity: 1, width: "auto", marginLeft: "1rem" }}
+                    animate={{ opacity: 1, width: "auto", marginLeft: "0.75rem" }}
                     exit={{ opacity: 0, width: 0, marginLeft: 0 }}
                     transition={{ duration: 0.2 }}
                     className="font-semibold whitespace-nowrap"

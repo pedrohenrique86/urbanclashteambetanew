@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   calculateCombatStats,
   getCriticalChanceExplanation,
@@ -11,6 +11,12 @@ import {
   UsersIcon,
   SparklesIcon,
   ChevronRightIcon,
+  DocumentTextIcon,
+  ShieldExclamationIcon,
+  FireIcon,
+  BuildingStorefrontIcon,
+  HeartIcon,
+  LockClosedIcon,
 } from "@heroicons/react/24/outline";
 
 interface User {
@@ -62,6 +68,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   isCompact,
   currentPath,
 }) => {
+  const [openSubmenu, setOpenSubmenu] = useState<string | null>(null);
   const combatStats = calculateCombatStats(userProfile);
 
   // Função para formatar valores acima de 1000 como 1k
@@ -78,6 +85,43 @@ export const Sidebar: React.FC<SidebarProps> = ({
       title: "Operações",
       path: "/operacoes",
       icon: <BriefcaseIcon className="w-6 h-6" />,
+      subItems: [
+        {
+          title: "Contratos",
+          path: "/contracts",
+          icon: <DocumentTextIcon className="w-5 h-5" />,
+        },
+        {
+          title: "Acerto de Contas",
+          path: "/reckoning",
+          icon: <ShieldExclamationIcon className="w-5 h-5" />,
+        },
+        {
+          title: "Guerra de Esquadrões",
+          path: "/squad-war",
+          icon: <FireIcon className="w-5 h-5" />,
+        },
+        {
+          title: "Guerra de Esquadrões",
+          path: "/squad-war",
+          icon: <FireIcon className="w-5 h-5" />,
+        },
+        {
+          title: "Extração de Suprimentos",
+          path: "/supply-extraction",
+          icon: <BuildingStorefrontIcon className="w-5 h-5" />,
+        },
+        {
+          title: "Base de Recuperação",
+          path: "/recovery-base",
+          icon: <HeartIcon className="w-5 h-5" />,
+        },
+        {
+          title: "Isolamento",
+          path: "/isolation",
+          icon: <LockClosedIcon className="w-5 h-5" />,
+        },
+      ],
     },
     {
       title: "Economia",
@@ -236,9 +280,18 @@ export const Sidebar: React.FC<SidebarProps> = ({
             menuItems.map((item) => (
               <li key={item.path}>
                 <button
-                  onClick={() => navigateTo(item.path)}
+                  onClick={() => {
+                    if (item.subItems) {
+                      setOpenSubmenu(
+                        openSubmenu === item.path ? null : item.path,
+                      );
+                    } else {
+                      navigateTo(item.path);
+                    }
+                  }}
                   className={`w-full flex items-center justify-between p-3 rounded-lg transition-colors ${
-                    currentPath?.startsWith(item.path)
+                    (currentPath?.startsWith(item.path) && !item.subItems) ||
+                    openSubmenu === item.path
                       ? "bg-gray-700/50 text-white"
                       : "text-gray-400 hover:bg-gray-700/30 hover:text-white"
                   }`}
@@ -249,8 +302,37 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       {item.title}
                     </span>
                   </div>
-                  <ChevronRightIcon className="w-5 h-5 text-gray-500" />
+                  {item.subItems ? (
+                    <ChevronRightIcon
+                      className={`w-5 h-5 text-gray-500 transition-transform ${
+                        openSubmenu === item.path ? "rotate-90" : ""
+                      }`}
+                    />
+                  ) : (
+                    <ChevronRightIcon className="w-5 h-5 text-gray-500" />
+                  )}
                 </button>
+                {item.subItems && openSubmenu === item.path && (
+                  <ul className="pl-8 pt-2 space-y-1">
+                    {item.subItems.map((subItem) => (
+                      <li key={subItem.path}>
+                        <button
+                          onClick={() => navigateTo(subItem.path)}
+                          className={`w-full text-left p-2 rounded-lg text-base transition-colors flex items-center ${
+                            currentPath === subItem.path
+                              ? "text-white"
+                              : "text-gray-400 hover:text-white"
+                          }`}
+                        >
+                          <span className="w-5 h-5 mr-3 text-gray-500">
+                            {subItem.icon}
+                          </span>
+                          <span>{subItem.title}</span>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </li>
             ))
           ) : (
@@ -258,7 +340,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
               {menuItems.map((item) => (
                 <button
                   key={item.path}
-                  onClick={() => navigateTo(item.path)}
+                  onClick={() => {
+                    if (!item.subItems) {
+                      navigateTo(item.path);
+                    }
+                  }}
                   title={item.title}
                   className={`w-full flex items-center justify-center p-3 rounded-lg transition-colors ${
                     currentPath?.startsWith(item.path)

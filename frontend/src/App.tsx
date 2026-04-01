@@ -16,6 +16,7 @@ const ResetPasswordPage = lazy(() => import("./pages/ResetPasswordPage"));
 const RankingPage = lazy(() => import("./pages/RankingPage"));
 const ContractsPage = lazy(() => import("./pages/ContractsPage"));
 const ReckoningPage = lazy(() => import("./pages/ReckoningPage"));
+const SquadWarPage = lazy(() => import("./pages/SquadWarPage"));
 const ProfilePage = lazy(() => import("./pages/ProfilePage"));
 const SupplyExtractionPage = lazy(() => import("./pages/SupplyExtractionPage"));
 const RecoveryBasePage = lazy(() => import("./pages/RecoveryBasePage"));
@@ -70,6 +71,7 @@ const router = createBrowserRouter([
       // Rotas de Operações
       { path: "contracts", element: <ContractsPage /> },
       { path: "reckoning", element: <ReckoningPage /> },
+      { path: "squad-war", element: <SquadWarPage /> },
       { path: "supply-extraction", element: <SupplyExtractionPage /> },
       { path: "recovery-base", element: <RecoveryBasePage /> },
       { path: "isolation", element: <IsolationPage /> },
