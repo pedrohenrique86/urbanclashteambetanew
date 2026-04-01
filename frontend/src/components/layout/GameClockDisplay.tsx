@@ -13,6 +13,7 @@ interface GameClockDisplayProps {
   remainingTime: number;
   status: string;
   serverTime: Date | null;
+  isCollapsed: boolean;
 }
 
 const formatRemainingTime = (totalSeconds: number): string => {
@@ -62,6 +63,7 @@ const GameClockDisplay: React.FC<GameClockDisplayProps> = ({
   remainingTime,
   status,
   serverTime,
+  isCollapsed,
 }) => {
   const remainingTimeStr = formatRemainingTime(remainingTime);
   const serverTimeStr = formatServerTime(serverTime);
@@ -115,50 +117,60 @@ const GameClockDisplay: React.FC<GameClockDisplayProps> = ({
 
   return (
     <>
-      {/* 
-        Container com borda fixa e sólida para teste de estabilidade.
-        Removido gradiente, blur e borda dinâmica para eliminar qualquer fonte de flicker.
-      */}
-      <div className="w-full bg-slate-900 rounded-xl shadow-lg shadow-black/30 border-t-2 border-slate-600">
-        <div className="flex items-center justify-between px-3 py-1">
-          {/* Bloco da Esquerda: Status + Cronômetro */}
-          <div className="flex items-center gap-2">
-            <div className={`flex items-center gap-1.5 ${statusColor}`}>
-              <span className="text-base">{statusIcon}</span>
-              <span className="font-orbitron font-bold uppercase tracking-wider text-[11px]">
+      <div
+        className="w-full bg-slate-900/50 rounded-lg shadow-lg border border-slate-700/50 p-2 flex flex-col items-center justify-center gap-1"
+        data-tooltip-id="game-clock-tooltip"
+        data-tooltip-content={`${statusText} ${remainingTimeStr}`}
+      >
+        {!isCollapsed ? (
+          <div className="w-full flex flex-col items-center gap-1">
+            {/* Linha 1: Status */}
+            <div
+              className={`w-full flex items-center justify-center gap-1.5 ${statusColor}`}
+              title={statusText}
+            >
+              <span className="text-[10px]">{statusIcon}</span>
+              <span className="font-orbitron font-bold uppercase tracking-wider text-[8px]">
                 {statusText}
               </span>
             </div>
-            {/* Largura fixa com 'w-[16ch]' para garantir que o tamanho não mude com os segundos */}
-            <span
-              className={`font-mono font-bold text-sm ${statusColor} block w-[16ch]`}
-            >
-              {remainingTimeStr}
-            </span>
-          </div>
 
-          {/* Bloco da Direita: Separador + Hora do Servidor */}
-          <div className="flex items-center gap-1.5">
-            <span className="text-slate-600 font-light">|</span>
+            {/* Linha 2: Cronômetro */}
+            <div className={`w-full font-mono font-bold text-[10px] ${statusColor} text-center`}>
+              {remainingTimeStr}
+            </div>
+
+            {/* Linha 3: Hora do Servidor */}
             <div
               data-tooltip-id="server-time-tooltip"
-              data-tooltip-content="Horário de São Paulo | Horário Coordenado Universal"
-              className="flex items-center gap-1 text-gray-300 cursor-pointer hover:text-white transition-colors"
+              data-tooltip-content="Horário de São Paulo (BRT) | Horário Coordenado Universal (UTC)"
+              className="w-full flex items-center justify-center gap-1 text-gray-400 cursor-pointer hover:text-white transition-colors"
             >
-              <IoMdTime className="text-base" />
-              {/* Aumenta a largura para acomodar os dois horários */}
-              <span className="font-mono text-sm min-w-max whitespace-nowrap">
+              <IoMdTime className="text-[10px]" />
+              <span className="font-mono text-[10px] min-w-max whitespace-nowrap">
                 {serverTimeStr}
               </span>
             </div>
           </div>
-        </div>
+        ) : (
+          <div className="flex flex-col items-center justify-center gap-2 py-1">
+            <span className={`${statusColor}`}>{statusIcon}</span>
+            <IoMdTime className="text-gray-400" />
+          </div>
+        )}
       </div>
 
       <Tooltip
         id="server-time-tooltip"
         place="top"
-        className="!bg-slate-700 !bg-opacity-80 !backdrop-blur-sm !text-white !rounded-lg !px-3 !py-1 !text-xs !font-sans"
+        style={{ zIndex: 9999 }}
+        className="!bg-slate-700 !bg-opacity-80 !backdrop-blur-sm !text-white !rounded-lg !px-3 !py-1 !text-[8px] !font-sans"
+      />
+      <Tooltip
+        id="game-clock-tooltip"
+        place="top"
+        style={{ zIndex: 9999 }}
+        className="!bg-slate-700 !bg-opacity-80 !backdrop-blur-sm !text-white !rounded-lg !px-3 !py-1 !text-[8px] !font-sans"
       />
     </>
   );

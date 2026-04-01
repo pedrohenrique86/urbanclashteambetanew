@@ -1,6 +1,5 @@
 import React, { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import BottomNavBar from "./BottomNavBar";
 import TopBar from "./TopBar";
 import DashboardSidebar from "./DashboardSidebar";
 import { useTheme } from "../../contexts/ThemeContext";
@@ -115,8 +114,6 @@ const GlobalLayout: React.FC<GlobalLayoutProps> = ({ children }) => {
               {children}
             </main>
           </div>
-          {/* Navegação inferior fora da área de rolagem */}
-          <BottomNavBar userProfile={userProfile} />
         </div>
       </div>
     </div>

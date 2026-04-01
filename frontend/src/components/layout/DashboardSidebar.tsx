@@ -29,6 +29,9 @@ import {
   ArrowLeftOnRectangleIcon,
 } from "@heroicons/react/24/outline";
 
+import { useGameClock } from "../../hooks/useGameClock";
+import GameClockDisplay from "./GameClockDisplay";
+
 // Tipagem para os itens de menu e sub-menu
 interface SubMenuItem {
   name: string;
@@ -165,6 +168,7 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
   faction,
   handleLogout,
 }) => {
+  const { remainingTime, status, serverTime } = useGameClock();
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [openMenu, setOpenMenu] = useState<string | null>(null);
   const location = useLocation();
@@ -216,10 +220,10 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
       animate={isCollapsed ? "collapsed" : "expanded"}
       variants={sidebarVariants}
       transition={{ duration: 0.3, ease: "easeInOut" }}
-      className="bg-black/20 backdrop-blur-xl border-r border-slate-700/50 flex-shrink-0 flex flex-col items-center relative z-10 h-full rounded-r-xl overflow-hidden"
+      className="bg-black/20 backdrop-blur-xl border-r border-slate-700/50 flex-shrink-0 flex flex-col items-center relative z-10 h-full rounded-r-xl"
       style={{ boxShadow: "inset -5px 0 15px -5px rgba(0,0,0,0.5)" }}
     >
-      <div className="w-full px-4 pt-4 pb-2 text-center">
+      <div className="w-full px-4 pt-2 pb-2 text-center">
         <AnimatePresence>
           {!isCollapsed && (
             <motion.div
@@ -262,7 +266,7 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
           }`}
           title="Dashboard"
         >
-          <HomeIcon className="w-5 h-5" />
+          <HomeIcon className="w-4 h-4" />
         </Link>
         <button
           onClick={() => {
@@ -271,14 +275,14 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
           }}
           className="hidden md:flex justify-center items-center p-2 text-slate-400 hover:text-white hover:bg-slate-700/50 rounded-lg transition-colors"
         >
-          <Bars3Icon className="w-5 h-5" />
+          <Bars3Icon className="w-4 h-4" />
         </button>
         <button
           onClick={handleLogout}
           className="hidden md:flex justify-center items-center p-2 text-slate-400 hover:text-white hover:bg-red-500/50 rounded-lg transition-colors"
           title="Sair"
         >
-          <ArrowLeftOnRectangleIcon className="w-5 h-5" />
+          <ArrowLeftOnRectangleIcon className="w-4 h-4" />
         </button>
         {/* Botão de fechar apenas no mobile */}
         {onMobileClose && (
@@ -421,6 +425,16 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
           );
         })}
       </nav>
+
+      {/* Game Clock Display */}
+      <div className="w-full px-2 pb-2 mt-auto">
+        <GameClockDisplay
+          remainingTime={remainingTime}
+          status={status}
+          serverTime={serverTime}
+          isCollapsed={isCollapsed}
+        />
+      </div>
     </motion.aside>
   );
 };
