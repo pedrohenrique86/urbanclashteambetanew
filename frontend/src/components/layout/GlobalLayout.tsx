@@ -104,13 +104,13 @@ const GlobalLayout: React.FC<GlobalLayoutProps> = ({ children }) => {
         {/* Conteúdo principal */}
         <div className="flex flex-col flex-1 w-0 overflow-hidden">
           {/* Container para o conteúdo que rola, com padding */}
-          <div className="flex-1 relative overflow-y-auto p-4 md:p-6">
+          <div className="flex-1 relative overflow-y-auto overflow-x-hidden p-4 md:p-6">
             <TopBar
               userProfile={userProfile}
               handleLogout={handleLogout}
               onMenuToggle={() => setIsMobileMenuOpen(true)}
             />
-            <main className="focus:outline-none pt-6">
+            <main className="focus:outline-none pt-[115px] md:pt-[40px]">
               {children}
             </main>
           </div>

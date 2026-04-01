@@ -94,7 +94,7 @@ const TopBar: React.FC<TopBarProps> = ({
   ];
 
   return (
-    <div className="relative w-full flex justify-center items-center mb-6 h-10 md:h-auto">
+    <div className="absolute top-[6px] z-50 w-full flex justify-center items-center mb-6 h-10 md:h-auto">
       {/* Mobile Menu Toggle - Positioned to the left */}
       <div className="absolute left-2 top-1/2 -translate-y-1/2">
         <button

@@ -315,7 +315,7 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
 
           if (item.subItems) {
             return (
-              <div key={item.name}>
+              <div key={item.name} className="overflow-hidden">
                 <button
                   onClick={() => handleMenuToggle(item.name)}
                   className={`w-full flex items-center py-2 text-slate-400 hover:text-white hover:bg-orange-500/10 transition-all duration-200 border-l-4 ${
