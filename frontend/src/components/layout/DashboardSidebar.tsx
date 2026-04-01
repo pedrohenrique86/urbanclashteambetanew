@@ -209,7 +209,7 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
       animate={isCollapsed ? "collapsed" : "expanded"}
       variants={sidebarVariants}
       transition={{ duration: 0.3, ease: "easeInOut" }}
-      className="bg-black/20 backdrop-blur-xl border-r border-slate-700/50 flex-shrink-0 flex flex-col items-center relative z-10 h-full rounded-r-xl pb-[76px] overflow-x-hidden"
+      className="bg-black/20 backdrop-blur-xl border-r border-slate-700/50 flex-shrink-0 flex flex-col items-center relative z-10 h-full rounded-r-xl pb-[64px] overflow-x-hidden"
       style={{ boxShadow: "inset -5px 0 15px -5px rgba(0,0,0,0.5)" }}
     >
       <div className="w-full px-4 pt-2 pb-2 text-center">
@@ -296,7 +296,7 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
           </button>
         )}
       </div>
-      <nav className="flex flex-col gap-1 w-full flex-1 pb-6 min-h-0 overflow-hidden">
+      <nav className="flex flex-col gap-0.5 w-full flex-1 pb-2 min-h-0 overflow-y-auto custom-scrollbar">
         {/* Linha decorativa acima do menu Operações */}
         <div className="border-b border-gray-700 mx-4 mb-2"></div>
         {navItems.map((item) => {
@@ -310,7 +310,7 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
               <div key={item.name} className="overflow-hidden">
                 <button
                   onClick={() => handleMenuToggle(item.name)}
-                  className={`w-full flex items-center py-2 text-slate-400 hover:text-white hover:bg-purple-500/10 transition-all duration-200 ${isCollapsed ? "border-l-0 justify-center px-0" : `border-l-4 ${isSubMenuActive && !isMenuOpen ? "border-purple-500" : "border-transparent"} justify-between px-8`}`}
+                  className={`w-full flex items-center py-1.5 text-slate-400 hover:text-white hover:bg-purple-500/10 transition-all duration-200 ${isCollapsed ? "border-l-0 justify-center px-0" : `border-l-4 ${isSubMenuActive && !isMenuOpen ? "border-purple-500" : "border-transparent"} justify-between px-8`}`}
                   title={isCollapsed ? item.name : undefined}
                 >
                   <div className="flex items-center">
@@ -326,7 +326,7 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
                           }}
                           exit={{ opacity: 0, width: 0, marginLeft: 0 }}
                           transition={{ duration: 0.2 }}
-                          className="font-semibold whitespace-nowrap text-sm"
+                          className="font-medium whitespace-nowrap text-sm"
                         >
                           {item.name}
                         </motion.span>
@@ -364,14 +364,14 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
                                 setOpenMenu(null);
                                 if (onMobileClose) onMobileClose();
                               }}
-                              className={`w-full flex items-center gap-2 py-1.5 text-xs rounded-md transition-colors duration-200 ${
+                              className={`w-full flex items-center gap-2 py-1 text-[11px] md:text-xs leading-tight rounded-md transition-colors duration-200 ${
                                 isActive
                                   ? "text-purple-400"
                                   : "text-slate-400 hover:text-white"
                               }`}
                             >
-                              {subItem.icon}
-                              {subItem.name}
+                              <div className="flex-shrink-0">{subItem.icon}</div>
+                              <span className="line-clamp-2">{subItem.name}</span>
                             </Link>
                           </motion.li>
                         );
@@ -389,7 +389,7 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
               key={item.name}
               to={item.path || "#"}
               onClick={onMobileClose}
-              className={`flex items-center py-2 text-slate-400 hover:text-white hover:bg-purple-500/10 transition-all duration-200 ${isCollapsed ? "border-l-0 justify-center px-0" : `border-l-4 ${location.pathname === item.path ? "border-purple-500 text-white bg-purple-500/10" : "border-transparent"} justify-start px-8`}`}
+              className={`flex items-center py-1.5 text-slate-400 hover:text-white hover:bg-purple-500/10 transition-all duration-200 ${isCollapsed ? "border-l-0 justify-center px-0" : `border-l-4 ${location.pathname === item.path ? "border-purple-500 text-white bg-purple-500/10" : "border-transparent"} justify-start px-8`}`}
               title={item.name}
             >
               {item.icon}
@@ -404,7 +404,7 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
                     }}
                     exit={{ opacity: 0, width: 0, marginLeft: 0 }}
                     transition={{ duration: 0.2 }}
-                    className="font-semibold whitespace-nowrap"
+                    className="font-medium whitespace-nowrap text-sm"
                   >
                     {item.name}
                   </motion.span>
@@ -417,10 +417,10 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
         {isAdmin && (
           <button
             onClick={() => setIsAdminMenuOpen(!isAdminMenuOpen)}
-            className={`w-full flex items-center py-2 text-slate-400 hover:text-white hover:bg-purple-500/10 transition-all duration-200 ${isCollapsed ? "border-l-0 justify-center px-0" : `border-l-4 ${isAdminMenuOpen ? "border-purple-500 text-white bg-purple-500/10" : "border-transparent"} justify-start px-8`}`}
+            className={`w-full flex items-center py-1.5 text-slate-400 hover:text-white hover:bg-purple-500/10 transition-all duration-200 ${isCollapsed ? "border-l-0 justify-center px-0" : `border-l-4 ${isAdminMenuOpen ? "border-purple-500 text-white bg-purple-500/10" : "border-transparent"} justify-start px-8`}`}
             title="Admin"
           >
-            <ShieldCheckIcon className="w-5 h-5" />
+            <ShieldCheckIcon className="w-4 h-4 md:w-5 md:h-5" />
             <AnimatePresence>
               {!isCollapsed && (
                 <motion.span
@@ -432,7 +432,7 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
                   }}
                   exit={{ opacity: 0, width: 0, marginLeft: 0 }}
                   transition={{ duration: 0.2 }}
-                  className="font-semibold whitespace-nowrap"
+                  className="font-medium whitespace-nowrap text-sm"
                 >
                   Admin
                 </motion.span>
@@ -443,7 +443,7 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
       </nav>
 
       {/* Game Clock Display */}
-      <div className="absolute bottom-0 left-0 right-0 w-full px-2 pb-2">
+      <div className="absolute bottom-0 left-0 right-0 w-full px-2 pb-0 pt-1">
         <GameClockDisplay
           remainingTime={remainingTime}
           status={status}
