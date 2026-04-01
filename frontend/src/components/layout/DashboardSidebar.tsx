@@ -225,7 +225,7 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
       animate={isCollapsed ? "collapsed" : "expanded"}
       variants={sidebarVariants}
       transition={{ duration: 0.3, ease: "easeInOut" }}
-      className="bg-black/20 backdrop-blur-xl border-r border-slate-700/50 flex-shrink-0 flex flex-col items-center relative z-10 h-full rounded-r-xl"
+      className="bg-black/20 backdrop-blur-xl border-r border-slate-700/50 flex-shrink-0 flex flex-col items-center relative z-10 h-full rounded-r-xl pb-[76px] overflow-x-hidden overflow-y-hidden"
       style={{ boxShadow: "inset -5px 0 15px -5px rgba(0,0,0,0.5)" }}
     >
       <div className="w-full px-4 pt-2 pb-2 text-center">
@@ -311,7 +311,7 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
           </button>
         )}
       </div>
-      <nav className="flex flex-col gap-1 w-full flex-1 overflow-y-auto custom-scrollbar pb-6">
+      <nav className="flex flex-col gap-1 w-full flex-1 pb-6 min-h-0 overflow-hidden">
         {navItems.map((item) => {
           const isSubMenuActive = item.subItems?.some((sub) =>
             location.pathname.startsWith(sub.path),
@@ -467,7 +467,7 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
       </nav>
 
       {/* Game Clock Display */}
-      <div className="w-full px-2 pb-2 mt-auto">
+      <div className="absolute bottom-0 left-0 right-0 w-full px-2 pb-2">
         <GameClockDisplay
           remainingTime={remainingTime}
           status={status}

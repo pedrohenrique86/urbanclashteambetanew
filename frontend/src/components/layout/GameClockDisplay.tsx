@@ -1,4 +1,5 @@
 import React from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { Tooltip } from "react-tooltip";
 import {
   FaHourglassHalf,
@@ -117,49 +118,65 @@ const GameClockDisplay: React.FC<GameClockDisplayProps> = ({
   return (
     <>
       <div
-        className={`rounded-lg shadow-lg flex flex-col items-center justify-center gap-1 ${
+        className={`rounded-lg shadow-lg flex flex-col items-center justify-center gap-1 overflow-hidden ${
           isCollapsed ? "p-1 w-auto" : "p-2 w-full border border-slate-700/50"
         }`}
         data-tooltip-id="game-clock-tooltip"
         data-tooltip-content={`${statusText} ${remainingTimeStr}`}
       >
-        {!isCollapsed ? (
-          <div className="w-full flex flex-col items-center gap-1">
-            {/* Linha 1: Status */}
-            <div
-              className={`w-full flex items-center justify-center gap-1.5 ${statusColor}`}
-              title={statusText}
+        <AnimatePresence mode="wait">
+          {!isCollapsed ? (
+            <motion.div
+              key="expanded-clock"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.15 }}
+              className="w-full flex flex-col items-center gap-1"
             >
-              <span className="text-[10px]">{statusIcon}</span>
-              <span className="font-orbitron font-bold uppercase tracking-wider text-[8px]">
-                {statusText}
-              </span>
-            </div>
+              {/* Linha 1: Status */}
+              <div
+                className={`w-full flex items-center justify-center gap-1.5 ${statusColor}`}
+                title={statusText}
+              >
+                <span className="text-[10px]">{statusIcon}</span>
+                <span className="font-orbitron font-bold uppercase tracking-wider text-[8px]">
+                  {statusText}
+                </span>
+              </div>
 
-            {/* Linha 2: Cronômetro */}
-            <div
-              className={`w-full font-mono font-bold text-[10px] ${statusColor} text-center`}
-            >
-              {remainingTimeStr}
-            </div>
+              {/* Linha 2: Cronômetro */}
+              <div
+                className={`w-full font-mono font-bold text-[10px] ${statusColor} text-center`}
+              >
+                {remainingTimeStr}
+              </div>
 
-            {/* Linha 3: Hora do Servidor */}
-            <div
-              data-tooltip-id="server-time-tooltip"
-              data-tooltip-content="Horário de São Paulo (BRT) | Horário Coordenado Universal (UTC)"
-              className="w-full flex items-center justify-center gap-1 text-gray-400 cursor-pointer hover:text-white transition-colors"
+              {/* Linha 3: Hora do Servidor */}
+              <div
+                data-tooltip-id="server-time-tooltip"
+                data-tooltip-content="Horário de São Paulo (BRT) | Horário Coordenado Universal (UTC)"
+                className="w-full flex items-center justify-center gap-1 text-gray-400 cursor-pointer hover:text-white transition-colors"
+              >
+                <IoMdTime className="text-[10px]" />
+                <span className="font-mono text-[10px] min-w-max whitespace-nowrap">
+                  {serverTimeStr}
+                </span>
+              </div>
+            </motion.div>
+          ) : (
+            <motion.div
+              key="collapsed-clock"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.15 }}
+              className="flex flex-col items-center justify-center gap-2 py-1"
             >
-              <IoMdTime className="text-[10px]" />
-              <span className="font-mono text-[10px] min-w-max whitespace-nowrap">
-                {serverTimeStr}
-              </span>
-            </div>
-          </div>
-        ) : (
-          <div className="flex flex-col items-center justify-center gap-2 py-1">
-            <span className={`${statusColor} text-sm`}>{statusIcon}</span>
-          </div>
-        )}
+              <span className={`${statusColor} text-sm`}>{statusIcon}</span>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
       <Tooltip
