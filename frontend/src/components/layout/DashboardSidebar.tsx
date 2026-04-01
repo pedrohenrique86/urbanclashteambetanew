@@ -47,106 +47,106 @@ interface NavItem {
 const navItems: NavItem[] = [
   {
     name: "Operações",
-    icon: <BriefcaseIcon className="w-6 h-6" />,
+    icon: <BriefcaseIcon className="w-5 h-5" />,
     subItems: [
       {
         name: "Contratos",
         path: "/contracts",
-        icon: <DocumentTextIcon className="w-5 h-5" />,
+        icon: <DocumentTextIcon className="w-4 h-4" />,
       },
       {
         name: "Acerto de Contas",
         path: "/reckoning",
-        icon: <ShieldExclamationIcon className="w-5 h-5" />,
+        icon: <ShieldExclamationIcon className="w-4 h-4" />,
       },
       {
         name: "Guerra de Esquadrão",
         path: "/squad-war",
-        icon: <FireIcon className="w-5 h-5" />,
+        icon: <FireIcon className="w-4 h-4" />,
       },
       {
         name: "Extração de Suprimentos",
         path: "/supply-extraction",
-        icon: <BuildingStorefrontIcon className="w-5 h-5" />,
+        icon: <BuildingStorefrontIcon className="w-4 h-4" />,
       },
       {
         name: "Base de Recuperação",
         path: "/recovery-base",
-        icon: <HeartIcon className="w-5 h-5" />,
+        icon: <HeartIcon className="w-4 h-4" />,
       },
       {
         name: "Isolamento",
         path: "/isolation",
-        icon: <LockClosedIcon className="w-5 h-5" />,
+        icon: <LockClosedIcon className="w-4 h-4" />,
       },
     ],
   },
   {
     name: "Economia",
-    icon: <ScaleIcon className="w-6 h-6" />,
+    icon: <ScaleIcon className="w-5 h-5" />,
     subItems: [
       {
         name: "Zonas Sombrias",
         path: "/dark-zones",
-        icon: <MapIcon className="w-5 h-5" />,
+        icon: <MapIcon className="w-4 h-4" />,
       },
       {
         name: "Rede Paralela",
         path: "/parallel-network",
-        icon: <GlobeAltIcon className="w-5 h-5" />,
+        icon: <GlobeAltIcon className="w-4 h-4" />,
       },
       {
         name: "Cofre",
         path: "/safe",
-        icon: <BuildingLibraryIcon className="w-5 h-5" />,
+        icon: <BuildingLibraryIcon className="w-4 h-4" />,
       },
       {
         name: "Corporações",
         path: "/corporations",
-        icon: <BuildingOffice2Icon className="w-5 h-5" />,
+        icon: <BuildingOffice2Icon className="w-4 h-4" />,
       },
     ],
   },
   {
     name: "Rede",
-    icon: <UserGroupIcon className="w-6 h-6" />,
+    icon: <UserGroupIcon className="w-5 h-5" />,
     subItems: [
-      { name: "QG", path: "/clan", icon: <FlagIcon className="w-5 h-5" /> },
+      { name: "QG", path: "/clan", icon: <FlagIcon className="w-4 h-4" /> },
       {
         name: "Ranking",
         path: "/ranking",
-        icon: <ChartBarIcon className="w-5 h-5" />,
+        icon: <ChartBarIcon className="w-4 h-4" />,
       },
       {
         name: "Zona Social",
         path: "/social-zone",
-        icon: <ChatBubbleLeftRightIcon className="w-5 h-5" />,
+        icon: <ChatBubbleLeftRightIcon className="w-4 h-4" />,
       },
       {
         name: "Treinamento",
         path: "/training",
-        icon: <AcademicCapIcon className="w-5 h-5" />,
+        icon: <AcademicCapIcon className="w-4 h-4" />,
       },
       {
         name: "Identidade Digital",
         path: "/digital-identity",
-        icon: <UserCircleIcon className="w-5 h-5" />,
+        icon: <UserCircleIcon className="w-4 h-4" />,
       },
     ],
   },
   {
     name: "Elite",
-    icon: <SparklesIcon className="w-6 h-6" />,
+    icon: <SparklesIcon className="w-5 h-5" />,
     subItems: [
       {
         name: "Acesso VIP",
         path: "/vip-access",
-        icon: <StarIcon className="w-5 h-5" />,
+        icon: <StarIcon className="w-4 h-4" />,
       },
       {
         name: "Loja Restrita",
         path: "/restricted-store",
-        icon: <ShoppingBagIcon className="w-5 h-5" />,
+        icon: <ShoppingBagIcon className="w-4 h-4" />,
       },
     ],
   },
@@ -216,7 +216,7 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
       animate={isCollapsed ? "collapsed" : "expanded"}
       variants={sidebarVariants}
       transition={{ duration: 0.3, ease: "easeInOut" }}
-      className="bg-black/40 backdrop-blur-xl border-r border-slate-700/50 flex-shrink-0 flex flex-col items-center relative z-10 h-full overflow-x-hidden"
+      className="bg-black/40 backdrop-blur-xl border-r border-slate-700/50 flex-shrink-0 flex flex-col items-center relative z-10 h-full rounded-r-xl overflow-hidden"
       style={{ boxShadow: "inset -5px 0 15px -5px rgba(0,0,0,0.5)" }}
     >
       <div className="w-full px-4 pt-4 pb-2 text-center">
@@ -228,7 +228,7 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
               exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.2 }}
             >
-              <span className="text-lg font-orbitron whitespace-nowrap">
+              <span className="text-base font-orbitron whitespace-nowrap">
                 <span className="text-transparent bg-gradient-to-r from-orange-400 to-orange-600 bg-clip-text font-bold">
                   Urban
                 </span>
@@ -240,7 +240,7 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
                 </span>
               </span>
               <div
-                className={`mt-2 font-orbitron font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r ${faction === 'gangsters' ? 'from-orange-300 to-orange-600' : 'from-blue-300 to-blue-600'} text-sm whitespace-nowrap`}
+                className={`mt-1 font-orbitron font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r ${faction === 'gangsters' ? 'from-orange-300 to-orange-600' : 'from-blue-300 to-blue-600'} text-xs whitespace-nowrap`}
               >
                 {username || "Usuário"}
               </div>
@@ -262,7 +262,7 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
           }`}
           title="Dashboard"
         >
-          <HomeIcon className="w-6 h-6" />
+          <HomeIcon className="w-5 h-5" />
         </Link>
         <button
           onClick={() => {
@@ -271,14 +271,14 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
           }}
           className="hidden md:flex justify-center items-center p-2 text-slate-400 hover:text-white hover:bg-slate-700/50 rounded-lg transition-colors"
         >
-          <Bars3Icon className="w-6 h-6" />
+          <Bars3Icon className="w-5 h-5" />
         </button>
         <button
           onClick={handleLogout}
           className="hidden md:flex justify-center items-center p-2 text-slate-400 hover:text-white hover:bg-red-500/50 rounded-lg transition-colors"
           title="Sair"
         >
-          <ArrowLeftOnRectangleIcon className="w-6 h-6" />
+          <ArrowLeftOnRectangleIcon className="w-5 h-5" />
         </button>
         {/* Botão de fechar apenas no mobile */}
         {onMobileClose && (
@@ -333,7 +333,7 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
                           }}
                           exit={{ opacity: 0, width: 0, marginLeft: 0 }}
                           transition={{ duration: 0.2 }}
-                          className="font-semibold whitespace-nowrap"
+                          className="font-semibold whitespace-nowrap text-sm"
                         >
                           {item.name}
                         </motion.span>
@@ -367,8 +367,11 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
                           >
                             <Link
                               to={subItem.path}
-                              onClick={onMobileClose}
-                              className={`w-full flex items-center gap-3 py-2 text-sm rounded-md transition-colors duration-200 ${
+                              onClick={() => {
+                                setOpenMenu(null);
+                                if (onMobileClose) onMobileClose();
+                              }}
+                              className={`w-full flex items-center gap-2 py-1.5 text-xs rounded-md transition-colors duration-200 ${
                                 isActive
                                   ? "text-orange-400"
                                   : "text-slate-400 hover:text-white"

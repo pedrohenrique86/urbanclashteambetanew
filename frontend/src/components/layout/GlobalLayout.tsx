@@ -63,9 +63,9 @@ const GlobalLayout: React.FC<GlobalLayoutProps> = ({ children }) => {
       className={`h-screen font-exo text-white overflow-hidden ${layoutClasses}`}
       style={backgroundStyle}
     >
-      <div className={`flex h-full ${isDashboard ? "bg-black/20" : ""} p-4 md:p-6 gap-4 md:gap-6`}>
+      <div className={`flex h-full ${isDashboard ? "bg-black/20" : ""}`}>
         {/* Sidebar para desktop, fixa na lateral */}
-        <div className="hidden md:flex md:flex-shrink-0 z-20">
+        <div className="hidden md:flex md:flex-shrink-0 z-20 h-full">
           <DashboardSidebar
             username={userProfile.username}
             faction={userProfile.faction}
@@ -103,17 +103,19 @@ const GlobalLayout: React.FC<GlobalLayoutProps> = ({ children }) => {
         </AnimatePresence>
 
         {/* Conteúdo principal */}
-        <div className="flex flex-col flex-1 w-0">
-          <TopBar
-            userProfile={userProfile}
-            handleLogout={handleLogout}
-            onMenuToggle={() => setIsMobileMenuOpen(true)}
-          />
-          <main className="flex-1 relative overflow-y-auto focus:outline-none pb-24 pt-28 md:pt-16">
-            <div className="p-4 md:p-6">
+        <div className="flex flex-col flex-1 w-0 overflow-hidden">
+          {/* Container para o conteúdo que rola, com padding */}
+          <div className="flex-1 relative overflow-y-auto p-4 md:p-6">
+            <TopBar
+              userProfile={userProfile}
+              handleLogout={handleLogout}
+              onMenuToggle={() => setIsMobileMenuOpen(true)}
+            />
+            <main className="focus:outline-none pt-6">
               {children}
-            </div>
-          </main>          </main>
+            </main>
+          </div>
+          {/* Navegação inferior fora da área de rolagem */}
           <BottomNavBar userProfile={userProfile} />
         </div>
       </div>
