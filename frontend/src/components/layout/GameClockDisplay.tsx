@@ -118,8 +118,8 @@ const GameClockDisplay: React.FC<GameClockDisplayProps> = ({
   return (
     <>
       <div
-        className={`rounded-lg shadow-lg flex flex-col items-center justify-center gap-1 overflow-hidden ${
-          isCollapsed ? "p-1 w-auto" : "p-2 w-full border border-slate-700/50"
+        className={`flex flex-col items-center justify-center gap-1 overflow-hidden ${
+          isCollapsed ? "p-1 w-auto" : "p-2 w-full"
         }`}
         data-tooltip-id="game-clock-tooltip"
         data-tooltip-content={`${statusText} ${remainingTimeStr}`}
@@ -134,6 +134,9 @@ const GameClockDisplay: React.FC<GameClockDisplayProps> = ({
               transition={{ duration: 0.15 }}
               className="w-full flex flex-col items-center gap-1"
             >
+              {/* Divisor Transparente */}
+              <div className="w-full h-px bg-white/10 my-1"></div>
+
               {/* Linha 1: Status */}
               <div
                 className={`w-full flex items-center justify-center gap-1.5 ${statusColor}`}
