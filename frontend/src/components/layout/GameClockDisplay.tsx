@@ -121,8 +121,10 @@ const GameClockDisplay: React.FC<GameClockDisplayProps> = ({
         className={`flex flex-col items-center justify-center gap-1 overflow-hidden ${
           isCollapsed ? "p-1 w-auto" : "p-2 w-full"
         }`}
-        data-tooltip-id="game-clock-tooltip"
-        data-tooltip-content={`${statusText} ${remainingTimeStr}`}
+        data-tooltip-id={isCollapsed ? "game-clock-tooltip" : undefined}
+        data-tooltip-content={
+          isCollapsed ? `${statusText} ${remainingTimeStr}` : undefined
+        }
       >
         <AnimatePresence mode="wait">
           {!isCollapsed ? (
@@ -140,7 +142,6 @@ const GameClockDisplay: React.FC<GameClockDisplayProps> = ({
               {/* Linha 1: Status */}
               <div
                 className={`w-full flex items-center justify-center gap-1.5 ${statusColor}`}
-                title={statusText}
               >
                 <span className="text-[10px]">{statusIcon}</span>
                 <span className="font-orbitron font-bold uppercase tracking-wider text-[8px]">
