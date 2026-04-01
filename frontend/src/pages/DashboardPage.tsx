@@ -15,7 +15,7 @@ const DashboardPanel: React.FC<{
   icon?: React.ReactNode;
 }> = ({ title, children, className = "", icon }) => (
   <div
-    className={`bg-black/60 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-4 flex flex-col shadow-lg ${className}`}
+    className={`bg-black/20 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-4 flex flex-col shadow-lg ${className}`}
     style={{
       boxShadow:
         "inset 0 1px 1px rgba(255, 255, 255, 0.05), 0 0 30px rgba(0, 0, 0, 0.5)",

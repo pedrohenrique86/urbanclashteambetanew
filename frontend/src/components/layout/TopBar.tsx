@@ -32,7 +32,7 @@ const TopBar: React.FC<TopBarProps> = ({
 
   const metrics = [
     {
-      label: "Nível",
+      label: "NVL",
       value: userProfile?.level ?? "-",
       className: "text-green-400",
       glowColor: "#22c55e",
@@ -44,50 +44,50 @@ const TopBar: React.FC<TopBarProps> = ({
       glowColor: "#a855f7",
     },
     {
-      label: "Energia",
+      label: "EN",
       value: energyText,
       className: "text-orange-400",
       glowColor: "#f97316",
     },
     {
-      label: "Ações",
+      label: "PA",
       value: userProfile?.action_points ?? "-",
       className: "text-cyan-400",
       glowColor: "#06b6d4",
     },
     {
-      label: "Ataque",
+      label: "ATK",
       value: userProfile?.attack ?? "-",
       className: "text-red-400",
       glowColor: "#ef4444",
     },
     {
-      label: "Defesa",
+      label: "DEF",
       value: userProfile?.defense ?? "-",
       className: "text-blue-400",
       glowColor: "#3b82f6",
     },
     {
-      label: "Foco",
+      label: "FOC",
       value: userProfile?.focus ?? "-",
       className: "text-pink-400",
       glowColor: "#ec4899",
     },
     {
-      label: "Crítico",
+      label: "CRIT%",
       value: `${combat.criticalChance?.toFixed?.(0) ?? 0}%`,
       className: "text-yellow-400",
       glowColor: "#eab308",
     },
     {
-      label: "Dano Crítico",
+      label: "CRIT DMG",
       value: combat.criticalDamage?.toFixed?.(1) ?? "-",
       className: "text-rose-400",
       glowColor: "#f43f5e",
     },
     {
       label: "Cash",
-      value: `$${(userProfile?.money ?? 0).toLocaleString("pt-BR")}`,
+      value: `${(userProfile?.money ?? 0).toLocaleString("pt-BR")}`,
       className: "text-lime-400",
       glowColor: "#84cc16",
     },
@@ -95,11 +95,11 @@ const TopBar: React.FC<TopBarProps> = ({
 
   return (
     <div
-      className={`relative w-full ${themeClasses.cardBg} border ${themeClasses.border} bg-opacity-70 backdrop-blur-lg rounded-xl p-2 md:p-3 mb-6`}
+      className={`relative w-full bg-black/20 backdrop-blur-xl border-b border-slate-700/50 rounded-xl p-2 mb-6`}
     >
       <div className="w-full flex flex-col md:flex-row items-center">
         {/* Top part on mobile, left part on desktop */}
-        <div className="flex items-center justify-between w-full md:w-auto shrink-0 h-12 px-2 md:px-0">
+        <div className="flex items-center justify-between w-full md:w-auto shrink-0 h-10 px-2 md:px-0">
           <div className="flex items-center gap-2">
             {/* Mobile Menu Toggle */}
             <button
@@ -132,17 +132,17 @@ const TopBar: React.FC<TopBarProps> = ({
         </div>
 
         {/* Metrics container */}
-        <div className="w-full flex-1 flex flex-wrap items-center justify-center gap-x-4 sm:gap-x-6 pb-2 md:pb-0">
+        <div className="w-full flex-1 flex flex-wrap items-center justify-center gap-x-3 sm:gap-x-4 pb-1 md:pb-0">
           {metrics.map((metric) => (
             <div
               key={metric.label}
               className="flex flex-col items-center text-center"
             >
-              <span className="text-xs text-slate-400 font-medium uppercase tracking-wider">
+              <span className="text-xs text-white font-medium uppercase tracking-wider">
                 {metric.label}
               </span>
               <span
-                className={`font-orbitron font-bold text-sm sm:text-base ${metric.className}`}
+                className={`font-orbitron font-bold text-sm ${metric.className}`}
                 style={{
                   textShadow: `0 0 3px ${metric.glowColor}, 0 0 6px ${metric.glowColor}`,
                 }}
