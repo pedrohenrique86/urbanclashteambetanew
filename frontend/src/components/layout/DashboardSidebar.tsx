@@ -296,6 +296,8 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
         )}
       </div>
       <nav className="flex flex-col gap-1 w-full flex-1 pb-6 min-h-0 overflow-hidden">
+        {/* Linha decorativa acima do menu Operações */}
+        <div className="border-b border-gray-700 mx-4 mb-2"></div>
         {navItems.map((item) => {
           const isSubMenuActive = item.subItems?.some((sub) =>
             location.pathname.startsWith(sub.path),
