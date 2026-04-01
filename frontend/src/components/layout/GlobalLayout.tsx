@@ -63,10 +63,14 @@ const GlobalLayout: React.FC<GlobalLayoutProps> = ({ children }) => {
       className={`h-screen font-exo text-white overflow-hidden ${layoutClasses}`}
       style={backgroundStyle}
     >
-      <div className={`flex h-full ${isDashboard ? "bg-black/20" : ""}`}>
+      <div className={`flex h-full ${isDashboard ? "bg-black/20" : ""} p-4 md:p-6 gap-4 md:gap-6`}>
         {/* Sidebar para desktop, fixa na lateral */}
         <div className="hidden md:flex md:flex-shrink-0 z-20">
-          <DashboardSidebar />
+          <DashboardSidebar
+            username={userProfile.username}
+            faction={userProfile.faction}
+            handleLogout={handleLogout}
+          />
         </div>
 
         {/* Sidebar para mobile (Drawer) */}
@@ -89,6 +93,9 @@ const GlobalLayout: React.FC<GlobalLayoutProps> = ({ children }) => {
               >
                 <DashboardSidebar
                   onMobileClose={() => setIsMobileMenuOpen(false)}
+                  username={userProfile.username}
+                  faction={userProfile.faction}
+                  handleLogout={handleLogout}
                 />
               </motion.div>
             </>
@@ -103,8 +110,10 @@ const GlobalLayout: React.FC<GlobalLayoutProps> = ({ children }) => {
             onMenuToggle={() => setIsMobileMenuOpen(true)}
           />
           <main className="flex-1 relative overflow-y-auto focus:outline-none pb-24 pt-28 md:pt-16">
-            {children}
-          </main>
+            <div className="p-4 md:p-6">
+              {children}
+            </div>
+          </main>          </main>
           <BottomNavBar userProfile={userProfile} />
         </div>
       </div>

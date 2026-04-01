@@ -26,6 +26,7 @@ import {
   ShoppingBagIcon,
   ChartBarIcon,
   FireIcon,
+  ArrowLeftOnRectangleIcon,
 } from "@heroicons/react/24/outline";
 
 // Tipagem para os itens de menu e sub-menu
@@ -153,10 +154,16 @@ const navItems: NavItem[] = [
 
 interface DashboardSidebarProps {
   onMobileClose?: () => void;
+  username?: string;
+  faction?: 'gangsters' | 'guardas';
+  handleLogout: () => void;
 }
 
 const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
   onMobileClose,
+  username,
+  faction,
+  handleLogout,
 }) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [openMenu, setOpenMenu] = useState<string | null>(null);
@@ -209,9 +216,39 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
       animate={isCollapsed ? "collapsed" : "expanded"}
       variants={sidebarVariants}
       transition={{ duration: 0.3, ease: "easeInOut" }}
-      className="bg-black/40 backdrop-blur-xl border-r border-slate-700/50 flex-shrink-0 flex flex-col items-center pt-12 relative z-10 h-full overflow-x-hidden"
+      className="bg-black/40 backdrop-blur-xl border-r border-slate-700/50 flex-shrink-0 flex flex-col items-center relative z-10 h-full overflow-x-hidden"
       style={{ boxShadow: "inset -5px 0 15px -5px rgba(0,0,0,0.5)" }}
     >
+      <div className="w-full px-4 pt-4 pb-2 text-center">
+        <AnimatePresence>
+          {!isCollapsed && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.2 }}
+            >
+              <span className="text-lg font-orbitron whitespace-nowrap">
+                <span className="text-transparent bg-gradient-to-r from-orange-400 to-orange-600 bg-clip-text font-bold">
+                  Urban
+                </span>
+                <span className="mx-1 text-transparent bg-gradient-to-r from-blue-400 to-blue-600 bg-clip-text font-bold">
+                  Clash
+                </span>
+                <span className="text-transparent bg-gradient-to-r from-purple-400 to-purple-600 bg-clip-text font-bold">
+                  Team
+                </span>
+              </span>
+              <div
+                className={`mt-2 font-orbitron font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r ${faction === 'gangsters' ? 'from-orange-300 to-orange-600' : 'from-blue-300 to-blue-600'} text-sm whitespace-nowrap`}
+              >
+                {username || "Usuário"}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+
       <div
         className={`w-full px-4 mb-4 flex ${isCollapsed ? "flex-col gap-4" : "justify-center gap-4"} items-center relative`}
       >
@@ -235,6 +272,13 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
           className="hidden md:flex justify-center items-center p-2 text-slate-400 hover:text-white hover:bg-slate-700/50 rounded-lg transition-colors"
         >
           <Bars3Icon className="w-6 h-6" />
+        </button>
+        <button
+          onClick={handleLogout}
+          className="hidden md:flex justify-center items-center p-2 text-slate-400 hover:text-white hover:bg-red-500/50 rounded-lg transition-colors"
+          title="Sair"
+        >
+          <ArrowLeftOnRectangleIcon className="w-6 h-6" />
         </button>
         {/* Botão de fechar apenas no mobile */}
         {onMobileClose && (
