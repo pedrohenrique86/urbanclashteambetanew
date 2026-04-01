@@ -1,7 +1,7 @@
 import React from "react";
 import { motion } from "framer-motion";
-import homePngUrl from "../../assets/home.png";
-import homeMobilePngUrl from "../../assets/home-mobile.png";
+import homePngUrl from "../../assets/home.webp";
+import homeMobilePngUrl from "../../assets/home-mobile.webp";
 
 export function HeroSection() {
   return (

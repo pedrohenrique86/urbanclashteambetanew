@@ -2,9 +2,9 @@ import React from "react";
 import { motion } from "framer-motion";
 
 // Importar as imagens dos cards
-import cardGangsters from "../../assets/cardgangsters_home.png";
-import cardGuardas from "../../assets/cardguardas_home.png";
-import cardClans from "../../assets/cardclans_home.png";
+import cardGuardas from "../../assets/cardguardas-home.webp";
+import cardGangsters from "../../assets/cardgangsters-home.webp";
+import cardClans from "../../assets/cardclans-home.webp";
 
 export function FactionsSection() {
   // Definindo as cores e sombras para reutilização

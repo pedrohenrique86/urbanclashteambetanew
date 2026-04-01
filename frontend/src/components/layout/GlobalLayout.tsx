@@ -7,7 +7,7 @@ import { useTheme } from "../../contexts/ThemeContext";
 import { useUserProfile } from "../../hooks/useUserProfile";
 import { apiClient } from "../../lib/supabaseClient";
 import { motion, AnimatePresence } from "framer-motion";
-import homePngUrl from "../../assets/beco1.png"; // Importa a imagem de fundo
+import dashbgangster from "../../assets/dashbgangster.webp";
 
 interface GlobalLayoutProps {
   children: React.ReactNode;
@@ -51,7 +51,7 @@ const GlobalLayout: React.FC<GlobalLayoutProps> = ({ children }) => {
   const isDashboard = location.pathname === "/dashboard";
 
   const backgroundStyle = isDashboard
-    ? { backgroundImage: `url(${homePngUrl})` }
+    ? { backgroundImage: `url(${dashbgangster})` }
     : {};
 
   const layoutClasses = isDashboard
