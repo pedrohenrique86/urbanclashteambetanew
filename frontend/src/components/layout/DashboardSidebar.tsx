@@ -263,6 +263,7 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
             if (!isCollapsed) setOpenMenu(null); // Fecha submenus ao colapsar
           }}
           className={`hidden md:flex justify-center items-center p-2 text-slate-400 hover:text-white hover:bg-purple-500/10 transition-colors ${isCollapsed ? "rounded-none" : "rounded-lg"}`}
+          title={isCollapsed ? "Expandir" : "Encolher"}
         >
           <Bars3Icon className="w-5 h-5" />
         </button>
@@ -310,6 +311,7 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
                 <button
                   onClick={() => handleMenuToggle(item.name)}
                   className={`w-full flex items-center py-2 text-slate-400 hover:text-white hover:bg-purple-500/10 transition-all duration-200 ${isCollapsed ? "border-l-0 justify-center px-0" : `border-l-4 ${isSubMenuActive && !isMenuOpen ? "border-purple-500" : "border-transparent"} justify-between px-8`}`}
+                  title={isCollapsed ? item.name : undefined}
                 >
                   <div className="flex items-center">
                     {item.icon}
