@@ -33,7 +33,7 @@ const DashboardPanel: React.FC<{
 
 // --- Painel de Nível ---
 const CircularProgressBar: React.FC<{ progress: number }> = ({ progress }) => {
-  const size = 140;
+  const size = 100;
   const strokeWidth = 10;
   const center = size / 2;
   const radius = center - strokeWidth / 2;
@@ -181,7 +181,7 @@ const FactionPanel: React.FC<{ user: any }> = ({ user }) => (
         <img
           src="/gangstersa_icon.png"
           alt="Gangsters"
-          className="w-16 h-16 mx-auto"
+          className="w-12 h-12 mx-auto"
         />
       </div>
       <h3
@@ -266,7 +266,7 @@ export default function DashboardPage() {
 
   return (
     <div className="flex justify-center p-6">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-2xl">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full max-w-2xl">
         <LevelPanel user={userProfile} />
         <ResourcesPanel user={userProfile} />
         <FactionPanel user={userProfile} />
