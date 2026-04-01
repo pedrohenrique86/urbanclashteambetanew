@@ -82,18 +82,18 @@ const TopBar: React.FC<TopBarProps> = ({
       tooltip: "Foco",
     },
     {
-      label: "CRIT%",
-      value: `${combat.criticalChance?.toFixed?.(0) ?? 0}%`,
-      className: "text-yellow-400",
-      glowColor: "#eab308",
-      tooltip: "Chance Crítico",
-    },
-    {
       label: "CRIT DMG",
       value: combat.criticalDamage?.toFixed?.(1) ?? "-",
       className: "text-rose-400",
       glowColor: "#f43f5e",
       tooltip: "Dano Crítico",
+    },
+    {
+      label: "CRIT%",
+      value: `${combat.criticalChance?.toFixed?.(0) ?? 0}%`,
+      className: "text-yellow-400",
+      glowColor: "#eab308",
+      tooltip: "Chance Crítico",
     },
     {
       label: "Cash",
