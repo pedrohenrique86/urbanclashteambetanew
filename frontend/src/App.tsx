@@ -3,6 +3,7 @@ import { createBrowserRouter, RouterProvider, Outlet } from "react-router-dom";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { ToastProvider } from "./contexts/ToastContext";
 import { GameClockProvider } from "./contexts/GameClockContext";
+import { UserProfileProvider } from "./contexts/UserProfileContext";
 import GlobalLayout from "./components/layout/GlobalLayout";
 import { LoadingSpinner } from "./components/ui/LoadingSpinner"; // Um spinner para o fallback
 
@@ -104,14 +105,16 @@ export default function App() {
   return (
     <ThemeProvider>
       <ToastProvider>
-        <GameClockProvider>
-          <Suspense fallback={<PageLoader />}>
-            <RouterProvider
-              router={router}
-              future={{ v7_startTransition: true }}
-            />
-          </Suspense>
-        </GameClockProvider>
+        <UserProfileProvider>
+          <GameClockProvider>
+            <Suspense fallback={<PageLoader />}>
+              <RouterProvider
+                router={router}
+                future={{ v7_startTransition: true }}
+              />
+            </Suspense>
+          </GameClockProvider>
+        </UserProfileProvider>
       </ToastProvider>
     </ThemeProvider>
   );

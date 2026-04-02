@@ -88,7 +88,7 @@ const CircularProgressBar: React.FC<{ progress: number }> = ({ progress }) => {
   );
 };
 
-const LevelPanel: React.FC<{ user: any }> = ({ user }) => {
+const LevelPanel = React.memo(({ user }: { user: any }) => {
   const progress = user.xp_needed ? (user.xp / user.xp_needed) * 100 : 0;
   return (
     <DashboardPanel
@@ -117,7 +117,7 @@ const LevelPanel: React.FC<{ user: any }> = ({ user }) => {
       </div>
     </DashboardPanel>
   );
-};
+});
 
 // --- Painel de Recursos ---
 const GreenLineChart: React.FC = () => (
@@ -149,7 +149,7 @@ const GreenLineChart: React.FC = () => (
   </svg>
 );
 
-const ResourcesPanel: React.FC<{ user: any }> = ({ user }) => (
+const ResourcesPanel = React.memo(({ user }: { user: any }) => (
   <DashboardPanel
     title="RECURSOS"
     icon={<BanknotesIcon className="w-6 h-6 text-green-400" />}
@@ -169,10 +169,10 @@ const ResourcesPanel: React.FC<{ user: any }> = ({ user }) => (
       <GreenLineChart />
     </div>
   </DashboardPanel>
-);
+));
 
 // --- Painel de Facção ---
-const FactionPanel: React.FC<{ user: any }> = ({ user }) => (
+const FactionPanel = React.memo(({ user }: { user: any }) => (
   <DashboardPanel
     title="FACÇÃO"
     icon={<ShieldCheckIcon className="w-6 h-6 text-orange-400" />}
@@ -201,7 +201,7 @@ const FactionPanel: React.FC<{ user: any }> = ({ user }) => (
       <p className="text-xs">Reduz a defesa do oponente</p>
     </div>
   </DashboardPanel>
-);
+));
 
 // --- Painel de Estatísticas ---
 const OrangeLineChart: React.FC = () => (
@@ -219,7 +219,7 @@ const OrangeLineChart: React.FC = () => (
   </svg>
 );
 
-const StatisticsPanel: React.FC<{ user: any }> = ({ user }) => (
+const StatisticsPanel = React.memo(({ user }: { user: any }) => (
   <DashboardPanel
     title="ESTATÍSTICAS"
     icon={<ChartBarIcon className="w-6 h-6 text-cyan-400" />}
@@ -247,19 +247,11 @@ const StatisticsPanel: React.FC<{ user: any }> = ({ user }) => (
       </div>
     </div>
   </DashboardPanel>
-);
+));
 
 // --- Página Principal do Dashboard ---
 export default function DashboardPage() {
-  const { userProfile, loading: profileLoading } = useUserProfile();
-
-  if (profileLoading) {
-    return (
-      <div className="flex flex-col items-center justify-center h-[60vh] gap-4">
-        <LoadingSpinner size="lg" />
-      </div>
-    );
-  }
+  const { userProfile } = useUserProfile();
 
   if (!userProfile || !userProfile.faction || !userProfile.clan_id) {
     return null;
