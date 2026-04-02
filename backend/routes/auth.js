@@ -259,7 +259,10 @@ router.post("/login", authLimiter, loginValidation, async (req, res) => {
     // Verificar senha
     const passwordValid = await bcrypt.compare(password, user.password_hash);
     if (!passwordValid) {
-      return res.status(401).json({ error: "Email ou senha incorretos" });
+      return res.status(401).json({ 
+        error: "Senha incorreta",
+        message: "Email ou senha incorretos. Você tem cadastro conosco, mas a senha informada não coincide. Deseja recuperar sua senha?" 
+      });
     }
 
     // Verificar se o usuário já tem um perfil criado.

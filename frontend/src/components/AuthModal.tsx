@@ -285,6 +285,7 @@ export default function AuthModal({
   const [registeredEmail, setRegisteredEmail] = useState("");
   const [showResendConfirmation, setShowResendConfirmation] = useState(false);
   const [showRegisterOption, setShowRegisterOption] = useState(false);
+  const [showForgotPasswordOption, setShowForgotPasswordOption] = useState(false);
   const [resendCooldown, setResendCooldown] = useState(0);
   const [isResending, setIsResending] = useState(false);
 
@@ -363,6 +364,7 @@ export default function AuthModal({
     setSuccessMessage("");
     setShowResendConfirmation(false);
     setShowRegisterOption(false); // Resetar opção de registro
+    setShowForgotPasswordOption(false); // Resetar opção de esqueci a senha
     setAuthMethodError(null);
     setErrors({});
 
@@ -495,11 +497,19 @@ export default function AuthModal({
           );
         } else {
           // Para outros erros (401-credenciais inválidas, 500), use o estado de erro geral
+          const errorType = error.response?.data?.error;
           const message =
             error.response?.data?.message ||
             error.message ||
             "Ocorreu um erro durante o login.";
+            
           setErrors({ form: message });
+
+          // Se o erro for senha incorreta, mostrar opção de recuperar
+          if (errorType === "Senha incorreta") {
+            setShowForgotPasswordOption(true);
+            setRegisteredEmail(formData.email);
+          }
         }
         setIsProcessing(false);
       }
@@ -699,6 +709,7 @@ export default function AuthModal({
                   setSuccessMessage("");
                   setShowResendConfirmation(false);
                   setShowRegisterOption(false);
+                  setShowForgotPasswordOption(false);
                   setAuthMethodError(null);
                 }}
                 className={`flex-1 px-2 sm:px-3 py-1 sm:py-2 rounded-lg font-orbitron text-xs sm:text-sm transition-colors
@@ -839,6 +850,33 @@ export default function AuthModal({
                     <p className="text-xs text-gray-600 mt-3 text-center">
                       Nova conta será criada com:{" "}
                       <span className="font-medium text-green-600">
+                        {registeredEmail}
+                      </span>
+                    </p>
+                  </div>
+                )}
+
+                {/* Opção de recuperar senha para senhas incorretas */}
+                {showForgotPasswordOption && (
+                  <div className="mt-4 p-4 bg-orange-50 border border-orange-200 rounded-lg">
+                    <p className="text-orange-700 mb-3 font-medium">
+                      Esqueceu sua senha?
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveTab("forgot-password");
+                        setErrors({});
+                        setShowForgotPasswordOption(false);
+                        setSuccessMessage("");
+                      }}
+                      className="w-full bg-orange-600 hover:bg-orange-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline transition-colors"
+                    >
+                      Recuperar minha senha
+                    </button>
+                    <p className="text-xs text-gray-600 mt-3 text-center">
+                      Serão enviadas instruções para:{" "}
+                      <span className="font-medium text-orange-600">
                         {registeredEmail}
                       </span>
                     </p>
