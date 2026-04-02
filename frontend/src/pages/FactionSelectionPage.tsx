@@ -142,8 +142,8 @@ export default function FactionSelectionPage() {
 
       console.log(`✅ Processo de facção (${selectedFaction}) concluído.`);
 
-      // Atualiza o perfil global para que o GlobalLayout veja a facção preenchida
-      await refreshProfile();
+      // Atualiza o perfil global de forma silenciosa para evitar o spinner de "Aguarde"
+      await refreshProfile(true);
 
       console.log("🔄 Redirecionando para a seleção de clãs...");
       navigate("/clan-selection", { 

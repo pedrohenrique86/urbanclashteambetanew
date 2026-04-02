@@ -7,7 +7,7 @@ import { calculateLevel } from "../utils/leveling";
 interface UserProfileContextType {
   userProfile: UserProfile | null;
   loading: boolean;
-  refreshProfile: () => Promise<void>;
+  refreshProfile: (silent?: boolean) => Promise<void>;
   handleLogout: () => Promise<void>;
   setUserProfile: React.Dispatch<React.SetStateAction<UserProfile | null>>;
 }
@@ -83,8 +83,8 @@ export const UserProfileProvider: React.FC<{ children: React.ReactNode }> = ({ c
     }
   }, [processProfileData]);
 
-  const refreshProfile = useCallback(async () => {
-    setLoading(true);
+  const refreshProfile = useCallback(async (silent = false) => {
+    if (!silent) setLoading(true);
     await fetchProfile();
   }, [fetchProfile]);
 
