@@ -406,10 +406,10 @@ router.post("/google/callback", async (req, res) => {
 
     // Função auxiliar para validar e normalizar o código do país
     const getValidCountryCode = (code) => {
-      if (typeof code !== 'string' || code.length < 2 || code.length > 3) return null;
+      if (typeof code !== 'string' || code.length !== 2) return null;
       const upperCode = code.toUpperCase();
-      // Adicionar uma lista de códigos válidos seria ideal, mas por agora validamos o formato
-      if (upperCode.match(/^[A-Z]{2,3}$/)) {
+      // Valida estritamente o formato ISO 3166-1 alfa-2
+      if (upperCode.match(/^[A-Z]{2}$/)) {
         return upperCode;
       }
       return null;
@@ -424,12 +424,17 @@ router.post("/google/callback", async (req, res) => {
       console.log(`DEBUG: País determinado via state do frontend: ${country}`);
     }
 
-    // 2. Segunda prioridade: Inferência via Google locale
+    // 2. Segunda prioridade: Inferência via Google locale (apenas com região)
     if (!country && userInfo.locale) {
       const localeParts = userInfo.locale.split(/[-_]/);
-      const regionCode = localeParts.length > 1 ? localeParts[localeParts.length - 1] : localeParts[0];
-      country = getValidCountryCode(regionCode);
-      console.log(`DEBUG: País inferido do locale '${userInfo.locale}': ${country}`);
+      // Apenas inferir se houver uma parte de região (ex: 'pt-BR')
+      if (localeParts.length > 1) {
+        const regionCode = localeParts[localeParts.length - 1];
+        country = getValidCountryCode(regionCode);
+        console.log(`DEBUG: País inferido do locale '${userInfo.locale}': ${country}`);
+      } else {
+        console.log(`DEBUG: Locale '${userInfo.locale}' sem região, inferência ignorada.`);
+      }
     }
 
     // 3. Terceira prioridade: Fallback via header do Cloudflare
