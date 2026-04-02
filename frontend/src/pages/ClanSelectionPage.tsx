@@ -24,14 +24,26 @@ export default function ClanSelectionPage() {
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
   const location = useLocation();
-  const { userProfile } = useUserProfile(false);
+  const { userProfile, loading: profileLoading } = useUserProfile(false);
 
-  // Obter a facção selecionada do estado da navegação
-  const selectedFaction = location.state?.faction;
+  // Obtém a facção do banco de dados (mais confiável) ou do fallback do router
+  const selectedFaction = userProfile?.faction || location.state?.faction;
 
   useEffect(() => {
+    // Se ainda está carregando o perfil da API e não temos a facção, aguarda.
+    if (!selectedFaction && profileLoading) {
+      return;
+    }
+
+    // Se após carregar realmente não existir facção, volta pro passo anterior
     if (!selectedFaction) {
       navigate("/faction-selection");
+      return;
+    }
+
+    // Proteção: Se o jogador já tem clã, manda direto pro jogo
+    if (userProfile?.clan_id) {
+      navigate("/dashboard");
       return;
     }
 
@@ -48,7 +60,7 @@ export default function ClanSelectionPage() {
     };
 
     fetchClans();
-  }, [selectedFaction, navigate]);
+  }, [selectedFaction, profileLoading, userProfile, navigate]);
 
   const handleJoinClan = async () => {
     if (!selectedClan) return;
@@ -243,14 +255,14 @@ export default function ClanSelectionPage() {
                           delay: index * 0.05 + 0.2,
                           duration: 0.6,
                         }}
-                        className={`h-full rounded-full transition-all duration-300 ${
+                         className={`h-full rounded-full transition-all duration-300 ${
                           memberPercentage >= 100
                             ? "bg-gradient-to-r from-red-500 to-red-600"
                             : memberPercentage >= 80
                               ? "bg-gradient-to-r from-yellow-500 to-orange-500"
-                              : `bg-gradient-to-r from-${getFactionAccentColor(
-                                  selectedFaction,
-                                )} to-${getFactionAccentColor(selectedFaction)}`
+                              : selectedFaction === "gangsters"
+                                ? "bg-gradient-to-r from-orange-500 to-orange-600"
+                                : "bg-gradient-to-r from-blue-500 to-blue-600"
                         }`}
                       />
                     </div>
