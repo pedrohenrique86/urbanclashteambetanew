@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { useUserProfile } from "../hooks/useUserProfile";
@@ -27,23 +27,7 @@ export default function ClanSelectionPage() {
   const [error, setError] = useState<string | null>(null);
   const [joining, setJoining] = useState(false);
 
-  useEffect(() => {
-    if (!profileLoading) {
-      if (!userProfile?.faction) {
-        // Se ainda não escolheu facção, volta um passo.
-        navigate("/faction-selection");
-        return;
-      }
-      if (userProfile?.clan_id) {
-        // Se já tem clã, vai pro dashboard direto.
-        navigate("/dashboard");
-        return;
-      }
-      fetchClans();
-    }
-  }, [profileLoading, userProfile, navigate]);
-
-  const fetchClans = async () => {
+  const fetchClans = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -63,7 +47,23 @@ export default function ClanSelectionPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [userProfile?.faction]);
+
+  useEffect(() => {
+    if (!profileLoading) {
+      if (!userProfile?.faction) {
+        // Se ainda não escolheu facção, volta um passo.
+        navigate("/faction-selection");
+        return;
+      }
+      if (userProfile?.clan_id) {
+        // Se já tem clã, vai pro dashboard direto.
+        navigate("/dashboard");
+        return;
+      }
+      fetchClans();
+    }
+  }, [profileLoading, userProfile, navigate, fetchClans]);
 
   const handleJoinClan = async (clanId: string) => {
     try {
