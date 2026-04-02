@@ -131,7 +131,8 @@ async function scheduleUsersRefresh() {
   );
 }
 
-void scheduleUsersRefresh();
+// Agendamento será iniciado pelo server.js após a conexão com o banco
+// void scheduleUsersRefresh();
 
 router.get("/rankings/subscribe", (req, res) => {
   res.set({
@@ -1263,4 +1264,7 @@ router.post("/action-points/reset", authenticateToken, async (req, res) => {
   }
 });
 
-module.exports = router;
+module.exports = {
+  router,
+  scheduleUsersRefresh,
+};

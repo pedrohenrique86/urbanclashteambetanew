@@ -311,8 +311,6 @@ async function scheduleClansRefresh() {
   );
 }
 
-// Inicia o ciclo de vida do cache
-void scheduleClansRefresh();
 
 // GET /api/clans/rankings - Ranking de clãs
 router.get("/rankings", async (req, res) => {
@@ -1076,4 +1074,7 @@ router.delete("/:id", authenticateToken, async (req, res) => {
   }
 });
 
-module.exports = router;
+module.exports = {
+  router,
+  scheduleClansRefresh,
+};

@@ -14,8 +14,8 @@ const morgan = require("morgan");
 const rateLimit = require("express-rate-limit");
 
 const authRoutes = require("./routes/auth");
-const userRoutes = require("./routes/users");
-const clanRoutes = require("./routes/clans");
+const { router: userRoutes, scheduleUsersRefresh } = require("./routes/users");
+const { router: clanRoutes, scheduleClansRefresh } = require("./routes/clans");
 const { connectDB, closePool, seedClans } = require("./config/database");
 const { checkAutoStart } = require("./services/gameStateService");
 const { schedulePersistence } = require("./services/playerStateService");
@@ -158,6 +158,12 @@ async function startServer() {
     // await seedClans(); // Desativado para evitar a limpeza dos dados dos clãs a cada reinício.
 
     await startGameStateMonitor();
+
+    // Inicializa os caches de ranking aqui, APÓS a conexão com o banco estar pronta
+    // Isso evita condições de corrida no startup, especialmente em produção (Render)
+    console.log("⏱️ Iniciando agendadores de cache...");
+    void scheduleUsersRefresh();
+    void scheduleClansRefresh();
 
     initializeSocket(io);
 
