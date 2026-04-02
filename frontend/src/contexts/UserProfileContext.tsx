@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { apiClient } from "../lib/supabaseClient";
 import { UserProfile } from "../types";
 import { calculateLevel } from "../utils/leveling";
@@ -18,12 +18,9 @@ export const UserProfileProvider: React.FC<{ children: React.ReactNode }> = ({ c
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
-  const location = useLocation();
 
-  const processExistingProfile = useCallback(async (profileData: any, user: any) => {
+  const processProfileData = useCallback((profileData: any, user: any): UserProfile => {
     const levelInfo = calculateLevel(profileData.current_xp || 0);
-    const actionPoints = profileData.action_points;
-
     return {
       id: profileData.id ? profileData.id.toString() : profileData.user_id,
       user_id: profileData.user_id,
@@ -45,7 +42,7 @@ export const UserProfileProvider: React.FC<{ children: React.ReactNode }> = ({ c
       streak: profileData.winning_streak,
       winning_streak: profileData.winning_streak,
       critical_damage: profileData.critical_damage,
-      action_points: actionPoints,
+      action_points: profileData.action_points,
       attack: profileData.attack,
       defense: profileData.defense,
       focus: profileData.focus,
@@ -64,7 +61,7 @@ export const UserProfileProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
     try {
       const userResponse = await apiClient.getCurrentUser();
-      if (!userResponse.data.user) {
+      if (!userResponse?.data?.user) {
         setLoading(false);
         return;
       }
@@ -73,20 +70,23 @@ export const UserProfileProvider: React.FC<{ children: React.ReactNode }> = ({ c
       const profileData = await apiClient.getUserProfile();
 
       if (profileData) {
-        const processedProfile = await processExistingProfile(profileData, user);
-        setUserProfile(processedProfile);
+        setUserProfile(processProfileData(profileData, user));
+      } else {
+        // Usuário autenticado mas sem perfil de jogo ainda (novo usuário Google)
+        setUserProfile(null);
       }
     } catch (error) {
       console.error("Erro ao carregar perfil global:", error);
+      setUserProfile(null);
     } finally {
       setLoading(false);
     }
-  }, [processExistingProfile]);
+  }, [processProfileData]);
 
-  const refreshProfile = async () => {
+  const refreshProfile = useCallback(async () => {
     setLoading(true);
     await fetchProfile();
-  };
+  }, [fetchProfile]);
 
   const handleLogout = async () => {
     await apiClient.logout();
@@ -94,44 +94,7 @@ export const UserProfileProvider: React.FC<{ children: React.ReactNode }> = ({ c
     navigate("/");
   };
 
-  // Lógica de Redirecionamento Centralizada
-  useEffect(() => {
-    if (!loading && userProfile) {
-      const currentPath = location.pathname;
-      
-      const pagesWithoutNav = [
-        "/",
-        "/faction-selection",
-        "/clan-selection",
-        "/email-confirmation",
-        "/confirm-email",
-        "/reset-password"
-      ];
-
-      const isProtectedPage = !pagesWithoutNav.includes(currentPath) && !currentPath.startsWith("/auth/google/callback");
-
-      if (isProtectedPage) {
-        if (!userProfile.faction) {
-          navigate("/faction-selection", { replace: true });
-        } else if (!userProfile.clan_id) {
-          navigate("/clan-selection", { replace: true });
-        }
-      } else if (currentPath === "/faction-selection" || currentPath === "/clan-selection") {
-        if (userProfile.faction && userProfile.clan_id) {
-          navigate("/dashboard", { replace: true });
-        }
-      }
-    } else if (!loading && !userProfile) {
-      // Se não há perfil e estamos em uma rota protegida, manda para home
-      const currentPath = location.pathname;
-      const isProtectedPage = !["/", "/auth/google/callback", "/reset-password", "/faction-selection", "/clan-selection"].includes(currentPath);
-      if (isProtectedPage) {
-        navigate("/", { replace: true });
-      }
-    }
-  }, [loading, userProfile, location.pathname, navigate]);
-
-  // Carregamento inicial automático
+  // Carregamento inicial do perfil (apenas uma vez)
   useEffect(() => {
     fetchProfile();
   }, [fetchProfile]);

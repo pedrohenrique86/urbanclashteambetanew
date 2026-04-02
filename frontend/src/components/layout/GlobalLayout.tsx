@@ -27,6 +27,8 @@ const GlobalLayout: React.FC<GlobalLayoutProps> = ({ children }) => {
   const minSwipeDistance = 50;
   const { remainingTime, status, serverTime } = useGameClock();
 
+  // Páginas que NÃO têm a navegação (sidebar/topbar)
+  // O GlobalLayout não é renderizado para essas páginas pois elas usam rota direta
   const pagesWithoutNav = [
     "/",
     "/faction",
@@ -34,8 +36,9 @@ const GlobalLayout: React.FC<GlobalLayoutProps> = ({ children }) => {
     "/clan-selection",
     "/confirm-email",
     "/reset-password",
+    "/auth/google/callback",
   ];
-  const shouldShowNav = !pagesWithoutNav.includes(location.pathname);
+  const shouldShowNav = !pagesWithoutNav.some(p => location.pathname === p || location.pathname.startsWith("/auth/"));
 
   const { userProfile, loading } = useUserProfile();
 
@@ -62,29 +65,41 @@ const GlobalLayout: React.FC<GlobalLayoutProps> = ({ children }) => {
     const distance = touchStart - touchEnd;
     const isLeftSwipe = distance > minSwipeDistance;
     const isRightSwipe = distance < -minSwipeDistance;
-    
-    // Swipe da direita para a esquerda a partir da borda tela (para abrir o menu móvel)
+
     if (isLeftSwipe && !isMobileMenuOpen && touchStart > window.innerWidth - 60) {
       setIsMobileMenuOpen(true);
     }
-    
-    // Swipe da esquerda para direita para fechar o menu que está aberto à direita
+
     if (isRightSwipe && isMobileMenuOpen) {
       setIsMobileMenuOpen(false);
     }
   };
 
+  // Páginas sem nav renderizam os filhos diretamente
   if (!shouldShowNav) {
     return <>{children}</>;
   }
 
+  // Enquanto carrega, mostra fundo escuro
   if (loading) {
     return <div className={`min-h-screen ${themeClasses.bg}`} />;
   }
 
-  // Se não houver perfil, o UserProfileProvider redirecionará para a Home em breve.
-  // Enquanto isso, retornamos nulo ou o fundo padrão para evitar erros de renderização
+  // Guarda de rota: usuário não autenticado → Home
   if (!userProfile) {
+    navigate("/", { replace: true });
+    return <div className={`min-h-screen ${themeClasses.bg}`} />;
+  }
+
+  // Guarda de rota: usuário sem facção → seleção de facção
+  if (!userProfile.faction) {
+    navigate("/faction-selection", { replace: true });
+    return <div className={`min-h-screen ${themeClasses.bg}`} />;
+  }
+
+  // Guarda de rota: usuário sem clã → seleção de clã
+  if (!userProfile.clan_id) {
+    navigate("/clan-selection", { replace: true });
     return <div className={`min-h-screen ${themeClasses.bg}`} />;
   }
 

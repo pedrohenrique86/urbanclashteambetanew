@@ -250,6 +250,7 @@ class ApiClient {
     intent: string,
     redirectUri: string,
     country?: string | null,
+    state?: string | null,
   ) {
     const response = await this.request("/auth/google/callback", {
       method: "POST",
@@ -259,6 +260,7 @@ class ApiClient {
         intent,
         redirect_uri: redirectUri,
         country: country || undefined,
+        state: state || undefined,
       }),
     });
 

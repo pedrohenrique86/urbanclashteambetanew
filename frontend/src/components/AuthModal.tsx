@@ -194,6 +194,11 @@ export default function AuthModal({
       code_challenge_method: "S256",
     });
 
+    // Adiciona o país se disponível (será embarcado no state do Google pelo backend)
+    if (formData.country) {
+      params.append("country", formData.country);
+    }
+
     const startUrl = apiClient.getApiUrl(
       `/auth/google/start?${params.toString()}`,
     );

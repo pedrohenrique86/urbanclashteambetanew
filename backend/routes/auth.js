@@ -319,7 +319,7 @@ router.post("/login", authLimiter, loginValidation, async (req, res) => {
 // Rota para iniciar o fluxo de autenticação do Google
 router.get("/google/start", (req, res) => {
   try {
-    const { code_challenge, code_challenge_method, intent, redirect_uri } =
+    const { code_challenge, code_challenge_method, intent, redirect_uri, country } =
       req.query;
 
     if (!code_challenge || !redirect_uri) {
@@ -344,8 +344,9 @@ router.get("/google/start", (req, res) => {
     const authorizeUrl = authUrlClient.generateAuthUrl({
       access_type: "offline",
       scope: scopes,
-      prompt: "select_account", // Garante que a seleção de conta seja sempre exibida
-      state: JSON.stringify({ intent }), // Passa o intent (login/register) para o callback
+      prompt: "select_account",
+      // Passa o intent E o país no state para sobreviver ao redirecionamento do Google
+      state: JSON.stringify({ intent, country: country || null }),
       code_challenge: code_challenge,
       code_challenge_method: code_challenge_method || "S256",
     });
@@ -360,7 +361,18 @@ router.get("/google/start", (req, res) => {
 
 // Rota de callback do Google
 router.post("/google/callback", async (req, res) => {
-  const { code, code_verifier, intent, redirect_uri, country } = req.body;
+  const { code, code_verifier, intent: bodyIntent, redirect_uri, country: bodyCountry, state: stateStr } = req.body;
+
+  // Extrair intent e country do parâmetro 'state' (mais confiável, sobrevive ao redirect)
+  let intent = bodyIntent || "login";
+  let country = bodyCountry || null;
+  try {
+    if (stateStr) {
+      const stateObj = JSON.parse(stateStr);
+      if (stateObj.intent) intent = stateObj.intent;
+      if (stateObj.country) country = stateObj.country;
+    }
+  } catch(e) { /* ignora JSON inválido */ }
 
   if (!code || !code_verifier) {
     return res

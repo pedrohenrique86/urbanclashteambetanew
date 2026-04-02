@@ -1,22 +1,18 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useTheme } from "../contexts/ThemeContext";
 import { apiClient } from "../lib/supabaseClient";
-import { useToast } from "../contexts/ToastContext";
 import { useUserProfileContext } from "../contexts/UserProfileContext";
 
 export default function GoogleCallbackPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const { themeClasses } = useTheme();
-  const { showToast } = useToast();
   const { refreshProfile } = useUserProfileContext();
-  const [error, setError] = useState<string | null>(null);
-  const [processing, setProcessing] = useState<boolean>(true);
   const effectRan = useRef(false);
 
   useEffect(() => {
-    // O effectRan previne a execução duplicada em modo de desenvolvimento com StrictMode
+    // Previne execução duplicada em StrictMode no desenvolvimento
     if (effectRan.current === true && import.meta.env.DEV) {
       return;
     }
@@ -25,39 +21,39 @@ export default function GoogleCallbackPage() {
     const processAuth = async () => {
       const params = new URLSearchParams(location.search);
       const code = params.get("code");
+      // O Google retorna o 'state' como query param após o redirect
+      const stateParam = params.get("state");
 
       if (!code) {
-        setError("Código de autorização não encontrado na URL.");
         navigate("/?error=google_auth_failed", { replace: true });
         return;
       }
 
       try {
-        const intent = sessionStorage.getItem("google_auth_intent") || "login";
         const codeVerifier = sessionStorage.getItem("google_code_verifier");
         const country = sessionStorage.getItem("google_auth_country");
 
-        // Limpa o storage imediatamente para segurança
-        sessionStorage.removeItem("google_auth_intent");
+        // Limpa o storage assim que lê
         sessionStorage.removeItem("google_code_verifier");
         sessionStorage.removeItem("google_auth_country");
+        sessionStorage.removeItem("google_auth_intent");
 
         if (!codeVerifier) {
-          throw new Error("Verificador de código PKCE não encontrado.");
+          throw new Error("Verificador de código PKCE não encontrado. Tente fazer login novamente.");
         }
 
         const data = await apiClient.googleCallback(
           code,
           codeVerifier,
-          intent,
+          "login", // intent padrão — o backend extrai do state se necessário
           `${window.location.origin}/auth/google/callback`,
           country,
+          stateParam, // Passa o state para o backend extrair intent e country embedded
         );
 
         if (data.token) {
-          // IMPORTANT: Sincronizar o perfil global ANTES de navegar.
-          // Isso garante que o UserProfileProvider já esteja em estado de "loading" ou com dados
-          // quando o usuário atingir o Dashboard, evitando o redirecionamento para a Home.
+          // Sincroniza o perfil no contexto global ANTES de navegar
+          // Sem isso, o GlobalLayout pode expulsar o usuário por não ter perfil ainda
           await refreshProfile();
 
           const redirectTo = data.isFirstLogin
@@ -69,8 +65,7 @@ export default function GoogleCallbackPage() {
           throw new Error("Token de autenticação não recebido.");
         }
       } catch (e: any) {
-        setError(e.message);
-        navigate(`/?error=${encodeURIComponent(e.message)}`, { replace: true });
+        navigate(`/?error=${encodeURIComponent(e.message || "Erro ao autenticar com Google")}`, { replace: true });
       }
     };
 
@@ -80,8 +75,9 @@ export default function GoogleCallbackPage() {
   return (
     <div className={`min-h-screen ${themeClasses.bg} flex items-center justify-center`}>
       <div className="flex flex-col items-center gap-4">
-        <div className="h-12 w-12 animate-spin rounded-full border-t-2 border-purple-500 border-r-2 border-transparent"></div>
+        <div className="h-12 w-12 animate-spin rounded-full border-t-2 border-r-2 border-purple-500 border-b-2 border-transparent"></div>
         <p className="text-purple-400 font-medium animate-pulse">Autenticando com Google...</p>
+        <p className="text-white/40 text-sm">Por favor aguarde</p>
       </div>
     </div>
   );
