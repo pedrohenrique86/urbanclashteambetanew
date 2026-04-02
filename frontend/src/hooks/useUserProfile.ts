@@ -43,6 +43,13 @@ export const useUserProfile = (shouldRedirect: boolean = true) => {
     let isMounted = true;
 
     const checkUserAndFaction = async () => {
+      // Se não houver token, o usuário está definitivamente deslogado.
+      // Paramos aqui para evitar erros 401 desnecessários no console em páginas públicas.
+      if (!apiClient.getToken()) {
+        if (isMounted) setLoading(false);
+        return;
+      }
+
       // A verificação de autenticação é feita independentemente do redirecionamento
       // para que a aplicação sempre possua o estado do usuário.
 
