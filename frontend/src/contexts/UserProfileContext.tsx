@@ -124,7 +124,7 @@ export const UserProfileProvider: React.FC<{ children: React.ReactNode }> = ({ c
     } else if (!loading && !userProfile) {
       // Se não há perfil e estamos em uma rota protegida, manda para home
       const currentPath = location.pathname;
-      const isProtectedPage = !["/", "/auth/google/callback", "/reset-password"].includes(currentPath);
+      const isProtectedPage = !["/", "/auth/google/callback", "/reset-password", "/faction-selection", "/clan-selection"].includes(currentPath);
       if (isProtectedPage) {
         navigate("/", { replace: true });
       }
