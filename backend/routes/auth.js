@@ -404,20 +404,45 @@ router.post("/google/callback", async (req, res) => {
     const { data: userInfo } = await oauth2.userinfo.get();
     console.log("DEBUG: 4. Informações do usuário Google obtidas:", userInfo);
 
-    // Inferência inteligente de país a partir do locale da Google (ex: pt-BR -> BR)
-    let country = countryFromState;
+    // Função auxiliar para validar e normalizar o código do país
+    const getValidCountryCode = (code) => {
+      if (typeof code !== 'string' || code.length < 2 || code.length > 3) return null;
+      const upperCode = code.toUpperCase();
+      // Adicionar uma lista de códigos válidos seria ideal, mas por agora validamos o formato
+      if (upperCode.match(/^[A-Z]{2,3}$/)) {
+        return upperCode;
+      }
+      return null;
+    };
+
+    // Lógica de determinação de país com ordem de precedência
+    let country = null;
+
+    // 1. Prioridade máxima: País enviado pelo frontend (via state)
+    if (countryFromState) {
+      country = getValidCountryCode(countryFromState);
+      console.log(`DEBUG: País determinado via state do frontend: ${country}`);
+    }
+
+    // 2. Segunda prioridade: Inferência via Google locale
     if (!country && userInfo.locale) {
       const localeParts = userInfo.locale.split(/[-_]/);
-      if (localeParts.length > 1) {
-        country = localeParts[1].toUpperCase();
-      } else if (
-        userInfo.locale.length === 2 &&
-        userInfo.locale === userInfo.locale.toUpperCase()
-      ) {
-        country = userInfo.locale;
+      const regionCode = localeParts.length > 1 ? localeParts[localeParts.length - 1] : localeParts[0];
+      country = getValidCountryCode(regionCode);
+      console.log(`DEBUG: País inferido do locale '${userInfo.locale}': ${country}`);
+    }
+
+    // 3. Terceira prioridade: Fallback via header do Cloudflare
+    if (!country && req.headers['cf-ipcountry']) {
+      const cfCountry = req.headers['cf-ipcountry'];
+      // Ignorar valores inválidos como 'XX' ou 'T1'
+      if (cfCountry !== 'XX' && cfCountry !== 'T1') {
+        country = getValidCountryCode(cfCountry);
+        console.log(`DEBUG: País obtido do header Cloudflare 'cf-ipcountry': ${country}`);
       }
     }
-    console.log("DEBUG: Country inferido:", country);
+    
+    console.log(`DEBUG: País final determinado para o usuário: ${country}`);
 
     const { id: google_id, email, name, picture } = userInfo;
     console.log("DEBUG: 5. google_id:", google_id, "email:", email);
@@ -451,17 +476,18 @@ router.post("/google/callback", async (req, res) => {
           "DEBUG: 11. Usuário encontrado por email. Vinculando Google ID.",
         );
         // Usuário com este email já existe, vincular a conta Google
-        // E também atualizar o país se ele estiver nulo
-        await query(
+        // E também atualizar o país se ele estiver nulo, usando o valor determinado
+        const updateResult = await query(
           `UPDATE users SET 
            google_id = $1, 
            is_email_confirmed = TRUE,
-           country = COALESCE(country, $3)
-           WHERE id = $2`,
-          [google_id, user.id, country || null],
+           country = COALESCE(users.country, $3)
+           WHERE id = $2 RETURNING *`,
+          [google_id, user.id, country],
         );
+        user = updateResult.rows[0]; // Atualiza o objeto user com os dados do BD
         console.log(
-          "DEBUG: 12. Google ID vinculado ao usuário existente e email confirmado.",
+          `DEBUG: 12. Conta vinculada. País atualizado para ${user.country} se era nulo.`,
         );
       } else {
         console.log("DEBUG: 13. Usuário não existe. Criando novo usuário.");
@@ -491,10 +517,24 @@ router.post("/google/callback", async (req, res) => {
         const newUserResult = await query(
           `INSERT INTO users (username, email, google_id, is_email_confirmed, country)
            VALUES ($1, $2, $3, true, $4) RETURNING *`,
-          [uniqueUsername, email, google_id, country || null],
+          [uniqueUsername, email, google_id, country],
         );
         user = newUserResult.rows[0];
         console.log("DEBUG: 14. Novo usuário criado:", user);
+      }
+    } else {
+      // Usuário já existe e logou com Google antes. Apenas atualiza o país se necessário.
+      if (country && !user.country) {
+        console.log("DEBUG: Usuário existente sem país, atualizando.");
+        const updateResult = await query(
+          `UPDATE users 
+           SET country = $2
+           WHERE id = $1
+           RETURNING *`,
+          [user.id, country]
+        );
+        user = updateResult.rows[0];
+        console.log("DEBUG: País do usuário existente atualizado:", user);
       }
     }
 
