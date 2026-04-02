@@ -17,6 +17,7 @@ const authRoutes = require("./routes/auth");
 const { router: userRoutes, scheduleUsersRefresh } = require("./routes/users");
 const { router: clanRoutes, scheduleClansRefresh } = require("./routes/clans");
 const { connectDB, closePool, seedClans } = require("./config/database");
+const { redisReadyPromise } = require("./config/redisClient");
 const { checkAutoStart } = require("./services/gameStateService");
 const { schedulePersistence } = require("./services/playerStateService");
 const { initializeSocket } = require("./socketHandler");
@@ -152,7 +153,8 @@ async function startGameStateMonitor() {
 async function startServer() {
   try {
     await connectDB();
-    console.log("✅ Conectado ao PostgreSQL");
+    await redisReadyPromise;
+    console.log("✅ Conectado ao PostgreSQL e Redis");
 
     // Popula a tabela de clãs, se necessário.
     // await seedClans(); // Desativado para evitar a limpeza dos dados dos clãs a cada reinício.

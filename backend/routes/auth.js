@@ -365,12 +365,12 @@ router.post("/google/callback", async (req, res) => {
 
   // Extrair intent e country do parâmetro 'state' (mais confiável, sobrevive ao redirect)
   let intent = bodyIntent || "login";
-  let country = bodyCountry || null;
+  let countryFromState = bodyCountry || null;
   try {
     if (stateStr) {
       const stateObj = JSON.parse(stateStr);
       if (stateObj.intent) intent = stateObj.intent;
-      if (stateObj.country) country = stateObj.country;
+      if (stateObj.country) countryFromState = stateObj.country;
     }
   } catch(e) { /* ignora JSON inválido */ }
 
@@ -403,6 +403,21 @@ router.post("/google/callback", async (req, res) => {
     const oauth2 = google.oauth2({ version: "v2", auth: callbackClient });
     const { data: userInfo } = await oauth2.userinfo.get();
     console.log("DEBUG: 4. Informações do usuário Google obtidas:", userInfo);
+
+    // Inferência inteligente de país a partir do locale da Google (ex: pt-BR -> BR)
+    let country = countryFromState;
+    if (!country && userInfo.locale) {
+      const localeParts = userInfo.locale.split(/[-_]/);
+      if (localeParts.length > 1) {
+        country = localeParts[1].toUpperCase();
+      } else if (
+        userInfo.locale.length === 2 &&
+        userInfo.locale === userInfo.locale.toUpperCase()
+      ) {
+        country = userInfo.locale;
+      }
+    }
+    console.log("DEBUG: Country inferido:", country);
 
     const { id: google_id, email, name, picture } = userInfo;
     console.log("DEBUG: 5. google_id:", google_id, "email:", email);

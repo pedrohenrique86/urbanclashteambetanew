@@ -39,9 +39,11 @@ async function initRedis() {
   }
 }
 
-initRedis();
+// Instância da Promise de inicialização para ser aguardada pelo servidor
+const redisReadyPromise = initRedis();
 
 module.exports = {
+  redisReadyPromise,
   client: {
     get isReady() {
       return isReady;
@@ -50,7 +52,11 @@ module.exports = {
   getAsync: async (k) => {
     if (!isReady) return null;
     try {
-      return await client.get(k);
+      if (isUpstash) {
+        return await client.get(k);
+      } else {
+        return await client.get(k);
+      }
     } catch {
       return null;
     }
@@ -103,14 +109,6 @@ module.exports = {
       return null;
     }
   },
-  expireAsync: async (k, t) => {
-    if (!isReady) return null;
-    try {
-      return await client.expire(k, t);
-    } catch {
-      return null;
-    }
-  },
   hGetAllAsync: async (k) => {
     if (!isReady) return null;
     try {
@@ -121,14 +119,11 @@ module.exports = {
   },
   scanIterator: (options) => {
     if (!isReady || isUpstash) {
-      // Esta implementação é para o pacote local 'redis'.
-      // Upstash tem um método de scan diferente que precisaria de uma implementação separada.
       async function* empty() {
         yield* [];
       }
       return empty();
     }
-    // Retorna diretamente o iterador assíncrono do cliente node-redis
     return client.scanIterator(options);
   },
 };
