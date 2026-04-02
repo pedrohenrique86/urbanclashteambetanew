@@ -352,7 +352,7 @@ export default function AuthModal({
 
   // Efeito para gerenciar o contador de cooldown e limpar quando o componente for desmontado
   useEffect(() => {
-    let countdownInterval: number | null = null;
+    let countdownInterval: ReturnType<typeof setInterval> | null = null;
 
     // Se houver um cooldown ativo, iniciar o contador
     if (resendCooldown > 0) {
