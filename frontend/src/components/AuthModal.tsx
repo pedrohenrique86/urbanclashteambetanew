@@ -493,7 +493,7 @@ export default function AuthModal({
         if (error.response?.status === 409) {
           setAuthMethodError(
             error.response.data.message ||
-              "Conflito de método de autenticação.",
+            "Conflito de método de autenticação.",
           );
         } else {
           // Para outros erros (401-credenciais inválidas, 500), use o estado de erro geral
@@ -502,11 +502,11 @@ export default function AuthModal({
             error.response?.data?.message ||
             error.message ||
             "Ocorreu um erro durante o login.";
-            
+
           setErrors({ form: message });
 
           // Se o erro for senha incorreta, mostrar opção de recuperar
-          if (errorType === "Senha incorreta") {
+          if (errorType === "Senha incorreta, você pode rcuperar sua senha!") {
             setShowForgotPasswordOption(true);
             setRegisteredEmail(formData.email);
           }
@@ -713,11 +713,10 @@ export default function AuthModal({
                   setAuthMethodError(null);
                 }}
                 className={`flex-1 px-2 sm:px-3 py-1 sm:py-2 rounded-lg font-orbitron text-xs sm:text-sm transition-colors
-                ${
-                  activeTab === tab.id
+                ${activeTab === tab.id
                     ? "bg-orange-500 text-white shadow-lg"
                     : "bg-gray-700 hover:bg-gray-600 text-gray-300"
-                }`}
+                  }`}
               >
                 {tab.label}
               </button>
@@ -784,11 +783,10 @@ export default function AuthModal({
                       type="button"
                       onClick={handleResendConfirmation}
                       disabled={isResending || resendCooldown > 0}
-                      className={`w-full font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline transition-colors ${
-                        isResending || resendCooldown > 0
-                          ? "bg-gray-400 cursor-not-allowed text-gray-600"
-                          : "bg-orange-600 hover:bg-orange-700 text-white"
-                      }`}
+                      className={`w-full font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline transition-colors ${isResending || resendCooldown > 0
+                        ? "bg-gray-400 cursor-not-allowed text-gray-600"
+                        : "bg-orange-600 hover:bg-orange-700 text-white"
+                        }`}
                     >
                       {isResending
                         ? "Reenviando email..."
@@ -928,11 +926,10 @@ export default function AuthModal({
                   <input
                     type="text"
                     required
-                    className={`w-full p-3 bg-gray-700 rounded-lg text-white border transition-colors ${
-                      errors.username
-                        ? "border-red-500"
-                        : "border-gray-600 focus:border-orange-500"
-                    } focus:outline-none`}
+                    className={`w-full p-3 bg-gray-700 rounded-lg text-white border transition-colors ${errors.username
+                      ? "border-red-500"
+                      : "border-gray-600 focus:border-orange-500"
+                      } focus:outline-none`}
                     value={formData.username}
                     onChange={(e) =>
                       handleInputChange("username", e.target.value)
@@ -955,11 +952,10 @@ export default function AuthModal({
                   <input
                     type="email"
                     required
-                    className={`w-full p-3 bg-gray-700 rounded-lg text-white border transition-colors ${
-                      errors.email
-                        ? "border-red-500"
-                        : "border-gray-600 focus:border-orange-500"
-                    } focus:outline-none`}
+                    className={`w-full p-3 bg-gray-700 rounded-lg text-white border transition-colors ${errors.email
+                      ? "border-red-500"
+                      : "border-gray-600 focus:border-orange-500"
+                      } focus:outline-none`}
                     value={formData.email}
                     onChange={(e) => handleInputChange("email", e.target.value)}
                     placeholder="seu@email.com"
@@ -976,11 +972,10 @@ export default function AuthModal({
                   <input
                     type="email"
                     required
-                    className={`w-full p-3 bg-gray-700 rounded-lg text-white border transition-colors ${
-                      errors.confirmEmail
-                        ? "border-red-500"
-                        : "border-gray-600 focus:border-orange-500"
-                    } focus:outline-none`}
+                    className={`w-full p-3 bg-gray-700 rounded-lg text-white border transition-colors ${errors.confirmEmail
+                      ? "border-red-500"
+                      : "border-gray-600 focus:border-orange-500"
+                      } focus:outline-none`}
                     value={formData.confirmEmail}
                     onChange={(e) =>
                       handleInputChange("confirmEmail", e.target.value)
@@ -1001,11 +996,10 @@ export default function AuthModal({
                   <input
                     type="password"
                     required
-                    className={`w-full p-3 bg-gray-700 rounded-lg text-white border transition-colors ${
-                      errors.password
-                        ? "border-red-500"
-                        : "border-gray-600 focus:border-orange-500"
-                    } focus:outline-none`}
+                    className={`w-full p-3 bg-gray-700 rounded-lg text-white border transition-colors ${errors.password
+                      ? "border-red-500"
+                      : "border-gray-600 focus:border-orange-500"
+                      } focus:outline-none`}
                     value={formData.password}
                     onChange={(e) =>
                       handleInputChange("password", e.target.value)
@@ -1028,11 +1022,10 @@ export default function AuthModal({
                   <input
                     type="password"
                     required
-                    className={`w-full p-3 bg-gray-700 rounded-lg text-white border transition-colors ${
-                      errors.confirmPassword
-                        ? "border-red-500"
-                        : "border-gray-600 focus:border-orange-500"
-                    } focus:outline-none`}
+                    className={`w-full p-3 bg-gray-700 rounded-lg text-white border transition-colors ${errors.confirmPassword
+                      ? "border-red-500"
+                      : "border-gray-600 focus:border-orange-500"
+                      } focus:outline-none`}
                     value={formData.confirmPassword}
                     onChange={(e) =>
                       handleInputChange("confirmPassword", e.target.value)
@@ -1053,11 +1046,10 @@ export default function AuthModal({
                   <input
                     type="date"
                     required
-                    className={`w-full p-3 bg-gray-700 rounded-lg text-white border transition-colors ${
-                      errors.birthDate
-                        ? "border-red-500"
-                        : "border-gray-600 focus:border-orange-500"
-                    } focus:outline-none`}
+                    className={`w-full p-3 bg-gray-700 rounded-lg text-white border transition-colors ${errors.birthDate
+                      ? "border-red-500"
+                      : "border-gray-600 focus:border-orange-500"
+                      } focus:outline-none`}
                     value={formData.birthDate}
                     onChange={(e) =>
                       handleInputChange("birthDate", e.target.value)
@@ -1083,11 +1075,10 @@ export default function AuthModal({
                   </label>
                   <div className="relative" ref={countryDropdownRef}>
                     <div
-                      className={`w-full p-3 bg-gray-700 rounded-lg text-white border transition-colors ${
-                        errors.country
-                          ? "border-red-500"
-                          : "border-gray-600 focus:border-orange-500"
-                      } focus:outline-none flex items-center cursor-pointer`}
+                      className={`w-full p-3 bg-gray-700 rounded-lg text-white border transition-colors ${errors.country
+                        ? "border-red-500"
+                        : "border-gray-600 focus:border-orange-500"
+                        } focus:outline-none flex items-center cursor-pointer`}
                       onClick={() =>
                         setIsCountryDropdownOpen(!isCountryDropdownOpen)
                       }
