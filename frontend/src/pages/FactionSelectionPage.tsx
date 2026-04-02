@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useUserProfile } from "../hooks/useUserProfile";
+import { useUserProfileContext } from "../contexts/UserProfileContext";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { apiClient } from "../lib/supabaseClient";
@@ -24,6 +25,7 @@ export default function FactionSelectionPage() {
   const navigate = useNavigate();
 
   const { userProfile: profile, loading: profileLoading } = useUserProfile();
+  const { refreshProfile } = useUserProfileContext();
 
   const [minPageLoadingTimePassed, setMinPageLoadingTimePassed] =
     useState(false);
@@ -139,6 +141,9 @@ export default function FactionSelectionPage() {
       }
 
       console.log(`✅ Processo de facção (${selectedFaction}) concluído.`);
+
+      // Atualiza o perfil global para que o GlobalLayout veja a facção preenchida
+      await refreshProfile();
 
       console.log("🔄 Redirecionando para a seleção de clãs...");
       navigate("/clan-selection", { 

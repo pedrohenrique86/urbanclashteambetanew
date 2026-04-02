@@ -1,13 +1,11 @@
 import React, { useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { useTheme } from "../contexts/ThemeContext";
 import { apiClient } from "../lib/supabaseClient";
 import { useUserProfileContext } from "../contexts/UserProfileContext";
 
 export default function GoogleCallbackPage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { themeClasses } = useTheme();
   const { refreshProfile } = useUserProfileContext();
   const effectRan = useRef(false);
 
@@ -72,13 +70,6 @@ export default function GoogleCallbackPage() {
     processAuth();
   }, [location.search, navigate, refreshProfile]);
 
-  return (
-    <div className={`min-h-screen ${themeClasses.bg} flex items-center justify-center`}>
-      <div className="flex flex-col items-center gap-4">
-        <div className="h-12 w-12 animate-spin rounded-full border-t-2 border-r-2 border-purple-500 border-b-2 border-transparent"></div>
-        <p className="text-purple-400 font-medium animate-pulse">Autenticando com Google...</p>
-        <p className="text-white/40 text-sm">Por favor aguarde</p>
-      </div>
-    </div>
-  );
+  // Não renderiza nada — o LoadingSpinner global cobre o período de processamento
+  return null;
 }

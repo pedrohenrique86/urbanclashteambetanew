@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { useLocation, useNavigate } from "react-router-dom";
-import { useUserProfile, invalidateUserProfile } from "../hooks/useUserProfile";
+import { useUserProfile } from "../hooks/useUserProfile";
+import { useUserProfileContext } from "../contexts/UserProfileContext";
 import { redirectToDashboardWithCleanup } from "../utils/cacheUtils";
 import { apiClient } from "../lib/supabaseClient";
 import { LoadingSpinner } from "../components/ui/LoadingSpinner";
@@ -26,6 +27,7 @@ export default function ClanSelectionPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const { userProfile, loading: profileLoading } = useUserProfile();
+  const { refreshProfile } = useUserProfileContext();
 
   // Obtém a facção do banco de dados (mais confiável) ou do fallback do router
   const selectedFaction = userProfile?.faction || location.state?.faction;
@@ -74,17 +76,14 @@ export default function ClanSelectionPage() {
       // Usando apiClient que já injeta o token e usa a URL correta
       await apiClient.joinClan(selectedClan);
 
-      // Invalidar cache do hook
-      invalidateUserProfile();
+      // Atualiza o perfil global para que o GlobalLayout saiba que o clã foi configurado
+      await refreshProfile();
 
-      // Delay antes de redirecionar
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-      
-      // Limpar cache manual para garantir dados novos, mas navegar suavemente
+      // Limpar cache manual
       import("../utils/cacheUtils").then(({ clearAllCache }) => clearAllCache());
-      
-      // Redirecionar via router do React para evitar o refresh completo da página
-      navigate("/dashboard");
+
+      // Navega suavemente para o dashboard
+      navigate("/dashboard", { replace: true });
     } catch (error) {
       setError(
         error instanceof Error ? error.message : "Erro ao entrar no clã",
