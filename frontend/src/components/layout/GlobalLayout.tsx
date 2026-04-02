@@ -8,6 +8,8 @@ import { apiClient } from "../../lib/supabaseClient";
 import { motion, AnimatePresence } from "framer-motion";
 import dashbgangster from "../../assets/dashbgangster.webp";
 import { Tooltip } from "react-tooltip";
+import { useGameClock } from "../../hooks/useGameClock";
+import GameClockDisplay from "./GameClockDisplay";
 
 interface GlobalLayoutProps {
   children: React.ReactNode;
@@ -18,6 +20,11 @@ const GlobalLayout: React.FC<GlobalLayoutProps> = ({ children }) => {
   const navigate = useNavigate();
   const { themeClasses } = useTheme();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [touchStart, setTouchStart] = useState<number | null>(null);
+  const [touchEnd, setTouchEnd] = useState<number | null>(null);
+
+  const minSwipeDistance = 50;
+  const { remainingTime, status, serverTime } = useGameClock();
 
   const pagesWithoutNav = [
     "/",
@@ -40,6 +47,32 @@ const GlobalLayout: React.FC<GlobalLayoutProps> = ({ children }) => {
     }
   };
 
+  const onTouchStartObj = (e: React.TouchEvent) => {
+    setTouchEnd(null);
+    setTouchStart(e.targetTouches[0].clientX);
+  };
+
+  const onTouchMoveObj = (e: React.TouchEvent) => {
+    setTouchEnd(e.targetTouches[0].clientX);
+  };
+
+  const onTouchEndObj = () => {
+    if (!touchStart || !touchEnd) return;
+    const distance = touchStart - touchEnd;
+    const isLeftSwipe = distance > minSwipeDistance;
+    const isRightSwipe = distance < -minSwipeDistance;
+    
+    // Swipe da direita para a esquerda a partir da borda tela (para abrir o menu móvel)
+    if (isLeftSwipe && !isMobileMenuOpen && touchStart > window.innerWidth - 60) {
+      setIsMobileMenuOpen(true);
+    }
+    
+    // Swipe da esquerda para direita para fechar o menu que está aberto à direita
+    if (isRightSwipe && isMobileMenuOpen) {
+      setIsMobileMenuOpen(false);
+    }
+  };
+
   if (!shouldShowNav) {
     return <>{children}</>;
   }
@@ -58,10 +91,13 @@ const GlobalLayout: React.FC<GlobalLayoutProps> = ({ children }) => {
 
   return (
     <div
-      className={`h-screen font-exo text-white ${layoutClasses}`}
+      className={`h-screen font-exo text-white ${layoutClasses} overflow-hidden flex flex-col`}
       style={backgroundStyle}
+      onTouchStart={onTouchStartObj}
+      onTouchMove={onTouchMoveObj}
+      onTouchEnd={onTouchEndObj}
     >
-      <div className={`flex h-full ${isDashboard ? "bg-black/20" : ""}`}>
+      <div className={`flex flex-1 overflow-hidden ${isDashboard ? "bg-black/20" : ""}`}>
         {/* Sidebar para desktop, fixa na lateral */}
         <div className="hidden md:flex md:flex-shrink-0 z-20 h-full">
           <DashboardSidebar
@@ -84,11 +120,11 @@ const GlobalLayout: React.FC<GlobalLayoutProps> = ({ children }) => {
                 className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 md:hidden"
               />
               <motion.div
-                initial={{ x: "-100%" }}
+                initial={{ x: "100%" }}
                 animate={{ x: 0 }}
-                exit={{ x: "-100%" }}
+                exit={{ x: "100%" }}
                 transition={{ type: "spring", bounce: 0, duration: 0.4 }}
-                className="fixed inset-y-0 left-0 z-50 flex md:hidden"
+                className="fixed inset-y-0 right-0 z-50 flex md:hidden"
               >
                 <DashboardSidebar
                   onMobileClose={() => setIsMobileMenuOpen(false)}
@@ -111,12 +147,20 @@ const GlobalLayout: React.FC<GlobalLayoutProps> = ({ children }) => {
               handleLogout={handleLogout}
               onMenuToggle={() => setIsMobileMenuOpen(true)}
             />
-            <main className="focus:outline-none pt-[115px] md:pt-[70px] px-4 md:px-6">
+            <main className="focus:outline-none pt-[115px] md:pt-[70px] px-4 md:px-6 pb-[60px] md:pb-6 relative z-10 w-full">
               {children}
             </main>
           </div>
         </div>
       </div>
+
+      <GameClockDisplay
+        remainingTime={remainingTime}
+        status={status}
+        serverTime={serverTime}
+        isCollapsed={false}
+        isMobileMode={true}
+      />
       <Tooltip
         id="server-time-tooltip"
         place="top-end"

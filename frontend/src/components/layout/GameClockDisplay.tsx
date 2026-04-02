@@ -15,6 +15,7 @@ interface GameClockDisplayProps {
   status: string;
   serverTime: Date | null;
   isCollapsed: boolean;
+  isMobileMode?: boolean;
 }
 
 const formatRemainingTime = (totalSeconds: number): string => {
@@ -64,6 +65,7 @@ const GameClockDisplay: React.FC<GameClockDisplayProps> = ({
   status,
   serverTime,
   isCollapsed,
+  isMobileMode = false,
 }) => {
   const remainingTimeStr = formatRemainingTime(remainingTime);
   const serverTimeStr = formatServerTime(serverTime);
@@ -114,6 +116,33 @@ const GameClockDisplay: React.FC<GameClockDisplayProps> = ({
     color: statusColor,
     icon: statusIcon,
   } = getStatusInfo();
+
+  if (isMobileMode) {
+    return (
+      <div className="flex flex-row items-center justify-between w-full px-2 py-1.5 bg-slate-900/95 backdrop-blur-md border-t border-slate-700/50 shadow-[0_-5px_15px_rgba(0,0,0,0.5)] z-[60] fixed bottom-0 left-0 right-0 md:hidden">
+        <div className={`flex items-center gap-1 ${statusColor}`}>
+          <span className="text-[10px] sm:text-[11px]">{statusIcon}</span>
+          <span className="text-[9px] sm:text-[10px] font-orbitron font-bold uppercase tracking-wider hidden xs:inline-block">
+            {statusText}
+          </span>
+          <span className="font-mono font-bold text-[10px] sm:text-[11px] ml-1">
+            {remainingTimeStr.split(' ')[0]} {remainingTimeStr.split(' ')[1]} {remainingTimeStr.split(' ')[2]}
+          </span>
+        </div>
+        
+        <div
+          data-tooltip-id="server-time-tooltip"
+          data-tooltip-content="Horário Padrão"
+          className="flex items-center gap-1 text-gray-400"
+        >
+          <IoMdTime className="text-[10px] sm:text-[11px]" />
+          <span className="font-mono text-[8px] sm:text-[9px] whitespace-nowrap overflow-hidden text-ellipsis max-w-[120px] xs:max-w-none">
+            {serverTimeStr}
+          </span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <>

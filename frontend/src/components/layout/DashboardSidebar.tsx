@@ -225,7 +225,7 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
       animate={isCollapsed ? "collapsed" : "expanded"}
       variants={sidebarVariants}
       transition={{ duration: 0.3, ease: "easeInOut" }}
-      className={`bg-black/20 backdrop-blur-xl border-r border-slate-700/50 flex-shrink-0 flex flex-col items-center relative z-10 h-full rounded-r-xl ${isCollapsed ? 'pb-[40px]' : 'pb-[60px]'} overflow-x-hidden`}
+      className={`bg-black/20 backdrop-blur-xl border-slate-700/50 flex-shrink-0 flex flex-col items-center relative z-10 h-full border-l rounded-l-xl md:border-l-0 md:rounded-l-none md:border-r md:rounded-r-xl ${isCollapsed ? 'pb-[40px]' : 'pb-[60px]'} overflow-x-hidden`}
       style={{ boxShadow: "inset -5px 0 15px -5px rgba(0,0,0,0.5)" }}
     >
       <div className="w-full px-4 pt-2 pb-2 text-center">
@@ -477,8 +477,8 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
         )}
       </nav>
 
-      {/* Game Clock Display */}
-      <div className="absolute bottom-0 left-0 right-0 w-full px-2 pb-0 pt-1">
+      {/* Game Clock Display (Desktop Only) */}
+      <div className="hidden md:block absolute bottom-0 left-0 right-0 w-full px-2 pb-0 pt-1">
         <GameClockDisplay
           remainingTime={remainingTime}
           status={status}
