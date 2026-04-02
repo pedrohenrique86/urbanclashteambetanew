@@ -25,7 +25,7 @@ export default function ClanSelectionPage() {
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
   const location = useLocation();
-  const { userProfile, loading: profileLoading } = useUserProfile(false);
+  const { userProfile, loading: profileLoading } = useUserProfile();
 
   // Obtém a facção do banco de dados (mais confiável) ou do fallback do router
   const selectedFaction = userProfile?.faction || location.state?.faction;

@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { apiClient } from "../lib/supabaseClient";
 import { UserProfile } from "../types";
 import { calculateLevel } from "../utils/leveling";
@@ -56,7 +56,7 @@ export const UserProfileProvider: React.FC<{ children: React.ReactNode }> = ({ c
     };
   }, []);
 
-  const fetchProfile = useCallback(async (shouldRedirect: boolean = false) => {
+  const fetchProfile = useCallback(async () => {
     if (!apiClient.getToken()) {
       setLoading(false);
       return;
@@ -65,7 +65,6 @@ export const UserProfileProvider: React.FC<{ children: React.ReactNode }> = ({ c
     try {
       const userResponse = await apiClient.getCurrentUser();
       if (!userResponse.data.user) {
-        if (shouldRedirect) navigate("/");
         setLoading(false);
         return;
       }
@@ -77,30 +76,16 @@ export const UserProfileProvider: React.FC<{ children: React.ReactNode }> = ({ c
         const processedProfile = await processExistingProfile(profileData, user);
         setUserProfile(processedProfile);
       }
-
-      // Lógica de Redirecionamento (apenas se solicitado)
-      if (shouldRedirect) {
-        const currentPath = window.location.pathname;
-        if (profileData?.faction && profileData.clan_id) {
-          if (currentPath === "/faction-selection" || currentPath === "/clan-selection") {
-            navigate("/dashboard");
-          }
-        } else if (profileData?.faction) {
-          if (currentPath !== "/clan-selection") navigate("/clan-selection");
-        } else {
-          if (currentPath !== "/faction-selection") navigate("/faction-selection");
-        }
-      }
     } catch (error) {
       console.error("Erro ao carregar perfil global:", error);
     } finally {
       setLoading(false);
     }
-  }, [navigate, processExistingProfile]);
+  }, [processExistingProfile]);
 
   const refreshProfile = async () => {
     setLoading(true);
-    await fetchProfile(false);
+    await fetchProfile();
   };
 
   const handleLogout = async () => {
@@ -109,9 +94,46 @@ export const UserProfileProvider: React.FC<{ children: React.ReactNode }> = ({ c
     navigate("/");
   };
 
+  // Lógica de Redirecionamento Centralizada
+  useEffect(() => {
+    if (!loading && userProfile) {
+      const currentPath = location.pathname;
+      
+      const pagesWithoutNav = [
+        "/",
+        "/faction-selection",
+        "/clan-selection",
+        "/email-confirmation",
+        "/confirm-email",
+        "/reset-password"
+      ];
+
+      const isProtectedPage = !pagesWithoutNav.includes(currentPath) && !currentPath.startsWith("/auth/google/callback");
+
+      if (isProtectedPage) {
+        if (!userProfile.faction) {
+          navigate("/faction-selection", { replace: true });
+        } else if (!userProfile.clan_id) {
+          navigate("/clan-selection", { replace: true });
+        }
+      } else if (currentPath === "/faction-selection" || currentPath === "/clan-selection") {
+        if (userProfile.faction && userProfile.clan_id) {
+          navigate("/dashboard", { replace: true });
+        }
+      }
+    } else if (!loading && !userProfile) {
+      // Se não há perfil e estamos em uma rota protegida, manda para home
+      const currentPath = location.pathname;
+      const isProtectedPage = !["/", "/auth/google/callback", "/reset-password"].includes(currentPath);
+      if (isProtectedPage) {
+        navigate("/", { replace: true });
+      }
+    }
+  }, [loading, userProfile, location.pathname, navigate]);
+
   // Carregamento inicial automático
   useEffect(() => {
-    fetchProfile(false);
+    fetchProfile();
   }, [fetchProfile]);
 
   return (

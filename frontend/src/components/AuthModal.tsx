@@ -1,6 +1,8 @@
 import React from "react";
 import { useState, useRef, useEffect } from "react";
-import { apiClient } from "../lib/supabaseClient"; // Agora usando apenas o apiClient local
+import { useNavigate } from "react-router-dom";
+import { apiClient } from "../lib/supabaseClient";
+import { useUserProfileContext } from "../contexts/UserProfileContext";
 
 type AuthMode = "login" | "register" | "forgot-password";
 
@@ -89,6 +91,9 @@ export default function AuthModal({
   onClose,
   initialMode = "login",
 }: AuthModalProps) {
+  const { refreshProfile } = useUserProfileContext();
+  const navigate = useNavigate();
+
   const [activeTab, setActiveTab] = useState<AuthMode>(
     initialMode === "register" ? "register" : "login",
   );
@@ -464,31 +469,26 @@ export default function AuthModal({
             // Tentar obter os dados do perfil
             const profileData = await apiClient.getUserProfile();
 
-            // Delay adicional para processamento
-            await new Promise((resolve) => setTimeout(resolve, 1500));
+            // Atualiza o estado global imediatamente
+            await refreshProfile();
 
             // Fechar o modal
             onClose();
             setIsProcessing(false);
 
             // Verificar se é o primeiro login (após confirmação de email)
-            // O backend já envia isFirstLogin baseado na verificação de last_login
             const isFirstLogin = data.isFirstLogin;
 
             // Redirecionar com base na facção e se é primeiro login
             if (isFirstLogin || !profileData?.faction) {
-              // Se for primeiro login ou não tiver facção, redirecionar para a página de seleção
-              window.location.href = "/faction-selection";
+              navigate("/faction-selection", { replace: true });
             } else {
-              // Delay antes de redirecionar para o dashboard
-              await new Promise((resolve) => setTimeout(resolve, 1000));
-              window.location.href = "/dashboard";
+              // Navegação suave via React Router
+              navigate("/dashboard", { replace: true });
             }
           } catch (profileError) {
             // Se houver erro ao buscar o perfil, redirecionar para a página de seleção
-            onClose();
-            setIsProcessing(false);
-            window.location.href = "/faction-selection";
+            navigate("/faction-selection", { replace: true });
           }
         }
       } catch (error: any) {

@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import TopBar from "./TopBar";
 import DashboardSidebar from "./DashboardSidebar";
+import { FloatingMenuButton } from "./FloatingMenuButton";
 import { useTheme } from "../../contexts/ThemeContext";
 import { useUserProfile } from "../../hooks/useUserProfile";
 import { apiClient } from "../../lib/supabaseClient";
@@ -36,7 +37,7 @@ const GlobalLayout: React.FC<GlobalLayoutProps> = ({ children }) => {
   ];
   const shouldShowNav = !pagesWithoutNav.includes(location.pathname);
 
-  const { userProfile, loading } = useUserProfile(shouldShowNav);
+  const { userProfile, loading } = useUserProfile();
 
   const handleLogout = async () => {
     try {
@@ -77,7 +78,13 @@ const GlobalLayout: React.FC<GlobalLayoutProps> = ({ children }) => {
     return <>{children}</>;
   }
 
-  if (loading || !userProfile || !userProfile.faction || !userProfile.clan_id) {
+  if (loading) {
+    return <div className={`min-h-screen ${themeClasses.bg}`} />;
+  }
+
+  // Se não houver perfil, o UserProfileProvider redirecionará para a Home em breve.
+  // Enquanto isso, retornamos nulo ou o fundo padrão para evitar erros de renderização
+  if (!userProfile) {
     return <div className={`min-h-screen ${themeClasses.bg}`} />;
   }
 
@@ -173,6 +180,7 @@ const GlobalLayout: React.FC<GlobalLayoutProps> = ({ children }) => {
         style={{ zIndex: 99999 }}
         className="!bg-slate-700 !bg-opacity-80 !backdrop-blur-sm !text-white !rounded-lg !px-3 !py-1 !text-[8px] !font-sans"
       />
+      <FloatingMenuButton />
     </div>
   );
 };

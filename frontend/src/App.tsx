@@ -43,6 +43,12 @@ const PageLoader = () => (
   <div className="flex h-screen w-full items-center justify-center bg-gray-900" />
 );
 
+const RootWrapper = () => (
+  <UserProfileProvider>
+    <Outlet />
+  </UserProfileProvider>
+);
+
 const AppLayout = () => (
   <GlobalLayout>
     <Outlet />
@@ -51,52 +57,57 @@ const AppLayout = () => (
 
 const router = createBrowserRouter([
   {
-    path: "/",
-    element: <HomePage />,
-  },
-  {
-    path: "/auth/google/callback",
-    element: <GoogleCallbackPage />,
-  },
-  {
-    path: "/",
-    element: <AppLayout />,
+    element: <RootWrapper />,
     children: [
-      // Rotas de Autenticação e Seleção
-      { path: "dashboard", element: <DashboardPage /> },
-      { path: "faction-selection", element: <FactionSelectionPage /> },
-      { path: "clan-selection", element: <ClanSelectionPage /> },
-      { path: "email-confirmation", element: <EmailConfirmationPage /> },
-      { path: "confirm-email", element: <EmailConfirmationPage /> },
-      { path: "reset-password", element: <ResetPasswordPage /> },
+      {
+        path: "/",
+        element: <HomePage />,
+      },
+      {
+        path: "/auth/google/callback",
+        element: <GoogleCallbackPage />,
+      },
+      {
+        path: "/",
+        element: <AppLayout />,
+        children: [
+          // Rotas de Autenticação e Seleção
+          { path: "dashboard", element: <DashboardPage /> },
+          { path: "faction-selection", element: <FactionSelectionPage /> },
+          { path: "clan-selection", element: <ClanSelectionPage /> },
+          { path: "email-confirmation", element: <EmailConfirmationPage /> },
+          { path: "confirm-email", element: <EmailConfirmationPage /> },
+          { path: "reset-password", element: <ResetPasswordPage /> },
 
-      // Rotas de Operações
-      { path: "contracts", element: <ContractsPage /> },
-      { path: "reckoning", element: <ReckoningPage /> },
-      { path: "squad-war", element: <SquadWarPage /> },
-      { path: "supply-extraction", element: <SupplyExtractionPage /> },
-      { path: "recovery-base", element: <RecoveryBasePage /> },
-      { path: "isolation", element: <IsolationPage /> },
+          // Rotas de Operações
+          { path: "contracts", element: <ContractsPage /> },
+          { path: "reckoning", element: <ReckoningPage /> },
+          { path: "squad-war", element: <SquadWarPage /> },
+          { path: "supply-extraction", element: <SupplyExtractionPage /> },
+          { path: "recovery-base", element: <RecoveryBasePage /> },
+          { path: "isolation", element: <IsolationPage /> },
 
-      // Rotas de Economia
-      { path: "dark-zones", element: <DarkZonesPage /> },
-      { path: "parallel-network", element: <ParallelNetworkPage /> },
-      { path: "safe", element: <SafePage /> },
-      { path: "corporations", element: <CorporationsPage /> },
+          // Rotas de Economia
+          { path: "dark-zones", element: <DarkZonesPage /> },
+          { path: "parallel-network", element: <ParallelNetworkPage /> },
+          { path: "safe", element: <SafePage /> },
+          { path: "corporations", element: <CorporationsPage /> },
 
-      // Rotas de Rede
-      { path: "clan", element: <ClanPage /> },
-      { path: "social-zone", element: <SocialZonePage /> },
-      { path: "training", element: <TrainingPage /> },
-      { path: "digital-identity", element: <DigitalIdentityPage /> },
+          // Rotas de Rede
+          { path: "clan", element: <ClanPage /> },
+          { path: "social-zone", element: <SocialZonePage /> },
+          { path: "training", element: <TrainingPage /> },
+          { path: "digital-identity", element: <DigitalIdentityPage /> },
 
-      // Rotas Elite
-      { path: "vip-access", element: <VipAccessPage /> },
-      { path: "restricted-store", element: <RestrictedStorePage /> },
+          // Rotas Elite
+          { path: "vip-access", element: <VipAccessPage /> },
+          { path: "restricted-store", element: <RestrictedStorePage /> },
 
-      // Outras rotas
-      { path: "ranking", element: <RankingPage /> },
-      { path: "profile", element: <ProfilePage /> },
+          // Outras rotas
+          { path: "ranking", element: <RankingPage /> },
+          { path: "profile", element: <ProfilePage /> },
+        ],
+      },
     ],
   },
 ]);
@@ -105,16 +116,14 @@ export default function App() {
   return (
     <ThemeProvider>
       <ToastProvider>
-        <UserProfileProvider>
-          <GameClockProvider>
-            <Suspense fallback={<PageLoader />}>
-              <RouterProvider
-                router={router}
-                future={{ v7_startTransition: true }}
-              />
-            </Suspense>
-          </GameClockProvider>
-        </UserProfileProvider>
+        <GameClockProvider>
+          <Suspense fallback={<PageLoader />}>
+            <RouterProvider
+              router={router}
+              future={{ v7_startTransition: true }}
+            />
+          </Suspense>
+        </GameClockProvider>
       </ToastProvider>
     </ThemeProvider>
   );
