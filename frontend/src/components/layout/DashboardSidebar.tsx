@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -33,6 +33,7 @@ import {
 import { useGameClock } from "../../hooks/useGameClock";
 import GameClockDisplay from "./GameClockDisplay";
 import AdminMenu from "../admin/AdminMenu";
+import { Tooltip } from "react-tooltip";
 
 // Tipagem para os itens de menu e sub-menu
 interface SubMenuItem {
@@ -176,29 +177,8 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [openMenu, setOpenMenu] = useState<string | null>(null);
   const [isAdminMenuOpen, setIsAdminMenuOpen] = useState(false);
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const location = useLocation();
   const sidebarRef = useRef<HTMLElement>(null);
-
-  const handleMouseEnter = (name: string) => {
-    if (!isCollapsed) return;
-    if (timeoutRef.current) clearTimeout(timeoutRef.current);
-    setOpenMenu(name);
-  };
-
-  const handleMouseLeave = () => {
-    if (!isCollapsed) return;
-    if (timeoutRef.current) clearTimeout(timeoutRef.current);
-    timeoutRef.current = setTimeout(() => {
-      setOpenMenu(null);
-    }, 350);
-  };
-
-  useEffect(() => {
-    return () => {
-      if (timeoutRef.current) clearTimeout(timeoutRef.current);
-    };
-  }, [isCollapsed]);
 
   const handleMenuToggle = (name: string) => {
     setOpenMenu(openMenu === name ? null : name);
@@ -225,7 +205,8 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
   };
 
   return (
-    <motion.aside
+    <>
+      <motion.aside
       ref={sidebarRef}
       animate={isCollapsed ? "collapsed" : "expanded"}
       variants={sidebarVariants}
@@ -268,12 +249,17 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
       >
         <Link
           to="/dashboard"
-          onClick={onMobileClose}
+          onClick={() => { 
+            setOpenMenu(null); 
+            setIsAdminMenuOpen(false); 
+            if (onMobileClose) onMobileClose(); 
+          }}
           className={`flex justify-center items-center p-2 transition-colors ${isCollapsed ? "rounded-none" : "rounded-lg"} ${location.pathname === "/dashboard"
             ? "text-purple-400 bg-purple-500/10"
             : "text-slate-400 hover:text-white hover:bg-purple-500/10"
             }`}
-          title="Home"
+          data-tooltip-id="sidebar-tooltip"
+          data-tooltip-content="Home"
         >
           <HomeIcon className="w-5 h-5" />
         </Link>
@@ -282,14 +268,16 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
             setIsCollapsed(!isCollapsed);
           }}
           className={`hidden md:flex justify-center items-center p-2 text-slate-400 hover:text-white hover:bg-purple-500/10 transition-colors ${isCollapsed ? "rounded-none" : "rounded-lg"}`}
-          title={isCollapsed ? "Expandir" : "Encolher"}
+          data-tooltip-id="sidebar-tooltip"
+          data-tooltip-content={isCollapsed ? "Expandir" : "Encolher"}
         >
           <Bars3Icon className="w-5 h-5" />
         </button>
         <button
           onClick={handleLogout}
           className={`hidden md:flex justify-center items-center p-2 text-slate-400 hover:text-white hover:bg-purple-500/10 transition-colors ${isCollapsed ? "rounded-none" : "rounded-lg"}`}
-          title="Sair"
+          data-tooltip-id="sidebar-tooltip"
+          data-tooltip-content="Sair"
         >
           <ArrowLeftOnRectangleIcon className="w-5 h-5" />
         </button>
@@ -329,13 +317,16 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
               <div
                 key={item.name}
                 className="overflow-hidden w-full"
-                onMouseEnter={() => handleMouseEnter(item.name)}
-                onMouseLeave={handleMouseLeave}
               >
                 <button
-                  onClick={() => { if (!isCollapsed) handleMenuToggle(item.name); }}
-                  className={`w-full flex items-center text-slate-400 hover:text-white hover:bg-purple-500/10 transition-all duration-200 ${isCollapsed ? "border-l-0 justify-center px-0 py-1.5" : `py-1.5 border-l-4 ${isSubMenuActive && !isMenuOpen ? "border-purple-500" : "border-transparent"} justify-between px-8`}`}
-                  title={isCollapsed ? item.name : undefined}
+                  onClick={() => handleMenuToggle(item.name)}
+                  className={`w-full flex items-center transition-all duration-200 
+                    ${isCollapsed 
+                      ? `border-l-0 justify-center px-0 py-1.5 ${isMenuOpen ? "text-purple-400 bg-purple-500/10" : "text-slate-400 hover:text-purple-400 hover:bg-purple-500/10"}` 
+                      : `py-1.5 border-l-4 ${isMenuOpen || (isSubMenuActive && !isMenuOpen) ? "border-purple-500 text-purple-400 bg-purple-500/10" : "border-transparent text-slate-400"} justify-between px-8 hover:text-white hover:bg-purple-500/10`
+                    }`}
+                  data-tooltip-id="sidebar-tooltip"
+                  data-tooltip-content={isCollapsed ? item.name : undefined}
                 >
                   <div className="flex items-center">
                     {item.icon}
@@ -392,7 +383,8 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
                                 ? "text-purple-400"
                                 : "text-slate-400 hover:text-white"
                                 }`}
-                              title={isCollapsed ? subItem.name : undefined}
+                              data-tooltip-id="sidebar-tooltip"
+                              data-tooltip-content={isCollapsed ? subItem.name : undefined}
                             >
                               <div className="flex-shrink-0">{subItem.icon}</div>
                               {!isCollapsed && <span className="line-clamp-2">{subItem.name}</span>}
@@ -414,7 +406,8 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
               to={item.path || "#"}
               onClick={onMobileClose}
               className={`flex items-center text-slate-400 hover:text-white hover:bg-purple-500/10 transition-all duration-200 ${isCollapsed ? "border-l-0 justify-center px-0 py-1.5" : `py-1.5 border-l-4 ${location.pathname === item.path ? "border-purple-500 text-white bg-purple-500/10" : "border-transparent"} justify-start px-8`}`}
-              title={item.name}
+              data-tooltip-id="sidebar-tooltip"
+              data-tooltip-content={item.name}
             >
               {item.icon}
               <AnimatePresence>
@@ -441,8 +434,13 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
         {isAdmin && (
           <button
             onClick={() => setIsAdminMenuOpen(!isAdminMenuOpen)}
-            className={`w-full flex items-center text-slate-400 hover:text-white hover:bg-purple-500/10 transition-all duration-200 ${isCollapsed ? "border-l-0 justify-center px-0 py-1.5" : `py-1.5 border-l-4 ${isAdminMenuOpen ? "border-purple-500 text-white bg-purple-500/10" : "border-transparent"} justify-start px-8`}`}
-            title="Admin"
+            className={`w-full flex items-center transition-all duration-200 
+              ${isCollapsed 
+                ? `border-l-0 justify-center px-0 py-2 ${isAdminMenuOpen ? "text-purple-400 bg-purple-500/10" : "text-slate-400 hover:text-purple-400 hover:bg-purple-500/10"}` 
+                : `py-2 border-l-4 ${isAdminMenuOpen ? "border-purple-500 text-purple-400 bg-purple-500/10" : "border-transparent text-slate-400"} justify-start px-8 hover:text-white hover:bg-purple-500/10`
+              }`}
+            data-tooltip-id="sidebar-tooltip"
+            data-tooltip-content="Admin"
           >
             <ShieldCheckIcon className="w-4 h-4 md:w-5 md:h-5" />
             <AnimatePresence>
@@ -483,7 +481,24 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
         )}
       </AnimatePresence>
     </motion.aside>
-  );
+
+    <Tooltip 
+      id="sidebar-tooltip" 
+      place="right" 
+      delayShow={10} 
+      border="1px solid rgba(255,255,255,0.1)"
+      style={{ 
+        backgroundColor: '#1e293b', 
+        color: '#fff', 
+        fontSize: '11px',
+        padding: '4px 8px',
+        borderRadius: '4px',
+        zIndex: 9999,
+        boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.5)'
+      }} 
+    />
+  </>
+);
 };
 
 export default DashboardSidebar;
