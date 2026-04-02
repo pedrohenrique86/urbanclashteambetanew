@@ -141,7 +141,12 @@ export default function FactionSelectionPage() {
       console.log(`✅ Processo de facção (${selectedFaction}) concluído.`);
 
       console.log("🔄 Redirecionando para a seleção de clãs...");
-      navigate("/clan-selection", { state: { fromFactionSelection: true } });
+      navigate("/clan-selection", { 
+        state: { 
+          fromFactionSelection: true,
+          faction: selectedFaction
+        } 
+      });
     } catch (error: any) {
       console.error("❌ Erro na seleção de facção:", error);
       setError(error.message || "Erro ao selecionar facção. Tente novamente.");

@@ -43,11 +43,8 @@ export const useUserProfile = (shouldRedirect: boolean = true) => {
     let isMounted = true;
 
     const checkUserAndFaction = async () => {
-      // Se não deve redirecionar, não verifica autenticação
-      if (!shouldRedirect) {
-        if (isMounted) setLoading(false);
-        return;
-      }
+      // A verificação de autenticação é feita independentemente do redirecionamento
+      // para que a aplicação sempre possua o estado do usuário.
 
       try {
         const userResponse = await apiClient.getCurrentUser();
