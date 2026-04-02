@@ -76,8 +76,8 @@ export default function ClanSelectionPage() {
       // Usando apiClient que já injeta o token e usa a URL correta
       await apiClient.joinClan(selectedClan);
 
-      // Atualiza o perfil global de forma silenciosa e aguarda a conclusão antes de navegar
-      await refreshProfile(true);
+      // Atualiza o perfil global para que o GlobalLayout saiba que o clã foi configurado
+      await refreshProfile();
 
       // Limpar cache manual
       import("../utils/cacheUtils").then(({ clearAllCache }) => clearAllCache());
