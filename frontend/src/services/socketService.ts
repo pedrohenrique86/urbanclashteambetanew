@@ -20,7 +20,7 @@ interface ServerTime {
 }
 
 // URL do seu backend. Certifique-se de que esta variável de ambiente está configurada.
-const VITE_API_URL = import.meta.env.VITE_API_URL;
+const VITE_API_URL = import.meta.env.VITE_API_URL || "";
 
 class SocketService {
   private socket: Socket | null = null;
@@ -31,9 +31,7 @@ class SocketService {
   connect(): Socket {
     if (!this.socket) {
       this.socket = io(VITE_API_URL, {
-        // CORREÇÃO: Passa a URL do backend
-        transports: ["websocket"], // Força o uso de WebSockets para melhor performance
-        reconnectionAttempts: 5,
+        reconnectionAttempts: 10,
         reconnectionDelay: 1000,
         path: "/socket.io/",
       });
@@ -75,9 +73,15 @@ class SocketService {
   /**
    * Remove um listener de um evento específico.
    * @param event - O nome do evento.
+   * @param callback - Evento opcional para remover apenas um listener específico.
    */
-  off(event: string): void {
-    this.connect()?.off(event);
+  off<T>(event: string, callback?: (data: T) => void): void {
+    if (callback) {
+      // O Socket.IO suporta remover um listener específico se fornecido
+      this.connect()?.off(event, callback as any);
+    } else {
+      this.connect()?.off(event);
+    }
   }
 
   /**

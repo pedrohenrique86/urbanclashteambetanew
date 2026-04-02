@@ -2,6 +2,7 @@ import React, { Suspense, lazy } from "react";
 import { createBrowserRouter, RouterProvider, Outlet } from "react-router-dom";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { ToastProvider } from "./contexts/ToastContext";
+import { GameClockProvider } from "./contexts/GameClockContext";
 import GlobalLayout from "./components/layout/GlobalLayout";
 import { LoadingSpinner } from "./components/ui/LoadingSpinner"; // Um spinner para o fallback
 
@@ -105,12 +106,14 @@ export default function App() {
   return (
     <ThemeProvider>
       <ToastProvider>
-        <Suspense fallback={<PageLoader />}>
-          <RouterProvider
-            router={router}
-            future={{ v7_startTransition: true }}
-          />
-        </Suspense>
+        <GameClockProvider>
+          <Suspense fallback={<PageLoader />}>
+            <RouterProvider
+              router={router}
+              future={{ v7_startTransition: true }}
+            />
+          </Suspense>
+        </GameClockProvider>
       </ToastProvider>
     </ThemeProvider>
   );
