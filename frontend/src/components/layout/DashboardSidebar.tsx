@@ -176,8 +176,29 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [openMenu, setOpenMenu] = useState<string | null>(null);
   const [isAdminMenuOpen, setIsAdminMenuOpen] = useState(false);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const location = useLocation();
   const sidebarRef = useRef<HTMLElement>(null);
+
+  const handleMouseEnter = (name: string) => {
+    if (!isCollapsed) return;
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    setOpenMenu(name);
+  };
+
+  const handleMouseLeave = () => {
+    if (!isCollapsed) return;
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    timeoutRef.current = setTimeout(() => {
+      setOpenMenu(null);
+    }, 350);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    };
+  }, [isCollapsed]);
 
   const handleMenuToggle = (name: string) => {
     setOpenMenu(openMenu === name ? null : name);
@@ -209,7 +230,7 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
       animate={isCollapsed ? "collapsed" : "expanded"}
       variants={sidebarVariants}
       transition={{ duration: 0.3, ease: "easeInOut" }}
-      className="bg-black/20 backdrop-blur-xl border-r border-slate-700/50 flex-shrink-0 flex flex-col items-center relative z-10 h-full rounded-r-xl pb-[64px] overflow-x-hidden"
+      className={`bg-black/20 backdrop-blur-xl border-r border-slate-700/50 flex-shrink-0 flex flex-col items-center relative z-10 h-full rounded-r-xl ${isCollapsed ? 'pb-[40px]' : 'pb-[60px]'} overflow-x-hidden`}
       style={{ boxShadow: "inset -5px 0 15px -5px rgba(0,0,0,0.5)" }}
     >
       <div className="w-full px-4 pt-2 pb-2 text-center">
@@ -243,16 +264,15 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
       </div>
 
       <div
-        className={`w-full flex ${isCollapsed ? "flex-col space-y-2 mb-2" : "justify-center gap-4 px-4 mb-4"} items-center relative`}
+        className={`w-full flex ${isCollapsed ? "flex-col space-y-2 mb-0" : "justify-center gap-4 px-4 mb-1"} items-center relative`}
       >
         <Link
           to="/dashboard"
           onClick={onMobileClose}
-          className={`flex justify-center items-center p-2 transition-colors ${isCollapsed ? "rounded-none" : "rounded-lg"} ${
-            location.pathname === "/dashboard"
-              ? "text-purple-400 bg-purple-500/10"
-              : "text-slate-400 hover:text-white hover:bg-purple-500/10"
-          }`}
+          className={`flex justify-center items-center p-2 transition-colors ${isCollapsed ? "rounded-none" : "rounded-lg"} ${location.pathname === "/dashboard"
+            ? "text-purple-400 bg-purple-500/10"
+            : "text-slate-400 hover:text-white hover:bg-purple-500/10"
+            }`}
           title="Home"
         >
           <HomeIcon className="w-5 h-5" />
@@ -306,9 +326,14 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
 
           if (item.subItems) {
             return (
-              <div key={item.name} className="overflow-hidden">
+              <div
+                key={item.name}
+                className="overflow-hidden w-full"
+                onMouseEnter={() => handleMouseEnter(item.name)}
+                onMouseLeave={handleMouseLeave}
+              >
                 <button
-                  onClick={() => handleMenuToggle(item.name)}
+                  onClick={() => { if (!isCollapsed) handleMenuToggle(item.name); }}
                   className={`w-full flex items-center text-slate-400 hover:text-white hover:bg-purple-500/10 transition-all duration-200 ${isCollapsed ? "border-l-0 justify-center px-0 py-1.5" : `py-1.5 border-l-4 ${isSubMenuActive && !isMenuOpen ? "border-purple-500" : "border-transparent"} justify-between px-8`}`}
                   title={isCollapsed ? item.name : undefined}
                 >
@@ -345,7 +370,7 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
                       initial="hidden"
                       animate="visible"
                       exit="hidden"
-                      className={`flex flex-col w-full ${isCollapsed ? "items-center px-0 py-1 gap-1" : "items-start pl-12 pr-4"}`}
+                      className={`flex flex-col w-full items-center ${isCollapsed ? "px-0 py-1 gap-1" : "items-start pl-12 pr-4"}`}
                     >
                       {item.subItems.map((subItem) => {
                         const isActive = location.pathname.startsWith(
@@ -363,11 +388,10 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
                                 setOpenMenu(null);
                                 if (onMobileClose) onMobileClose();
                               }}
-                              className={`w-full flex items-center transition-colors duration-200 ${isCollapsed ? 'justify-center py-1' : 'gap-2 py-1'} text-[11px] md:text-xs leading-tight rounded-md ${
-                                isActive
-                                  ? "text-purple-400"
-                                  : "text-slate-400 hover:text-white"
-                              }`}
+                              className={`w-full flex items-center transition-colors duration-200 ${isCollapsed ? 'justify-center py-1' : 'gap-2 py-1'} text-[11px] md:text-xs leading-tight rounded-md ${isActive
+                                ? "text-purple-400"
+                                : "text-slate-400 hover:text-white"
+                                }`}
                               title={isCollapsed ? subItem.name : undefined}
                             >
                               <div className="flex-shrink-0">{subItem.icon}</div>
