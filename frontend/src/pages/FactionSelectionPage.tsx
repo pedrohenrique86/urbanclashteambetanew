@@ -86,9 +86,9 @@ export default function FactionSelectionPage() {
         // Usamos o perfil já carregado pelo hook `useUserProfile`.
         if (profile?.faction) {
           console.log(
-            `⚠️ Usuário já tem facção: ${profile.faction}. Redirecionando...`,
+            `⚠️ Usuário já tem facção: ${profile.faction}. Redirecionando para clãs...`,
           );
-          navigate("/dashboard");
+          navigate("/clan-selection");
           return; // Interrompe a execução para não continuar o processo
         }
 

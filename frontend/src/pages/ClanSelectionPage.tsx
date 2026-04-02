@@ -4,6 +4,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { useUserProfile, invalidateUserProfile } from "../hooks/useUserProfile";
 import { redirectToDashboardWithCleanup } from "../utils/cacheUtils";
 import { apiClient } from "../lib/supabaseClient";
+import { LoadingSpinner } from "../components/ui/LoadingSpinner";
 
 interface Clan {
   id: string;
@@ -107,8 +108,9 @@ export default function ClanSelectionPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 to-black flex items-center justify-center">
-        <div className="text-white text-xl">Carregando clãs...</div>
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 to-black flex flex-col items-center justify-center">
+        <LoadingSpinner size="lg" />
+        <div className="text-white text-xl mt-4 font-orbitron">Buscando clãs...</div>
       </div>
     );
   }

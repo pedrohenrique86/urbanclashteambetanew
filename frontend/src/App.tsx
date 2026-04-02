@@ -39,9 +39,7 @@ import "./index.css";
 
 // Componente de fallback para o Suspense
 const PageLoader = () => (
-  <div className="flex h-screen w-full items-center justify-center">
-    <LoadingSpinner />
-  </div>
+  <div className="flex h-screen w-full items-center justify-center bg-gray-900" />
 );
 
 const AppLayout = () => (
