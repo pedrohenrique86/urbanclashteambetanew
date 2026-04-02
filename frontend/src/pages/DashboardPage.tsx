@@ -6,6 +6,7 @@ import {
   ShieldCheckIcon,
   ChartBarIcon,
 } from "@heroicons/react/24/outline";
+import { LoadingSpinner } from "../components/ui/LoadingSpinner";
 
 // --- Componente de Painel Genérico ---
 const DashboardPanel: React.FC<{
@@ -254,8 +255,8 @@ export default function DashboardPage() {
 
   if (profileLoading) {
     return (
-      <div className="flex items-center justify-center h-full">
-        <p className="text-white font-orbitron">Carregando Perfil...</p>
+      <div className="flex flex-col items-center justify-center h-[60vh] gap-4">
+        <LoadingSpinner size="lg" />
       </div>
     );
   }

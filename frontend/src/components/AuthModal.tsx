@@ -506,7 +506,7 @@ export default function AuthModal({
           setErrors({ form: message });
 
           // Se o erro for senha incorreta, mostrar opção de recuperar
-          if (errorType === "Senha incorreta, você pode rcuperar sua senha!") {
+          if (errorType === "Senha incorreta, você pode recuperar sua senha!") {
             setShowForgotPasswordOption(true);
             setRegisteredEmail(formData.email);
           }

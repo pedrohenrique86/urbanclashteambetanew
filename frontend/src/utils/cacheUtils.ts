@@ -51,13 +51,11 @@ export const forceAppReload = () => {
 };
 
 export const redirectToDashboardWithCleanup = () => {
-  console.log("🎯 Redirecionando para dashboard com limpeza completa...");
+  console.log("🎯 Redirecionando para dashboard com limpeza de cache...");
 
-  // Limpar cache
+  // Limpar cache para garantir estados frescos no próximo mount
   clearAllCache();
 
-  // Aguardar um pouco e então redirecionar
-  setTimeout(() => {
-    window.location.replace("/dashboard");
-  }, 5000); // Atraso de 5 segundos antes de redirecionar
+  // Redirecionar imediatamente sem atraso artificial
+  window.location.replace("/dashboard");
 };

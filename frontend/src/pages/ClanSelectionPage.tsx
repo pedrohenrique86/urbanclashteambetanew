@@ -79,9 +79,12 @@ export default function ClanSelectionPage() {
 
       // Delay antes de redirecionar
       await new Promise((resolve) => setTimeout(resolve, 1500));
-
-      // Redirecionar com limpeza completa
-      redirectToDashboardWithCleanup();
+      
+      // Limpar cache manual para garantir dados novos, mas navegar suavemente
+      import("../utils/cacheUtils").then(({ clearAllCache }) => clearAllCache());
+      
+      // Redirecionar via router do React para evitar o refresh completo da página
+      navigate("/dashboard");
     } catch (error) {
       setError(
         error instanceof Error ? error.message : "Erro ao entrar no clã",
