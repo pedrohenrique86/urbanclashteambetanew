@@ -249,6 +249,7 @@ class ApiClient {
     codeVerifier: string,
     intent: string,
     redirectUri: string,
+    country?: string | null,
   ) {
     const response = await this.request("/auth/google/callback", {
       method: "POST",
@@ -257,6 +258,7 @@ class ApiClient {
         code_verifier: codeVerifier,
         intent,
         redirect_uri: redirectUri,
+        country: country || undefined,
       }),
     });
 

@@ -172,6 +172,11 @@ export default function AuthModal({
     const codeVerifier = generateRandomString(128);
     sessionStorage.setItem("google_code_verifier", codeVerifier);
     sessionStorage.setItem("google_auth_intent", intent); // Salva o intent
+    
+    // Se estivermos registrando, salvaremos também o país selecionado
+    if (intent === "register" && formData.country) {
+      sessionStorage.setItem("google_auth_country", formData.country);
+    }
 
     const hashed = await sha256(codeVerifier);
     const codeChallenge = base64urlencode(hashed);

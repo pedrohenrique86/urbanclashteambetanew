@@ -360,7 +360,7 @@ router.get("/google/start", (req, res) => {
 
 // Rota de callback do Google
 router.post("/google/callback", async (req, res) => {
-  const { code, code_verifier, intent, redirect_uri } = req.body;
+  const { code, code_verifier, intent, redirect_uri, country } = req.body;
 
   if (!code || !code_verifier) {
     return res
@@ -457,9 +457,9 @@ router.post("/google/callback", async (req, res) => {
         }
 
         const newUserResult = await query(
-          `INSERT INTO users (username, email, google_id, is_email_confirmed)
-           VALUES ($1, $2, $3, true) RETURNING *`,
-          [uniqueUsername, email, google_id],
+          `INSERT INTO users (username, email, google_id, is_email_confirmed, country)
+           VALUES ($1, $2, $3, true, $4) RETURNING *`,
+          [uniqueUsername, email, google_id, country || null],
         );
         user = newUserResult.rows[0];
         console.log("DEBUG: 14. Novo usuário criado:", user);

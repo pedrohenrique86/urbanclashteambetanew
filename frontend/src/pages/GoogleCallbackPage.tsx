@@ -79,9 +79,11 @@ export default function GoogleCallbackPage() {
       try {
         const intent = sessionStorage.getItem("google_auth_intent") || "login";
         const codeVerifier = sessionStorage.getItem("google_code_verifier");
+        const country = sessionStorage.getItem("google_auth_country");
 
         sessionStorage.removeItem("google_auth_intent");
         sessionStorage.removeItem("google_code_verifier");
+        sessionStorage.removeItem("google_auth_country");
 
         if (!codeVerifier) {
           throw new Error("Verificador de código PKCE não encontrado.");
@@ -92,6 +94,7 @@ export default function GoogleCallbackPage() {
           codeVerifier,
           intent,
           `${window.location.origin}/auth/google/callback`,
+          country,
         );
         if (data.token) {
           // O método googleCallback no apiClient já cuida de chamar o setToken.
