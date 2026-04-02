@@ -315,7 +315,7 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
           </button>
         )}
       </div>
-      <nav className="flex flex-col gap-0.5 w-full flex-1 pb-2 min-h-0 overflow-y-auto custom-scrollbar">
+      <nav className="flex flex-col gap-0.5 w-full flex-1 pb-2 min-h-0 overflow-y-auto overflow-x-hidden custom-scrollbar">
         {/* Linha decorativa acima do menu Operações */}
         <div className="border-b border-gray-700 mx-4 mb-2"></div>
         {navItems.map((item) => {
