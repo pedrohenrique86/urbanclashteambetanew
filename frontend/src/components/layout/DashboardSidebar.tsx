@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -180,6 +180,20 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
   const location = useLocation();
   const sidebarRef = useRef<HTMLElement>(null);
 
+  // Sincronizar abertura automática com a rota atual
+  useEffect(() => {
+    navItems.forEach(item => {
+      if (item.subItems?.some(sub => location.pathname.startsWith(sub.path))) {
+        setOpenMenu(item.name);
+      }
+    });
+
+    // Se for uma rota de admin (exemplo: /admin/dashboard), abre o menu admin
+    if (location.pathname.startsWith('/admin')) {
+      setIsAdminMenuOpen(true);
+    }
+  }, [location.pathname]);
+
   const handleMenuToggle = (name: string) => {
     setOpenMenu(openMenu === name ? null : name);
   };
@@ -323,7 +337,7 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
                   className={`w-full flex items-center transition-all duration-200 
                     ${isCollapsed 
                       ? `border-l-0 justify-center px-0 py-1.5 ${isMenuOpen ? "text-purple-400 bg-purple-500/10" : "text-slate-400 hover:text-purple-400 hover:bg-purple-500/10"}` 
-                      : `py-1.5 border-l-4 ${isMenuOpen || (isSubMenuActive && !isMenuOpen) ? "border-purple-500 text-purple-400 bg-purple-500/10" : "border-transparent text-slate-400"} justify-between px-8 hover:text-white hover:bg-purple-500/10`
+                      : `py-1.5 border-l-4 ${isMenuOpen ? "border-purple-500 text-purple-400 bg-purple-500/10" : "border-transparent text-slate-400"} justify-between px-8 hover:text-white hover:bg-purple-500/10`
                     }`}
                   data-tooltip-id="sidebar-tooltip"
                   data-tooltip-content={isCollapsed ? item.name : undefined}
@@ -376,7 +390,6 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
                             <Link
                               to={subItem.path}
                               onClick={() => {
-                                setOpenMenu(null);
                                 if (onMobileClose) onMobileClose();
                               }}
                               className={`w-full flex items-center transition-colors duration-200 ${isCollapsed ? 'justify-center py-1' : 'gap-2 py-1'} text-[11px] md:text-xs leading-tight rounded-md ${isActive
