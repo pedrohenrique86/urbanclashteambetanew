@@ -23,15 +23,13 @@
 
     /* Type Declarations */
     "typeRoots": ["./node_modules/@types"],
-    "baseUrl": "./src",
     "paths": {
-      "*": ["*"],
-      "components/*": ["components/*"],
-      "lib/*": ["lib/*"],
-      "pages/*": ["pages/*"],
-      "mocks/*": ["mocks/*"],
-      "services/*": ["services/*"],
-      "types/*": ["types/*"]
+      "components/*": ["./src/components/*"],
+      "lib/*": ["./src/lib/*"],
+      "pages/*": ["./src/pages/*"],
+      "mocks/*": ["./src/mocks/*"],
+      "services/*": ["./src/services/*"],
+      "types/*": ["./src/types/*"]
     }
   },
   "include": ["src/**/*"],
