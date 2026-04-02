@@ -424,9 +424,14 @@ router.post("/google/callback", async (req, res) => {
           "DEBUG: 11. Usuário encontrado por email. Vinculando Google ID.",
         );
         // Usuário com este email já existe, vincular a conta Google
+        // E também atualizar o país se ele estiver nulo
         await query(
-          "UPDATE users SET google_id = $1, is_email_confirmed = TRUE WHERE id = $2",
-          [google_id, user.id],
+          `UPDATE users SET 
+           google_id = $1, 
+           is_email_confirmed = TRUE,
+           country = COALESCE(country, $3)
+           WHERE id = $2`,
+          [google_id, user.id, country || null],
         );
         console.log(
           "DEBUG: 12. Google ID vinculado ao usuário existente e email confirmado.",

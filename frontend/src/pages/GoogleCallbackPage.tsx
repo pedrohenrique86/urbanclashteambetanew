@@ -3,59 +3,17 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { useTheme } from "../contexts/ThemeContext";
 import { apiClient } from "../lib/supabaseClient";
 import { useToast } from "../contexts/ToastContext";
+import { useUserProfileContext } from "../contexts/UserProfileContext";
 
 export default function GoogleCallbackPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const { themeClasses } = useTheme();
   const { showToast } = useToast();
+  const { refreshProfile } = useUserProfileContext();
   const [error, setError] = useState<string | null>(null);
   const [processing, setProcessing] = useState<boolean>(true);
-  const [showRegisterPrompt, setShowRegisterPrompt] = useState(false);
   const effectRan = useRef(false);
-
-  // NOTE: This handler duplicates logic from AuthModal.tsx.
-  // This should be refactored into a shared hook or utility for the PKCE flow.
-  const handleGoogleRegister = async () => {
-    const generateRandomString = (length: number) => {
-      const characters =
-        "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~";
-      let result = "";
-      for (let i = 0; i < length; i++) {
-        result += characters.charAt(
-          Math.floor(Math.random() * characters.length),
-        );
-      }
-      return result;
-    };
-    const sha256 = (plain: string) => {
-      const encoder = new TextEncoder();
-      const data = encoder.encode(plain);
-      return window.crypto.subtle.digest("SHA-256", data);
-    };
-    const base64urlencode = (a: ArrayBuffer) => {
-      return btoa(String.fromCharCode(...new Uint8Array(a)))
-        .replace(/\+/g, "-")
-        .replace(/\//g, "_")
-        .replace(/=+$/, "");
-    };
-
-    setProcessing(true);
-    try {
-      const verifier = generateRandomString(128);
-      const challengeBuffer = await sha256(verifier);
-      const challenge = base64urlencode(challengeBuffer);
-
-      sessionStorage.setItem("google_code_verifier", verifier);
-      sessionStorage.setItem("google_auth_intent", "register");
-
-      const startUrl = `/api/auth/google/start?code_challenge=${challenge}&code_challenge_method=S256&intent=register`;
-      window.location.href = startUrl;
-    } catch (e) {
-      setError("Falha ao iniciar o registro com Google. Tente novamente.");
-      setProcessing(false);
-    }
-  };
 
   useEffect(() => {
     // O effectRan previne a execução duplicada em modo de desenvolvimento com StrictMode
@@ -68,10 +26,8 @@ export default function GoogleCallbackPage() {
       const params = new URLSearchParams(location.search);
       const code = params.get("code");
 
-      // Se não houver código, não há o que fazer.
       if (!code) {
         setError("Código de autorização não encontrado na URL.");
-        // Em caso de erro real, podemos redirecionar para a página de login com uma mensagem
         navigate("/?error=google_auth_failed", { replace: true });
         return;
       }
@@ -81,6 +37,7 @@ export default function GoogleCallbackPage() {
         const codeVerifier = sessionStorage.getItem("google_code_verifier");
         const country = sessionStorage.getItem("google_auth_country");
 
+        // Limpa o storage imediatamente para segurança
         sessionStorage.removeItem("google_auth_intent");
         sessionStorage.removeItem("google_code_verifier");
         sessionStorage.removeItem("google_auth_country");
@@ -96,12 +53,13 @@ export default function GoogleCallbackPage() {
           `${window.location.origin}/auth/google/callback`,
           country,
         );
-        if (data.token) {
-          // O método googleCallback no apiClient já cuida de chamar o setToken.
-          // Apenas precisamos navegar o usuário.
 
-          // Lógica de redirecionamento corrigida e final:
-          // Se não é o primeiro login, vai direto para o dashboard.
+        if (data.token) {
+          // IMPORTANT: Sincronizar o perfil global ANTES de navegar.
+          // Isso garante que o UserProfileProvider já esteja em estado de "loading" ou com dados
+          // quando o usuário atingir o Dashboard, evitando o redirecionamento para a Home.
+          await refreshProfile();
+
           const redirectTo = data.isFirstLogin
             ? "/faction-selection"
             : "/dashboard";
@@ -112,14 +70,19 @@ export default function GoogleCallbackPage() {
         }
       } catch (e: any) {
         setError(e.message);
-        // Em caso de erro, redireciona para a home com uma mensagem
         navigate(`/?error=${encodeURIComponent(e.message)}`, { replace: true });
       }
     };
 
     processAuth();
-  }, [location.search, navigate]);
+  }, [location.search, navigate, refreshProfile]);
 
-  // A página não renderiza nada durante o processamento, ficando em branco.
-  return null;
+  return (
+    <div className={`min-h-screen ${themeClasses.bg} flex items-center justify-center`}>
+      <div className="flex flex-col items-center gap-4">
+        <div className="h-12 w-12 animate-spin rounded-full border-t-2 border-purple-500 border-r-2 border-transparent"></div>
+        <p className="text-purple-400 font-medium animate-pulse">Autenticando com Google...</p>
+      </div>
+    </div>
+  );
 }

@@ -178,8 +178,8 @@ export default function AuthModal({
     sessionStorage.setItem("google_code_verifier", codeVerifier);
     sessionStorage.setItem("google_auth_intent", intent); // Salva o intent
     
-    // Se estivermos registrando, salvaremos também o país selecionado
-    if (intent === "register" && formData.country) {
+    // Salva o país no sessionStorage se estiver disponível para capturar em novos registros via Google
+    if (formData.country) {
       sessionStorage.setItem("google_auth_country", formData.country);
     }
 
