@@ -28,19 +28,11 @@ export const FloatingMenuButton: React.FC = () => {
 
   // Controla o estado de abertura do menu principal
   useEffect(() => {
-    if (isOpen) {
-      // Quando o menu abre, sincroniza a categoria ativa
-      const activeCategory = navItems.find(category => 
-        category.subItems?.some(item => location.pathname.startsWith(item.path))
-      );
-      if (activeCategory) {
-        setOpenMenu(activeCategory.name);
-      }
-    } else {
+    if (!isOpen) {
       // Quando o menu fecha, reseta o estado do acordeão
       setOpenMenu(null);
     }
-  }, [isOpen, location.pathname]);
+  }, [isOpen]);
 
 
   // Atualiza o tamanho da janela
