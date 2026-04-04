@@ -19,9 +19,21 @@ export const FloatingMenuButton: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [windowSize, setWindowSize] = useState({ width: 0, height: 0 });
+  const [openMenu, setOpenMenu] = useState<string | null>(null);
   const navigate = useNavigate();
   const location = useLocation();
   const { handleLogout } = useUserProfile();
+
+  // Sincroniza o menu aberto com a rota atual
+  useEffect(() => {
+    const activeCategory = navItems.find(category => 
+      category.subItems?.some(item => location.pathname.startsWith(item.path))
+    );
+    if (activeCategory) {
+      setOpenMenu(activeCategory.name);
+    }
+  }, [location.pathname]);
+
 
   // Atualiza o tamanho da janela
   useEffect(() => {
@@ -67,6 +79,11 @@ export const FloatingMenuButton: React.FC = () => {
     navigate(path);
     setIsOpen(false);
   };
+
+  const handleMenuToggle = (name: string) => {
+    setOpenMenu(openMenu === name ? null : name);
+  };
+
 
   // Lógica para calcular a posição do menu de forma inteligente
   const menuPosition = useMemo(() => {
@@ -130,26 +147,59 @@ export const FloatingMenuButton: React.FC = () => {
             </button>
           </div>
           
-          {navItems.map((category) => (
-            <div key={category.name} className="mb-2">
-              <p className="px-4 py-2 text-xs font-semibold text-slate-400">{category.name}</p>
-              {category.subItems?.map((item) => (
+          {navItems.map((category) => {
+            const isSubMenuActive = category.subItems?.some((sub) => location.pathname.startsWith(sub.path));
+            const isMenuOpen = openMenu === category.name;
+
+            return (
+              <div key={category.name} className="overflow-hidden">
                 <button
-                  key={item.path}
-                  onClick={() => handleNavigate(item.path)}
-                  className={`w-full flex items-center gap-3 rounded-lg px-4 py-3 transition-all text-left ${
-                    location.pathname.startsWith(item.path)
+                  onClick={() => handleMenuToggle(category.name)}
+                  className={`w-full flex items-center justify-between gap-3 rounded-lg px-4 py-3 transition-all text-left ${
+                    isMenuOpen
                       ? "bg-purple-600/20 text-purple-400" 
-                      : "text-white/70 hover:bg-white/5 hover:text-white"
+                      : isSubMenuActive 
+                        ? "bg-purple-600/10 text-purple-500"
+                        : "text-white/70 hover:bg-white/5 hover:text-white"
                   }`}
                 >
-                  {React.cloneElement(item.icon as React.ReactElement, { className: 'w-5 h-5' })}
-                  <span className="font-medium text-sm">{item.name}</span>
-                  {location.pathname.startsWith(item.path) && <div className="ml-auto h-2 w-2 rounded-full bg-purple-500" />}
+                  <div className="flex items-center gap-3">
+                    {React.cloneElement(category.icon as React.ReactElement, { className: 'w-5 h-5' })}
+                    <span className="font-semibold text-sm">{category.name}</span>
+                  </div>
+                  <ChevronRight size={16} className={`transform transition-transform ${isMenuOpen ? 'rotate-90' : ''}`} />
                 </button>
-              ))}
-            </div>
-          ))}
+
+                <AnimatePresence>
+                  {isMenuOpen && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      className="pl-6 pr-2 pt-1 pb-2"
+                    >
+                      {category.subItems?.map((item) => (
+                        <button
+                          key={item.path}
+                          onClick={() => handleNavigate(item.path)}
+                          className={`w-full flex items-center gap-3 rounded-md px-3 py-2.5 transition-all text-left ${
+                            location.pathname.startsWith(item.path)
+                              ? "text-purple-300" 
+                              : "text-slate-300 hover:bg-white/5 hover:text-white"
+                          }`}
+                        >
+                          {React.cloneElement(item.icon as React.ReactElement, { className: 'w-4 h-4' })}
+                          <span className="font-medium text-xs">{item.name}</span>
+                          {location.pathname.startsWith(item.path) && <div className="ml-auto h-1.5 w-1.5 rounded-full bg-purple-400" />}
+                        </button>
+                      ))}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            )
+          })}
+
 
           <div className="mt-2 border-t border-white/10 pt-2">
             <button
