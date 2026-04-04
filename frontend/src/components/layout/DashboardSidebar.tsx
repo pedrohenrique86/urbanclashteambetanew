@@ -50,7 +50,7 @@ interface NavItem {
 }
 
 // Nova estrutura de dados do menu
-const navItems: NavItem[] = [
+export const navItems: NavItem[] = [
   {
     name: "Operações",
     icon: <BriefcaseIcon className="w-5 h-5" />,

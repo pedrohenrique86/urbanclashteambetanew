@@ -1,56 +1,64 @@
-import React, { useState, useEffect } from "react";
-import { motion, useDragControls } from "framer-motion";
+import React, { useState, useEffect, useMemo } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate, useLocation } from "react-router-dom";
 import { 
-  LayoutDashboard, 
-  FileText, 
-  Sword, 
-  Package, 
-  Globe, 
-  Users, 
-  Settings, 
   LogOut,
-  ChevronRight,
   Menu as MenuIcon,
-  X
+  X,
+  ChevronRight
 } from "lucide-react";
 import { useUserProfile } from "../../hooks/useUserProfile";
+import { navItems } from "./DashboardSidebar"; // Importando os itens do menu
+
+const MENU_WIDTH = 240;
+const MENU_HEIGHT_ESTIMATE = 400; // Estimativa da altura do menu
+const BUTTON_SIZE = 64;
+const SCREEN_PADDING = 16;
 
 export const FloatingMenuButton: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [position, setPosition] = useState({ x: 0, y: 0 });
+  const [windowSize, setWindowSize] = useState({ width: 0, height: 0 });
   const navigate = useNavigate();
   const location = useLocation();
   const { handleLogout } = useUserProfile();
 
-  const menuItems = [
-    { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard" },
-    { icon: FileText, label: "Contratos", path: "/contracts" },
-    { icon: Sword, label: "Confronto", path: "/reckoning" },
-    { icon: Package, label: "Suprimentos", path: "/supply-extraction" },
-    { icon: Users, label: "Clã", path: "/clan" },
-    { icon: Globe, label: "Social", path: "/social-zone" },
-    { icon: Settings, label: "Perfil", path: "/profile" },
-  ];
-
-  // Carregar posição salva
+  // Atualiza o tamanho da janela
   useEffect(() => {
-    const savedPos = localStorage.getItem("floating_menu_position");
-    if (savedPos) {
-      try {
-        setPosition(JSON.parse(savedPos));
-      } catch (e) {
-        // Reset se corrompido
-        setPosition({ x: window.innerWidth - 80, y: window.innerHeight / 2 });
-      }
-    } else {
-      // Posição inicial: Meio à direita
-      setPosition({ x: window.innerWidth - 80, y: window.innerHeight / 2 });
-    }
+    const handleResize = () => {
+      setWindowSize({ width: window.innerWidth, height: window.innerHeight });
+    };
+    window.addEventListener("resize", handleResize);
+    handleResize(); // Chama na montagem
+    return () => window.removeEventListener("resize", handleResize);
   }, []);
 
+  // Carrega a posição salva ou define uma inicial segura
+  useEffect(() => {
+    if (windowSize.width === 0) return; // Aguarda o tamanho da janela ser definido
+
+    const savedPos = localStorage.getItem("floating_menu_position");
+    let initialPos;
+    if (savedPos) {
+      try {
+        initialPos = JSON.parse(savedPos);
+      } catch (e) {
+        initialPos = { x: windowSize.width - BUTTON_SIZE - SCREEN_PADDING, y: windowSize.height / 2 };
+      }
+    } else {
+      initialPos = { x: windowSize.width - BUTTON_SIZE - SCREEN_PADDING, y: windowSize.height / 2 };
+    }
+    
+    // Garante que a posição inicial esteja dentro dos limites
+    setPosition({
+      x: Math.max(SCREEN_PADDING, Math.min(initialPos.x, windowSize.width - BUTTON_SIZE - SCREEN_PADDING)),
+      y: Math.max(SCREEN_PADDING, Math.min(initialPos.y, windowSize.height - BUTTON_SIZE - SCREEN_PADDING)),
+    });
+
+  }, [windowSize]);
+
   const savePosition = (event: any, info: any) => {
-    const newPos = { x: info.point.x - 30, y: info.point.y - 30 };
+    const newPos = { x: info.point.x, y: info.point.y };
     setPosition(newPos);
     localStorage.setItem("floating_menu_position", JSON.stringify(newPos));
   };
@@ -59,6 +67,41 @@ export const FloatingMenuButton: React.FC = () => {
     navigate(path);
     setIsOpen(false);
   };
+
+  // Lógica para calcular a posição do menu de forma inteligente
+  const menuPosition = useMemo(() => {
+    if (!isOpen || windowSize.width === 0) return { x: position.x, y: position.y, opacity: 0 };
+
+    let x = position.x;
+    let y = position.y;
+
+    // Tenta abrir à esquerda do botão
+    if (position.x + BUTTON_SIZE / 2 > windowSize.width / 2) {
+      x = position.x - MENU_WIDTH + BUTTON_SIZE / 2;
+    } else { // Tenta abrir à direita
+      x = position.x + BUTTON_SIZE / 2;
+    }
+
+    // Ajusta verticalmente
+    y = position.y - MENU_HEIGHT_ESTIMATE / 2 + BUTTON_SIZE / 2;
+
+    // Garante que o menu não saia da tela
+    x = Math.max(SCREEN_PADDING, Math.min(x, windowSize.width - MENU_WIDTH - SCREEN_PADDING));
+    y = Math.max(SCREEN_PADDING, Math.min(y, windowSize.height - MENU_HEIGHT_ESTIMATE - SCREEN_PADDING));
+    
+    return { x, y, opacity: 1, scale: 1 };
+  }, [isOpen, position, windowSize]);
+
+
+  const dragConstraints = useMemo(() => ({
+    top: SCREEN_PADDING,
+    left: SCREEN_PADDING,
+    right: windowSize.width - BUTTON_SIZE - SCREEN_PADDING,
+    bottom: windowSize.height - BUTTON_SIZE - SCREEN_PADDING,
+  }), [windowSize]);
+
+  if (windowSize.width === 0) return null; // Não renderiza nada até ter o tamanho da janela
+
 
   return (
     <>
@@ -75,20 +118,11 @@ export const FloatingMenuButton: React.FC = () => {
       {/* Menu Aberto */}
       <motion.div
         initial={false}
-        animate={isOpen ? { 
-          scale: 1, 
-          opacity: 1,
-          x: Math.min(position.x - 120, window.innerWidth - 260),
-          y: Math.min(position.y - 150, window.innerHeight - 380)
-        } : { 
-          scale: 0, 
-          opacity: 0,
-          x: position.x,
-          y: position.y
-        }}
+        animate={isOpen ? menuPosition : { scale: 0, opacity: 0, x: position.x, y: position.y }}
+        transition={{ type: "spring", stiffness: 400, damping: 30 }}
         className="fixed z-[9999] w-60 overflow-hidden rounded-2xl border border-purple-500/30 bg-gray-900/95 p-2 shadow-2xl backdrop-blur-md md:hidden"
       >
-        <div className="flex flex-col gap-1">
+        <div className="flex flex-col gap-1 max-h-[80vh] overflow-y-auto">
           <div className="mb-2 flex items-center justify-between border-b border-white/10 px-3 py-2">
             <span className="text-xs font-bold uppercase tracking-wider text-purple-400">Navegação</span>
             <button onClick={() => setIsOpen(false)} className="rounded-full p-1 hover:bg-white/10">
@@ -96,20 +130,25 @@ export const FloatingMenuButton: React.FC = () => {
             </button>
           </div>
           
-          {menuItems.map((item) => (
-            <button
-              key={item.path}
-              onClick={() => handleNavigate(item.path)}
-              className={`flex items-center gap-3 rounded-lg px-4 py-3 transition-all ${
-                location.pathname === item.path 
-                  ? "bg-purple-600/20 text-purple-400" 
-                  : "text-white/70 hover:bg-white/5 hover:text-white"
-              }`}
-            >
-              <item.icon size={20} />
-              <span className="font-medium">{item.label}</span>
-              {location.pathname === item.path && <div className="ml-auto h-2 w-2 rounded-full bg-purple-500" />}
-            </button>
+          {navItems.map((category) => (
+            <div key={category.name} className="mb-2">
+              <p className="px-4 py-2 text-xs font-semibold text-slate-400">{category.name}</p>
+              {category.subItems?.map((item) => (
+                <button
+                  key={item.path}
+                  onClick={() => handleNavigate(item.path)}
+                  className={`w-full flex items-center gap-3 rounded-lg px-4 py-3 transition-all text-left ${
+                    location.pathname.startsWith(item.path)
+                      ? "bg-purple-600/20 text-purple-400" 
+                      : "text-white/70 hover:bg-white/5 hover:text-white"
+                  }`}
+                >
+                  {React.cloneElement(item.icon as React.ReactElement, { className: 'w-5 h-5' })}
+                  <span className="font-medium text-sm">{item.name}</span>
+                  {location.pathname.startsWith(item.path) && <div className="ml-auto h-2 w-2 rounded-full bg-purple-500" />}
+                </button>
+              ))}
+            </div>
           ))}
 
           <div className="mt-2 border-t border-white/10 pt-2">
@@ -128,35 +167,31 @@ export const FloatingMenuButton: React.FC = () => {
       <motion.div
         drag
         dragMomentum={false}
-        dragElastic={0.1}
         onDragEnd={savePosition}
-        dragConstraints={{
-          top: 20,
-          left: 20,
-          right: window.innerWidth - 80,
-          bottom: window.innerHeight - 80
-        }}
-        initial={false}
+        dragConstraints={dragConstraints}
+        initial={{ x: windowSize.width - BUTTON_SIZE - SCREEN_PADDING, y: windowSize.height / 2 }}
         animate={{ x: position.x, y: position.y }}
-        className="fixed z-[9999] md:hidden"
-        style={{ touchAction: "none" }}
+        transition={{ type: "spring", stiffness: 500, damping: 30 }}
+        className="fixed z-[9999] md:hidden cursor-grab active:cursor-grabbing"
+        style={{ touchAction: "none", width: BUTTON_SIZE, height: BUTTON_SIZE }}
       >
         <motion.button
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
-          onClick={() => !isOpen && setIsOpen(true)}
-          className={`flex h-16 w-16 cursor-grab items-center justify-center rounded-full shadow-lg transition-colors active:cursor-grabbing ${
-            isOpen ? "bg-purple-700" : "bg-purple-600 hover:bg-purple-500"
-          } border-2 border-purple-400/50 shadow-purple-500/20`}
+          onClick={() => setIsOpen(!isOpen)}
+          className="flex h-full w-full items-center justify-center rounded-full shadow-lg transition-colors bg-purple-600 hover:bg-purple-500 border-2 border-purple-400/50 shadow-purple-500/20"
         >
-          <div className="flex flex-col items-center">
-            {isOpen ? <X size={24} className="text-white" /> : (
-              <>
-                <MenuIcon size={24} className="text-white" />
-                <span className="text-[10px] font-bold text-white">MENU</span>
-              </>
-            )}
-          </div>
+          <AnimatePresence initial={false} mode="wait">
+            <motion.div
+              key={isOpen ? "x" : "menu"}
+              initial={{ rotate: -90, opacity: 0 }}
+              animate={{ rotate: 0, opacity: 1 }}
+              exit={{ rotate: 90, opacity: 0 }}
+              transition={{ duration: 0.2 }}
+            >
+              {isOpen ? <X size={28} className="text-white" /> : <MenuIcon size={28} className="text-white" />}
+            </motion.div>
+          </AnimatePresence>
         </motion.button>
       </motion.div>
     </>
