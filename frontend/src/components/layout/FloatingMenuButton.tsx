@@ -6,7 +6,8 @@ import {
   Menu as MenuIcon,
   X,
   ChevronRight,
-  Home
+  Home,
+  UserCircle
 } from "lucide-react";
 import { useUserProfile } from "../../hooks/useUserProfile";
 import { navItems } from "./DashboardSidebar"; // Importando os itens do menu
@@ -25,15 +26,21 @@ export const FloatingMenuButton: React.FC = () => {
   const location = useLocation();
   const { handleLogout } = useUserProfile();
 
-  // Sincroniza o menu aberto com a rota atual
+  // Controla o estado de abertura do menu principal
   useEffect(() => {
-    const activeCategory = navItems.find(category => 
-      category.subItems?.some(item => location.pathname.startsWith(item.path))
-    );
-    if (activeCategory) {
-      setOpenMenu(activeCategory.name);
+    if (isOpen) {
+      // Quando o menu abre, sincroniza a categoria ativa
+      const activeCategory = navItems.find(category => 
+        category.subItems?.some(item => location.pathname.startsWith(item.path))
+      );
+      if (activeCategory) {
+        setOpenMenu(activeCategory.name);
+      }
+    } else {
+      // Quando o menu fecha, reseta o estado do acordeão
+      setOpenMenu(null);
     }
-  }, [location.pathname]);
+  }, [isOpen, location.pathname]);
 
 
   // Atualiza o tamanho da janela
@@ -202,20 +209,27 @@ export const FloatingMenuButton: React.FC = () => {
           })}
 
 
-          <div className="mt-2 flex items-center gap-2 border-t border-white/10 pt-2">
+          <div className="mt-2 flex items-center gap-1 border-t border-white/10 pt-2">
             <button
               onClick={() => handleLogout()}
-              className="flex h-full w-full items-center justify-center gap-2 rounded-lg px-4 py-3 text-red-400 transition-all hover:bg-red-500/10"
+              className="flex h-full flex-1 items-center justify-center gap-2 rounded-lg px-3 py-3 text-red-400 transition-all hover:bg-red-500/10"
+              title="Sair"
             >
-              <LogOut size={18} />
-              <span className="font-medium text-sm">Sair</span>
+              <LogOut size={20} />
+            </button>
+            <button
+              onClick={() => handleNavigate('/digital-identity')}
+              className="flex h-full flex-1 items-center justify-center gap-2 rounded-lg px-3 py-3 text-amber-400 transition-all hover:bg-amber-500/10"
+              title="Identidade Digital"
+            >
+               <UserCircle size={20} />
             </button>
             <button
               onClick={() => handleNavigate('/dashboard')}
-              className="flex h-full w-full items-center justify-center gap-2 rounded-lg px-4 py-3 text-sky-400 transition-all hover:bg-sky-500/10"
+              className="flex h-full flex-1 items-center justify-center gap-2 rounded-lg px-3 py-3 text-sky-400 transition-all hover:bg-sky-500/10"
+              title="Início"
             >
-               <Home size={18} />
-              <span className="font-medium text-sm">Início</span>
+               <Home size={20} />
             </button>
           </div>
         </div>
