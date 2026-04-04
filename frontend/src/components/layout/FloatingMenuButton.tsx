@@ -229,7 +229,20 @@ export const FloatingMenuButton: React.FC = () => {
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           onClick={() => setIsOpen(!isOpen)}
-          className="flex h-full w-full items-center justify-center rounded-full shadow-lg transition-colors bg-purple-600 hover:bg-purple-500 border-2 border-purple-400/50 shadow-purple-500/20"
+          className="flex h-full w-full items-center justify-center rounded-full shadow-lg transition-colors bg-purple-600 hover:bg-purple-500 border-2 border-purple-400/50"
+          animate={{
+            boxShadow: [
+              "0 0 10px rgba(168, 85, 247, 0.5)",
+              "0 0 25px rgba(168, 85, 247, 0.8)",
+              "0 0 10px rgba(168, 85, 247, 0.5)",
+            ],
+          }}
+          transition={{
+            duration: 2,
+            ease: "easeInOut",
+            repeat: Infinity,
+            repeatType: "reverse",
+          }}
         >
           <AnimatePresence initial={false} mode="wait">
             <motion.div
