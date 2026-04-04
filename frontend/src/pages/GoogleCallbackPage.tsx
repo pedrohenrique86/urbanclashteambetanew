@@ -2,11 +2,13 @@ import React, { useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { apiClient } from "../lib/supabaseClient";
 import { useUserProfileContext } from "../contexts/UserProfileContext";
+import { useLoading } from "../contexts/LoadingContext";
 
 export default function GoogleCallbackPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const { refreshProfile } = useUserProfileContext();
+  const { showLoading, hideLoading } = useLoading();
   const effectRan = useRef(false);
 
   useEffect(() => {
@@ -50,25 +52,40 @@ export default function GoogleCallbackPage() {
         );
 
         if (data.token) {
+          // Define a mensagem do spinner com base no status de login
+          const loadingMessage = data.isFirstLogin
+            ? "Verificando perfil..."
+            : "Carregando dashboard...";
+          showLoading(loadingMessage);
+
+          // Garante que o spinner fique visível por 3 segundos
+          await new Promise((resolve) => setTimeout(resolve, 3000));
+
           // Sincroniza o perfil no contexto global ANTES de navegar
-          // Sem isso, o GlobalLayout pode expulsar o usuário por não ter perfil ainda
           await refreshProfile();
 
           const redirectTo = data.isFirstLogin
             ? "/faction-selection"
             : "/dashboard";
 
+          hideLoading();
           navigate(redirectTo, { replace: true });
         } else {
           throw new Error("Token de autenticação não recebido.");
         }
       } catch (e: any) {
-        navigate(`/?error=${encodeURIComponent(e.message || "Erro ao autenticar com Google")}`, { replace: true });
+        hideLoading();
+        navigate(
+          `/?error=${encodeURIComponent(
+            e.message || "Erro ao autenticar com Google",
+          )}`,
+          { replace: true },
+        );
       }
     };
 
     processAuth();
-  }, [location.search, navigate, refreshProfile]);
+  }, [location.search, navigate, refreshProfile, showLoading, hideLoading]);
 
   // Não renderiza nada — o LoadingSpinner global cobre o período de processamento
   return null;

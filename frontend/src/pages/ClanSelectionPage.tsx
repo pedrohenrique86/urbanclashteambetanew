@@ -31,30 +31,40 @@ export default function ClanSelectionPage() {
   const selectedFaction = userProfile?.faction || location.state?.faction;
 
   useEffect(() => {
-    if (profileLoading) {
+    const loadPage = async () => {
+      // Etapa 1: Garantir que a verificação de perfil dure pelo menos 2 segundos.
       showLoading("Verificando seu perfil...");
-      return;
-    }
+      const minProfileCheckTime = new Promise((resolve) =>
+        setTimeout(resolve, 2000),
+      );
 
-    if (!selectedFaction) {
-      navigate("/faction-selection");
-      return;
-    }
+      // Espera o perfil carregar (quando profileLoading se torna falso)
+      // e o tempo mínimo passar.
+      if (profileLoading) {
+        // Se ainda estiver carregando, esperamos a próxima execução do useEffect.
+        return;
+      }
+      await minProfileCheckTime;
 
-    if (userProfile?.clan_id) {
-      navigate("/dashboard");
-      return;
-    }
+      // Etapa 2: Validar o estado do usuário e navegar se necessário.
+      if (!selectedFaction) {
+        navigate("/faction-selection");
+        return;
+      }
+      if (userProfile?.clan_id) {
+        navigate("/dashboard");
+        return;
+      }
 
-    const fetchClans = async () => {
+      // Etapa 3: Buscar os clãs com sua própria duração mínima.
       showLoading("Buscando clãs disponíveis...");
       try {
-        // Inicia o timer e a chamada da API ao mesmo tempo.
-        const timer = new Promise((resolve) => setTimeout(resolve, 2000));
+        const minClansFetchTime = new Promise((resolve) =>
+          setTimeout(resolve, 2000),
+        );
         const clansPromise = apiClient.getClansByFaction(selectedFaction);
 
-        // Espera que ambos terminem.
-        const [_, data] = await Promise.all([timer, clansPromise]);
+        const [_, data] = await Promise.all([minClansFetchTime, clansPromise]);
 
         setClans(data.clans || []);
       } catch (error) {
@@ -64,7 +74,7 @@ export default function ClanSelectionPage() {
       }
     };
 
-    fetchClans();
+    loadPage();
   }, [
     selectedFaction,
     profileLoading,
