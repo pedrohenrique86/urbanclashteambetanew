@@ -238,7 +238,7 @@ export const FloatingMenuButton: React.FC = () => {
             ],
           }}
           transition={{
-            duration: 1.5, // Aumentando a velocidade da pulsação
+            duration: 1, // Aumentando a velocidade da pulsação
             ease: "easeInOut",
             repeat: Infinity,
             repeatType: "reverse",
