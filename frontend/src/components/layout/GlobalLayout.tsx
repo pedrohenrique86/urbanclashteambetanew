@@ -130,36 +130,6 @@ const GlobalLayout: React.FC<GlobalLayoutProps> = ({ children }) => {
           />
         </div>
 
-        {/* Sidebar para mobile (Drawer) */}
-        <AnimatePresence>
-          {isMobileMenuOpen && (
-            <>
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                onClick={() => setIsMobileMenuOpen(false)}
-                className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 md:hidden"
-              />
-              <motion.div
-                initial={{ x: "100%" }}
-                animate={{ x: 0 }}
-                exit={{ x: "100%" }}
-                transition={{ type: "spring", bounce: 0, duration: 0.4 }}
-                className="fixed inset-y-0 right-0 z-50 flex md:hidden"
-              >
-                <DashboardSidebar
-                  onMobileClose={() => setIsMobileMenuOpen(false)}
-                  username={userProfile.username}
-                  faction={userProfile.faction}
-                  handleLogout={handleLogout}
-                  isAdmin={userProfile.is_admin}
-                />
-              </motion.div>
-            </>
-          )}
-        </AnimatePresence>
-
         {/* Conteúdo principal */}
         <div className="flex flex-col flex-1 w-0">
           {/* Container para o conteúdo que rola, sem padding */}
