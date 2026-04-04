@@ -5,7 +5,8 @@ import {
   LogOut,
   Menu as MenuIcon,
   X,
-  ChevronRight
+  ChevronRight,
+  Home
 } from "lucide-react";
 import { useUserProfile } from "../../hooks/useUserProfile";
 import { navItems } from "./DashboardSidebar"; // Importando os itens do menu
@@ -201,13 +202,20 @@ export const FloatingMenuButton: React.FC = () => {
           })}
 
 
-          <div className="mt-2 border-t border-white/10 pt-2">
+          <div className="mt-2 flex items-center gap-2 border-t border-white/10 pt-2">
             <button
               onClick={() => handleLogout()}
-              className="flex w-full items-center gap-3 rounded-lg px-4 py-3 text-red-400 transition-all hover:bg-red-500/10"
+              className="flex h-full w-full items-center justify-center gap-2 rounded-lg px-4 py-3 text-red-400 transition-all hover:bg-red-500/10"
             >
-              <LogOut size={20} />
-              <span className="font-medium">Sair</span>
+              <LogOut size={18} />
+              <span className="font-medium text-sm">Sair</span>
+            </button>
+            <button
+              onClick={() => handleNavigate('/dashboard')}
+              className="flex h-full w-full items-center justify-center gap-2 rounded-lg px-4 py-3 text-sky-400 transition-all hover:bg-sky-500/10"
+            >
+               <Home size={18} />
+              <span className="font-medium text-sm">Início</span>
             </button>
           </div>
         </div>
