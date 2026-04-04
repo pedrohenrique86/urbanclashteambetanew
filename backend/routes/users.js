@@ -93,11 +93,21 @@ async function refreshRankingsCache(faction, limit) {
 async function scheduleUsersRefresh() {
   try {
     // Carga inicial imediata para evitar rankings vazios após restart do servidor
-    await Promise.all([
+    const results = await Promise.allSettled([
       refreshRankingsCache("gangsters", 26),
       refreshRankingsCache("guardas", 26),
-      refreshRankingsCache(undefined, 26),
+      refreshRankingsCache(null, 26), // `null` para ranking geral
     ]);
+
+    results.forEach(result => {
+      if (result.status === 'rejected') {
+        console.error(
+          "❌ Erro em uma das atualizações de ranking na carga inicial:",
+          result.reason.message,
+        );
+      }
+    });
+
   } catch (e) {
     console.error(
       "❌ Erro na carga inicial do ranking de usuários:",
@@ -116,11 +126,21 @@ async function scheduleUsersRefresh() {
   setTimeout(
     async () => {
       try {
-        await Promise.all([
+        const results = await Promise.allSettled([
           refreshRankingsCache("gangsters", 26),
           refreshRankingsCache("guardas", 26),
-          refreshRankingsCache(undefined, 26),
+          refreshRankingsCache(null, 26), // `null` para ranking geral
         ]);
+
+        results.forEach(result => {
+          if (result.status === 'rejected') {
+            console.error(
+              "❌ Falha em uma das atualizações de ranking agendadas:",
+              result.reason.message,
+            );
+          }
+        });
+
       } catch (e) {
         console.error("❌ Falha no refresh agendado de usuários:", e.message);
       } finally {
