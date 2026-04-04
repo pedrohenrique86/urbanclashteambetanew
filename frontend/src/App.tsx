@@ -3,9 +3,10 @@ import { createBrowserRouter, RouterProvider, Outlet } from "react-router-dom";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { ToastProvider } from "./contexts/ToastContext";
 import { GameClockProvider } from "./contexts/GameClockContext";
+import { LoadingProvider } from "./contexts/LoadingContext";
+import { GlobalLoadingSpinner } from "./components/ui/GlobalLoadingSpinner";
 import { UserProfileProvider } from "./contexts/UserProfileContext";
 import GlobalLayout from "./components/layout/GlobalLayout";
-import { LoadingSpinner } from "./components/ui/LoadingSpinner"; // Um spinner para o fallback
 
 // --- Lazy Load das Páginas ---
 const HomePage = lazy(() => import("./pages/HomePage"));
@@ -117,12 +118,15 @@ export default function App() {
     <ThemeProvider>
       <ToastProvider>
         <GameClockProvider>
-          <Suspense fallback={<PageLoader />}>
-            <RouterProvider
-              router={router}
-              future={{ v7_startTransition: true }}
-            />
-          </Suspense>
+          <LoadingProvider>
+            <Suspense fallback={<PageLoader />}>
+              <GlobalLoadingSpinner />
+              <RouterProvider
+                router={router}
+                future={{ v7_startTransition: true }}
+              />
+            </Suspense>
+          </LoadingProvider>
         </GameClockProvider>
       </ToastProvider>
     </ThemeProvider>

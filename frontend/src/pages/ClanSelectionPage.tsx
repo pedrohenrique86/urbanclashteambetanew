@@ -4,8 +4,8 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { useUserProfile } from "../hooks/useUserProfile";
 import { useUserProfileContext } from "../contexts/UserProfileContext";
 import { redirectToDashboardWithCleanup } from "../utils/cacheUtils";
+import { useLoading } from "../contexts/LoadingContext";
 import { apiClient } from "../lib/supabaseClient";
-import { LoadingSpinner } from "../components/ui/LoadingSpinner";
 
 interface Clan {
   id: string;
@@ -20,12 +20,10 @@ interface Clan {
 export default function ClanSelectionPage() {
   const [clans, setClans] = useState<Clan[]>([]);
   const [selectedClan, setSelectedClan] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [joining, setJoining] = useState(false);
-  const [processing, setProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
   const location = useLocation();
+  const { showLoading, hideLoading } = useLoading();
   const { userProfile, loading: profileLoading } = useUserProfile();
   const { refreshProfile } = useUserProfileContext();
 
@@ -33,64 +31,69 @@ export default function ClanSelectionPage() {
   const selectedFaction = userProfile?.faction || location.state?.faction;
 
   useEffect(() => {
-    // Se ainda está carregando o perfil da API e não temos a facção, aguarda.
-    if (!selectedFaction && profileLoading) {
+    if (profileLoading) {
+      showLoading("Verificando seu perfil...");
       return;
     }
 
-    // Se após carregar realmente não existir facção, volta pro passo anterior
     if (!selectedFaction) {
       navigate("/faction-selection");
       return;
     }
 
-    // Proteção: Se o jogador já tem clã, manda direto pro jogo
     if (userProfile?.clan_id) {
       navigate("/dashboard");
       return;
     }
 
     const fetchClans = async () => {
+      showLoading("Buscando clãs disponíveis...");
       try {
-        // Usando apiClient para garantir a URL correta (produção/local)
-        const data = await apiClient.getClansByFaction(selectedFaction);
+        // Inicia o timer e a chamada da API ao mesmo tempo.
+        const timer = new Promise((resolve) => setTimeout(resolve, 2000));
+        const clansPromise = apiClient.getClansByFaction(selectedFaction);
+
+        // Espera que ambos terminem.
+        const [_, data] = await Promise.all([timer, clansPromise]);
+
         setClans(data.clans || []);
       } catch (error) {
         setError("Erro ao carregar clãs. Tente novamente.");
       } finally {
-        setLoading(false);
+        hideLoading();
       }
     };
 
     fetchClans();
-  }, [selectedFaction, profileLoading, userProfile, navigate]);
+  }, [
+    selectedFaction,
+    profileLoading,
+    userProfile,
+    navigate,
+    showLoading,
+    hideLoading,
+  ]);
 
   const handleJoinClan = async () => {
     if (!selectedClan) return;
 
-    setJoining(true);
-    setProcessing(true);
+    showLoading("Entrando no clã...");
     setError("");
 
     try {
-      // Usando apiClient que já injeta o token e usa a URL correta
       await apiClient.joinClan(selectedClan);
-
-      // Atualiza o perfil global para que o GlobalLayout saiba que o clã foi configurado
       await refreshProfile();
-
-      // Limpar cache manual
       import("../utils/cacheUtils").then(({ clearAllCache }) => clearAllCache());
 
-      // Navega suavemente para o dashboard
+      showLoading("Carregando dashboard...");
+      await new Promise((resolve) => setTimeout(resolve, 3000)); // Simula um carregamento
+
       navigate("/dashboard", { replace: true });
     } catch (error) {
       setError(
         error instanceof Error ? error.message : "Erro ao entrar no clã",
       );
-    } finally {
-      setJoining(false);
-      setProcessing(false);
+      hideLoading();
     }
   };
 
@@ -107,15 +110,6 @@ export default function ClanSelectionPage() {
   const getFactionAccentColor = (faction: string) => {
     return faction === "gangsters" ? "orange-500" : "blue-500";
   };
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 to-black flex flex-col items-center justify-center">
-        <LoadingSpinner size="lg" />
-        <div className="text-white text-xl mt-4 font-orbitron">Buscando clãs...</div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-gray-900 text-white font-exo">
@@ -316,14 +310,14 @@ export default function ClanSelectionPage() {
             className="flex justify-center gap-3"
           >
             <motion.button
-              whileHover={{ scale: selectedClan && !joining ? 1.02 : 1 }}
-              whileTap={{ scale: selectedClan && !joining ? 0.98 : 1 }}
+              whileHover={{ scale: selectedClan ? 1.02 : 1 }}
+              whileTap={{ scale: selectedClan ? 0.98 : 1 }}
               onClick={handleJoinClan}
-              disabled={!selectedClan || joining || processing}
+              disabled={!selectedClan}
               className={`
               px-8 py-2.5 rounded-xl font-bold transition-all duration-300 backdrop-blur-sm
               ${
-                selectedClan && !joining && !processing
+                selectedClan
                   ? `bg-gradient-to-r ${getFactionColor(
                       selectedFaction,
                     )} text-white shadow-lg hover:shadow-xl border border-white/20`
@@ -331,14 +325,7 @@ export default function ClanSelectionPage() {
               }
             `}
             >
-              {processing || joining ? (
-                <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                  {processing ? "Processando..." : "Entrando..."}
-                </div>
-              ) : (
-                "Entrar no Clã →"
-              )}
+              Entrar no Clã →
             </motion.button>
           </motion.div>
         </div>
