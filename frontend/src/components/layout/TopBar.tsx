@@ -106,9 +106,9 @@ const TopBar: React.FC<TopBarProps> = ({
 
   return (
     <>
-      <div className="absolute top-[6px] z-50 w-full flex justify-center items-center mb-6 h-10 md:h-auto">
+      <div className="absolute top-[12px] md:top-[6px] z-50 w-full flex justify-center items-start md:items-center mb-6 h-auto">
         {/* Mobile Menu Toggle - Positioned to the left */}
-        <div className="absolute left-2 top-1/2 -translate-y-1/2">
+        <div className="absolute left-2 top-1/2 -translate-y-1/2 md:hidden">
           <button
             onClick={onMenuToggle}
             className="md:hidden text-slate-400 hover:text-white transition-colors p-1"
@@ -133,13 +133,13 @@ const TopBar: React.FC<TopBarProps> = ({
 
         {/* The compact, centered metrics card */}
         <div
-          className="relative bg-black/20 backdrop-blur-xl border border-slate-700/50 rounded-2xl px-6 py-2 shadow-lg"
+          className="relative bg-black/20 backdrop-blur-xl border border-slate-700/50 rounded-2xl px-4 sm:px-6 py-2 shadow-lg w-[90%] md:w-auto"
           style={{
             boxShadow:
               "inset 0 1px 1px rgba(255, 255, 255, 0.05), 0 0 30px rgba(0, 0, 0, 0.5)",
           }}
         >
-          <div className="flex flex-wrap items-center justify-center gap-x-3 sm:gap-x-4">
+          <div className="flex flex-wrap items-center justify-center gap-x-2 sm:gap-x-4">
             {metrics.map((metric, index) => (
               <React.Fragment key={metric.label}>
                 <div
