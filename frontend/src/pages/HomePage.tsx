@@ -11,37 +11,12 @@ import {
 } from "../components/home";
 import { useGameClock } from "../hooks/useGameClock";
 import NavbarCountdown from "../components/layout/NavbarCountdown";
+import ScrollToTopButton from "../components/layout/ScrollToTopButton";
 
 export default function HomePage() {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authMode, setAuthMode] = useState<"login" | "register">("login");
   const { status, remainingTime } = useGameClock(); // Usar o hook para obter o estado do jogo
-  const [showBackToTop, setShowBackToTop] = useState(false);
-
-  useEffect(() => {
-    const handleScroll = () => {
-      // Mostra o botão quando o usuário rolar para além de uma certa altura
-      if (window.scrollY > 400) {
-        setShowBackToTop(true);
-      } else {
-        setShowBackToTop(false);
-      }
-    };
-
-    window.addEventListener("scroll", handleScroll);
-
-    // Limpa o listener quando o componente é desmontado
-    return () => {
-      window.removeEventListener("scroll", handleScroll);
-    };
-  }, []);
-
-  const handleGoToStart = () => {
-    window.scrollTo({
-      top: 0,
-      behavior: "smooth",
-    });
-  };
 
   const openAuthModal = (mode: "login" | "register") => {
     setAuthMode(mode);
@@ -119,34 +94,7 @@ export default function HomePage() {
         />
       )}
 
-      {/* Botão Voltar ao Topo */}
-      <AnimatePresence>
-        {showBackToTop && (
-          <motion.button
-            initial={{ opacity: 0, scale: 0.5 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.5 }}
-            onClick={handleGoToStart}
-            className="fixed bottom-8 right-8 bg-purple-600 hover:bg-purple-700 text-white rounded-full p-3 shadow-lg z-50"
-            aria-label="Voltar ao topo"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-6 w-6"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M5 15l7-7 7 7"
-              />
-            </svg>
-          </motion.button>
-        )}
-      </AnimatePresence>
+      <ScrollToTopButton />
     </div>
   );
 }

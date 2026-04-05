@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import TopBar from "./TopBar";
 import DashboardSidebar from "./DashboardSidebar";
@@ -11,6 +11,7 @@ import dashbgangster from "../../assets/dashbgangster.webp";
 import { Tooltip } from "react-tooltip";
 import { useGameClock } from "../../hooks/useGameClock";
 import GameClockDisplay from "./GameClockDisplay";
+import ScrollToTopButton from "./ScrollToTopButton";
 
 interface GlobalLayoutProps {
   children: React.ReactNode;
@@ -23,6 +24,7 @@ const GlobalLayout: React.FC<GlobalLayoutProps> = ({ children }) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
+  const scrollableContainerRef = useRef<HTMLDivElement>(null);
 
   const minSwipeDistance = 50;
   const { remainingTime, status, serverTime } = useGameClock();
@@ -133,7 +135,10 @@ const GlobalLayout: React.FC<GlobalLayoutProps> = ({ children }) => {
         {/* Conteúdo principal */}
         <div className="flex flex-col flex-1 w-0">
           {/* Container para o conteúdo que rola, sem padding */}
-          <div className="flex-1 relative overflow-y-auto overflow-x-hidden">
+          <div
+            ref={scrollableContainerRef}
+            className="flex-1 relative overflow-y-auto overflow-x-hidden"
+          >
             <TopBar
               userProfile={userProfile}
               handleLogout={handleLogout}
@@ -166,6 +171,7 @@ const GlobalLayout: React.FC<GlobalLayoutProps> = ({ children }) => {
         className="!bg-slate-700 !bg-opacity-80 !backdrop-blur-sm !text-white !rounded-lg !px-3 !py-1 !text-[8px] !font-sans"
       />
       <FloatingMenuButton />
+      <ScrollToTopButton scrollableRef={scrollableContainerRef} />
     </div>
   );
 };
