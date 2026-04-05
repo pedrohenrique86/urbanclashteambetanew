@@ -70,7 +70,13 @@ export const FloatingMenuButton: React.FC = () => {
   }, [windowSize]);
 
   const savePosition = (event: any, info: any) => {
-    const newPos = { x: info.point.x, y: info.point.y };
+    const { top, left, right, bottom } = dragConstraints;
+    
+    const clampedX = Math.max(left, Math.min(info.point.x, right));
+    const clampedY = Math.max(top, Math.min(info.point.y, bottom));
+
+    const newPos = { x: clampedX, y: clampedY };
+    
     setPosition(newPos);
     localStorage.setItem("floating_menu_position", JSON.stringify(newPos));
   };
