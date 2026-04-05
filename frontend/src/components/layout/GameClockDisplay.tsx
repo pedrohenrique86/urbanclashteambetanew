@@ -185,7 +185,7 @@ const GameClockDisplay: React.FC<GameClockDisplayProps> = ({
                 className="flex items-center gap-1.5 text-gray-400"
               >
                 <IoMdTime className="text-sm sm:text-base" />
-                <span className="font-mono text-[10px] sm:text-xs whitespace-nowrap">
+                <span className="font-mono font-bold text-xs sm:text-sm whitespace-nowrap">
                   {serverTimeStr}
                 </span>
               </div>
