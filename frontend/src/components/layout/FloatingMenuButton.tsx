@@ -92,19 +92,29 @@ export const FloatingMenuButton: React.FC = () => {
     let x = position.x;
     let y = position.y;
 
-    // Tenta abrir à esquerda do botão
+    // Decide se o menu abre à esquerda ou à direita do botão
     if (position.x + BUTTON_SIZE / 2 > windowSize.width / 2) {
-      x = position.x - MENU_WIDTH + BUTTON_SIZE / 2;
-    } else { // Tenta abrir à direita
-      x = position.x + BUTTON_SIZE / 2;
+      x = position.x - MENU_WIDTH + BUTTON_SIZE / 2; // Abre à esquerda
+    } else {
+      x = position.x + BUTTON_SIZE / 2; // Abre à direita
     }
 
-    // Ajusta verticalmente
-    y = position.y - MENU_HEIGHT_ESTIMATE / 2 + BUTTON_SIZE / 2;
-
-    // Garante que o menu não saia da tela
+    // Garante que o menu não saia horizontalmente da tela
     x = Math.max(SCREEN_PADDING, Math.min(x, windowSize.width - MENU_WIDTH - SCREEN_PADDING));
-    y = Math.max(SCREEN_PADDING, Math.min(y, windowSize.height - MENU_HEIGHT_ESTIMATE - SCREEN_PADDING));
+
+    // Ajusta a posição vertical para garantir que o menu caiba na tela
+    const menuHeight = Math.min(MENU_HEIGHT_ESTIMATE, windowSize.height - 2 * SCREEN_PADDING);
+    
+    // Tenta alinhar o topo do menu com o topo do botão
+    y = position.y;
+
+    // Se o menu ultrapassar a parte inferior, ajusta para cima
+    if (y + menuHeight > windowSize.height - SCREEN_PADDING) {
+      y = windowSize.height - menuHeight - SCREEN_PADDING;
+    }
+
+    // Garante que o menu não saia verticalmente da tela (borda superior)
+    y = Math.max(SCREEN_PADDING, y);
     
     return { x, y, opacity: 1, scale: 1 };
   }, [isOpen, position, windowSize]);
