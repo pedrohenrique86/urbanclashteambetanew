@@ -117,33 +117,44 @@ const GameClockDisplay: React.FC<GameClockDisplayProps> = ({
     icon: statusIcon,
   } = getStatusInfo();
 
-  const [isVisible, setIsVisible] = useState(true);
   const [isInteracting, setIsInteracting] = useState(false);
-  const lastScrollY = useRef(0);
+  const interactionTimer = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
-    const handleScroll = () => {
-      const currentScrollY = window.scrollY;
-      // Mostra se rolar pra cima, esconde se rolar pra baixo
-      setIsVisible(currentScrollY < lastScrollY.current || currentScrollY < 10);
-      lastScrollY.current = currentScrollY;
+    const handleInteractionStart = () => {
+      setIsInteracting(true);
+      if (interactionTimer.current) {
+        clearTimeout(interactionTimer.current);
+      }
     };
 
-    const handleTouchStart = () => setIsInteracting(true);
-    const handleTouchEnd = () => setIsInteracting(false);
+    const handleInteractionEnd = () => {
+      interactionTimer.current = setTimeout(() => {
+        setIsInteracting(false);
+      }, 250); // A barra reaparece após 250ms de inatividade
+    };
+
+    // Combina scroll e touch para uma lógica unificada
+    const handleScroll = () => {
+      handleInteractionStart();
+      handleInteractionEnd();
+    };
 
     window.addEventListener("scroll", handleScroll, { passive: true });
-    document.addEventListener("touchstart", handleTouchStart, { passive: true });
-    document.addEventListener("touchend", handleTouchEnd, { passive: true });
+    document.addEventListener("touchstart", handleInteractionStart, { passive: true });
+    document.addEventListener("touchend", handleInteractionEnd, { passive: true });
 
     return () => {
       window.removeEventListener("scroll", handleScroll);
-      document.removeEventListener("touchstart", handleTouchStart);
-      document.removeEventListener("touchend", handleTouchEnd);
+      document.removeEventListener("touchstart", handleInteractionStart);
+      document.removeEventListener("touchend", handleInteractionEnd);
+      if (interactionTimer.current) {
+        clearTimeout(interactionTimer.current);
+      }
     };
   }, []);
 
-  const shouldBeVisible = isVisible && !isInteracting;
+  const shouldBeVisible = !isInteracting;
 
   if (isMobileMode) {
     return (
@@ -154,8 +165,8 @@ const GameClockDisplay: React.FC<GameClockDisplayProps> = ({
               initial={{ y: "100%" }}
               animate={{ y: "0%" }}
               exit={{ y: "100%" }}
-              transition={{ type: "tween", ease: "easeInOut", duration: 0.3 }}
-              className="flex flex-row items-center justify-between w-full px-3 py-1.5 bg-black/40 backdrop-blur-lg shadow-[0_-5px_20px_rgba(0,0,0,0.6)] z-[60] fixed bottom-0 left-0 right-0 md:hidden"
+              transition={{ type: "tween", ease: "easeInOut", duration: 0.4 }}
+              className="flex flex-row items-center justify-between w-full px-3 py-1.5 bg-black/20 backdrop-blur-xl shadow-[0_-5px_25px_rgba(0,0,0,0.5)] z-[60] fixed bottom-0 left-0 right-0 md:hidden"
             >
               {/* Status e Cronômetro */}
               <div className={`flex items-center gap-2 ${statusColor}`}>
