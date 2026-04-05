@@ -109,14 +109,14 @@ export const FloatingMenuButton: React.FC = () => {
     x = Math.max(SCREEN_PADDING, Math.min(x, windowSize.width - MENU_WIDTH - SCREEN_PADDING));
 
     // Ajusta a posição vertical para garantir que o menu caiba na tela
-    const menuHeight = Math.min(MENU_HEIGHT_ESTIMATE, windowSize.height - 2 * SCREEN_PADDING);
+    const menuMaxHeight = windowSize.height * 0.8; // Corresponde a max-h-[80vh]
     
     // Tenta alinhar o topo do menu com o topo do botão
     y = position.y;
 
     // Se o menu ultrapassar a parte inferior, ajusta para cima
-    if (y + menuHeight > windowSize.height - SCREEN_PADDING) {
-      y = windowSize.height - menuHeight - SCREEN_PADDING;
+    if (y + menuMaxHeight > windowSize.height - SCREEN_PADDING) {
+      y = windowSize.height - menuMaxHeight - SCREEN_PADDING;
     }
 
     // Garante que o menu não saia verticalmente da tela (borda superior)
