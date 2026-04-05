@@ -54,7 +54,9 @@ const PlayerRankingItem: React.FC<{ player: Player; gradient: string }> = ({
         <div className="flex items-center justify-between min-w-0">
           <div className="flex items-center space-x-3 min-w-0 flex-1">
             <div
-              className={`w-8 text-center text-2xl font-bold flex-shrink-0 ${getPositionColor(
+              className={`w-8 text-center ${
+                (player.position ?? 0) <= 3 ? "text-2xl" : "text-sm"
+              } font-bold flex-shrink-0 ${getPositionColor(
                 player.position ?? 0,
               )}`}
             >
@@ -135,7 +137,9 @@ const ClanRankingItem: React.FC<{ clan: Clan; gradient: string }> = ({
         <div className="flex items-center justify-between min-w-0">
           <div className="flex items-center space-x-3 min-w-0 flex-1">
             <div
-              className={`w-8 text-center text-2xl font-bold flex-shrink-0 ${getPositionColor(
+              className={`w-8 text-center ${
+                (clan.position ?? 0) <= 3 ? "text-2xl" : "text-sm"
+              } font-bold flex-shrink-0 ${getPositionColor(
                 clan.position ?? 0,
               )}`}
             >
@@ -259,8 +263,8 @@ export default function RankingPage() {
         {error && <p className="text-red-400 text-sm mt-2">⚠️ {error}</p>}
       </motion.div>
 
-      {/* Seletores de Ranking */}
-      <div className="flex justify-center mb-8 space-x-2">
+      {/* Seletores de Ranking - Desktop */}
+      <div className="hidden sm:flex justify-center mb-8 space-x-2">
         {rankingConfigs.map((config, index) => (
           <button
             key={config.title}
@@ -274,6 +278,21 @@ export default function RankingPage() {
             {config.title}
           </button>
         ))}
+      </div>
+
+      {/* Seletor de Ranking - Mobile */}
+      <div className="sm:hidden mb-8">
+        <select
+          value={selectedRanking}
+          onChange={(e) => setSelectedRanking(Number(e.target.value))}
+          className="w-full px-4 py-3 text-white bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 font-orbitron"
+        >
+          {rankingConfigs.map((config, index) => (
+            <option key={config.title} value={index} className="font-sans">
+              {config.title}
+            </option>
+          ))}
+        </select>
       </div>
 
       {/* Coluna de Ranking */}

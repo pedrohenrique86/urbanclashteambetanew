@@ -44,7 +44,7 @@ export default function PlayerRankingItem({
     if (!position || position <= 3) {
       return "text-lg sm:text-xl"; // Tamanho maior para Top 3
     }
-    return "text-xs sm:text-sm"; // Tamanho padrão para 4+
+    return "text-sm sm:text-base"; // Tamanho padrão para 4+
   };
 
   // Função para exibir troféu ou número
@@ -92,13 +92,13 @@ export default function PlayerRankingItem({
           )}
 
           {/* Nome do usuário */}
-          <span className="text-white font-medium flex-grow min-w-0 text-xs sm:text-sm truncate">
+          <span className="text-white font-medium flex-grow min-w-0 text-sm sm:text-base truncate">
             {player.username}
           </span>
 
           {/* Nível atual */}
           <span
-            className={`${levelColorClass} font-bold flex-shrink-0 text-xs sm:text-sm whitespace-nowrap`}
+            className={`${levelColorClass} font-bold flex-shrink-0 text-sm sm:text-base whitespace-nowrap`}
           >
             Nv.{player.level}
           </span>

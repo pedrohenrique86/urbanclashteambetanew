@@ -38,7 +38,7 @@ export default function ClanRankingItem({
     if (!position || position <= 3) {
       return "text-lg sm:text-xl"; // Tamanho maior para Top 3
     }
-    return "text-xs sm:text-sm"; // Tamanho padrão para 4+
+    return "text-sm sm:text-base"; // Tamanho padrão para 4+
   };
 
   // Função para exibir troféu ou número
@@ -77,12 +77,12 @@ export default function ClanRankingItem({
           </span>
 
           {/* Nome do clã */}
-          <span className="text-white font-medium flex-grow truncate text-xs sm:text-sm">
+          <span className="text-white font-medium flex-grow truncate text-sm sm:text-base">
             {clan.name}
           </span>
 
           {/* Pontuação */}
-          <span className="text-purple-400 font-bold text-xs sm:text-sm flex-shrink-0">
+          <span className="text-purple-400 font-bold text-sm sm:text-base flex-shrink-0">
             {clan.score} pts
           </span>
         </div>
