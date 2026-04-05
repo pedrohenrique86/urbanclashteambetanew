@@ -38,7 +38,7 @@ export default function ClanRankingItem({
     if (!position || position <= 3) {
       return "text-lg sm:text-xl"; // Tamanho maior para Top 3
     }
-    return "text-base sm:text-lg"; // Tamanho menor para 4+
+    return "text-xs sm:text-sm"; // Tamanho padrão para 4+
   };
 
   // Função para exibir troféu ou número
