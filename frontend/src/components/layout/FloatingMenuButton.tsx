@@ -222,12 +222,6 @@ export const FloatingMenuButton: React.FC = () => {
         className="fixed z-[9999] w-60 overflow-hidden rounded-2xl border border-purple-500/30 bg-gray-900/95 p-2 shadow-2xl backdrop-blur-md md:hidden"
       >
         <div className="flex flex-col gap-1 max-h-[80vh] overflow-y-auto">
-          <div className="mb-2 flex items-center justify-between border-b border-white/10 px-3 py-2">
-            <span className="text-xs font-bold uppercase tracking-wider text-purple-400">Navegação</span>
-            <button onClick={() => setIsOpen(false)} className="rounded-full p-1 hover:bg-white/10">
-              <X size={18} className="text-white/70" />
-            </button>
-          </div>
           
           {navItems.map((category) => {
             const isSubMenuActive = category.subItems?.some((sub) => location.pathname.startsWith(sub.path));
