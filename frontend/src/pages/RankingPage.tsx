@@ -225,6 +225,7 @@ export default function RankingPage() {
   const rankingConfigs = [
     {
       title: "🔫 TOP 26 GANGSTERS",
+      shortTitle: "GANGSTERS",
       gradient: "from-orange-600 to-red-500",
       borderColor: "border-orange-500/30",
       data: gangsters,
@@ -232,6 +233,7 @@ export default function RankingPage() {
     },
     {
       title: "🛡️ TOP 26 GUARDAS",
+      shortTitle: "GUARDAS",
       gradient: "from-blue-600 to-cyan-500",
       borderColor: "border-blue-500/30",
       data: guardas,
@@ -239,6 +241,7 @@ export default function RankingPage() {
     },
     {
       title: "👥 TOP 26 CLÃS",
+      shortTitle: "CLÃS",
       gradient: "from-purple-600 to-pink-500",
       borderColor: "border-purple-500/30",
       data: clans,
@@ -250,38 +253,25 @@ export default function RankingPage() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 pb-8">
-      {/* Informação de atualização */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.3, duration: 0.6 }}
-        className="text-center mb-8 p-4 bg-gray-800/50 rounded-lg border border-gray-700/50"
-      >
-        <p className="text-gray-300">
-          🔄 Atualizado automaticamente a cada 10 minutos
-        </p>
-        {error && <p className="text-red-400 text-sm mt-2">⚠️ {error}</p>}
-      </motion.div>
-
       {/* Seletores de Ranking - Desktop */}
-      <div className="hidden sm:flex justify-center mb-8 space-x-2">
+      <div className="hidden sm:flex justify-center mb-4 space-x-2">
         {rankingConfigs.map((config, index) => (
           <button
             key={config.title}
             onClick={() => setSelectedRanking(index)}
-            className={`px-4 py-2 text-sm font-orbitron rounded-lg transition-all duration-300 ${
+            className={`px-6 py-2 text-sm font-orbitron rounded-lg transition-all duration-300 ${
               selectedRanking === index
                 ? `bg-gradient-to-r ${config.gradient} text-white shadow-lg`
                 : "bg-gray-700/50 text-gray-300 hover:bg-gray-600/70"
             }`}
           >
-            {config.title}
+            {config.shortTitle}
           </button>
         ))}
       </div>
 
       {/* Seletor de Ranking - Mobile */}
-      <div className="sm:hidden mb-8">
+      <div className="sm:hidden mb-4">
         <select
           value={selectedRanking}
           onChange={(e) => setSelectedRanking(Number(e.target.value))}
@@ -289,10 +279,16 @@ export default function RankingPage() {
         >
           {rankingConfigs.map((config, index) => (
             <option key={config.title} value={index} className="font-sans">
-              {config.title}
+              {config.shortTitle}
             </option>
           ))}
         </select>
+      </div>
+
+      {/* Informação de atualização e erro */}
+      <div className="text-center mb-8 text-xs text-gray-400">
+        <p>🔄 Atualizado a cada 10 minutos</p>
+        {error && <p className="text-red-400 mt-1">⚠️ {error}</p>}
       </div>
 
       {/* Coluna de Ranking */}
@@ -302,10 +298,10 @@ export default function RankingPage() {
 }
 
 // Componente auxiliar para a coluna de ranking
-const RankingColumn: React.FC<{ config: any; isLoading: boolean }> = ({
-  config,
-  isLoading,
-}) => (
+const RankingColumn: React.FC<{
+  config: any;
+  isLoading: boolean;
+}> = ({ config, isLoading }) => (
   <motion.div
     initial={{ opacity: 0, y: 50 }}
     animate={{ opacity: 1, y: 0 }}
