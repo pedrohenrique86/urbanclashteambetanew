@@ -9,14 +9,14 @@ export default function GoogleCallbackPage() {
   const location = useLocation();
   const { refreshProfile } = useUserProfileContext();
   const { showLoading, hideLoading } = useLoading();
-  const effectRan = useRef(false);
+  const hasProcessed = useRef(false);
 
   useEffect(() => {
-    // Previne execução duplicada em StrictMode no desenvolvimento
-    if (effectRan.current === true && import.meta.env.DEV) {
+    // Garante que o processo de autenticação rode apenas uma vez.
+    if (hasProcessed.current) {
       return;
     }
-    effectRan.current = true;
+    hasProcessed.current = true;
 
     const processAuth = async () => {
       const params = new URLSearchParams(location.search);
@@ -33,13 +33,15 @@ export default function GoogleCallbackPage() {
         const codeVerifier = sessionStorage.getItem("google_code_verifier");
         const country = sessionStorage.getItem("google_auth_country");
 
-        // Limpa o storage assim que lê
+        // Limpa o storage assim que lê para evitar reuso
         sessionStorage.removeItem("google_code_verifier");
         sessionStorage.removeItem("google_auth_country");
         sessionStorage.removeItem("google_auth_intent");
 
         if (!codeVerifier) {
-          throw new Error("Verificador de código PKCE não encontrado. Tente fazer login novamente.");
+          throw new Error(
+            "Verificador de código PKCE não encontrado. Tente fazer login novamente.",
+          );
         }
 
         const data = await apiClient.googleCallback(
