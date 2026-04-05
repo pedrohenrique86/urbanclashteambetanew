@@ -103,13 +103,8 @@ export default function FactionSelectionPage() {
       console.log(`✅ Processo de facção (${selectedFaction}) concluído.`);
       await refreshProfile();
 
-      console.log("🔄 Redirecionando para a seleção de clãs...");
-      navigate("/clan-selection", {
-        state: {
-          fromFactionSelection: true,
-          faction: selectedFaction,
-        },
-      });
+      console.log("🔄 Redirecionando para a dashboard...");
+      navigate("/dashboard");
     } catch (error: any) {
       console.error("❌ Erro na seleção de facção:", error);
       setError(error.message || "Erro ao selecionar facção. Tente novamente.");

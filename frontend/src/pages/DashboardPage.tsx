@@ -265,7 +265,7 @@ export default function DashboardPage() {
     }
   }, [userProfile, hideLoading]);
 
-  if (!userProfile || !userProfile.faction || !userProfile.clan_id) {
+  if (!userProfile || !userProfile.faction) {
     // Enquanto o perfil está carregando ou incompleto, não fazemos nada.
     // O spinner global continuará visível, cobrindo a tela.
     return null;

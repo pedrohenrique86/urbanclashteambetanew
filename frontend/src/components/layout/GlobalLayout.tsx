@@ -99,11 +99,11 @@ const GlobalLayout: React.FC<GlobalLayoutProps> = ({ children }) => {
     return <div className={`min-h-screen ${themeClasses.bg}`} />;
   }
 
-  // Guarda de rota: usuário sem clã → seleção de clã
-  if (!userProfile.clan_id) {
+  // Guarda de rota: usuário sem clã → seleção de clã (REMOVIDO)
+  /* if (!userProfile.clan_id) {
     navigate("/clan-selection", { replace: true });
     return <div className={`min-h-screen ${themeClasses.bg}`} />;
-  }
+  } */
 
   const isDashboard = location.pathname === "/dashboard";
 
