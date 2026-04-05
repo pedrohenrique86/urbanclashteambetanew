@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Tooltip } from "react-tooltip";
 import {
@@ -117,30 +117,72 @@ const GameClockDisplay: React.FC<GameClockDisplayProps> = ({
     icon: statusIcon,
   } = getStatusInfo();
 
+  const [isVisible, setIsVisible] = useState(true);
+  const [isInteracting, setIsInteracting] = useState(false);
+  const lastScrollY = useRef(0);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const currentScrollY = window.scrollY;
+      // Mostra se rolar pra cima, esconde se rolar pra baixo
+      setIsVisible(currentScrollY < lastScrollY.current || currentScrollY < 10);
+      lastScrollY.current = currentScrollY;
+    };
+
+    const handleTouchStart = () => setIsInteracting(true);
+    const handleTouchEnd = () => setIsInteracting(false);
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    document.addEventListener("touchstart", handleTouchStart, { passive: true });
+    document.addEventListener("touchend", handleTouchEnd, { passive: true });
+
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+      document.removeEventListener("touchstart", handleTouchStart);
+      document.removeEventListener("touchend", handleTouchEnd);
+    };
+  }, []);
+
+  const shouldBeVisible = isVisible && !isInteracting;
+
   if (isMobileMode) {
     return (
-      <div className="flex flex-row items-center justify-between w-full px-2 py-1.5 bg-slate-900/95 backdrop-blur-md border-t border-slate-700/50 shadow-[0_-5px_15px_rgba(0,0,0,0.5)] z-[60] fixed bottom-0 left-0 right-0 md:hidden">
-        <div className={`flex items-center gap-2 ${statusColor}`}>
-          <span className="text-sm sm:text-base">{statusIcon}</span>
-          <span className="text-xs sm:text-sm font-orbitron font-bold uppercase tracking-wider hidden xs:inline-block">
-            {statusText}
-          </span>
-          <span className="font-mono font-bold text-xs sm:text-sm ml-1">
-            {remainingTimeStr.split(' ')[0]} {remainingTimeStr.split(' ')[1]} {remainingTimeStr.split(' ')[2]}
-          </span>
-        </div>
-        
-        <div
-          data-tooltip-id="server-time-tooltip"
-          data-tooltip-content="Horário Padrão"
-          className="flex items-center gap-1.5 text-gray-400"
-        >
-          <IoMdTime className="text-sm sm:text-base" />
-          <span className="font-mono text-[10px] sm:text-xs whitespace-nowrap overflow-hidden text-ellipsis max-w-[120px] xs:max-w-none">
-            {serverTimeStr}
-          </span>
-        </div>
-      </div>
+      <>
+        <AnimatePresence>
+          {shouldBeVisible && (
+            <motion.div
+              initial={{ y: "100%" }}
+              animate={{ y: "0%" }}
+              exit={{ y: "100%" }}
+              transition={{ type: "tween", ease: "easeInOut", duration: 0.3 }}
+              className="flex flex-row items-center justify-between w-full px-3 py-1.5 bg-black/40 backdrop-blur-lg shadow-[0_-5px_20px_rgba(0,0,0,0.6)] z-[60] fixed bottom-0 left-0 right-0 md:hidden"
+            >
+              {/* Status e Cronômetro */}
+              <div className={`flex items-center gap-2 ${statusColor}`}>
+                <span className="text-sm sm:text-base" data-tooltip-id="status-tooltip" data-tooltip-content={statusText}>
+                  {statusIcon}
+                </span>
+                <span className="font-mono font-bold text-xs sm:text-sm">
+                  {remainingTimeStr}
+                </span>
+              </div>
+
+              {/* Hora do Servidor */}
+              <div
+                data-tooltip-id="server-time-tooltip"
+                data-tooltip-content="Horário Padrão"
+                className="flex items-center gap-1.5 text-gray-400"
+              >
+                <IoMdTime className="text-sm sm:text-base" />
+                <span className="font-mono text-[10px] sm:text-xs whitespace-nowrap">
+                  {serverTimeStr}
+                </span>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+        <Tooltip id="status-tooltip" place="top" className="!bg-slate-700 !bg-opacity-80 !backdrop-blur-sm !text-white !rounded-lg !px-3 !py-1 !text-xs !font-sans" style={{ zIndex: 9999 }} />
+      </>
     );
   }
 
