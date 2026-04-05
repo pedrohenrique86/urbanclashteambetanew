@@ -7,7 +7,9 @@ import {
   X,
   ChevronRight,
   Home,
-  UserCircle
+  UserCircle,
+  PlusCircle,
+  MinusCircle
 } from "lucide-react";
 import { useUserProfile } from "../../hooks/useUserProfile";
 import { navItems } from "./DashboardSidebar"; // Importando os itens do menu
@@ -22,15 +24,46 @@ export const FloatingMenuButton: React.FC = () => {
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [windowSize, setWindowSize] = useState({ width: 0, height: 0 });
   const [openMenu, setOpenMenu] = useState<string | null>(null);
+  const [editingShortcut, setEditingShortcut] = useState<number | null>(null);
+  const [customShortcuts, setCustomShortcuts] = useState(() => {
+    try {
+      const saved = localStorage.getItem("custom_shortcuts");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        // Garante que temos sempre 2 atalhos, mesmo que o salvo seja inválido
+        if (Array.isArray(parsed) && parsed.length === 2) {
+          // Apenas carrega nome e path, o ícone é recuperado na renderização
+          return parsed.map(p => ({ name: p.name || null, path: p.path || null }));
+        }
+      }
+    } catch (e) {
+      console.error("Falha ao carregar atalhos:", e);
+    }
+    return [
+      { name: null, path: null },
+      { name: null, path: null },
+    ];
+  });
+
   const navigate = useNavigate();
   const location = useLocation();
   const { handleLogout } = useUserProfile();
 
+  // Salva os atalhos no localStorage sempre que eles mudam
+  useEffect(() => {
+    try {
+      localStorage.setItem("custom_shortcuts", JSON.stringify(customShortcuts));
+    } catch (e) {
+      console.error("Falha ao salvar atalhos:", e);
+    }
+  }, [customShortcuts]);
+  
   // Controla o estado de abertura do menu principal
   useEffect(() => {
     if (!isOpen) {
-      // Quando o menu fecha, reseta o estado do acordeão
+      // Quando o menu fecha, reseta o estado do acordeão e da edição de atalhos
       setOpenMenu(null);
+      setEditingShortcut(null);
     }
   }, [isOpen]);
 
@@ -88,7 +121,40 @@ export const FloatingMenuButton: React.FC = () => {
 
   const handleMenuToggle = (name: string) => {
     setOpenMenu(openMenu === name ? null : name);
+    setEditingShortcut(null); // Fecha a edição de atalho ao abrir outro menu
   };
+
+  const handleShortcutClick = (index: number) => {
+    const shortcut = customShortcuts[index];
+    if (shortcut.path) {
+      handleNavigate(shortcut.path);
+    } else {
+      setEditingShortcut(editingShortcut === index ? null : index);
+      setOpenMenu(null); // Fecha o acordeão ao editar atalho
+    }
+  };
+
+  const handleShortcutSelect = (page: { name: string; path: string; icon: React.ReactNode }) => {
+    if (editingShortcut === null) return;
+
+    const newShortcuts = [...customShortcuts];
+    // Salva apenas o nome e o caminho, não o componente do ícone
+    newShortcuts[editingShortcut] = { name: page.name, path: page.path };
+    setCustomShortcuts(newShortcuts);
+    setEditingShortcut(null);
+  };
+
+  const handleRemoveShortcut = (index: number) => {
+    const newShortcuts = [...customShortcuts];
+    newShortcuts[index] = { name: null, path: null };
+    setCustomShortcuts(newShortcuts);
+  };
+
+  // Lista achatada de todas as páginas navegáveis para seleção de atalho
+  const allPages = useMemo(() => 
+    navItems.flatMap(category => category.subItems || [])
+  , []);
+
 
 
   // Lógica para calcular a posição do menu de forma inteligente
@@ -216,6 +282,75 @@ export const FloatingMenuButton: React.FC = () => {
             )
           })}
 
+
+          <div className="mt-2 border-t border-white/10 pt-2">
+            {customShortcuts.map((shortcut, index) => {
+              // Encontra a informação completa da página (incluindo o ícone) a partir do path salvo
+              const pageInfo = shortcut.path ? allPages.find(p => p.path === shortcut.path) : null;
+              const iconToRender = pageInfo ? pageInfo.icon : null;
+
+              return (
+              <div key={index} className="mt-1 overflow-hidden">
+                <div className="relative group">
+                  <button
+                    onClick={() => handleShortcutClick(index)}
+                    className={`w-full flex items-center justify-between gap-3 rounded-lg px-4 py-3 transition-all text-left ${
+                      editingShortcut === index
+                        ? "bg-purple-600/20 text-purple-400"
+                        : "text-white/70 hover:bg-white/5 hover:text-white"
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      {shortcut.path && iconToRender ? (
+                        React.cloneElement(iconToRender as React.ReactElement, { className: 'w-5 h-5' })
+                      ) : (
+                        <PlusCircle size={20} className="text-purple-400/80" />
+                      )}
+                      <span className="font-semibold text-sm">
+                        {shortcut.name || `Atalho ${index + 1}`}
+                      </span>
+                    </div>
+                    {!shortcut.path && <ChevronRight size={16} className={`transform transition-transform ${editingShortcut === index ? 'rotate-90' : ''}`} />}
+                  </button>
+
+                  {shortcut.path && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleRemoveShortcut(index);
+                      }}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-full bg-red-600/80 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-200 hover:bg-red-500"
+                      title="Remover Atalho"
+                    >
+                      <MinusCircle size={16} />
+                    </button>
+                  )}
+                </div>
+
+                <AnimatePresence>
+                  {editingShortcut === index && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      className="pl-6 pr-2 pt-1 pb-2"
+                    >
+                      {allPages.map((page) => (
+                        <button
+                          key={page.path}
+                          onClick={() => handleShortcutSelect(page)}
+                          className="w-full flex items-center gap-3 rounded-md px-3 py-2.5 transition-all text-left text-slate-300 hover:bg-white/5 hover:text-white"
+                        >
+                          {React.cloneElement(page.icon as React.ReactElement, { className: 'w-4 h-4' })}
+                          <span className="font-medium text-xs">{page.name}</span>
+                        </button>
+                      ))}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            )})}
+          </div>
 
           <div className="mt-2 flex items-center gap-1 border-t border-white/10 pt-2">
             <button
