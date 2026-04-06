@@ -1,4 +1,5 @@
-import React, { useState, useRef, useEffect } from "react";
+
+ import React, { useState, useRef, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -117,7 +118,7 @@ export const navItems: NavItem[] = [
     name: "Rede",
     icon: <UserGroupIcon className="w-5 h-5" />,
     subItems: [
-      { name: "QG", path: "/clan", icon: <FlagIcon className="w-4 h-4" /> },
+      { name: "QG", path: "/qg", icon: <FlagIcon className="w-4 h-4" /> },
       {
         name: "Ranking",
         path: "/ranking",

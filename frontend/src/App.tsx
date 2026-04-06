@@ -12,7 +12,7 @@ import GlobalLayout from "./components/layout/GlobalLayout";
 const HomePage = lazy(() => import("./pages/HomePage"));
 const DashboardPage = lazy(() => import("./pages/DashboardPage"));
 const FactionSelectionPage = lazy(() => import("./pages/FactionSelectionPage"));
-const ClanSelectionPage = lazy(() => import("./pages/ClanSelectionPage"));
+const QGPage = lazy(() => import("./pages/QGPage"));
 const EmailConfirmationPage = lazy(
   () => import("./pages/EmailConfirmationPage"),
 );
@@ -75,7 +75,6 @@ const router = createBrowserRouter([
           // Rotas de Autenticação e Seleção
           { path: "dashboard", element: <DashboardPage /> },
           { path: "faction-selection", element: <FactionSelectionPage /> },
-          { path: "clan-selection", element: <ClanSelectionPage /> },
           { path: "email-confirmation", element: <EmailConfirmationPage /> },
           { path: "confirm-email", element: <EmailConfirmationPage /> },
           { path: "reset-password", element: <ResetPasswordPage /> },
@@ -95,7 +94,7 @@ const router = createBrowserRouter([
           { path: "corporations", element: <CorporationsPage /> },
 
           // Rotas de Rede
-          { path: "clan", element: <ClanPage /> },
+          { path: "qg", element: <QGPage /> },
           { path: "social-zone", element: <SocialZonePage /> },
           { path: "training", element: <TrainingPage /> },
           { path: "digital-identity", element: <DigitalIdentityPage /> },
