@@ -38,7 +38,7 @@ type ChatMessage = {
 export default function ClanPage() {
   const navigate = useNavigate();
   const { themeClasses } = useTheme();
-  const { userProfile, loading: profileLoading } = useUserProfile();
+  const { userProfile, loading: profileLoading, setUserProfile } = useUserProfile();
   const [clan, setClan] = useState<ClanData | null>(null);
   const [clanLoading, setClanLoading] = useState<boolean>(true);
   const [clanError, setClanError] = useState<string | null>(null);
@@ -375,11 +375,14 @@ export default function ClanPage() {
   };
 
   const handleLeaveClan = async () => {
-    if (!clan?.id) return;
+    if (!clan?.id || !userProfile) return;
     try {
       setLeaving(true);
       await apiClient.leaveClan(clan.id);
-      navigate("/dashboard");
+      // Atualização otimista: remove o clan_id do estado local
+      setUserProfile({ ...userProfile, clan_id: undefined });
+      // Navega para a página QG, que irá renderizar a seleção de clãs
+      navigate("/qg");
     } catch (e: unknown) {
       setClanError("Erro ao sair do clã");
     } finally {
@@ -408,6 +411,7 @@ export default function ClanPage() {
         >
           <p className="text-red-400 mb-4">{clanError}</p>
           <button
+            type="button"
             onClick={() => fetchClan(String(userProfile?.clan_id))}
             className="px-4 py-2 bg-blue-600 rounded hover:bg-blue-500 transition-colors"
           >
@@ -438,6 +442,7 @@ export default function ClanPage() {
             </p>
           </div>
           <button
+            type="button"
             onClick={() => setConfirmLeave(true)}
             className="px-4 py-2 bg-black/30 hover:bg-black/40 rounded-lg text-white font-bold border border-white/30 transition-colors"
           >
@@ -552,6 +557,7 @@ export default function ClanPage() {
                       </div>
                       {!isSelf && !isBanned && (
                         <button
+                          type="button"
                           onClick={async () => {
                             if (!clan?.id) return;
                             const key = `clan_votes:${clan.id}:${mid}`;
@@ -688,6 +694,7 @@ export default function ClanPage() {
                 className="flex-1 px-3 py-2 rounded bg-gray-800 border border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
               <button
+                type="button"
                 onClick={sendMessage}
                 disabled={
                   !chatEnabled || chatLoading || chatInput.trim().length === 0
@@ -737,12 +744,14 @@ export default function ClanPage() {
             </div>
             <div className="flex items-center justify-end gap-2">
               <button
+                type="button"
                 onClick={() => setConfirmLeave(false)}
                 className="px-4 py-2 rounded bg-gray-700 hover:bg-gray-600 transition-colors"
               >
                 Cancelar
               </button>
               <button
+                type="button"
                 onClick={handleLeaveClan}
                 disabled={leaving}
                 className="px-4 py-2 rounded bg-red-600 hover:bg-red-500 disabled:opacity-50 transition-colors font-bold"

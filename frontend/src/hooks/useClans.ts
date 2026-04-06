@@ -6,7 +6,8 @@ interface Clan {
   name: string;
   description: string;
   faction: 'gangsters' | 'guardas';
-  // Adicione outros campos do clã conforme necessário
+  member_count: number;
+  max_members: number;
 }
 
 export const useClans = (faction?: 'gangsters' | 'guardas') => {
