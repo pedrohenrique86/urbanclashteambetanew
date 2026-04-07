@@ -49,59 +49,53 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({
   useEffect(() => {
     const token = apiClient.getToken();
 
-    if (userProfile && token) {
-      console.log(
-        "[ChatContext] Usuário logado, tentando autenticar o chat...",
-      );
-      socketService.authenticateChat(token);
-
-      const handleAuthSuccess = () => {
-        console.log("[ChatContext] Autenticação do chat bem-sucedida.");
-        setIsConnected(true);
-
-        // Registra os listeners de chat APÓS a autenticação
-        socketService.onChatHistory(handleChatHistory);
-        socketService.onMessageReceived(handleNewMessage);
-        socketService.onOnlineStatus(handleOnlineStatus);
-      };
-
-      const handleAuthFailed = (error: { message: string }) => {
-        console.error(
-          "[ChatContext] Falha na autenticação do chat:",
-          error.message,
-        );
-        setIsConnected(false);
-      };
-
-      // Registra os listeners de autenticação
-      socketService.onChatAuthSuccess(handleAuthSuccess);
-      socketService.onChatAuthFailed(handleAuthFailed);
-
-      // Função de limpeza
-      return () => {
-        console.log("[ChatContext] Limpando listeners do chat.");
-        socketService.off("chat:auth_success", handleAuthSuccess);
-        socketService.off("chat:auth_failed", handleAuthFailed);
-
-        // Remove os outros listeners apenas se a conexão foi estabelecida
-        if (isConnected) {
-          socketService.off("chat:history", handleChatHistory);
-          socketService.off("chat:message", handleNewMessage);
-          socketService.off("chat:onlineStatus", handleOnlineStatus);
-        }
-      };
-    } else {
-      // Garante que o estado de conexão seja falso se não houver usuário/token
+    // Se não há usuário ou token, não faz nada.
+    if (!userProfile || !token) {
       setIsConnected(false);
+      return;
     }
-    // Adicionado isConnected às dependências para re-executar a limpeza corretamente
-  }, [
-    userProfile,
-    handleChatHistory,
-    handleNewMessage,
-    handleOnlineStatus,
-    isConnected,
-  ]);
+
+    // --- Lógica de Autenticação ---
+    // Esta parte só roda quando o perfil do usuário muda.
+    console.log(
+      "[ChatContext] Usuário detectado, tentando autenticar o chat...",
+    );
+    socketService.authenticateChat(token);
+
+    const handleAuthSuccess = () => {
+      console.log("[ChatContext] Autenticação do chat bem-sucedida.");
+      setIsConnected(true);
+    };
+
+    const handleAuthFailed = (error: { message: string }) => {
+      console.error(
+        "[ChatContext] Falha na autenticação do chat:",
+        error.message,
+      );
+      setIsConnected(false);
+    };
+
+    socketService.onChatAuthSuccess(handleAuthSuccess);
+    socketService.onChatAuthFailed(handleAuthFailed);
+
+    // --- Lógica de Listeners de Mensagem ---
+    // Estes listeners são registrados uma vez e usam as funções memoizadas.
+    socketService.onChatHistory(handleChatHistory);
+    socketService.onMessageReceived(handleNewMessage);
+    socketService.onOnlineStatus(handleOnlineStatus);
+
+    // A função de limpeza é crucial. Ela remove TODOS os listeners quando
+    // o usuário desloga (o componente é desmontado ou o userProfile muda).
+    return () => {
+      console.log("[ChatContext] Limpando todos os listeners do chat.");
+      socketService.off("chat:auth_success", handleAuthSuccess);
+      socketService.off("chat:auth_failed", handleAuthFailed);
+      socketService.off("chat:history", handleChatHistory);
+      socketService.off("chat:message", handleNewMessage);
+      socketService.off("chat:onlineStatus", handleOnlineStatus);
+      setIsConnected(false); // Garante o estado limpo
+    };
+  }, [userProfile, handleChatHistory, handleNewMessage, handleOnlineStatus]);
 
   const sendMessage = (text: string) => {
     if (text.trim()) {
