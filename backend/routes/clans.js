@@ -274,7 +274,7 @@ async function refreshClansCache(limit) {
   );
   await setCachedClans({ limit }, rankingResult.rows);
   // Notifica todos os clientes sobre a atualização do ranking de clãs
-  sseService.broadcast("rankings", { updated: true, type: 'clans' });
+  sseService.broadcast("rankings", { updated: true, type: "clans" });
 }
 
 /**
@@ -311,7 +311,6 @@ async function scheduleClansRefresh() {
   );
 }
 
-
 // GET /api/clans/rankings - Ranking de clãs
 router.get("/rankings", async (req, res) => {
   try {
@@ -321,7 +320,9 @@ router.get("/rankings", async (req, res) => {
     const gameState = await getGameState();
 
     if (cached && cached.data) {
-      console.log(`CACHE HIT: Retornando ranking de clãs em cache para a chave: ${cacheKey}`);
+      console.log(
+        `CACHE HIT: Retornando ranking de clãs em cache para a chave: ${cacheKey}`,
+      );
       const ifNoneMatch = req.headers["if-none-match"];
       if (ifNoneMatch && ifNoneMatch === cached.etag) {
         res.set("Cache-Control", "public, max-age=600");
@@ -333,7 +334,9 @@ router.get("/rankings", async (req, res) => {
       return res.json({ clans: cached.data, gameState });
     }
 
-    console.log(`CACHE MISS: Ranking de clãs não encontrado no cache para a chave: ${cacheKey}. Buscando no banco de dados.`);
+    console.log(
+      `CACHE MISS: Ranking de clãs não encontrado no cache para a chave: ${cacheKey}. Buscando no banco de dados.`,
+    );
 
     // Fallback seguro: se não houver cache, busca uma única vez e popula
     const rankingResult = await query(
@@ -364,7 +367,6 @@ router.get("/rankings", async (req, res) => {
     res.status(500).json({ error: "Erro interno do servidor" });
   }
 });
-
 
 // GET /api/clans/:id - Obter detalhes do clã
 router.get("/:id", async (req, res) => {
@@ -426,44 +428,6 @@ router.get("/:id", async (req, res) => {
     console.error("❌ Erro ao buscar clã:", error.message);
     res.status(500).json({ error: "Erro interno do servidor" });
   }
-});
-
-// GET /api/clans/:id/chat - Obter detalhes do chat do clã (mock)
-router.get("/:id/chat", authenticateToken, async (req, res) => {
-  const { id } = req.params;
-  console.log(`Buscando dados do chat para o clã ${id}`);
-  // Mock de dados do chat
-  res.json({
-    chatId: `chat_${id}`,
-    clanId: id,
-    type: "clan",
-    createdAt: new Date().toISOString(),
-  });
-});
-
-// GET /api/clans/:id/messages - Obter mensagens do chat do clã (mock)
-router.get("/:id/messages", authenticateToken, async (req, res) => {
-  const { id } = req.params;
-  console.log(`Buscando mensagens para o clã ${id}`);
-  // Mock de mensagens
-  res.json([
-    {
-      id: "msg_1",
-      chatId: `chat_${id}`,
-      userId: "user_123",
-      username: "System",
-      content: "Bem-vindo ao chat do clã!",
-      timestamp: new Date().toISOString(),
-    },
-    {
-      id: "msg_2",
-      chatId: `chat_${id}`,
-      userId: "user_456",
-      username: "LiderDoCla",
-      content: "E aí, pessoal! Prontos para a próxima batalha?",
-      timestamp: new Date().toISOString(),
-    },
-  ]);
 });
 
 // POST /api/clans - Criar novo clã
