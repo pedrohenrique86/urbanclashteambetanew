@@ -5,8 +5,9 @@ import { Send } from "lucide-react"; // Usando um ícone para o botão de enviar
 
 export const ClanChat: React.FC = () => {
   const { messages, onlineStatus, sendMessage, isConnected } = useClanChat();
-  const { userProfile } = useUserProfile(); // Usar o hook correto
+  const { userProfile } = useUserProfile();
   const [newMessage, setNewMessage] = useState("");
+  const [isSending, setIsSending] = useState(false); // Estado para o cooldown
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -19,9 +20,16 @@ export const ClanChat: React.FC = () => {
 
   const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault();
-    if (newMessage.trim() && isConnected) {
+    if (
+      newMessage.trim() &&
+      newMessage.length <= 100 && // Limite atualizado
+      isConnected &&
+      !isSending // Verifica se não está em cooldown
+    ) {
       sendMessage(newMessage);
       setNewMessage("");
+      setIsSending(true); // Ativa o cooldown
+      setTimeout(() => setIsSending(false), 5000); // Desativa após 5s
     }
   };
 
@@ -90,15 +98,29 @@ export const ClanChat: React.FC = () => {
             placeholder="Digite sua mensagem..."
             className="flex-1 bg-gray-700 border border-gray-600 rounded-full py-2 px-4 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
             disabled={!isConnected}
+            maxLength={100} // Limite visual, um pouco maior que o real
           />
           <button
             type="submit"
-            className="bg-blue-600 text-white rounded-full p-2 hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed transition-colors"
-            disabled={!isConnected || !newMessage.trim()}
+            className="bg-blue-600 text-white rounded-full p-2 hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed transition-colors w-24 flex items-center justify-center" // Largura fixa
+            disabled={
+              !isConnected ||
+              !newMessage.trim() ||
+              newMessage.length > 100 || // Limite atualizado
+              isSending // Desabilita durante o cooldown
+            }
           >
-            <Send size={20} />
+            {isSending ? "Aguarde..." : <Send size={20} />}
           </button>
         </form>
+        {/* Contador de Caracteres */}
+        <p
+          className={`text-xs text-right mt-1 pr-4 ${
+            newMessage.length > 100 ? "text-red-500" : "text-gray-400"
+          }`}
+        >
+          {newMessage.length}/100
+        </p>
       </div>
     </div>
   );

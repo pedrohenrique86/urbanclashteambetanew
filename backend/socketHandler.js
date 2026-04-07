@@ -2,7 +2,7 @@ const gameStateService = require("./services/gameStateService");
 const { authenticateSocket } = require("./services/authService");
 const chatService = require("./services/chatService");
 
-const MESSAGE_COOLDOWN_MS = 1000; // 1 segundo de cooldown
+const MESSAGE_COOLDOWN_MS = 5000; // 5 segundos de cooldown
 let io;
 
 function initializeSocket(server) {
@@ -60,24 +60,33 @@ function initializeSocket(server) {
         const history = await chatService.getChatHistory(clanId);
         socket.emit("chat:history", history);
 
-        // Listener para novas mensagens com anti-flood
+        // Listener para novas mensagens com anti-flood e limite de caracteres
         socket.on("chat:sendMessage", (messageData) => {
           const now = Date.now();
           if (now - socket.lastMessageTimestamp < MESSAGE_COOLDOWN_MS) {
-            // Ignora a mensagem se estiver dentro do período de cooldown
             console.log(
-              `[Anti-Flood] Mensagem bloqueada para o usuário ${socket.user.id}`,
+              `[Anti-Flood] Mensagem bloqueada (cooldown) para o usuário ${socket.user.id}`,
             );
-            return;
+            return; // Ignora a mensagem se estiver dentro do período de cooldown
           }
 
-          if (
-            typeof messageData.text === "string" &&
-            messageData.text.trim().length > 0
-          ) {
-            socket.lastMessageTimestamp = now; // Atualiza o timestamp
-            chatService.handleNewMessage(io, socket, messageData.text);
+          const messageText =
+            typeof messageData.text === "string" ? messageData.text.trim() : "";
+
+          if (messageText.length === 0) {
+            return; // Ignora mensagens vazias
           }
+
+          if (messageText.length > 100) {
+            console.log(
+              `[Anti-Flood] Mensagem bloqueada (muito longa) para o usuário ${socket.user.id}`,
+            );
+            return; // Ignora mensagens muito longas
+          }
+
+          // Se passou em todas as validações, processa a mensagem
+          socket.lastMessageTimestamp = now; // Atualiza o timestamp
+          chatService.handleNewMessage(io, socket, messageText);
         });
       } catch (error) {
         console.error(
