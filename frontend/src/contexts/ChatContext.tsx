@@ -95,7 +95,10 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({
       socketService.off("chat:onlineStatus", handleOnlineStatus);
       setIsConnected(false);
     };
-  }, [userProfile, handleChatHistory, handleNewMessage, handleOnlineStatus]);
+    // Apenas o userProfile deve ser uma dependência. As funções de callback
+    // são estáveis e não causam re-execução, mas removê-las torna a intenção mais clara
+    // e previne re-execuções por referências instáveis em cenários complexos.
+  }, [userProfile]);
 
   const sendMessage = (text: string) => {
     if (text.trim()) {
