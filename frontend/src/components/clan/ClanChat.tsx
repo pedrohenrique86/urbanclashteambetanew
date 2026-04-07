@@ -66,7 +66,10 @@ export const ClanChat: React.FC = () => {
               )}
               <p className="text-sm break-words">{msg.text}</p>
               <p className="text-xs text-right mt-1 opacity-60">
-                {new Date(msg.timestamp).toLocaleTimeString([], {
+                {new Date(msg.timestamp).toLocaleString([], {
+                  day: "2-digit",
+                  month: "2-digit",
+                  year: "2-digit",
                   hour: "2-digit",
                   minute: "2-digit",
                 })}
