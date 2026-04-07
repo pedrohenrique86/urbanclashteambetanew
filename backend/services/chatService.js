@@ -38,6 +38,23 @@ async function getChatHistory(clanId) {
   return historyJson.map((msg) => JSON.parse(msg)).reverse();
 }
 
+/**
+ * Transmite a lista atualizada de usuários online para a sala do clã.
+ * @param {object} io - Instância do Socket.IO.
+ * @param {string} clanId - ID do clã.
+ */
+async function broadcastOnlineUsers(io, clanId) {
+  const connectionsKey = getConnectionsKey(clanId);
+  // CORRIGIDO: Usa o wrapper hKeysAsync
+  const onlineUserIds = await redisClient.hKeysAsync(connectionsKey);
+  const onlineCount = onlineUserIds ? onlineUserIds.length : 0;
+
+  io.to(getClanRoom(clanId)).emit("chat:onlineStatus", {
+    onlineUsers: onlineUserIds || [],
+    onlineCount,
+  });
+}
+
 // --- Funções Exportadas (Manipuladores de Eventos) ---
 
 /**
@@ -49,27 +66,11 @@ async function getChatHistory(clanId) {
 async function handleUserConnection(io, clanId, userId) {
   const connectionsKey = getConnectionsKey(clanId);
 
-  // CORREÇÃO FINAL: Usa o método correto do wrapper
-  const newConnectionCount = await redisClient.hIncrByAsync(
-    connectionsKey,
-    userId,
-    1,
-  );
+  // Incrementa a contagem de conexões para o usuário
+  await redisClient.hIncrByAsync(connectionsKey, userId, 1);
 
-  // Se for a primeira conexão, o usuário ficou online.
-  if (newConnectionCount === 1) {
-    await broadcastOnlineUsers(io, clanId);
-  }
-
-  // Envia o histórico de chat APENAS para o socket que acabou de conectar.
-  const history = await getChatHistory(clanId);
-  // Encontra o socket do usuário para enviar o histórico
-  const socket = Array.from(io.sockets.sockets.values()).find(
-    (s) => s.user && s.user.id === userId,
-  );
-  if (socket) {
-    socket.emit("chat:history", history);
-  }
+  // Transmite a lista atualizada para todos no clã.
+  await broadcastOnlineUsers(io, clanId);
 }
 
 /**
@@ -122,7 +123,9 @@ async function handleNewMessage(io, socket, text) {
 }
 
 module.exports = {
+  getChatHistory,
   handleUserConnection,
   handleUserDisconnection,
   handleNewMessage,
+  broadcastOnlineUsers, // Exporta a função
 };

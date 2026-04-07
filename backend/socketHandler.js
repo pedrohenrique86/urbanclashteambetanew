@@ -48,8 +48,15 @@ function initializeSocket(server) {
           `[Socket.IO] Usuário ${userId} autenticado e entrou na sala: ${clanRoom}`,
         );
 
-        // Notifica que o usuário conectou e envia o histórico
+        // 1. Notifica o cliente que a autenticação foi bem-sucedida
+        socket.emit("chat:auth_success");
+
+        // 2. Notifica a todos sobre a nova conexão (atualiza contagem de online)
         await chatService.handleUserConnection(io, clanId, userId);
+
+        // 3. Envia o histórico de chat APENAS para o socket que acabou de se conectar
+        const history = await chatService.getChatHistory(clanId);
+        socket.emit("chat:history", history);
 
         // Listener para novas mensagens (agora dentro do escopo autenticado)
         socket.on("chat:sendMessage", (messageData) => {
@@ -60,9 +67,6 @@ function initializeSocket(server) {
             chatService.handleNewMessage(io, socket, messageData.text);
           }
         });
-
-        // Informa ao cliente que a autenticação foi bem-sucedida
-        socket.emit("chat:auth_success");
       } catch (error) {
         console.error(
           "❌ Falha na autenticação do chat via socket:",

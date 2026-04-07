@@ -55,16 +55,22 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({
       return;
     }
 
-    // --- Lógica de Autenticação ---
-    // Esta parte só roda quando o perfil do usuário muda.
+    // --- Lógica de Autenticação e Listeners ---
     console.log(
       "[ChatContext] Usuário detectado, tentando autenticar o chat...",
     );
     socketService.authenticateChat(token);
 
     const handleAuthSuccess = () => {
-      console.log("[ChatContext] Autenticação do chat bem-sucedida.");
+      console.log(
+        "[ChatContext] Autenticação bem-sucedida. Registrando listeners...",
+      );
       setIsConnected(true);
+
+      // Registra os listeners SOMENTE após a autenticação
+      socketService.onChatHistory(handleChatHistory);
+      socketService.onMessageReceived(handleNewMessage);
+      socketService.onOnlineStatus(handleOnlineStatus);
     };
 
     const handleAuthFailed = (error: { message: string }) => {
@@ -78,14 +84,8 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({
     socketService.onChatAuthSuccess(handleAuthSuccess);
     socketService.onChatAuthFailed(handleAuthFailed);
 
-    // --- Lógica de Listeners de Mensagem ---
-    // Estes listeners são registrados uma vez e usam as funções memoizadas.
-    socketService.onChatHistory(handleChatHistory);
-    socketService.onMessageReceived(handleNewMessage);
-    socketService.onOnlineStatus(handleOnlineStatus);
-
-    // A função de limpeza é crucial. Ela remove TODOS os listeners quando
-    // o usuário desloga (o componente é desmontado ou o userProfile muda).
+    // A função de limpeza remove todos os listeners para evitar duplicatas
+    // e vazamentos de memória quando o usuário desloga.
     return () => {
       console.log("[ChatContext] Limpando todos os listeners do chat.");
       socketService.off("chat:auth_success", handleAuthSuccess);
@@ -93,7 +93,7 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({
       socketService.off("chat:history", handleChatHistory);
       socketService.off("chat:message", handleNewMessage);
       socketService.off("chat:onlineStatus", handleOnlineStatus);
-      setIsConnected(false); // Garante o estado limpo
+      setIsConnected(false);
     };
   }, [userProfile, handleChatHistory, handleNewMessage, handleOnlineStatus]);
 
