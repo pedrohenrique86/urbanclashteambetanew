@@ -112,11 +112,11 @@ class SocketService {
   // --- Métodos específicos do Chat ---
 
   /**
-   * Junta-se ao canal de chat do clã.
-   * @param token - O token JWT do usuário para autenticação no socket.
+   * Tenta autenticar o usuário para o serviço de chat.
+   * @param token - O token JWT do usuário.
    */
-  joinChat(token: string): void {
-    this.emit("chat:join", { token });
+  authenticateChat(token: string): void {
+    this.emit("chat:authenticate", { token });
   }
 
   /**
@@ -125,6 +125,20 @@ class SocketService {
    */
   sendMessage(text: string): void {
     this.emit("chat:sendMessage", { text });
+  }
+
+  /**
+   * Registra um listener para o evento de sucesso na autenticação do chat.
+   */
+  onChatAuthSuccess(callback: () => void): void {
+    this.on<void>("chat:auth_success", callback);
+  }
+
+  /**
+   * Registra um listener para o evento de falha na autenticação do chat.
+   */
+  onChatAuthFailed(callback: (error: { message: string }) => void): void {
+    this.on<{ message: string }>("chat:auth_failed", callback);
   }
 
   /**

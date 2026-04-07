@@ -1,111 +1,128 @@
 const redisClient = require("../config/redisClient");
-const { getIO } = require("../socketHandler");
 
-const HISTORY_MAX_LENGTH = 30; // Manter as últimas 30 mensagens
+const HISTORY_MAX_LENGTH = 50; // Aumentado para 50 mensagens
+const CLAN_ROOM_PREFIX = "clan:";
 
-/**
- * Retorna a chave Redis para o histórico de chat de um clã.
- * @param {string} clanId - O ID do clã.
- * @returns {string} A chave do histórico no Redis.
- */
+// --- Funções de Chave ---
+
 const getHistoryKey = (clanId) => `chat:history:${clanId}`;
-
-/**
- * Retorna a chave Redis para as conexões ativas de um clã.
- * @param {string} clanId - O ID do clã.
- * @returns {string} A chave de conexões no Redis.
- */
 const getConnectionsKey = (clanId) => `chat:connections:${clanId}`;
+const getClanRoom = (clanId) => `${CLAN_ROOM_PREFIX}${clanId}`;
+
+// --- Funções Internas ---
 
 /**
- * Adiciona uma mensagem ao histórico de chat de um clã e a transmite.
- * @param {string} clanId - O ID do clã.
- * @param {object} message - O objeto da mensagem (ex: { userId, username, text, timestamp }).
+ * Adiciona uma mensagem ao histórico Redis e o limita.
+ * @param {string} clanId - ID do clã.
+ * @param {object} message - Objeto da mensagem.
  */
-async function addMessage(clanId, message) {
+async function addMessageToHistory(clanId, message) {
   const historyKey = getHistoryKey(clanId);
   const messageJson = JSON.stringify(message);
-
-  // Adiciona a mensagem à lista e garante que a lista não exceda o tamanho máximo.
-  await redisClient.lPush(historyKey, messageJson);
-  await redisClient.lTrim(historyKey, 0, HISTORY_MAX_LENGTH - 1);
-
-  // Transmite a nova mensagem para todos os membros do clã na sala.
-  getIO().to(clanId).emit("chat:message", message);
+  // CORRIGIDO: Usa o wrapper
+  await redisClient.lPushAsync(historyKey, messageJson);
+  await redisClient.lTrimAsync(historyKey, 0, HISTORY_MAX_LENGTH - 1);
 }
 
 /**
- * Retorna o histórico de mensagens de um clã.
- * @param {string} clanId - O ID do clã.
- * @returns {Promise<object[]>} Uma promessa que resolve para a lista de mensagens.
+ * Obtém o histórico de chat do Redis.
+ * @param {string} clanId - ID do clã.
+ * @returns {Promise<object[]>} Histórico de mensagens.
  */
 async function getChatHistory(clanId) {
   const historyKey = getHistoryKey(clanId);
-  const historyJson = await redisClient.lRange(historyKey, 0, -1);
-  // O histórico é armazenado do mais novo para o mais antigo (LPUSH), então revertemos para exibir na ordem correta.
+  // CORRIGIDO: Usa o wrapper
+  const historyJson = await redisClient.lRangeAsync(historyKey, 0, -1);
+  // Garante que o retorno seja sempre um array
+  if (!Array.isArray(historyJson)) return [];
   return historyJson.map((msg) => JSON.parse(msg)).reverse();
 }
 
+// --- Funções Exportadas (Manipuladores de Eventos) ---
+
 /**
  * Manipula a conexão de um novo usuário ao chat.
- * Incrementa o contador de conexões e notifica o clã se o usuário ficou online.
- * @param {string} clanId - O ID do clã.
- * @param {string} userId - O ID do usuário.
+ * @param {object} io - Instância do Socket.IO.
+ * @param {string} clanId - ID do clã do usuário.
+ * @param {string} userId - ID do usuário.
  */
-async function handleUserConnection(clanId, userId) {
+async function handleUserConnection(io, clanId, userId) {
   const connectionsKey = getConnectionsKey(clanId);
-  // Incrementa o contador de conexões para este usuário. Retorna o novo valor.
-  const newConnectionCount = await redisClient.hIncrBy(connectionsKey, userId, 1);
 
-  // Se for a primeira conexão, o usuário acabou de ficar online.
+  // CORREÇÃO FINAL: Usa o método correto do wrapper
+  const newConnectionCount = await redisClient.hIncrByAsync(
+    connectionsKey,
+    userId,
+    1,
+  );
+
+  // Se for a primeira conexão, o usuário ficou online.
   if (newConnectionCount === 1) {
-    await broadcastOnlineUsers(clanId);
+    await broadcastOnlineUsers(io, clanId);
+  }
+
+  // Envia o histórico de chat APENAS para o socket que acabou de conectar.
+  const history = await getChatHistory(clanId);
+  // Encontra o socket do usuário para enviar o histórico
+  const socket = Array.from(io.sockets.sockets.values()).find(
+    (s) => s.user && s.user.id === userId,
+  );
+  if (socket) {
+    socket.emit("chat:history", history);
   }
 }
 
 /**
- * Manipula a desconexão de um usuário do chat.
- * Decrementa o contador de conexões e notifica o clã se o usuário ficou offline.
- * @param {string} clanId - O ID do clã.
- * @param {string} userId - O ID do usuário.
+ * Manipula a desconexão de um usuário.
+ * @param {object} io - Instância do Socket.IO.
+ * @param {string} clanId - ID do clã do usuário.
+ * @param {string} userId - ID do usuário.
  */
-async function handleUserDisconnection(clanId, userId) {
+async function handleUserDisconnection(io, clanId, userId) {
   if (!clanId || !userId) return;
 
   const connectionsKey = getConnectionsKey(clanId);
-  // Decrementa o contador de conexões.
-  const newConnectionCount = await redisClient.hIncrBy(connectionsKey, userId, -1);
 
-  // Se o contador chegou a zero, o usuário não tem mais conexões ativas.
+  // CORREÇÃO FINAL: Usa o método correto do wrapper
+  const newConnectionCount = await redisClient.hIncrByAsync(
+    connectionsKey,
+    userId,
+    -1,
+  );
+
   if (newConnectionCount <= 0) {
-    // Remove o usuário do hash para manter a limpeza.
-    await redisClient.hDel(connectionsKey, userId);
-    await broadcastOnlineUsers(clanId);
+    // Se o contador for zero ou menos, remove o usuário do hash
+    await redisClient.hDelAsync(connectionsKey, userId);
+    // E então atualiza a lista de usuários online
+    await broadcastOnlineUsers(io, clanId);
   }
 }
 
 /**
- * Obtém e transmite a lista de usuários online e a contagem para a sala do clã.
- * @param {string} clanId - O ID do clã.
+ * Manipula o recebimento de uma nova mensagem de chat.
+ * @param {object} io - Instância do Socket.IO.
+ * @param {object} socket - O objeto do socket do remetente.
+ * @param {string} text - O texto da mensagem.
  */
-async function broadcastOnlineUsers(clanId) {
-  const connectionsKey = getConnectionsKey(clanId);
-  // Pega todos os campos (userIds) do hash.
-  const onlineUserIds = await redisClient.hKeys(connectionsKey);
+async function handleNewMessage(io, socket, text) {
+  const { user } = socket;
+  if (!user || !user.clan_id) return;
 
-  const onlineCount = onlineUserIds.length;
+  const message = {
+    userId: user.id,
+    username: user.username,
+    text: text.trim(),
+    timestamp: new Date().toISOString(),
+  };
 
-  // Emite a atualização para todos na sala do clã.
-  getIO().to(clanId).emit("chat:onlineStatus", {
-    onlineUsers: onlineUserIds,
-    onlineCount: onlineCount,
-  });
+  await addMessageToHistory(user.clan_id, message);
+
+  // Transmite a nova mensagem para todos na sala do clã.
+  io.to(getClanRoom(user.clan_id)).emit("chat:message", message);
 }
 
 module.exports = {
-  addMessage,
-  getChatHistory,
   handleUserConnection,
   handleUserDisconnection,
-  broadcastOnlineUsers,
+  handleNewMessage,
 };

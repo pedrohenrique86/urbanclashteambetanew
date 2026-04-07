@@ -1,6 +1,6 @@
 const { query } = require("../config/database");
 const redisClient = require("../config/redisClient");
-const { getIO } = require("../socketHandler");
+// const { getIO } = require("../socketHandler"); // REMOVIDO PARA QUEBRAR DEPENDÊNCIA CIRCULAR
 
 // Wrappers seguros para Redis (Hash)
 async function safeRedisHGetAll(key) {
@@ -336,6 +336,8 @@ async function resumeGame() {
 
 async function invalidateAndBroadcastState() {
   try {
+    // Quebra a dependência circular importando o getIO somente quando necessário.
+    const { getIO } = require("../socketHandler");
     await Promise.all([
       safeRedisDel(GAME_STATE_CACHE_KEY),
       safeRedisDel(GAME_STATUS_CACHE_KEY),
