@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { useUserProfile } from "../hooks/useUserProfile";
 import { useTheme } from "../contexts/ThemeContext";
 import { apiClient } from "../lib/supabaseClient";
+import { ClanChat } from "../components/clan/ClanChat"; // 1. Importar o componente do chat
 
 type Player = {
   id: string;
@@ -408,6 +409,12 @@ export default function ClanPage() {
                 Adicione mais membros para habilitar a votação de expulsão.
               </div>
             )}
+          </div>
+
+          {/* 2. Adicionar o componente do chat aqui */}
+          <div className="mt-6">
+            <h2 className="text-lg font-bold px-1 mb-2">Comunicações do Clã</h2>
+            <ClanChat />
           </div>
         </div>
 

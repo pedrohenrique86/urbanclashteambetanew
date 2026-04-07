@@ -5,6 +5,7 @@ import { ToastProvider } from "./contexts/ToastContext";
 import { GameClockProvider } from "./contexts/GameClockContext";
 import { LoadingProvider } from "./contexts/LoadingContext";
 import { GlobalLoadingSpinner } from "./components/ui/GlobalLoadingSpinner";
+import { ChatProvider } from "./contexts/ChatContext";
 import { UserProfileProvider } from "./contexts/UserProfileContext";
 import GlobalLayout from "./components/layout/GlobalLayout";
 
@@ -46,7 +47,9 @@ const PageLoader = () => (
 
 const RootWrapper = () => (
   <UserProfileProvider>
-    <Outlet />
+    <ChatProvider>
+      <Outlet />
+    </ChatProvider>
   </UserProfileProvider>
 );
 

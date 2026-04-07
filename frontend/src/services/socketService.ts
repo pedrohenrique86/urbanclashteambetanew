@@ -19,8 +19,24 @@ interface ServerTime {
   serverTime: number;
 }
 
+// --- Tipagens do Chat ---
+
+interface ChatMessage {
+  userId: string;
+  username: string;
+  text: string;
+  timestamp: string;
+}
+
+interface OnlineStatus {
+  onlineUsers: string[];
+  onlineCount: number;
+}
+
+// --- Fim das Tipagens do Chat ---
+
 // URL do seu backend. Certifique-se de que esta variável de ambiente está configurada.
-const VITE_API_URL = import.meta.env.VITE_API_URL || "";
+const VITE_API_URL = import.meta.env.VITE_API_URL as string;
 
 class SocketService {
   private socket: Socket | null = null;
@@ -92,10 +108,49 @@ class SocketService {
   emit<T>(event: string, data?: T): void {
     this.connect()?.emit(event, data);
   }
+
+  // --- Métodos específicos do Chat ---
+
+  /**
+   * Junta-se ao canal de chat do clã.
+   * @param token - O token JWT do usuário para autenticação no socket.
+   */
+  joinChat(token: string): void {
+    this.emit("chat:join", { token });
+  }
+
+  /**
+   * Envia uma mensagem de chat.
+   * @param text - O conteúdo da mensagem.
+   */
+  sendMessage(text: string): void {
+    this.emit("chat:sendMessage", { text });
+  }
+
+  /**
+   * Registra um listener para receber o histórico do chat.
+   */
+  onChatHistory(callback: (history: ChatMessage[]) => void): void {
+    this.on<ChatMessage[]>("chat:history", callback);
+  }
+
+  /**
+   * Registra um listener para receber novas mensagens do chat.
+   */
+  onMessageReceived(callback: (message: ChatMessage) => void): void {
+    this.on<ChatMessage>("chat:message", callback);
+  }
+
+  /**
+   * Registra um listener para atualizações de status online.
+   */
+  onOnlineStatus(callback: (status: OnlineStatus) => void): void {
+    this.on<OnlineStatus>("chat:onlineStatus", callback);
+  }
 }
 
 // Exporta uma instância única (singleton) do serviço
 export const socketService = new SocketService();
 
 // Exporta os tipos para serem usados em outros lugares da aplicação
-export type { GameState, ServerTime };
+export type { GameState, ServerTime, ChatMessage, OnlineStatus };
