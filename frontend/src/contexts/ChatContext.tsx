@@ -34,6 +34,8 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({
   });
   const [isConnected, setIsConnected] = useState(false);
 
+  // Envolve os handlers com useCallback para estabilizar suas referências.
+  // Isso é crucial para usá-los como dependências no useEffect sem causar re-execuções indesejadas.
   const handleNewMessage = useCallback((message: ChatMessage) => {
     setMessages((prevMessages) => [...prevMessages, message]);
   }, []);
@@ -49,7 +51,6 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({
   useEffect(() => {
     const token = apiClient.getToken();
 
-    // Se não há usuário ou token, não faz nada.
     if (!userProfile || !token) {
       setIsConnected(false);
       return;
@@ -95,10 +96,9 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({
       socketService.off("chat:onlineStatus", handleOnlineStatus);
       setIsConnected(false);
     };
-    // Apenas o userProfile deve ser uma dependência. As funções de callback
-    // são estáveis e não causam re-execução, mas removê-las torna a intenção mais clara
-    // e previne re-execuções por referências instáveis em cenários complexos.
-  }, [userProfile]);
+    // Agora, com os callbacks memoizados, podemos adicioná-los ao array de dependências
+    // para satisfazer a regra do ESLint sem reintroduzir o bug dos listeners múltiplos.
+  }, [userProfile, handleChatHistory, handleNewMessage, handleOnlineStatus]);
 
   const sendMessage = (text: string) => {
     if (text.trim()) {

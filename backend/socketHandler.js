@@ -2,6 +2,7 @@ const gameStateService = require("./services/gameStateService");
 const { authenticateSocket } = require("./services/authService");
 const chatService = require("./services/chatService");
 
+const MESSAGE_COOLDOWN_MS = 1000; // 1 segundo de cooldown
 let io;
 
 function initializeSocket(server) {
@@ -40,6 +41,7 @@ function initializeSocket(server) {
         }
 
         socket.user = user; // Anexa o usuário ao objeto do socket
+        socket.lastMessageTimestamp = 0; // Inicializa o timestamp para o anti-flood
 
         const { id: userId, clan_id: clanId } = user;
         const clanRoom = `clan:${clanId}`;
@@ -58,12 +60,22 @@ function initializeSocket(server) {
         const history = await chatService.getChatHistory(clanId);
         socket.emit("chat:history", history);
 
-        // Listener para novas mensagens (agora dentro do escopo autenticado)
+        // Listener para novas mensagens com anti-flood
         socket.on("chat:sendMessage", (messageData) => {
+          const now = Date.now();
+          if (now - socket.lastMessageTimestamp < MESSAGE_COOLDOWN_MS) {
+            // Ignora a mensagem se estiver dentro do período de cooldown
+            console.log(
+              `[Anti-Flood] Mensagem bloqueada para o usuário ${socket.user.id}`,
+            );
+            return;
+          }
+
           if (
             typeof messageData.text === "string" &&
             messageData.text.trim().length > 0
           ) {
+            socket.lastMessageTimestamp = now; // Atualiza o timestamp
             chatService.handleNewMessage(io, socket, messageData.text);
           }
         });
