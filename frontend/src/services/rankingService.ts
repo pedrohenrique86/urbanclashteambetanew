@@ -45,8 +45,8 @@ export const fetchPlayerRankings = async (
         (player: any, index: number) => ({
           id: player.id,
           username: player.display_name || player.username,
-          level: player.level || 1,
-          current_xp: player.experience_points || 0,
+          level: player.level,
+          current_xp: player.experience_points ?? 0,
           faction: player.faction,
           position: index + 1,
           country: player.country,
@@ -70,8 +70,8 @@ export const fetchPlayerRankings = async (
     const players = leaderboard.map((player: any, index: number) => ({
       id: player.id,
       username: player.display_name || player.username,
-      level: player.level || 1,
-      current_xp: player.experience_points || 0,
+      level: player.level,
+      current_xp: player.experience_points ?? 0,
       faction: player.faction,
       position: index + 1,
       country: player.country, // Campo opcional
@@ -129,9 +129,9 @@ export const fetchClanRankings = async (opts?: {
         id: clan.id,
         name: clan.name,
         faction: clan.faction,
-        score: 0,
+        score: clan.score ?? 0,
         position: index + 1,
-        memberCount: clan.member_count || 0,
+        memberCount: clan.member_count ?? 0,
         leaderName:
           clan.leader_username || clan.leader_display_name || "Sem líder",
       }));
@@ -154,9 +154,9 @@ export const fetchClanRankings = async (opts?: {
       id: clan.id,
       name: clan.name,
       faction: clan.faction,
-      score: 0,
+      score: clan.score ?? 0,
       position: index + 1,
-      memberCount: clan.member_count || 0,
+      memberCount: clan.member_count ?? 0,
       leaderName:
         clan.leader_username || clan.leader_display_name || "Sem líder",
     }));

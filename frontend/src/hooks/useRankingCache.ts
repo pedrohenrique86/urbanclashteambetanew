@@ -40,6 +40,32 @@ let globalCacheFull: RankingData | null = null;
 let globalTimestampFull: number | null = null;
 let globalPromiseFull: Promise<RankingData> | null = null;
 
+/**
+ * Hook para gerenciar e cachear dados de ranking (jogadores e clãs).
+ *
+ * @param fullRankings - Se `true`, busca os rankings completos. Se `false`, busca uma versão limitada (Top 5).
+ * @returns Um objeto com os dados do ranking, estado de loading, erros e funções de controle.
+ *
+ * @description
+ * Este hook foi projetado para ser altamente eficiente e estável, seguindo padrões específicos:
+ * 1.  **Cache em Múltiplas Camadas**: Utiliza um cache global em memória (para a sessão atual), um cache local
+ *     no `localStorage` (para persistência entre sessões) e um mecanismo de `Promise` compartilhada para
+ *     evitar requisições duplicadas durante o carregamento inicial.
+ * 2.  **Atualização Sincronizada**: Agenda atualizações automáticas para ocorrerem em intervalos de 10 minutos
+ *     (ex: 12:00, 12:10, 12:20), sincronizando com o backend. Tenta obter a hora do servidor para precisão,
+ *     mas possui um fallback para o relógio do cliente.
+ * 3.  **Atualizações em Tempo Real via SSE**: Ouve por eventos de Server-Sent Events (SSE) para disparar
+ *     atualizações imediatas quando o backend notifica que os rankings mudaram.
+ * 4.  **Estabilidade e Prevenção de Loops**: Os `useEffect`s principais têm um array de dependências vazio (`[]`).
+ *     Isso é intencional e garante que a lógica de inicialização, agendamento de timers e listeners de SSE
+ *     seja executada **apenas uma vez**, quando o componente é montado. As funções dinâmicas (`loadRankings`,
+ *     `forceRefresh`) são acessadas através de `refs` para que suas recriações não disparem os efeitos
+ *     novamente. Isso torna o hook autônomo e não reativo a mudanças de props ou estado externo,
+ *     eliminando o risco de loops de renderização.
+ * 5.  **Otimização de Renderização**: Utiliza uma função `mergeData` para comparar os dados novos com os antigos.
+ *     Se um item (jogador ou clã) não mudou, a referência do objeto antigo é mantida, prevenindo
+ *     re-renderizações desnecessárias nos componentes filhos que recebem esses dados.
+ */
 export const useRankingCache = (
   fullRankings: boolean = false,
 ): UseRankingCacheReturn => {
@@ -51,7 +77,8 @@ export const useRankingCache = (
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const mountedRef = useRef(true);
 
   // 1. saveToStorage: Não tem dependências de outras funções do hook
@@ -124,17 +151,17 @@ export const useRankingCache = (
 
   // 4. loadRankings: Depende de loadFromStorage e fetchRankings
   const loadRankings = useCallback(
-    async (forceRefresh = false): Promise<void> => {
+    async (options: {
+      forceRefresh?: boolean;
+      isInitialLoad?: boolean;
+    }): Promise<void> => {
+      const { forceRefresh = false, isInitialLoad = false } = options;
       if (!mountedRef.current) return;
 
-      // Apenas mostra o "loading" principal se não houver absolutamente nenhum dado em tela.
-      const hasData =
-        data.gangsters.length > 0 ||
-        data.guardas.length > 0 ||
-        data.clans.length > 0;
-
       try {
-        if (!hasData) {
+        // O loading global só é ativado no carregamento inicial para evitar flicker
+        // em atualizações de fundo (via SSE ou timer).
+        if (isInitialLoad) {
           setLoading(true);
         }
         setError(null);
@@ -206,7 +233,8 @@ export const useRankingCache = (
         }
 
         if (mountedRef.current) {
-          setData(rankingData);
+          // Em vez de substituir, mescla os dados para evitar re-renders desnecessários
+          setData((prevData) => mergeData(prevData, rankingData));
           setLastUpdated(new Date());
         }
       } catch (err) {
@@ -214,67 +242,86 @@ export const useRankingCache = (
           setError("Erro ao carregar os rankings. Tente novamente.");
         }
       } finally {
-        if (mountedRef.current) {
+        // Garante que o loading seja desativado apenas se foi um carregamento inicial.
+        if (isInitialLoad && mountedRef.current) {
           setLoading(false);
         }
       }
     },
-    [fullRankings, fetchRankings, loadFromStorage, data],
+    [fullRankings, fetchRankings, loadFromStorage],
   );
+
+  // Usamos refs para as funções para que o useEffect principal não precise depender delas,
+  // evitando re-execuções e potenciais loops.
+  const loadRankingsRef = useRef(loadRankings);
+  loadRankingsRef.current = loadRankings;
 
   // Função para forçar atualização
   const forceRefresh = useCallback(async (): Promise<void> => {
-    await loadRankings(true);
-  }, [loadRankings]);
+    // Acessa a última versão de loadRankings através da ref.
+    // Atualizações forçadas não são consideradas "carregamento inicial".
+    await loadRankingsRef.current({ forceRefresh: true, isInitialLoad: false });
+  }, []); // Nenhuma dependência necessária, pois a ref é estável.
 
   useEffect(() => {
     mountedRef.current = true;
 
-    const scheduleInitialLoad = async () => {
-      await loadRankings(); // Carrega dados do cache ou busca novos se necessário
+    // A lógica de agendamento é encapsulada para ser chamada sem bloquear o fluxo.
+    const scheduleNextRefresh = () => {
+      // Limpa timers antigos antes de agendar um novo para evitar duplicidade.
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+      if (intervalRef.current) clearInterval(intervalRef.current);
 
-      // Após o carregamento inicial, agenda a próxima atualização sincronizada
-      try {
-        const { serverTime } = await apiClient.getServerTime();
-        const now = new Date(serverTime);
-        const minutes = now.getMinutes();
-        const seconds = now.getSeconds();
-        const milliseconds = now.getMilliseconds();
+      apiClient
+        .getServerTime()
+        .then(({ serverTime }) => {
+          const now = new Date(serverTime);
+          const minutes = now.getMinutes();
+          const seconds = now.getSeconds();
+          const milliseconds = now.getMilliseconds();
 
-        // Calcula o tempo até o próximo intervalo de 10 minutos
-        const minutesToNextInterval = 10 - (minutes % 10);
-        const delay =
-          (minutesToNextInterval * 60 - seconds) * 1000 - milliseconds;
+          const minutesToNextInterval = 10 - (minutes % 10);
+          const delay =
+            (minutesToNextInterval * 60 - seconds) * 1000 - milliseconds;
 
-        const timeoutId = setTimeout(
-          () => {
-            forceRefresh();
-            if (intervalRef.current) clearInterval(intervalRef.current);
-            intervalRef.current = setInterval(forceRefresh, CACHE_DURATION);
-          },
-          Math.max(0, delay),
-        );
-
-        // Armazena o ID do timeout para limpeza
-        if (intervalRef.current) clearTimeout(intervalRef.current);
-        intervalRef.current = timeoutId;
-      } catch (error) {
-        // Fallback: se não conseguir obter a hora do servidor, usa o intervalo padrão
-        if (intervalRef.current) clearInterval(intervalRef.current);
-        intervalRef.current = setInterval(forceRefresh, CACHE_DURATION);
-      }
+          timeoutRef.current = setTimeout(
+            () => {
+              if (!mountedRef.current) return;
+              forceRefreshRef.current();
+              intervalRef.current = setInterval(
+                () => forceRefreshRef.current(),
+                CACHE_DURATION,
+              );
+            },
+            Math.max(0, delay),
+          );
+        })
+        .catch(() => {
+          // Fallback: se a chamada ao servidor falhar, agenda um intervalo simples.
+          if (!mountedRef.current) return;
+          intervalRef.current = setInterval(
+            () => forceRefreshRef.current(),
+            CACHE_DURATION,
+          );
+        });
     };
 
-    scheduleInitialLoad();
+    // Inicia o carregamento dos dados imediatamente.
+    loadRankingsRef.current({ isInitialLoad: true });
+
+    // Agenda a próxima atualização sem bloquear o carregamento inicial.
+    scheduleNextRefresh();
 
     return () => {
       mountedRef.current = false;
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-        clearTimeout(intervalRef.current); // Garante que ambos sejam limpos
-      }
+      // Limpeza robusta de ambos os timers.
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+      if (intervalRef.current) clearInterval(intervalRef.current);
     };
-  }, [loadRankings, forceRefresh]);
+    // O array de dependências está vazio para garantir que este efeito rode apenas uma vez (no mount).
+    // As funções são acessadas via refs para evitar que suas recriações causem um novo disparo do efeito,
+    // o que elimina o risco de loops de renderização e múltiplas execuções de timers ou listeners.
+  }, []);
 
   // Usamos uma ref para manter a versão mais recente da função forceRefresh.
   // Isso evita que o useEffect do SSE seja recriado a cada renderização, prevenindo múltiplas conexões.
@@ -311,5 +358,55 @@ export const useRankingCache = (
     error,
     lastUpdated,
     forceRefresh,
+  };
+};
+
+// Função auxiliar para mesclar dados antigos e novos, evitando re-renders
+const mergeData = (oldData: RankingData, newData: RankingData): RankingData => {
+  const playerMap = new Map(oldData.gangsters.map((p) => [p.id, p]));
+  const newGangsters = newData.gangsters.map((p) => {
+    const oldPlayer = playerMap.get(p.id);
+    if (
+      oldPlayer &&
+      oldPlayer.level === p.level &&
+      oldPlayer.position === p.position &&
+      oldPlayer.current_xp === p.current_xp
+    ) {
+      return oldPlayer; // Mantém a referência do objeto antigo se nada mudou
+    }
+    return p;
+  });
+
+  const guardasMap = new Map(oldData.guardas.map((p) => [p.id, p]));
+  const newGuardas = newData.guardas.map((p) => {
+    const oldPlayer = guardasMap.get(p.id);
+    if (
+      oldPlayer &&
+      oldPlayer.level === p.level &&
+      oldPlayer.position === p.position &&
+      oldPlayer.current_xp === p.current_xp
+    ) {
+      return oldPlayer;
+    }
+    return p;
+  });
+
+  const clanMap = new Map(oldData.clans.map((c) => [c.id, c]));
+  const newClans = newData.clans.map((c) => {
+    const oldClan = clanMap.get(c.id);
+    if (
+      oldClan &&
+      oldClan.score === c.score &&
+      oldClan.position === c.position
+    ) {
+      return oldClan;
+    }
+    return c;
+  });
+
+  return {
+    gangsters: newGangsters,
+    guardas: newGuardas,
+    clans: newClans,
   };
 };
