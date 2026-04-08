@@ -13,7 +13,6 @@ type Player = {
   display_name?: string;
   level?: number;
   role?: string;
-  country?: string; // Adicionado para exibir a bandeira
 };
 
 type ClanData = {
@@ -43,15 +42,6 @@ export default function ClanPage() {
   const [leaving, setLeaving] = useState<boolean>(false);
   const [confirmLeave, setConfirmLeave] = useState<boolean>(false);
   const broadcastRef = useRef<BroadcastChannel | null>(null);
-
-  // Função para obter a bandeira do país, com fallback
-  const getCountryFlag = (countryCode?: string) => {
-    if (countryCode && countryCode.length === 2) {
-      return `https://flagcdn.com/24x18/${countryCode.toLowerCase()}.png`;
-    }
-    // Bandeira genérica em base64 para evitar dependências e erros de renderização
-    return "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAASCAQAAACe62eOAAAAaklEQVR42mNkgABeIK4D4mggloCKMQL4gLgOiAOBaAqgGiQ2A8F4IJoUoHkQnwMxOdAJBAvQ/oD6H0j/H6T/j1T/UTU/1fR/1fR/VfN/1fx/1f5/1f9/DAAANs4/30eJz/wAAAAASUVORK5CYII=";
-  };
 
   const factionColor = useMemo(() => {
     const f = clan?.faction || userProfile?.faction;
@@ -314,22 +304,20 @@ export default function ClanPage() {
               return (
                 <li
                   key={mid}
-                  className="px-4 py-2 flex items-center justify-between"
+                  className="px-4 py-3 flex items-center justify-between"
                 >
-                  <div className="flex items-center gap-3 flex-1 min-w-0">
-                    <img
-                      src={getCountryFlag(m.country)}
-                      alt={m.country || "País"}
-                      className="w-6 h-auto rounded-sm flex-shrink-0"
-                    />
-                    <div className="flex-1 min-w-0">
-                      <div className="font-semibold text-sm truncate flex items-center gap-2">
-                        <span title={m.username || m.display_name}>
-                          {m.username || m.display_name || "Usuário"}
-                        </span>
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded bg-gray-700 flex items-center justify-center font-bold">
+                      {(m.username || m.display_name || "U")
+                        .charAt(0)
+                        .toUpperCase()}
+                    </div>
+                    <div>
+                      <div className="font-semibold flex items-center gap-2">
+                        <span>{m.username || m.display_name || "Usuário"}</span>
                         {isBanned && (
-                          <span className="text-[9px] px-1.5 py-0.5 rounded bg-red-600/40 border border-red-500/50 font-mono">
-                            BANIDO
+                          <span className="text-[10px] px-2 py-0.5 rounded bg-red-600/40 border border-red-500/50">
+                            BANIDO 24h
                           </span>
                         )}
                       </div>
@@ -338,9 +326,8 @@ export default function ClanPage() {
                       </div>
                     </div>
                   </div>
-
-                  <div className="flex items-center gap-2 flex-shrink-0 ml-2">
-                    <div className="text-xs text-gray-400 hidden sm:block">
+                  <div className="flex items-center gap-3">
+                    <div className="text-xs text-gray-400">
                       {m.role || "Membro"}
                     </div>
                     {!isSelf && !isBanned && (
@@ -404,10 +391,10 @@ export default function ClanPage() {
                             setClan((c) => ({ ...c }) as ClanData);
                           }
                         }}
-                        className="text-xs px-2 py-1 rounded bg-red-800/70 hover:bg-red-700/70 transition-colors font-semibold"
-                        title={`Votos para expulsão: ${votesSize}/${threshold}`}
+                        className="text-xs px-2 py-1 rounded bg-red-600 hover:bg-red-500 transition-colors font-bold"
+                        title={`Votos: ${votesSize}/${threshold}`}
                       >
-                        Votar ({votesSize}/{threshold})
+                        Votar expulsão ({votesSize}/{threshold})
                       </button>
                     )}
                   </div>
