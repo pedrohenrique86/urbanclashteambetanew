@@ -281,7 +281,22 @@ router.delete("/:id", authenticateToken, async (req, res) => {
 
     // Usar transação para garantir a integridade dos dados
     await transaction(async (client) => {
-      // A exclusão na tabela 'users' deve propagar para 'user_profiles' via ON DELETE CASCADE
+      // Primeiro, verificar se o usuário pertence a um clã
+      const memberInfo = await client.query(
+        "SELECT clan_id FROM clan_members WHERE user_id = $1",
+        [id],
+      );
+
+      // Se o usuário for membro de um clã, decrementar a contagem
+      if (memberInfo.rows.length > 0) {
+        const { clan_id } = memberInfo.rows[0];
+        await client.query(
+          "UPDATE clans SET member_count = GREATEST(0, member_count - 1), updated_at = CURRENT_TIMESTAMP WHERE id = $1",
+          [clan_id],
+        );
+      }
+
+      // A exclusão na tabela 'users' deve propagar para 'user_profiles' e 'clan_members' via ON DELETE CASCADE
       const deleteResult = await client.query(
         "DELETE FROM users WHERE id = $1",
         [id],
