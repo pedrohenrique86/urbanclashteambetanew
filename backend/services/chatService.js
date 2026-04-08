@@ -94,9 +94,9 @@ async function handleUserDisconnection(io, clanId, userId) {
   if (newConnectionCount <= 0) {
     // Se o contador for zero ou menos, remove o usuário do hash
     await redisClient.hDelAsync(connectionsKey, userId);
-    // E então atualiza a lista de usuários online
-    await broadcastOnlineUsers(io, clanId);
   }
+  // E então atualiza a lista de usuários online
+  await broadcastOnlineUsers(io, clanId);
 }
 
 /**
