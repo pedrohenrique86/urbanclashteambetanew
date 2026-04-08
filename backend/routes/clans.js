@@ -622,63 +622,74 @@ router.put(
 // POST /api/clans/:id/join - Entrar no clã
 router.post("/:id/join", authenticateToken, async (req, res) => {
   try {
-    const { id } = req.params;
+    const { id: clanId } = req.params;
     const userId = req.user.id;
 
-    // Verificar se o clã existe
-    const clanResult = await query("SELECT * FROM clans WHERE id = $1", [id]);
-
-    if (clanResult.rows.length === 0) {
-      return res.status(404).json({ error: "Clã não encontrado" });
-    }
-
-    const clan = clanResult.rows[0];
-
-    // Verificar se o clã está recrutando
-    if (!clan.is_recruiting) {
-      return res.status(400).json({ error: "Clã não está recrutando" });
-    }
-
-    // Verificar se o clã não está cheio
-    if (clan.member_count >= clan.max_members) {
-      return res.status(400).json({ error: "Clã está cheio" });
-    }
-
-    // Verificar se o usuário já é membro de algum clã
-    const existingMemberResult = await query(
-      "SELECT id FROM clan_members WHERE user_id = $1",
-      [userId],
-    );
-
-    if (existingMemberResult.rows.length > 0) {
-      return res.status(400).json({ error: "Você já é membro de um clã" });
-    }
-
-    // Adicionar usuário ao clã e atualizar contadores
-    await transaction(async (client) => {
-      // Adicionar à tabela clan_members
-      await client.query(
-        "INSERT INTO clan_members (clan_id, user_id, role) VALUES ($1, $2, $3)",
-        [id, userId, "member"],
+    // A transação agora encapsula toda a lógica para garantir atomicidade.
+    // As verificações são movidas para dentro para prevenir race conditions.
+    const result = await transaction(async (client) => {
+      // Etapa 1: Bloquear e verificar o clã para atualização.
+      // FOR UPDATE previne que outras transações alterem este clã concorrentemente.
+      const clanResult = await client.query(
+        "SELECT * FROM clans WHERE id = $1 FOR UPDATE",
+        [clanId],
       );
 
-      // Atualizar clan_id no perfil do usuário
-      await client.query(
-        "UPDATE user_profiles SET clan_id = $1 WHERE user_id = $2",
-        [id, userId],
+      if (clanResult.rows.length === 0) {
+        return { status: 404, error: "Clã não encontrado" };
+      }
+      const clan = clanResult.rows[0];
+
+      // Etapa 2: Bloquear e verificar o perfil do usuário para garantir que ele não está em outro clã.
+      const userProfileResult = await client.query(
+        "SELECT clan_id FROM user_profiles WHERE user_id = $1 FOR UPDATE",
+        [userId],
       );
 
-      // Incrementar member_count e atualizar timestamp do clã
+      if (userProfileResult.rows.length === 0) {
+        return { status: 404, error: "Perfil de usuário não encontrado" };
+      }
+      const { clan_id: userClanId } = userProfileResult.rows[0];
+
+      // Etapa 3: Validar as regras de negócio com os dados mais recentes e bloqueados.
+      if (userClanId) {
+        return { status: 400, error: "Você já é membro de um clã" };
+      }
+      if (!clan.is_recruiting) {
+        return { status: 400, error: "Clã não está recrutando" };
+      }
+      if (clan.member_count >= clan.max_members) {
+        return { status: 400, error: "Clã está cheio" };
+      }
+
+      // Etapa 4: Executar as atualizações de forma atômica.
+      await client.query(
+        "INSERT INTO clan_members (clan_id, user_id, role) VALUES ($1, $2, 'member')",
+        [clanId, userId],
+      );
+
+      await client.query(
+        "UPDATE user_profiles SET clan_id = $1, updated_at = CURRENT_TIMESTAMP WHERE user_id = $2",
+        [clanId, userId],
+      );
+
       await client.query(
         "UPDATE clans SET member_count = member_count + 1, updated_at = CURRENT_TIMESTAMP WHERE id = $1",
-        [id],
+        [clanId],
       );
+
+      return { status: 200, message: "Você entrou no clã com sucesso" };
     });
 
-    // Notificar membros do clã em tempo real
-    broadcastToClan(id, "member_joined", { userId, clanId: id });
+    // Se a transação retornou um erro de negócio, envie a resposta apropriada.
+    if (result.status !== 200) {
+      return res.status(result.status).json({ error: result.error });
+    }
 
-    res.json({ message: "Você entrou no clã com sucesso" });
+    // Notificar membros do clã em tempo real apenas se a operação foi bem-sucedida.
+    broadcastToClan(clanId, "member_joined", { userId, clanId });
+
+    res.json({ message: result.message });
   } catch (error) {
     console.error("❌ Erro ao entrar no clã:", error.message);
     res.status(500).json({ error: "Erro interno do servidor" });
@@ -740,8 +751,13 @@ router.post("/:id/leave", authenticateToken, async (req, res) => {
       );
       // Decrementa a contagem de membros e atualiza timestamp
       await client.query(
-        "UPDATE clans SET member_count = member_count - 1, updated_at = CURRENT_TIMESTAMP WHERE id = $1",
+        "UPDATE clans SET member_count = GREATEST(0, member_count - 1), updated_at = CURRENT_TIMESTAMP WHERE id = $1",
         [id],
+      );
+      // Limpar clan_id no perfil do usuário para manter a consistência
+      await client.query(
+        "UPDATE user_profiles SET clan_id = NULL, updated_at = CURRENT_TIMESTAMP WHERE user_id = $1",
+        [userId],
       );
     });
 
