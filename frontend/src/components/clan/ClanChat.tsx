@@ -44,7 +44,7 @@ export const ClanChat: React.FC = () => {
   }
 
   return (
-    <div className="flex flex-col h-96 w-full max-w-2xl mx-auto bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-lg shadow-lg">
+    <div className="flex flex-col h-full w-full bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-lg shadow-lg">
       {/* Cabeçalho do Chat */}
       <div className="flex justify-between items-center p-3 border-b border-gray-700">
         <h3 className="font-bold text-white">Chat do Clã</h3>
