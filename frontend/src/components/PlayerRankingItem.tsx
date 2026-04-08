@@ -64,7 +64,7 @@ export default function PlayerRankingItem({
         {/* Nível */}
         <div className="flex flex-col items-end flex-shrink-0">
           <span className={`text-sm font-bold ${levelColorClass}`}>
-            Lvl {player.level}
+            Nvl {player.level}
           </span>
         </div>
       </div>
