@@ -5,8 +5,28 @@ import { useRankingCache } from "../hooks/useRankingCache";
 import PlayerRankingItem from "./PlayerRankingItem";
 import ClanRankingItem from "./ClanRankingItem";
 import RankingUpdateNotification from "./RankingUpdateNotification";
+import {
+  getPositionDisplay,
+  getPositionSizeClass,
+  getPositionTextColor,
+} from "../utils/rankingUtils";
 
 export default function RankingSection() {
+  // Funções type guard para verificar tipos
+  const isPlayer = (item: any): item is Player => {
+    return (
+      item &&
+      typeof item.username === "string" &&
+      typeof item.level === "number"
+    );
+  };
+
+  const isClan = (item: any): item is Clan => {
+    return (
+      item && typeof item.name === "string" && typeof item.score === "number"
+    );
+  };
+
   // Usar o hook de cache para gerenciar os rankings (limitado a 5 para home page)
   const { data, loading, error, lastUpdated } = useRankingCache(true);
   const [showNotification, setShowNotification] = useState(false);
@@ -32,48 +52,32 @@ export default function RankingSection() {
   const gangsterConfig = {
     title: "🔫 TOP GANGSTERS",
     gradient: "from-orange-600 to-orange-500",
+    bgColor: "bg-orange-600/20",
     borderColor: "border-orange-500/30",
     delay: 0.3,
     data: (gangsters || []).slice(0, 5),
-    renderItem: (item: Player, index: number) => (
-      <PlayerRankingItem
-        key={`gangster-${index}`}
-        player={item}
-        gradient="from-orange-600 to-orange-500"
-      />
-    ),
+    type: "gangsters" as const,
   };
 
   const guardConfig = {
     title: "🛡️ TOP GUARDAS",
     gradient: "from-blue-600 to-blue-400",
+    bgColor: "bg-blue-500/20",
     borderColor: "border-blue-500/30",
     delay: 0.4,
     data: (guardas || []).slice(0, 5),
-    renderItem: (item: Player, index: number) => (
-      <PlayerRankingItem
-        key={`guarda-${index}`}
-        player={item}
-        gradient="from-blue-600 to-blue-400"
-      />
-    ),
+    type: "guardas" as const,
   };
 
   // Definição específica para o tipo Clan para evitar problemas de tipagem
   const clanConfig = {
     title: "👥 TOP CLÃS",
     gradient: "from-purple-600 to-purple-500",
+    bgColor: "bg-purple-600/20",
     borderColor: "border-purple-500/30",
     delay: 0.5,
     data: (clans || []).slice(0, 5),
-    // Especificando o tipo correto para o item
-    renderItem: (item: Clan, index: number) => (
-      <ClanRankingItem
-        key={`clan-${index}`}
-        clan={item}
-        gradient="from-purple-600 to-purple-500"
-      />
-    ),
+    type: "clans" as const,
   };
 
   const rankingConfigs = [gangsterConfig, guardConfig, clanConfig];
@@ -144,46 +148,88 @@ export default function RankingSection() {
                 {config.title}
               </h3>
 
-              <div className="space-y-4">
+              <div className="space-y-3">
                 {loading ? (
-                  // Mostrar placeholders durante o carregamento
+                  // Placeholders de carregamento aprimorados
                   Array.from({ length: 5 }).map((_, index) => (
                     <div
                       key={`loading-${configIdx}-${index}`}
-                      className="bg-gray-700 animate-pulse h-14 rounded-lg"
+                      className="bg-gray-700/50 animate-pulse h-[60px] rounded-lg"
                     />
                   ))
                 ) : error ? (
-                  // Mostrar mensagem de erro
-                  <div className="text-center text-red-400 py-8">
-                    <p className="mb-4">{error}</p>
-                    <p className="text-sm text-gray-400">
-                      Os dados serão atualizados automaticamente
+                  // Mensagem de erro aprimorada
+                  <div className="text-center text-red-400/80 py-8">
+                    <p className="font-semibold mb-2">Erro ao carregar</p>
+                    <p className="text-sm text-gray-400/70">
+                      Tentando reconectar...
                     </p>
                   </div>
-                ) : config.data.length > 0 ? (
-                  // Mostrar os dados do ranking
-                  // Usar uma abordagem tipada para cada configuração específica
-                  config === gangsterConfig ? (
-                    gangsterConfig.data.map((item, index) =>
-                      gangsterConfig.renderItem(item, index),
-                    )
-                  ) : config === guardConfig ? (
-                    guardConfig.data.map((item, index) =>
-                      guardConfig.renderItem(item, index),
-                    )
-                  ) : (
-                    clanConfig.data.map((item, index) =>
-                      clanConfig.renderItem(item, index),
-                    )
-                  )
                 ) : (
-                  // Mostrar mensagem quando não houver dados
-                  <div className="text-center text-gray-400 py-4">
-                    {config === clanConfig
-                      ? "Nenhum clã encontrado"
-                      : "Nenhum jogador encontrado nesta facção"}
-                  </div>
+                  // Lógica de renderização final e unificada
+                  Array.from({ length: 5 }).map((_, index) => {
+                    const item = config.data[index];
+
+                    // Renderiza o item real se ele existir
+                    if (item) {
+                      return (
+                        <div key={item.id} className="h-[62px]">
+                          {isPlayer(item) ? (
+                            <PlayerRankingItem
+                              player={item}
+                              bgColor={config.bgColor}
+                            />
+                          ) : isClan(item) ? (
+                            <ClanRankingItem
+                              clan={item}
+                              bgColor={config.bgColor}
+                            />
+                          ) : null}
+                        </div>
+                      );
+                    }
+
+                    // Renderiza o placeholder com o fundo sólido
+                    const position = index + 1;
+                    const displayType =
+                      config.type === "clans" ? "clan" : "player";
+
+                    return (
+                      <div
+                        key={`placeholder-${configIdx}-${index}`}
+                        className={`${config.bgColor} p-2 sm:p-3 rounded-lg h-[62px] flex items-center opacity-60`}
+                      >
+                        <div className="flex items-center space-x-2 sm:space-x-3 min-w-0 w-full">
+                          {/* Posição */}
+                          <span
+                            className={`${getPositionSizeClass(
+                              position,
+                            )} font-bold min-w-[24px] sm:min-w-[30px] text-center flex-shrink-0 ${getPositionTextColor(
+                              position,
+                              config.type,
+                            )}`}
+                          >
+                            {getPositionDisplay(position, displayType)}
+                          </span>
+
+                          {/* Espaço para Bandeira/Escudo */}
+                          <div className="w-5 h-4 flex-shrink-0"></div>
+
+                          {/* Nome */}
+                          <span className="text-gray-400 font-medium flex-grow min-w-0 text-sm sm:text-base truncate">
+                            - - -
+                          </span>
+
+                          {/* Nível/Pontos */}
+                          <div className="flex flex-col items-end flex-shrink-0">
+                            <span className={`text-sm font-bold text-gray-500`}>
+                              ---
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })
                 )}
               </div>
             </motion.div>

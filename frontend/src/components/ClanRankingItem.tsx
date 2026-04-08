@@ -1,91 +1,57 @@
 import React from "react";
 import { Clan } from "../types/ranking";
+import {
+  getPositionTextColor,
+  getPositionSizeClass,
+  getPositionDisplay,
+} from "../utils/rankingUtils";
 
 interface ClanRankingItemProps {
   clan: Clan;
-  gradient: string;
+  bgColor: string;
 }
 
 // Componente para exibir um item do ranking de clãs
 export default function ClanRankingItem({
   clan,
-  gradient,
+  bgColor,
 }: ClanRankingItemProps) {
   // Ícone baseado na facção do clã
   const getClanShield = (faction: string) => {
     return faction === "gangsters" ? "🔫" : "🛡️";
   };
 
-  // Função para obter a cor da posição
-  const getPositionColor = (position: number) => {
-    switch (position) {
-      case 1:
-        return "text-yellow-400"; // Ouro
-      case 2:
-        return "text-gray-300"; // Prata
-      case 3:
-        return "text-orange-500"; // Bronze
-      case 4:
-      case 5:
-        return "text-purple-400"; // Roxo
-      default:
-        return "text-gray-400";
-    }
-  };
-
-  // Função para definir o tamanho da fonte com base na posição
-  const getPositionSizeClass = (position?: number) => {
-    if (!position || position <= 3) {
-      return "text-lg sm:text-xl"; // Tamanho maior para Top 3
-    }
-    return "text-sm sm:text-base"; // Tamanho padrão para 4+
-  };
-
-  // Função para exibir troféu ou número
-  const getPositionDisplay = (position?: number) => {
-    if (!position) return "—";
-    switch (position) {
-      case 1:
-        return "🏆";
-      case 2:
-        return "🥈";
-      case 3:
-        return "🥉";
-      default:
-        return `${position}º`;
-    }
-  };
-
   return (
-    <div className={`bg-gradient-to-r ${gradient} p-[1px] rounded-lg`}>
-      <div className="bg-gray-800 p-2 sm:p-3 rounded-lg">
-        <div className="flex items-center space-x-1 sm:space-x-2 min-w-0">
-          {/* Posição no ranking */}
-          <span
-            className={`${getPositionSizeClass(
-              clan.position,
-            )} font-bold min-w-[24px] sm:min-w-[30px] text-center flex-shrink-0 ${getPositionColor(
-              clan.position || 0,
-            )}`}
-          >
-            {getPositionDisplay(clan.position)}
-          </span>
+    <div
+      className={`${bgColor} p-2 sm:p-3 rounded-lg h-full flex items-center`}
+    >
+      <div className="flex items-center space-x-1 sm:space-x-2 min-w-0 w-full">
+        {/* Posição no ranking (SEM CÍRCULO) */}
+        <span
+          className={`${getPositionSizeClass(
+            clan.position,
+          )} font-bold min-w-[24px] sm:min-w-[30px] text-center flex-shrink-0 ${getPositionTextColor(
+            clan.position,
+            "clans",
+          )}`}
+        >
+          {getPositionDisplay(clan.position, "clan")}
+        </span>
 
-          {/* Escudo do clã */}
-          <span className="text-sm flex-shrink-0">
-            {getClanShield(clan.faction)}
-          </span>
+        {/* Escudo do clã */}
+        <span className="text-sm flex-shrink-0">
+          {getClanShield(clan.faction)}
+        </span>
 
-          {/* Nome do clã */}
-          <span className="text-white font-medium flex-grow truncate text-sm sm:text-base">
-            {clan.name}
-          </span>
+        {/* Nome do clã */}
+        <span className="text-white font-medium flex-grow truncate text-sm sm:text-base">
+          {clan.name}
+        </span>
 
-          {/* Pontuação */}
-          <span className="text-purple-400 font-bold text-sm sm:text-base flex-shrink-0">
-            {clan.score} pts
-          </span>
-        </div>
+        {/* Pontuação */}
+        <span className="text-purple-300 font-bold text-sm sm:text-base flex-shrink-0">
+          {clan.score} pts
+        </span>
       </div>
     </div>
   );

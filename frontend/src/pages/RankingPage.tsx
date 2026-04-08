@@ -166,30 +166,49 @@ const EmptyRankingItem: React.FC<{
   position: number;
   type: "player" | "clan";
 }> = ({ position, type }) => {
-  // Função para obter a cor da posição
+  // Função para obter a cor da posição (apenas texto)
   const getPositionColor = (position: number) => {
     switch (position) {
       case 1:
-        return "bg-yellow-500/50 text-yellow-200"; // Ouro com opacidade
+        return "text-yellow-400"; // Ouro
       case 2:
-        return "bg-gray-300/50 text-gray-200"; // Prata com opacidade
+        return "text-gray-300"; // Prata
       case 3:
-        return "bg-orange-600/50 text-orange-200"; // Bronze com opacidade
+        return "text-orange-500"; // Bronze
       default:
-        return "bg-gray-700 text-gray-400";
+        return "text-gray-500";
+    }
+  };
+
+  // Função para exibir troféu ou número
+  const getPositionDisplay = (position: number) => {
+    switch (position) {
+      case 1:
+        return "🏆";
+      case 2:
+        return "🥈";
+      case 3:
+        return "🥉";
+      default:
+        return position;
     }
   };
 
   return (
-    <div className="bg-gray-800/30 border border-gray-700/50 rounded-lg p-4 mb-2 opacity-50">
+    <div className="bg-gray-800/30 border border-gray-700/50 rounded-lg p-3 mb-2 opacity-60">
       <div className="flex items-center justify-between min-w-0">
         <div className="flex items-center space-x-3 min-w-0 flex-1">
+          {/* Posição (SEM CÍRCULO) */}
           <div
-            className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${getPositionColor(position)}`}
+            className={`w-8 text-center ${
+              position <= 3 ? "text-2xl" : "text-sm"
+            } font-bold flex-shrink-0 ${getPositionColor(position)}`}
           >
-            {position}
+            {getPositionDisplay(position)}
           </div>
-          <span className="text-sm flex-shrink-0">❓</span>
+          <span className="text-sm flex-shrink-0 text-red-500/70 font-bold">
+            ❓
+          </span>
           <span className="text-gray-500 italic text-sm min-w-0 flex-1">
             {type === "clan" ? "Aguardando clã..." : "Aguardando jogador..."}
           </span>
@@ -220,7 +239,11 @@ export default function RankingPage() {
   const { data, loading: isLoading, error } = useRankingCache(true);
 
   // Extrair dados do cache, com fallback para objeto vazio
-  const { gangsters, guardas, clans } = data || { gangsters: [], guardas: [], clans: [] };
+  const { gangsters, guardas, clans } = data || {
+    gangsters: [],
+    guardas: [],
+    clans: [],
+  };
 
   const rankingConfigs = [
     {
