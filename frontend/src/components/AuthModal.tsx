@@ -563,7 +563,7 @@ export default function AuthModal({
 
         // Só exibe a mensagem de sucesso se o email existir, estiver confirmado e o email de recuperação for enviado com sucesso
         setSuccessMessage(
-          "Enviamos um email com instruções para redefinir sua senha. Por favor, verifique sua caixa de entrada.",
+          "Enviamos um email com instruções para redefinir sua senha. Por favor, verifique sua caixa de entrada ou spam, ATENÇÃO você receberá o e-mail se já tiver sido cadastrado!",
         );
         setIsProcessing(false); // Finalizar processamento após sucesso
       } catch (error: unknown) {

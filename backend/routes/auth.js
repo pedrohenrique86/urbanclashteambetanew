@@ -238,7 +238,7 @@ router.post("/login", authLimiter, loginValidation, async (req, res) => {
     // A exceção é se ele também tiver um hash de senha (cadastrou-se manualmente e depois vinculou o Google).
     if (user.google_id && !user.password_hash) {
       return res.status(409).json({
-        error: "Login com provedor externo",
+        error: "Cadastro feito com o Google, você pode recuperar sua senha!",
         message:
           "Este email foi cadastrado usando uma conta Google. Por favor, faça login com o Google.",
       });
