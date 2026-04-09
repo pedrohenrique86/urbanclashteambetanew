@@ -1,5 +1,6 @@
 const { query } = require("../config/database");
 const redisClient = require("../config/redisClient");
+const sseService = require("./sseService"); // Importar o sseService
 
 const PLAYER_STATE_PREFIX = "playerState:";
 const PERSISTENCE_INTERVAL_MS = 2 * 60 * 1000; // 2 minutos
@@ -91,25 +92,36 @@ async function updatePlayerState(userId, updates) {
   const redisKey = `${PLAYER_STATE_PREFIX}${userId}`;
 
   try {
-    const pipeline = redisClient.pipeline(); // Usar pipeline para múltiplas operações
+    const pipeline = redisClient.pipeline();
 
     for (const [key, value] of Object.entries(updates)) {
-      // Usar HINCRBY para campos numéricos para garantir atomicidade
       if (typeof value === "number") {
         pipeline.hIncrBy(redisKey, key, value);
       } else {
-        // Usar HSET para campos não numéricos (string, boolean, etc)
         pipeline.hSet(redisKey, key, String(value));
       }
     }
 
-    // Marca o hash como "sujo" para que o worker de persistência o salve no DB
     pipeline.hSet(redisKey, "is_dirty", "1");
-
     await pipeline.exec();
 
-    // Retorna o estado atualizado
-    return await getPlayerState(userId);
+    // Após a atualização, busca o estado atualizado para emitir o evento
+    const newState = await getPlayerState(userId);
+
+    // Se a atualização incluiu 'experience_points' ou 'level', emita o evento
+    if (
+      newState &&
+      (updates.experience_points !== undefined || updates.level !== undefined)
+    ) {
+      sseService.publish("ranking", "ranking:player:update", {
+        playerId: newState.user_id,
+        faction: newState.faction,
+        level: parseInt(newState.level, 10),
+        current_xp: parseInt(newState.experience_points, 10),
+      });
+    }
+
+    return newState;
   } catch (error) {
     console.error(
       `❌ Erro ao atualizar estado do jogador ${userId} no Redis:`,

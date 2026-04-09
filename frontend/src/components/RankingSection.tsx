@@ -50,7 +50,7 @@ export default function RankingSection() {
 
   // Configurações para os diferentes tipos de ranking
   const gangsterConfig = {
-    title: "🔫 TOP GANGSTERS",
+    title: "TOP 5 GANGSTERS",
     gradient: "from-orange-600 to-orange-500",
     bgColor: "bg-orange-600/20",
     borderColor: "border-orange-500/30",
@@ -60,7 +60,7 @@ export default function RankingSection() {
   };
 
   const guardConfig = {
-    title: "🛡️ TOP GUARDAS",
+    title: "TOP 5 GUARDAS",
     gradient: "from-blue-600 to-blue-400",
     bgColor: "bg-blue-500/20",
     borderColor: "border-blue-500/30",
@@ -71,7 +71,7 @@ export default function RankingSection() {
 
   // Definição específica para o tipo Clan para evitar problemas de tipagem
   const clanConfig = {
-    title: "👥 TOP CLÃS",
+    title: "TOP 5 DIVISÕES",
     gradient: "from-purple-600 to-purple-500",
     bgColor: "bg-purple-600/20",
     borderColor: "border-purple-500/30",

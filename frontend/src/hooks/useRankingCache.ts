@@ -5,6 +5,11 @@ import {
   fetchFullRankings,
 } from "../services/rankingService";
 import { apiClient } from "../lib/supabaseClient";
+import {
+  sortPlayers,
+  sortClans,
+  updatePositions,
+} from "../utils/rankingSorters";
 
 interface RankingData {
   gangsters: Player[];
@@ -328,22 +333,109 @@ export const useRankingCache = (
   const forceRefreshRef = useRef(forceRefresh);
   forceRefreshRef.current = forceRefresh;
 
+  // Efeito para lidar com as atualizações em tempo real via SSE
   useEffect(() => {
     const base = (import.meta as any).env?.VITE_API_URL;
     if (!base) return;
 
     let eventSource: EventSource | null = null;
-    try {
-      const url = `${base}/api/users/rankings/subscribe`;
-      eventSource = new EventSource(url, { withCredentials: true });
-      // O evento 'rankings' agora cobre tanto usuários quanto clãs
-      eventSource.addEventListener("rankings", () => {
-        // Chama a versão mais recente da função através da ref para evitar dependência direta.
-        forceRefreshRef.current();
-      });
-    } catch (e) {
-      void e;
-    }
+
+    const connect = () => {
+      if (eventSource) {
+        eventSource.close();
+      }
+
+      try {
+        // A URL agora aponta para o novo endpoint de subscrição de ranking
+        const url = `${base}/api/ranking-events/subscribe`;
+        eventSource = new EventSource(url, { withCredentials: true });
+
+        // Listener para atualizações de jogadores
+        eventSource.addEventListener("ranking:player:update", (event) => {
+          const updatedPlayerData = JSON.parse(event.data);
+          setData((prevData) => {
+            const { playerId, faction, level, current_xp } = updatedPlayerData;
+            const listKey = faction === "gangsters" ? "gangsters" : "guardas";
+
+            let playerExists = false;
+            const updatedList = prevData[listKey].map((player) => {
+              if (player.id === playerId) {
+                playerExists = true;
+                // Retorna um novo objeto para o jogador atualizado
+                return { ...player, level, current_xp };
+              }
+              return player;
+            });
+
+            // Se o jogador não estava na lista, adiciona-o para re-avaliação.
+            if (!playerExists) {
+              updatedList.push({
+                id: playerId,
+                level,
+                current_xp,
+                // nickname e outros campos ficarão undefined até o próximo fetch
+                position: 0, // Posição temporária
+              } as Player);
+            }
+
+            // Reordena a lista e atualiza as posições
+            const sortedList = sortPlayers(updatedList);
+            const finalList = updatePositions(sortedList);
+
+            return {
+              ...prevData,
+              [listKey]: finalList,
+            };
+          });
+        });
+
+        // Listener para atualizações de clãs
+        eventSource.addEventListener("ranking:clan-score:update", (event) => {
+          const updatedClanData = JSON.parse(event.data);
+          setData((prevData) => {
+            const { clanId, score } = updatedClanData;
+
+            let clanExists = false;
+            const updatedList = prevData.clans.map((clan) => {
+              if (clan.id === clanId) {
+                clanExists = true;
+                return { ...clan, score };
+              }
+              return clan;
+            });
+
+            // Se o clã não estava na lista, adiciona-o para re-avaliação.
+            if (!clanExists) {
+              updatedList.push({
+                id: clanId,
+                score,
+                // name e faction ficarão undefined até o próximo fetch
+                position: 0, // Posição temporária
+              } as Clan);
+            }
+
+            const sortedList = sortClans(updatedList);
+            const finalList = updatePositions(sortedList);
+
+            return {
+              ...prevData,
+              clans: finalList,
+            };
+          });
+        });
+
+        eventSource.onerror = () => {
+          // Tenta reconectar após um pequeno atraso
+          if (eventSource) eventSource.close();
+          setTimeout(connect, 5000);
+        };
+      } catch (e) {
+        console.error("Falha ao conectar ao SSE de ranking:", e);
+      }
+    };
+
+    connect();
+
     return () => {
       if (eventSource) {
         eventSource.close();

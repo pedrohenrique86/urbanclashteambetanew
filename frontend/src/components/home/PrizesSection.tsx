@@ -31,7 +31,7 @@ export function PrizesSection() {
         >
           <p className="text-xl text-gray-300 leading-relaxed max-w-3xl mx-auto">
             Compete pelos primeiros lugares e ganhe prêmios em dinheiro real! Os
-            melhores jogadores de cada facção e os clãs mais poderosos receberão
+            melhores jogadores de cada facção e as divisões mais poderosas receberão
             recompensas incríveis.
           </p>
         </motion.div>
@@ -95,7 +95,7 @@ export function PrizesSection() {
             <p className="text-xl font-orbitron text-gray-300">
               Top 3 <span className="text-orange-500 font-bold">Gangsters</span>
               , <span className="text-blue-500 font-bold">Guardas</span> e{" "}
-              <span className="text-purple-500 font-bold">Clãs</span> ganham!
+              <span className="text-purple-500 font-bold">Divisões</span> ganham!
             </p>
           </motion.div>
         </motion.div>

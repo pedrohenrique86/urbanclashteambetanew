@@ -32,7 +32,7 @@ export function AboutSection() {
           <p className="text-xl text-gray-300 leading-relaxed max-w-4xl mx-auto">
             Urban Clash Team é um jogo de estratégia e ação onde você escolhe
             seu lado na guerra urbana. Seja um gangster implacável, um guarda
-            corajoso e forme o clã mais poderoso da cidade. Cada escolha
+            corajoso e entre numa divisão mais poderosa da cidade. Cada escolha
             determina seu destino neste mundo de conflitos e alianças.
           </p>
         </motion.div>
@@ -84,7 +84,7 @@ export function AboutSection() {
               COMUNIDADE ATIVA
             </h3>
             <p className="text-gray-300">
-              Junte-se a milhares de jogadores, forme clãs poderosos e participe
+              Junte-se a milhares de jogadores, forme uma divisão poderosa e participe
               de eventos exclusivos.
             </p>
           </motion.div>
