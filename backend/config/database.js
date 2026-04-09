@@ -11,9 +11,11 @@ if (process.env.DATABASE_URL) {
   poolConfig = {
     connectionString: process.env.DATABASE_URL,
     // Garante que SSL seja usado, como exigido pelo Neon/Render.
-    // rejectUnauthorized: false é necessário em ambientes como o Render
-    // que usam certificados SSL internos.
-    ssl: { rejectUnauthorized: false },
+    // Adiciona 'mode: require' para ser explícito e remover o aviso de segurança.
+    ssl: {
+      rejectUnauthorized: false,
+      mode: "require",
+    },
   };
 } else {
   // Fallback para configuração local (o que está causando o erro)
