@@ -234,10 +234,16 @@ async function getCachedClans(params) {
     return null;
   }
   try {
-    // Retorna o objeto de cache inteiro para uso do ETag e dos dados
+    // Se o valor já for um objeto, retorne-o diretamente.
+    // Se for uma string, faça o parse.
+    if (typeof cached === "object" && cached !== null) {
+      return cached;
+    }
     return JSON.parse(cached);
   } catch (e) {
     console.error("❌ Erro ao fazer parse do cache de clãs:", e);
+    // Adiciona o valor problemático ao log para depuração
+    console.error("❌ Valor do cache que causou o erro:", cached);
     return null;
   }
 }
@@ -711,7 +717,9 @@ router.post("/:id/leave", authenticateToken, async (req, res) => {
   const { id: clanId } = req.params;
   const userId = req.user.id;
 
-  console.log(`[CLAN_LEAVE_ATTEMPT] User ${userId} tentando sair do clã ${clanId}`);
+  console.log(
+    `[CLAN_LEAVE_ATTEMPT] User ${userId} tentando sair do clã ${clanId}`,
+  );
 
   try {
     const result = await transaction(async (client) => {
@@ -731,7 +739,8 @@ router.post("/:id/leave", authenticateToken, async (req, res) => {
       if (userRole === "leader") {
         return {
           status: 400,
-          error: "O líder não pode abandonar o clã. Transfira a liderança primeiro.",
+          error:
+            "O líder não pode abandonar o clã. Transfira a liderança primeiro.",
         };
       }
 
@@ -744,7 +753,10 @@ router.post("/:id/leave", authenticateToken, async (req, res) => {
       // Se nada foi deletado (verificação extra de segurança)
       if (deleteResult.rowCount === 0) {
         // Isso não deve acontecer devido à verificação inicial, mas é uma boa prática.
-        return { status: 404, error: "Falha ao encontrar o membro para remover." };
+        return {
+          status: 404,
+          error: "Falha ao encontrar o membro para remover.",
+        };
       }
 
       // 4. Decrementa o contador de membros do clã.
