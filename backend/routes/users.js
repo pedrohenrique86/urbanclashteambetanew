@@ -39,11 +39,14 @@ async function getCachedRankings(params) {
     return JSON.parse(cached);
   } catch (e) {
     // Se o parse falhar (ex: "[object Object]"), o cache está corrompido.
-    console.error("❌ Falha ao fazer parse do ranking em cache. Invalidando a chave:", {
-      key,
-      value: cached,
-      error: e.message,
-    });
+    console.error(
+      "❌ Falha ao fazer parse do ranking em cache. Invalidando a chave:",
+      {
+        key,
+        value: cached,
+        error: e.message,
+      },
+    );
     // Invalida a chave corrompida para auto-correção na próxima requisição.
     await redisClient.del(key);
     return null;
@@ -63,28 +66,34 @@ async function setCachedRankings(params, data) {
 async function refreshRankingsCache(faction, limit) {
   let whereClause = "WHERE u.is_email_confirmed = true AND p.id IS NOT NULL";
   const queryParams = [];
+  let limitPlaceholder = "$1";
+
   if (faction) {
     whereClause += " AND p.faction = $1";
     queryParams.push(faction);
+    limitPlaceholder = "$2";
   }
+
+  queryParams.push(limit);
+
   const leaderboardResult = await query(
     `
     SELECT 
       u.id, u.username, u.country,
       p.display_name, p.avatar_url, p.level, 
-      p.experience_points, p.faction, p.victories, p.defeats, p.winning_streak,
+      p.experience_points as current_xp, p.faction, p.victories, p.defeats, p.winning_streak,
       ROW_NUMBER() OVER (ORDER BY p.level DESC, p.experience_points DESC) as rank
     FROM users u
     INNER JOIN user_profiles p ON u.id = p.user_id
     ${whereClause}
     ORDER BY p.level DESC, p.experience_points DESC
-    LIMIT $${queryParams.length + 1}
+    LIMIT ${limitPlaceholder}
   `,
-    [...queryParams, limit],
+    queryParams,
   );
   await setCachedRankings({ faction, limit }, leaderboardResult.rows);
   // Notifica todos os clientes sobre a atualização do ranking
-  sseService.broadcast("rankings", { updated: true, type: 'users', faction });
+  sseService.broadcast("rankings", { updated: true, type: "users", faction });
 }
 
 /**
@@ -99,15 +108,14 @@ async function scheduleUsersRefresh() {
       refreshRankingsCache(null, 26), // `null` para ranking geral
     ]);
 
-    results.forEach(result => {
-      if (result.status === 'rejected') {
+    results.forEach((result) => {
+      if (result.status === "rejected") {
         console.error(
           "❌ Erro em uma das atualizações de ranking na carga inicial:",
           result.reason.message,
         );
       }
     });
-
   } catch (e) {
     console.error(
       "❌ Erro na carga inicial do ranking de usuários:",
@@ -132,15 +140,14 @@ async function scheduleUsersRefresh() {
           refreshRankingsCache(null, 26), // `null` para ranking geral
         ]);
 
-        results.forEach(result => {
-          if (result.status === 'rejected') {
+        results.forEach((result) => {
+          if (result.status === "rejected") {
             console.error(
               "❌ Falha em uma das atualizações de ranking agendadas:",
               result.reason.message,
             );
           }
         });
-
       } catch (e) {
         console.error("❌ Falha no refresh agendado de usuários:", e.message);
       } finally {
@@ -269,11 +276,9 @@ router.get("/profile", authenticateToken, async (req, res) => {
 router.delete("/:id", authenticateToken, async (req, res) => {
   // Apenas administradores podem excluir usuários
   if (!req.user.is_admin) {
-    return res
-      .status(403)
-      .json({
-        error: "Acesso negado. Somente administradores podem excluir usuários.",
-      });
+    return res.status(403).json({
+      error: "Acesso negado. Somente administradores podem excluir usuários.",
+    });
   }
 
   try {
@@ -602,26 +607,30 @@ router.get("/rankings", async (req, res) => {
 
     let whereClause = "WHERE u.is_email_confirmed = true AND p.id IS NOT NULL";
     const queryParams = [];
+    let limitPlaceholder = "$1";
 
     if (faction) {
       whereClause += " AND p.faction = $1";
       queryParams.push(faction);
+      limitPlaceholder = "$2";
     }
+
+    queryParams.push(limit);
 
     const leaderboardResult = await query(
       `
       SELECT 
         u.id, u.username, u.country,
         p.display_name, p.avatar_url, p.level, 
-        p.experience_points, p.faction, p.victories, p.defeats, p.winning_streak,
+        p.experience_points as current_xp, p.faction, p.victories, p.defeats, p.winning_streak,
         ROW_NUMBER() OVER (ORDER BY p.level DESC, p.experience_points DESC) as rank
       FROM users u
       INNER JOIN user_profiles p ON u.id = p.user_id
       ${whereClause}
       ORDER BY p.level DESC, p.experience_points DESC
-      LIMIT $${queryParams.length + 1}
+      LIMIT ${limitPlaceholder}
     `,
-      [...queryParams, limit],
+      queryParams,
     );
 
     console.log(

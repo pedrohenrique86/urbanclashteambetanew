@@ -46,7 +46,7 @@ export const fetchPlayerRankings = async (
           id: player.id,
           username: player.display_name || player.username,
           level: player.level,
-          current_xp: player.experience_points ?? 0,
+          current_xp: player.current_xp ?? 0,
           faction: player.faction,
           position: index + 1,
           country: player.country,
@@ -71,7 +71,7 @@ export const fetchPlayerRankings = async (
       id: player.id,
       username: player.display_name || player.username,
       level: player.level,
-      current_xp: player.experience_points ?? 0,
+      current_xp: player.current_xp ?? 0,
       faction: player.faction,
       position: index + 1,
       country: player.country, // Campo opcional
