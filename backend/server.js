@@ -16,6 +16,7 @@ const rateLimit = require("express-rate-limit");
 const authRoutes = require("./routes/auth");
 const { router: userRoutes, scheduleUsersRefresh } = require("./routes/users");
 const { router: clanRoutes, scheduleClansRefresh } = require("./routes/clans");
+const rankingEventsRouter = require("./routes/rankingEvents"); // Importa a nova rota
 const { connectDB, closePool, seedClans } = require("./config/database");
 const { redisReadyPromise } = require("./config/redisClient");
 const { checkAutoStart } = require("./services/gameStateService");
@@ -106,6 +107,7 @@ app.use("/api/users", userRoutes);
 app.use("/api/clans", clanRoutes);
 app.use("/api/time", timeRoutes);
 app.use("/api/admin", adminRoutes);
+app.use("/api/ranking-events", rankingEventsRouter); // Registra a nova rota
 // app.use("/api/game", gameRoutes); // Replaced by Socket.IO
 
 // Rota de health check
