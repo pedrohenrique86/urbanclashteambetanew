@@ -226,15 +226,12 @@ router.get("/by-faction/:faction", async (req, res) => {
 // GET /api/clans/rankings - Ranking de clãs
 router.get("/rankings", async (req, res) => {
   try {
-    const { limit: limitParam = 26 } = req.query;
-    const limit = Number(limitParam);
     const gameState = await getGameState();
 
-    // Cache centralizado com stale-while-revalidate
+    // Cache centralizado com stale-while-revalidate (SSOT)
     const cached = await rankingCacheService.ensureFreshRanking(
       "clans",
-      null,
-      limit,
+      null
     );
 
     if (!cached) {

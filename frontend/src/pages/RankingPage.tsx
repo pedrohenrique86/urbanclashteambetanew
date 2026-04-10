@@ -235,8 +235,8 @@ export default function RankingPage() {
     }
   }, []);
 
-  // Usar o hook de cache para gerenciar os rankings (com rankings completos)
-  const { data, loading: isLoading, error } = useRankingCache(true);
+  // Usar o hook de cache para gerenciar os rankings (SSOT)
+  const { data, loading: isLoading, error } = useRankingCache();
 
   // Extrair dados do cache, com fallback para objeto vazio
   const { gangsters, guardas, clans } = data || {

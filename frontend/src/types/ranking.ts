@@ -2,19 +2,23 @@
 export interface Player {
   id: string;
   username: string;
+  display_name: string;
+  avatar_url: string | null;
   level: number;
-  faction: 'gangsters' | 'guardas';
-  country?: string; // Campo opcional pois não está sendo retornado pela API
+  faction: "gangsters" | "guardas";
+  country?: string;
   current_xp: number;
-  position?: number; // Posição no ranking
+  position?: number;
 }
 
 export interface Clan {
   id: string;
   name: string;
-  faction: 'gangsters' | 'guardas';
+  faction: "gangsters" | "guardas";
   score: number;
-  position?: number; // Posição no ranking
+  position?: number;
+  memberCount: number;
+  leaderName: string;
 }
 
 // Tipos para o perfil do usuário

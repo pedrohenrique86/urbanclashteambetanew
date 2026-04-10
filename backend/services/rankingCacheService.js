@@ -3,9 +3,10 @@ const { query } = require("../config/database");
 const crypto = require("crypto");
 const sseService = require("./sseService");
 
-const RANKINGS_TTL_SECONDS = 700; // Redis TTL ~11.7 min (maior que o threshold)
+const RANKINGS_TTL_SECONDS = 700; // Redis TTL ~11.7 min
 const STALE_THRESHOLD_SECONDS = 600; // Stale após 10 min
 const LOCK_TTL_MS = 30000; // Lock expira em 30s
+const STANDARD_LIMIT = 26;
 
 const RANKINGS_USERS_PREFIX = "rankings:users:";
 const RANKINGS_CLANS_PREFIX = "rankings:clans:";
@@ -16,15 +17,15 @@ function computeETag(data) {
   return `W/"${h.digest("hex")}"`;
 }
 
-function getUsersCacheKey(faction, limit) {
-  return `${RANKINGS_USERS_PREFIX}${faction || "all"}:${limit}`;
+function getUsersCacheKey(faction) {
+  return `${RANKINGS_USERS_PREFIX}${faction || "all"}`;
 }
 
-function getClansCacheKey(limit) {
-  return `${RANKINGS_CLANS_PREFIX}${limit}`;
+function getClansCacheKey() {
+  return `${RANKINGS_CLANS_PREFIX}all`;
 }
 
-async function fetchUsersFromDB(faction, limit) {
+async function fetchUsersFromDB(faction) {
   let whereClause = "WHERE u.is_email_confirmed = true AND p.id IS NOT NULL";
   const queryParams = [];
   let limitPlaceholder = "$1";
@@ -35,7 +36,7 @@ async function fetchUsersFromDB(faction, limit) {
     limitPlaceholder = "$2";
   }
 
-  queryParams.push(limit);
+  queryParams.push(STANDARD_LIMIT);
 
   const result = await query(
     `
@@ -56,7 +57,7 @@ async function fetchUsersFromDB(faction, limit) {
   return result.rows;
 }
 
-async function fetchClansFromDB(limit) {
+async function fetchClansFromDB() {
   const result = await query(
     `
     SELECT
@@ -74,7 +75,7 @@ async function fetchClansFromDB(limit) {
     ORDER BY c.points DESC, COUNT(cm.id) DESC
     LIMIT $1
   `,
-    [limit],
+    [STANDARD_LIMIT],
   );
 
   return result.rows;
@@ -114,65 +115,33 @@ async function releaseLock(lockKey) {
 }
 
 /**
- * triggerRefresh — executa refresh com lock distribuído Redis (SET NX PX).
- * @param {string} type - 'users' ou 'clans'
- * @param {string|null} faction - 'gangsters', 'guardas', 'all' ou null (clans)
- * @param {number} limit - número de itens
+ * triggerRefresh — única fonte de atualização dos rankings
  */
-async function triggerRefresh(type, faction, limit) {
-  const cacheKey =
-    type === "users"
-      ? getUsersCacheKey(faction, limit)
-      : getClansCacheKey(limit);
+async function triggerRefresh(type, faction) {
+  const cacheKey = type === "users" ? getUsersCacheKey(faction) : getClansCacheKey();
   const lockKey = `lock:refresh:${cacheKey}`;
 
   const acquired = await acquireLock(lockKey);
-  if (!acquired) {
-    // Outro processo já está atualizando; retorna cache atual (pode ser stale)
-    return await getCachedData(cacheKey);
-  }
+  if (!acquired) return await getCachedData(cacheKey);
 
   try {
     let rows;
     if (type === "users") {
       const dbFaction = faction === "all" ? null : faction;
-      rows = await fetchUsersFromDB(dbFaction, limit);
+      rows = await fetchUsersFromDB(dbFaction);
     } else {
-      rows = await fetchClansFromDB(limit);
+      rows = await fetchClansFromDB();
     }
 
     const entry = await setCachedData(cacheKey, rows);
 
-    // Emite eventos SSE com snapshot completo
-    if (type === "users") {
-      const factionKey = faction || "all";
-      sseService.publish(
-        "ranking",
-        `ranking:snapshot:users:${factionKey}:${limit}`,
-        rows,
-      );
-      // Emite snapshot de top 5 para clientes da Home
-      if (limit === 26) {
-        sseService.publish(
-          "ranking",
-          `ranking:snapshot:users:${factionKey}:5`,
-          rows.slice(0, 5),
-        );
-      }
-    } else {
-      sseService.publish(
-        "ranking",
-        `ranking:snapshot:clans:${limit}`,
-        rows,
-      );
-      if (limit === 26) {
-        sseService.publish(
-          "ranking",
-          `ranking:snapshot:clans:5`,
-          rows.slice(0, 5),
-        );
-      }
-    }
+    // Emite eventos SSE simplificados (Single Source of Truth)
+    const factionKey = type === "users" ? (faction || "all") : null;
+    const eventName = type === "users" 
+      ? `ranking:snapshot:users:${factionKey}` 
+      : `ranking:snapshot:clans`;
+    
+    sseService.publish("ranking", eventName, rows);
 
     return entry;
   } finally {
@@ -180,76 +149,41 @@ async function triggerRefresh(type, faction, limit) {
   }
 }
 
-/**
- * ensureFreshRanking — stale-while-revalidate.
- * Cache fresco → retorna imediatamente.
- * Cache stale → retorna stale e dispara refresh em background.
- * Sem cache → bloqueia e busca do banco agora.
- */
-async function ensureFreshRanking(type, faction, limit) {
-  const cacheKey =
-    type === "users"
-      ? getUsersCacheKey(faction, limit)
-      : getClansCacheKey(limit);
-
+async function ensureFreshRanking(type, faction) {
+  const cacheKey = type === "users" ? getUsersCacheKey(faction) : getClansCacheKey();
   const cached = await getCachedData(cacheKey);
 
   if (cached && cached.timestamp) {
     const ageSeconds = (Date.now() - cached.timestamp) / 1000;
-    if (ageSeconds < STALE_THRESHOLD_SECONDS) {
-      return cached; // Cache fresco
-    }
-    // Cache stale: retorna imediatamente e dispara refresh em background
-    triggerRefresh(type, faction, limit).catch((err) =>
-      console.error(
-        `❌ BG refresh falhou [${type}/${faction}/${limit}]:`,
-        err.message,
-      ),
+    if (ageSeconds < STALE_THRESHOLD_SECONDS) return cached;
+    
+    // Background refresh
+    triggerRefresh(type, faction).catch(err => 
+      console.error(`❌ BG refresh falhou [${type}/${faction}]:`, err.message)
     );
     return cached;
   }
 
-  // Sem cache: busca do banco agora (bloqueante)
-  return await triggerRefresh(type, faction, limit);
+  return await triggerRefresh(type, faction);
 }
 
-/**
- * warmupRankings — pré-carrega todos os combos no startup.
- */
 async function warmupRankings() {
-  console.log("🔥 Aquecendo caches de ranking...");
+  console.log("🔥 Aquecendo caches de ranking (SSOT)...");
   const tasks = [
-    triggerRefresh("users", "gangsters", 26),
-    triggerRefresh("users", "guardas", 26),
-    triggerRefresh("users", "all", 26),
-    triggerRefresh("clans", null, 26),
+    triggerRefresh("users", "gangsters"),
+    triggerRefresh("users", "guardas"),
+    triggerRefresh("users", "all"),
+    triggerRefresh("clans", null),
   ];
 
-  const results = await Promise.allSettled(tasks);
-  results.forEach((result, i) => {
-    if (result.status === "rejected") {
-      console.error(`❌ Warmup falhou na tarefa ${i}:`, result.reason?.message);
-    }
-  });
+  await Promise.allSettled(tasks);
   console.log("✅ Caches de ranking aquecidos");
 }
 
-/**
- * startPeriodicRefresh — refresh automático a cada 10 minutos,
- * sincronizado com intervalos de hora quebrada (00, 10, 20, 30, 40, 50).
- */
 function startPeriodicRefresh() {
   const INTERVAL_MS = 10 * 60 * 1000;
   const now = new Date();
-  const minutes = now.getMinutes();
-  const seconds = now.getSeconds();
-  const milliseconds = now.getMilliseconds();
-  const minutesToNext = 10 - (minutes % 10);
-  const delay = (minutesToNext * 60 - seconds) * 1000 - milliseconds;
-
-  console.log(
-    `⏱️ Próximo refresh de ranking em ${Math.round(Math.max(0, delay) / 1000)}s`,
-  );
+  const delay = (10 - (now.getMinutes() % 10)) * 60 * 1000 - now.getSeconds() * 1000 - now.getMilliseconds();
 
   setTimeout(async () => {
     await warmupRankings();

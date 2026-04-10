@@ -9,10 +9,11 @@ export const fetchPlayerRankings = async (
   opts?: { force?: boolean },
 ): Promise<Player[]> => {
   try {
-    console.log(`🔍 Buscando ranking de ${faction}...`);
-    const key = `etag_users_rankings_${faction}_26`;
+    console.log(`🔍 Buscando ranking de ${faction} (SSOT)...`);
+    const key = `etag_users_rankings_${faction}`;
     const etag = localStorage.getItem(key) || undefined;
     const params = faction ? `?faction=${faction}` : "";
+    
     const response: any = await (apiClient as any).request(
       `/users/rankings${params}`,
       {
@@ -23,69 +24,36 @@ export const fetchPlayerRankings = async (
             : undefined,
       },
     );
-    console.log(`✅ Resposta da API para ${faction}:`, response);
 
-    const { leaderboard, gameState } = response;
-
-    if (response?.__notModified) {
-      const cached = localStorage.getItem(
-        `cached_users_rankings_${faction}_26`,
-      );
-      if (cached) {
-        const parsed = JSON.parse(cached);
-        return parsed;
-      }
-      const fresh: any = await (apiClient as any).request(
-        `/users/rankings${params}`,
-      );
-      if (!fresh || !fresh.leaderboard) {
-        return [];
-      }
-      const playersFresh = fresh.leaderboard.map(
-        (player: any, index: number) => ({
-          id: player.id,
-          username: player.display_name || player.username,
-          level: player.level,
-          current_xp: player.current_xp ?? 0,
-          faction: player.faction,
-          position: index + 1,
-          country: player.country,
-        }),
-      );
-      if (fresh.__etag) {
-        localStorage.setItem(key, fresh.__etag);
-      }
-      localStorage.setItem(
-        `cached_users_rankings_${faction}_26`,
-        JSON.stringify(playersFresh),
-      );
-      return playersFresh;
-    }
-
-    if (!leaderboard) {
-      console.warn(`⚠️ Nenhum dado de ranking encontrado para ${faction}`);
-      return [];
-    }
-
-    const players = leaderboard.map((player: any, index: number) => ({
+    const mapPlayer = (player: any, index: number) => ({
       id: player.id,
-      username: player.display_name || player.username,
-      level: player.level,
-      current_xp: player.current_xp ?? 0,
+      username: player.username,
+      display_name: (player.display_name && player.display_name.trim()) || player.username,
+      avatar_url: player.avatar_url || null,
+      level: Number(player.level) || 1,
+      current_xp: Number(player.current_xp) || 0,
       faction: player.faction,
       position: index + 1,
-      country: player.country, // Campo opcional
-    }));
+      country: player.country || null,
+    });
 
-    if (response.__etag) {
-      localStorage.setItem(key, response.__etag);
+    if (response?.__notModified) {
+      const cached = localStorage.getItem(`cached_users_rankings_${faction}`);
+      if (cached) return JSON.parse(cached);
+      // Fallback em caso de cache corrompido
+      const fresh: any = await (apiClient as any).request(`/users/rankings${params}`);
+      const players = (fresh.leaderboard || []).map(mapPlayer);
+      if (fresh.__etag) localStorage.setItem(key, fresh.__etag);
+      localStorage.setItem(`cached_users_rankings_${faction}`, JSON.stringify(players));
+      return players;
     }
-    localStorage.setItem(
-      `cached_users_rankings_${faction}_26`,
-      JSON.stringify(players),
-    );
 
-    console.log(`✅ ${players.length} jogadores ${faction} processados`);
+    const leaderboard = response.leaderboard || [];
+    const players = leaderboard.map(mapPlayer);
+
+    if (response.__etag) localStorage.setItem(key, response.__etag);
+    localStorage.setItem(`cached_users_rankings_${faction}`, JSON.stringify(players));
+
     return players;
   } catch (error) {
     console.error(`❌ Erro ao buscar ranking de ${faction}:`, error);
@@ -100,10 +68,10 @@ export const fetchClanRankings = async (opts?: {
   force?: boolean;
 }): Promise<Clan[]> => {
   try {
-    console.log("🔍 Buscando ranking de clãs...");
-
-    const key = `etag_clans_rankings_26`;
+    console.log("🔍 Buscando ranking de clãs (SSOT)...");
+    const key = `etag_clans_rankings`;
     const etag = localStorage.getItem(key) || undefined;
+    
     const response: any = await (apiClient as any).request(`/clans/rankings`, {
       headers: opts?.force
         ? undefined
@@ -111,66 +79,33 @@ export const fetchClanRankings = async (opts?: {
           ? ({ "If-None-Match": etag } as Record<string, string>)
           : undefined,
     });
-    console.log("✅ Resposta da API para clãs:", response);
 
-    const { clans, gameState } = response;
-
-    if (response?.__notModified) {
-      const cached = localStorage.getItem(`cached_clans_rankings_26`);
-      if (cached) {
-        const parsed = JSON.parse(cached);
-        return parsed;
-      }
-      const fresh: any = await (apiClient as any).request(`/clans/rankings`);
-      if (!fresh || !fresh.clans) {
-        return [];
-      }
-      const clansFresh = fresh.clans.map((clan: any, index: number) => ({
-        id: clan.id,
-        name: clan.name,
-        faction: clan.faction,
-        score: clan.score ?? 0,
-        position: index + 1,
-        memberCount: clan.member_count ?? 0,
-        leaderName:
-          clan.leader_username || clan.leader_display_name || "Sem líder",
-      }));
-      if (fresh.__etag) {
-        localStorage.setItem(key, fresh.__etag);
-      }
-      localStorage.setItem(
-        `cached_clans_rankings_26`,
-        JSON.stringify(clansFresh),
-      );
-      return clansFresh;
-    }
-
-    if (!clans) {
-      console.warn("⚠️ Nenhum dado de ranking de clãs encontrado");
-      return [];
-    }
-
-    const processedClans = clans.map((clan: any, index: number) => ({
+    const mapClan = (clan: any, index: number) => ({
       id: clan.id,
       name: clan.name,
       faction: clan.faction,
-      score: clan.score ?? 0,
+      score: Number(clan.score) || 0,
       position: index + 1,
-      memberCount: clan.member_count ?? 0,
-      leaderName:
-        clan.leader_username || clan.leader_display_name || "Sem líder",
-    }));
+      memberCount: Number(clan.member_count) || 0,
+      leaderName: (clan.leader_display_name && clan.leader_display_name.trim()) || 
+                  clan.leader_username || "Sem líder",
+    });
 
-    if (response.__etag) {
-      localStorage.setItem(key, response.__etag);
+    if (response?.__notModified) {
+      const cached = localStorage.getItem(`cached_clans_rankings`);
+      if (cached) return JSON.parse(cached);
+      const fresh: any = await (apiClient as any).request(`/clans/rankings`);
+      const clans = (fresh.clans || []).map(mapClan);
+      if (fresh.__etag) localStorage.setItem(key, fresh.__etag);
+      localStorage.setItem(`cached_clans_rankings`, JSON.stringify(clans));
+      return clans;
     }
-    localStorage.setItem(
-      `cached_clans_rankings_26`,
-      JSON.stringify(processedClans),
-    );
 
-    console.log(`✅ ${processedClans.length} clãs processados`);
-    return processedClans;
+    const clans = (response.clans || []).map(mapClan);
+    if (response.__etag) localStorage.setItem(key, response.__etag);
+    localStorage.setItem(`cached_clans_rankings`, JSON.stringify(clans));
+
+    return clans;
   } catch (error) {
     console.error("❌ Erro ao buscar ranking de clãs:", error);
     return [];
@@ -178,74 +113,19 @@ export const fetchClanRankings = async (opts?: {
 };
 
 /**
- * Busca todos os rankings (para home page - limitado)
+ * Busca todos os rankings — Agora busca sempre o snapshot completo (SSOT)
  */
 export const fetchAllRankings = async (force?: boolean) => {
   try {
-    console.log("🔄 Buscando todos os rankings...");
-
     const [gangsters, guardas, clans] = await Promise.all([
       fetchPlayerRankings("gangsters", { force }),
       fetchPlayerRankings("guardas", { force }),
       fetchClanRankings({ force }),
     ]);
 
-    // Limitar a 5 itens para a home page
-    const result = {
-      gangsters: gangsters.slice(0, 5),
-      guardas: guardas.slice(0, 5),
-      clans: clans.slice(0, 5),
-    };
-
-    console.log("✅ Todos os rankings carregados:", {
-      gangsters: result.gangsters.length,
-      guardas: result.guardas.length,
-      clans: result.clans.length,
-    });
-
-    return result;
+    return { gangsters, guardas, clans };
   } catch (error) {
-    console.error("❌ Erro ao buscar todos os rankings:", error);
-    return {
-      gangsters: [],
-      guardas: [],
-      clans: [],
-    };
-  }
-};
-
-/**
- * Busca rankings completos (para página de ranking)
- */
-export const fetchFullRankings = async (force?: boolean) => {
-  try {
-    console.log("🔄 Buscando rankings completos...");
-
-    const [gangsters, guardas, clans] = await Promise.all([
-      fetchPlayerRankings("gangsters", { force }),
-      fetchPlayerRankings("guardas", { force }),
-      fetchClanRankings({ force }),
-    ]);
-
-    const result = {
-      gangsters,
-      guardas,
-      clans,
-    };
-
-    console.log("✅ Rankings completos carregados:", {
-      gangsters: result.gangsters.length,
-      guardas: result.guardas.length,
-      clans: result.clans.length,
-    });
-
-    return result;
-  } catch (error) {
-    console.error("❌ Erro ao buscar rankings completos:", error);
-    return {
-      gangsters: [],
-      guardas: [],
-      clans: [],
-    };
+    console.error("❌ Erro ao buscar rankings SSOT:", error);
+    return { gangsters: [], guardas: [], clans: [] };
   }
 };

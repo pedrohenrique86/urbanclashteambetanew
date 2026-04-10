@@ -169,11 +169,11 @@ router.delete("/:id", authenticateToken, async (req, res) => {
       }
     });
 
-    // Invalida cache de ranking após exclusão (dispara refresh em background)
+    // Invalida cache de ranking após exclusão (dispara refresh em background em SSOT)
     Promise.allSettled([
-      rankingCacheService.triggerRefresh("users", "gangsters", 26),
-      rankingCacheService.triggerRefresh("users", "guardas", 26),
-      rankingCacheService.triggerRefresh("users", "all", 26),
+      rankingCacheService.triggerRefresh("users", "gangsters"),
+      rankingCacheService.triggerRefresh("users", "guardas"),
+      rankingCacheService.triggerRefresh("users", "all"),
     ]).catch((cacheError) =>
       console.error(
         "❌ Erro ao atualizar cache após exclusão:",
@@ -426,17 +426,15 @@ router.put(
 // GET /api/users/rankings - Ranking de usuários
 router.get("/rankings", async (req, res) => {
   try {
-    const { faction, limit: limitParam = 26 } = req.query;
-    const limit = Number(limitParam);
+    const { faction } = req.query;
     const factionKey = faction || "all";
 
     const gameState = await getGameState();
 
-    // Cache centralizado com stale-while-revalidate
+    // Cache centralizado com stale-while-revalidate (SSOT)
     const cached = await rankingCacheService.ensureFreshRanking(
       "users",
       factionKey,
-      limit,
     );
 
     if (!cached) {
@@ -493,11 +491,11 @@ router.delete("/:id", authenticateToken, async (req, res) => {
       }
     });
 
-    // Invalida cache de ranking após exclusão (dispara refresh em background)
+    // Invalida cache de ranking após exclusão (dispara refresh em background em SSOT)
     Promise.allSettled([
-      rankingCacheService.triggerRefresh("users", "gangsters", 26),
-      rankingCacheService.triggerRefresh("users", "guardas", 26),
-      rankingCacheService.triggerRefresh("users", "all", 26),
+      rankingCacheService.triggerRefresh("users", "gangsters"),
+      rankingCacheService.triggerRefresh("users", "guardas"),
+      rankingCacheService.triggerRefresh("users", "all"),
     ]).catch((cacheError) =>
       console.error(
         "❌ Erro ao atualizar cache após exclusão:",
