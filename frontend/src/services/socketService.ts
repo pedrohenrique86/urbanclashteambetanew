@@ -28,11 +28,6 @@ interface ChatMessage {
   timestamp: string;
 }
 
-interface OnlineStatus {
-  onlineUsers: string[];
-  onlineCount: number;
-}
-
 // --- Fim das Tipagens do Chat ---
 
 // URL do seu backend. Certifique-se de que esta variável de ambiente está configurada.
@@ -155,16 +150,11 @@ class SocketService {
     this.on<ChatMessage>("chat:message", callback);
   }
 
-  /**
-   * Registra um listener para atualizações de status online.
-   */
-  onOnlineStatus(callback: (status: OnlineStatus) => void): void {
-    this.on<OnlineStatus>("chat:onlineStatus", callback);
-  }
+
 }
 
 // Exporta uma instância única (singleton) do serviço
 export const socketService = new SocketService();
 
 // Exporta os tipos para serem usados em outros lugares da aplicação
-export type { GameState, ServerTime, ChatMessage, OnlineStatus };
+export type { GameState, ServerTime, ChatMessage };

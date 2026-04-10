@@ -4,7 +4,7 @@ import { useUserProfile } from "../../hooks/useUserProfile";
 import { Send } from "lucide-react"; // Usando um ícone para o botão de enviar
 
 export const ClanChat: React.FC = () => {
-  const { messages, onlineStatus, sendMessage, isConnected } = useClanChat();
+  const { messages, sendMessage, isConnected } = useClanChat();
   const { userProfile } = useUserProfile();
   const [newMessage, setNewMessage] = useState("");
   const [isSending, setIsSending] = useState(false); // Estado para o cooldown
@@ -48,13 +48,6 @@ export const ClanChat: React.FC = () => {
       {/* Cabeçalho do Chat */}
       <div className="flex justify-between items-center p-3 border-b border-gray-700">
         <h3 className="font-bold text-white">Chat do Clã</h3>
-        <div className="text-sm text-green-400">
-          <span className="relative flex h-3 w-3">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
-          </span>
-          <span className="ml-2">{onlineStatus.onlineCount} Online</span>
-        </div>
       </div>
 
       {/* Lista de Mensagens */}

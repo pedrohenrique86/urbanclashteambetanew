@@ -38,22 +38,7 @@ async function getChatHistory(clanId) {
   return historyJson.map((msg) => JSON.parse(msg)).reverse();
 }
 
-/**
- * Transmite a lista atualizada de usuários online para a sala do clã.
- * @param {object} io - Instância do Socket.IO.
- * @param {string} clanId - ID do clã.
- */
-async function broadcastOnlineUsers(io, clanId) {
-  const connectionsKey = getConnectionsKey(clanId);
-  // CORRIGIDO: Usa o wrapper hKeysAsync
-  const onlineUserIds = await redisClient.hKeysAsync(connectionsKey);
-  const onlineCount = onlineUserIds ? onlineUserIds.length : 0;
 
-  io.to(getClanRoom(clanId)).emit("chat:onlineStatus", {
-    onlineUsers: onlineUserIds || [],
-    onlineCount,
-  });
-}
 
 // --- Funções Exportadas (Manipuladores de Eventos) ---
 
@@ -68,9 +53,6 @@ async function handleUserConnection(io, clanId, userId) {
 
   // Incrementa a contagem de conexões para o usuário
   await redisClient.hIncrByAsync(connectionsKey, userId, 1);
-
-  // Transmite a lista atualizada para todos no clã.
-  await broadcastOnlineUsers(io, clanId);
 }
 
 /**
@@ -95,8 +77,6 @@ async function handleUserDisconnection(io, clanId, userId) {
     // Se o contador for zero ou menos, remove o usuário do hash
     await redisClient.hDelAsync(connectionsKey, userId);
   }
-  // E então atualiza a lista de usuários online
-  await broadcastOnlineUsers(io, clanId);
 }
 
 /**
@@ -127,5 +107,4 @@ module.exports = {
   handleUserConnection,
   handleUserDisconnection,
   handleNewMessage,
-  broadcastOnlineUsers, // Exporta a função
 };

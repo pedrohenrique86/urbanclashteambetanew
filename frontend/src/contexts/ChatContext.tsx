@@ -9,14 +9,12 @@ import React, {
 import {
   socketService,
   ChatMessage,
-  OnlineStatus,
 } from "../services/socketService";
 import { useUserProfile } from "../hooks/useUserProfile";
 import { apiClient } from "../lib/supabaseClient"; // Importar o apiClient
 
 interface ChatContextType {
   messages: ChatMessage[];
-  onlineStatus: OnlineStatus;
   sendMessage: (text: string) => void;
   isConnected: boolean;
 }
@@ -28,10 +26,6 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({
 }) => {
   const { userProfile } = useUserProfile(); // Continuamos usando para saber SE o usuário está logado
   const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [onlineStatus, setOnlineStatus] = useState<OnlineStatus>({
-    onlineUsers: [],
-    onlineCount: 0,
-  });
   const [isConnected, setIsConnected] = useState(false);
 
   // Envolve os handlers com useCallback para estabilizar suas referências.
@@ -44,9 +38,7 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({
     setMessages(history);
   }, []);
 
-  const handleOnlineStatus = useCallback((status: OnlineStatus) => {
-    setOnlineStatus(status);
-  }, []);
+
 
   useEffect(() => {
     const token = apiClient.getToken();
@@ -71,7 +63,6 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({
       // Registra os listeners SOMENTE após a autenticação
       socketService.onChatHistory(handleChatHistory);
       socketService.onMessageReceived(handleNewMessage);
-      socketService.onOnlineStatus(handleOnlineStatus);
     };
 
     const handleAuthFailed = (error: { message: string }) => {
@@ -93,12 +84,11 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({
       socketService.off("chat:auth_failed", handleAuthFailed);
       socketService.off("chat:history", handleChatHistory);
       socketService.off("chat:message", handleNewMessage);
-      socketService.off("chat:onlineStatus", handleOnlineStatus);
       setIsConnected(false);
     };
     // Agora, com os callbacks memoizados, podemos adicioná-los ao array de dependências
     // para satisfazer a regra do ESLint sem reintroduzir o bug dos listeners múltiplos.
-  }, [userProfile, handleChatHistory, handleNewMessage, handleOnlineStatus]);
+  }, [userProfile, handleChatHistory, handleNewMessage]);
 
   const sendMessage = (text: string) => {
     if (text.trim()) {
@@ -108,7 +98,7 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({
 
   return (
     <ChatContext.Provider
-      value={{ messages, onlineStatus, sendMessage, isConnected }}
+      value={{ messages, sendMessage, isConnected }}
     >
       {children}
     </ChatContext.Provider>
