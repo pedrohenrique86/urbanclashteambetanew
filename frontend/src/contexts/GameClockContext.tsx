@@ -1,4 +1,11 @@
-import React, { createContext, useContext, useState, useEffect, useRef, ReactNode } from "react";
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useRef,
+  ReactNode,
+} from "react";
 import { socketService, GameState } from "../services/socketService";
 
 /**
@@ -12,20 +19,27 @@ interface GameClockContextType {
   serverTime: Date | null;
 }
 
-const GameClockContext = createContext<GameClockContextType | undefined>(undefined);
+const GameClockContext = createContext<GameClockContextType | undefined>(
+  undefined,
+);
 
 /**
  * Provedor Global do Cronômetro do Jogo.
  * Centraliza a conexão Socket.IO e o timer para evitar múltiplas instâncias.
  */
-export const GameClockProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+export const GameClockProvider: React.FC<{ children: ReactNode }> = ({
+  children,
+}) => {
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [displayTime, setDisplayTime] = useState<number>(0);
   const [serverTime, setServerTime] = useState<Date | null>(null);
   const [isTimeSynced, setIsTimeSynced] = useState(false);
 
   // Ref para armazenar a última sincronização de tempo com o servidor.
-  const lastServerUpdateTime = useRef<{ serverTime: string; localTime: number } | null>(null);
+  const lastServerUpdateTime = useRef<{
+    serverTime: string;
+    localTime: number;
+  } | null>(null);
 
   useEffect(() => {
     // 1. Conecta ao socket, registra os listeners e pede o estado atual
@@ -33,7 +47,10 @@ export const GameClockProvider: React.FC<{ children: ReactNode }> = ({ children 
     socketService.emit("getGameState");
 
     const handleInitialState = (initialState: GameState) => {
-      console.log("🎮 [Context] Estado inicial do jogo recebido:", initialState);
+      console.log(
+        "🎮 [Context] Estado inicial do jogo recebido:",
+        initialState,
+      );
       setGameState(initialState);
       if (initialState.serverTime) {
         lastServerUpdateTime.current = {
@@ -90,7 +107,9 @@ export const GameClockProvider: React.FC<{ children: ReactNode }> = ({ children 
 
       if (remaining <= 0) {
         if (gameState.status === "running") {
-          setGameState((prev) => (prev ? { ...prev, status: "finished" } : null));
+          setGameState((prev) =>
+            prev ? { ...prev, status: "finished" } : null,
+          );
         }
         if (gameState.status === "scheduled") {
           socketService.emit("getGameState");
@@ -109,7 +128,7 @@ export const GameClockProvider: React.FC<{ children: ReactNode }> = ({ children 
       if (lastServerUpdateTime.current) {
         const elapsed = Date.now() - lastServerUpdateTime.current.localTime;
         const currentServerTime = new Date(
-          new Date(lastServerUpdateTime.current.serverTime).getTime() + elapsed
+          new Date(lastServerUpdateTime.current.serverTime).getTime() + elapsed,
         );
         setServerTime(currentServerTime);
       }
@@ -126,7 +145,11 @@ export const GameClockProvider: React.FC<{ children: ReactNode }> = ({ children 
     serverTime,
   };
 
-  return <GameClockContext.Provider value={value}>{children}</GameClockContext.Provider>;
+  return (
+    <GameClockContext.Provider value={value}>
+      {children}
+    </GameClockContext.Provider>
+  );
 };
 
 /**
@@ -135,7 +158,9 @@ export const GameClockProvider: React.FC<{ children: ReactNode }> = ({ children 
 export const useGameClockContext = () => {
   const context = useContext(GameClockContext);
   if (context === undefined) {
-    throw new Error("useGameClockContext deve ser usado dentro de um GameClockProvider");
+    throw new Error(
+      "useGameClockContext deve ser usado dentro de um GameClockProvider",
+    );
   }
   return context;
 };

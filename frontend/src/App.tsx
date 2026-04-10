@@ -8,8 +8,10 @@ import { GlobalLoadingSpinner } from "./components/ui/GlobalLoadingSpinner";
 import { ChatProvider } from "./contexts/ChatContext";
 import { UserProfileProvider } from "./contexts/UserProfileContext";
 import GlobalLayout from "./components/layout/GlobalLayout";
+import ProtectedRoute from "./components/ProtectedRoute";
 
 // --- Lazy Load das Páginas ---
+// ... (omitted for brevity in replacement chunk but I'll include necessary parts)
 const HomePage = lazy(() => import("./pages/HomePage"));
 const DashboardPage = lazy(() => import("./pages/DashboardPage"));
 const FactionSelectionPage = lazy(() => import("./pages/FactionSelectionPage"));
@@ -55,7 +57,9 @@ const RootWrapper = () => (
 
 const AppLayout = () => (
   <GlobalLayout>
-    <Outlet />
+    <ProtectedRoute>
+      <Outlet />
+    </ProtectedRoute>
   </GlobalLayout>
 );
 
@@ -71,6 +75,9 @@ const router = createBrowserRouter([
         path: "/auth/google/callback",
         element: <GoogleCallbackPage />,
       },
+      { path: "/confirm-email", element: <EmailConfirmationPage /> },
+      { path: "/email-confirmation", element: <EmailConfirmationPage /> },
+      { path: "/reset-password", element: <ResetPasswordPage /> },
       {
         path: "/",
         element: <AppLayout />,
@@ -78,9 +85,6 @@ const router = createBrowserRouter([
           // Rotas de Autenticação e Seleção
           { path: "dashboard", element: <DashboardPage /> },
           { path: "faction-selection", element: <FactionSelectionPage /> },
-          { path: "email-confirmation", element: <EmailConfirmationPage /> },
-          { path: "confirm-email", element: <EmailConfirmationPage /> },
-          { path: "reset-password", element: <ResetPasswordPage /> },
 
           // Rotas de Operações
           { path: "contracts", element: <ContractsPage /> },

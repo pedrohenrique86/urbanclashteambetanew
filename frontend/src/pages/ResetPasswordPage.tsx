@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { apiClient } from "../lib/supabaseClient";
+import api from "../lib/api";
+import { useAuth } from "../contexts/AuthContext";
+import { useToast } from "../contexts/ToastContext";
 
 export default function ResetPasswordPage() {
   const [password, setPassword] = useState("");
@@ -9,6 +11,8 @@ export default function ResetPasswordPage() {
   const [message, setMessage] = useState<{ text: string; type: "success" | "error" } | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const navigate = useNavigate();
+  const { showToast } = useToast();
+  const { login } = useAuth();
 
   useEffect(() => {
     // Extrair token da URL (tanto query parameter quanto hash)
@@ -83,9 +87,11 @@ export default function ResetPasswordPage() {
     
     try {
       // Atualizar a senha usando o token
-      const response = await apiClient.resetPassword(token!, password);
+      const { data } = await api.post("/auth/reset-password", { token, password });
       
-      if (response.error) throw new Error(response.error);
+      if (data.token) {
+        await login(data.token, data.user);
+      }
       
       setMessage({ 
         text: "Senha atualizada com sucesso! Você será redirecionado para a página inicial.", 
@@ -94,11 +100,7 @@ export default function ResetPasswordPage() {
       
       // Redirecionar para a página inicial após 3 segundos
       setTimeout(() => {
-        // Forçar uma atualização da sessão para garantir que o usuário esteja autenticado
-        // Redirecionar para a página inicial após sucesso
-      setTimeout(() => {
-          navigate("/");
-        });
+        navigate("/");
       }, 3000);
       
     } catch (error: any) {

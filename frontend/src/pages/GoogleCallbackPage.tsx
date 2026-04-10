@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { apiClient } from "../lib/supabaseClient";
+import api from "../lib/api";
+import { useAuth } from "../contexts/AuthContext";
 import { useUserProfileContext } from "../contexts/UserProfileContext";
 import { useLoading } from "../contexts/LoadingContext";
 
@@ -8,6 +9,7 @@ export default function GoogleCallbackPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const { refreshProfile } = useUserProfileContext();
+  const { login } = useAuth();
   const { showLoading, hideLoading } = useLoading();
   const hasProcessed = useRef(false);
 
@@ -44,18 +46,22 @@ export default function GoogleCallbackPage() {
           );
         }
 
-        const data = await apiClient.googleCallback(
+        const { data: authData } = await api.post("/auth/google/callback", {
           code,
-          codeVerifier,
-          "login", // intent padrão — o backend extrai do state se necessário
-          `${window.location.origin}/auth/google/callback`,
-          country,
-          stateParam, // Passa o state para o backend extrair intent e country embedded
-        );
+          code_verifier: codeVerifier,
+          intent: "login",
+          redirect_uri: `${window.location.origin}/auth/google/callback`,
+          country: country || undefined,
+          state: stateParam || undefined,
+        });
 
-        if (data.token) {
+        if (authData.token) {
+          // Registra o token e o usuário no contexto de autenticação
+          // O login() agora lida com o fallback de buscar o user se userData for nulo
+          await login(authData.token, authData.user);
+
           // Define a mensagem do spinner com base no status de login
-          const loadingMessage = data.isFirstLogin
+          const loadingMessage = authData.isFirstLogin
             ? "Verificando perfil..."
             : "Carregando dashboard...";
           showLoading(loadingMessage);
@@ -66,7 +72,7 @@ export default function GoogleCallbackPage() {
           // Sincroniza o perfil no contexto global ANTES de navegar
           await refreshProfile();
 
-          const redirectTo = data.isFirstLogin
+          const redirectTo = authData.isFirstLogin
             ? "/faction-selection"
             : "/dashboard";
 
@@ -87,7 +93,7 @@ export default function GoogleCallbackPage() {
     };
 
     processAuth();
-  }, [location.search, navigate, refreshProfile, showLoading, hideLoading]);
+  }, [location.search, navigate, refreshProfile, showLoading, hideLoading, login]);
 
   // Não renderiza nada — o LoadingSpinner global cobre o período de processamento
   return null;

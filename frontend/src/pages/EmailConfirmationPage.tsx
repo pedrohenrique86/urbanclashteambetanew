@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
-import { apiClient } from "../lib/supabaseClient";
+import api from "../lib/api";
+import { useAuth } from "../contexts/AuthContext";
 import { useToast } from "../contexts/ToastContext";
-import { invalidateUserProfile } from "../hooks/useUserProfile";
+import { useUserProfileContext } from "../contexts/UserProfileContext";
 
 const EmailConfirmationPage = () => {
   const [searchParams] = useSearchParams();
@@ -10,6 +11,8 @@ const EmailConfirmationPage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [hasProcessed, setHasProcessed] = useState(false);
   const { showToast } = useToast();
+  const { login } = useAuth();
+  const { refreshProfile } = useUserProfileContext();
 
   useEffect(() => {
     // Evitar execuções múltiplas
@@ -35,18 +38,18 @@ const EmailConfirmationPage = () => {
       try {
         console.log("🔍 Confirmando email com token:", token);
 
-        const response = await apiClient.confirmEmail(token);
+        const { data: response } = await api.post("/auth/confirm-email", { token });
 
         console.log("✅ Email confirmado com sucesso");
 
-        // Armazenar o token e invalidar o cache para forçar a atualização
+        // Armazenar o token e o usuário no contexto
         if (response.token) {
           console.log("🔑 Token recebido, salvando...");
-          apiClient.setToken(response.token); // Salva o token no localStorage
+          await login(response.token, response.user);
         }
 
-        // Invalida o cache do perfil para forçar a atualização dos dados
-        invalidateUserProfile();
+        // Sincronizar o perfil
+        await refreshProfile();
 
         // Verificar se é primeiro login para redirecionar para seleção de facção
         if (response.isFirstLogin && response.redirectTo) {
@@ -70,7 +73,7 @@ const EmailConfirmationPage = () => {
     };
 
     confirmEmail();
-  }, [hasProcessed, searchParams, navigate, showToast]);
+  }, [hasProcessed, searchParams, navigate, showToast, login, refreshProfile]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-900">

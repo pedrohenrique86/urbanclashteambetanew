@@ -2,7 +2,7 @@ import React from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useSWRConfig } from "swr";
-import { apiClient } from "../../lib/supabaseClient";
+import { useAuth } from "../../contexts/AuthContext";
 
 interface DashboardHeaderProps {
   username: string;
@@ -11,9 +11,10 @@ interface DashboardHeaderProps {
 export default function DashboardHeader({ username }: DashboardHeaderProps) {
   const navigate = useNavigate();
   const { mutate } = useSWRConfig();
+  const { logout } = useAuth();
 
   const handleLogout = async () => {
-    await apiClient.logout();
+    await logout();
     mutate(() => true, undefined, { revalidate: false });
     // Pequeno delay antes de redirecionar
     await new Promise((resolve) => setTimeout(resolve, 1000));

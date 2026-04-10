@@ -6,10 +6,7 @@ import React, {
   ReactNode,
   useCallback,
 } from "react";
-import {
-  socketService,
-  ChatMessage,
-} from "../services/socketService";
+import { socketService, ChatMessage } from "../services/socketService";
 import { useUserProfile } from "../hooks/useUserProfile";
 import { apiClient } from "../lib/supabaseClient"; // Importar o apiClient
 
@@ -38,12 +35,19 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({
     setMessages(history);
   }, []);
 
-
-
   useEffect(() => {
-    const token = apiClient.getToken();
+    // A lógica do chat só precisa saber SE há um usuário e qual o token.
+    // Depender do ID do perfil é mais estável do que depender do objeto inteiro.
+    if (!userProfile?.id) {
+      setIsConnected(false);
+      return;
+    }
 
-    if (!userProfile || !token) {
+    const token = apiClient.getToken();
+    if (!token) {
+      console.warn(
+        "[ChatContext] Usuário detectado, mas sem token. O chat não pode autenticar.",
+      );
       setIsConnected(false);
       return;
     }
@@ -86,9 +90,9 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({
       socketService.off("chat:message", handleNewMessage);
       setIsConnected(false);
     };
-    // Agora, com os callbacks memoizados, podemos adicioná-los ao array de dependências
-    // para satisfazer a regra do ESLint sem reintroduzir o bug dos listeners múltiplos.
-  }, [userProfile, handleChatHistory, handleNewMessage]);
+    // A dependência agora é o ID do usuário, que é um valor estável.
+    // O useEffect só será re-executado quando o usuário fizer login ou logout.
+  }, [userProfile?.id, handleChatHistory, handleNewMessage]);
 
   const sendMessage = (text: string) => {
     if (text.trim()) {
@@ -97,9 +101,7 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({
   };
 
   return (
-    <ChatContext.Provider
-      value={{ messages, sendMessage, isConnected }}
-    >
+    <ChatContext.Provider value={{ messages, sendMessage, isConnected }}>
       {children}
     </ChatContext.Provider>
   );

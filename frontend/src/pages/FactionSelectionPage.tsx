@@ -3,7 +3,8 @@ import { useUserProfile } from "../hooks/useUserProfile";
 import { useUserProfileContext } from "../contexts/UserProfileContext";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
-import { apiClient } from "../lib/supabaseClient";
+import api from "../lib/api";
+import { useAuth } from "../contexts/AuthContext";
 import { useLoading } from "../contexts/LoadingContext";
 import {
   BackgroundEffects,
@@ -19,6 +20,7 @@ export default function FactionSelectionPage() {
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
   const { showLoading, hideLoading } = useLoading();
+  const { user } = useAuth();
 
   const { userProfile: profile, loading: profileLoading } = useUserProfile();
   const { refreshProfile } = useUserProfileContext();
@@ -37,7 +39,6 @@ export default function FactionSelectionPage() {
       return;
     }
 
-
     if (!selectedFaction) {
       setError("Por favor, selecione uma facção.");
       return;
@@ -52,12 +53,7 @@ export default function FactionSelectionPage() {
     try {
       console.log(`🎯 Iniciando seleção de facção: ${selectedFaction}`);
 
-      const {
-        data: { user },
-        error: userError,
-      } = await apiClient.getCurrentUser();
-
-      if (userError || !user) {
+      if (!user) {
         throw new Error(
           "Usuário não autenticado. Por favor, faça login novamente.",
         );
@@ -67,12 +63,12 @@ export default function FactionSelectionPage() {
 
       if (profile?.faction) {
         console.log(
-          `⚠️ Usuário já tem facção: ${profile.faction}. Redirecionando para clãs...`,
+          `⚠️ Usuário já tem facção: ${profile.faction}. Redirecionando para dashboard...`,
         );
       } else {
         try {
           console.log("🆕 Tentando criar um novo perfil para o usuário...");
-          await apiClient.createUserProfile({
+          await api.post("/users/profile", {
             faction: selectedFaction,
             username:
               user.user_metadata?.username ||
@@ -82,13 +78,14 @@ export default function FactionSelectionPage() {
           console.log("✅ Perfil criado e facção selecionada com sucesso!");
         } catch (creationError: any) {
           const isDuplicateProfile =
+            creationError.response?.status === 409 || 
             creationError.message?.includes("Perfil já existe");
 
           if (isDuplicateProfile) {
             console.log(
               "⚠️ Perfil já existente detectado. Tentando atualizar a facção...",
             );
-            await apiClient.updateUserProfile(user.id, {
+            await api.put(`/users/${user.id}/profile`, {
               faction: selectedFaction,
             });
             console.log(

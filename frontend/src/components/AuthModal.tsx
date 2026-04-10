@@ -1,7 +1,8 @@
 import React from "react";
 import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { apiClient } from "../lib/supabaseClient";
+import api from "../lib/api";
+import { useAuth } from "../contexts/AuthContext";
 import { useUserProfileContext } from "../contexts/UserProfileContext";
 
 type AuthMode = "login" | "register" | "forgot-password";
@@ -92,6 +93,7 @@ export default function AuthModal({
   initialMode = "login",
 }: AuthModalProps) {
   const { refreshProfile } = useUserProfileContext();
+  const { login } = useAuth();
   const navigate = useNavigate();
 
   const [activeTab, setActiveTab] = useState<AuthMode>(
@@ -202,9 +204,7 @@ export default function AuthModal({
       state: JSON.stringify(state),
     });
 
-    const startUrl = apiClient.getApiUrl(
-      `/auth/google/start?${params.toString()}`,
-    );
+    const startUrl = `${import.meta.env.VITE_API_URL || ""}/api/auth/google/start?${params.toString()}`;
 
     window.location.href = startUrl;
   };
@@ -224,9 +224,8 @@ export default function AuthModal({
       // Aguardar um pouco antes de verificar para evitar verificações prematuras
       await new Promise((resolve) => setTimeout(resolve, 500));
 
-      // Chama a API do backend para verificar o email usando o apiClient
-      const result = await apiClient.checkEmail(email);
-      return result;
+      const { data } = await api.post("/auth/check-email", { email });
+      return data;
     } catch (error) {
       // Em caso de erro (ex: falha de rede), não assumimos que o usuário existe.
       // Retornamos que o email não existe para forçar o usuário a se registrar ou tentar novamente.
@@ -316,7 +315,7 @@ export default function AuthModal({
     setIsResending(true);
 
     try {
-      await apiClient.resendConfirmation(registeredEmail);
+      await api.post("/auth/resend-confirmation", { email: registeredEmail });
 
       // Limpar mensagens de erro ao reenviar com sucesso
       setErrors({});
@@ -391,14 +390,13 @@ export default function AuthModal({
       try {
         const isValid = await validateForm();
         if (isValid) {
-          // Registrar o usuário na API local
-          const authData = await apiClient.register(
-            formData.email,
-            formData.username,
-            formData.password,
-            formData.birthDate || undefined,
-            formData.country || undefined,
-          );
+          const { data: authData } = await api.post("/auth/register", {
+            email: formData.email,
+            username: formData.username,
+            password: formData.password,
+            birth_date: formData.birthDate || undefined,
+            country: formData.country || undefined,
+          });
 
           // O perfil será criado automaticamente pelo trigger do banco de dados
           // quando o usuário selecionar sua facção na próxima página
@@ -470,34 +468,37 @@ export default function AuthModal({
         }
 
         // Se o email existe e está confirmado, tentar fazer login
-        const data = await apiClient.login(formData.email, formData.password);
+        const { data: authData } = await api.post("/auth/login", {
+          email: formData.email,
+          password: formData.password,
+        });
 
-        // Verificar se o usuário já escolheu uma facção
-        if (data.user) {
+        if (authData.user) {
           try {
-            // Tentar obter os dados do perfil
-            const profileData = await apiClient.getUserProfile();
+            // Se o userData não veio completo na resposta do Login, buscamos no /me
+            let userData = authData.user;
+            if (!userData) {
+              const { data: meData } = await api.get("/auth/me");
+              userData = meData.user;
+            }
 
-            // Atualiza o estado global imediatamente
-            await refreshProfile();
+            // Registra token e usuario: UserProfileContext reage via useEffect
+            await login(authData.token, userData);
 
-            // Fechar o modal
+            // Fechar o modal e finalizar processamento
             onClose();
             setIsProcessing(false);
 
-            // Verificar se é o primeiro login (após confirmação de email)
-            const isFirstLogin = data.isFirstLogin;
+            // Verificar se é o primeiro login ou se já temos info no authData avisando
+            const isFirstLogin = authData.isFirstLogin;
 
-            // Redirecionar com base na facção e se é primeiro login
-            if (isFirstLogin || !profileData?.faction) {
+            if (isFirstLogin) {
               navigate("/faction-selection", { replace: true });
             } else {
-              // Navegação suave via React Router
               navigate("/dashboard", { replace: true });
             }
-          } catch (profileError) {
-            // Se houver erro ao buscar o perfil, redirecionar para a página de seleção
-            navigate("/faction-selection", { replace: true });
+          } catch (authError) {
+            navigate("/dashboard", { replace: true });
           }
         }
       } catch (error: any) {
@@ -559,7 +560,7 @@ export default function AuthModal({
         }
 
         // Se o email existe e está confirmado, enviar o email de recuperação
-        await apiClient.forgotPassword(formData.email);
+        await api.post("/auth/forgot-password", { email: formData.email });
 
         // Só exibe a mensagem de sucesso se o email existir, estiver confirmado e o email de recuperação for enviado com sucesso
         setSuccessMessage(

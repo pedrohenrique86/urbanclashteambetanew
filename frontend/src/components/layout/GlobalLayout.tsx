@@ -1,11 +1,11 @@
 import React, { useState, useRef } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate, Navigate } from "react-router-dom";
 import TopBar from "./TopBar";
 import DashboardSidebar from "./DashboardSidebar";
 import { FloatingMenuButton } from "./FloatingMenuButton";
 import { useTheme } from "../../contexts/ThemeContext";
 import { useUserProfile } from "../../hooks/useUserProfile";
-import { apiClient } from "../../lib/supabaseClient";
+import { useAuth } from "../../contexts/AuthContext";
 import { motion, AnimatePresence } from "framer-motion";
 import dashbgangster from "../../assets/dashbgangster.webp";
 import { Tooltip } from "react-tooltip";
@@ -40,13 +40,16 @@ const GlobalLayout: React.FC<GlobalLayoutProps> = ({ children }) => {
     "/reset-password",
     "/auth/google/callback",
   ];
-  const shouldShowNav = !pagesWithoutNav.some(p => location.pathname === p || location.pathname.startsWith("/auth/"));
+  const shouldShowNav = !pagesWithoutNav.some(
+    (p) => location.pathname === p || location.pathname.startsWith("/auth/"),
+  );
 
   const { userProfile, loading } = useUserProfile();
+  const { user, isHydrating, logout } = useAuth();
 
   const handleLogout = async () => {
     try {
-      await apiClient.logout();
+      await logout();
       navigate("/");
     } catch (error) {
       console.error("Erro ao fazer logout:", error);
@@ -68,7 +71,11 @@ const GlobalLayout: React.FC<GlobalLayoutProps> = ({ children }) => {
     const isLeftSwipe = distance > minSwipeDistance;
     const isRightSwipe = distance < -minSwipeDistance;
 
-    if (isLeftSwipe && !isMobileMenuOpen && touchStart > window.innerWidth - 60) {
+    if (
+      isLeftSwipe &&
+      !isMobileMenuOpen &&
+      touchStart > window.innerWidth - 60
+    ) {
       setIsMobileMenuOpen(true);
     }
 
@@ -82,21 +89,35 @@ const GlobalLayout: React.FC<GlobalLayoutProps> = ({ children }) => {
     return <>{children}</>;
   }
 
-  // Enquanto carrega, mostra fundo escuro
-  if (loading) {
-    return <div className={`min-h-screen ${themeClasses.bg}`} />;
+  // CRÍTICO: Aguarda hidratação do AuthContext E carregamento do perfil.
+  if (isHydrating || loading) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-gray-900">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-primary" />
+      </div>
+    );
   }
 
-  // Guarda de rota: usuário não autenticado → Home
+  // Guarda de rota 1: usuário não autenticado → Home
+  if (!user) {
+    console.debug("[GlobalLayout] REDIRECT → / (sem usuário)");
+    return <Navigate to="/" replace />;
+  }
+
+  // Guarda de rota 2: usuário autenticado, mas SEM perfil → Seleção de Facção
   if (!userProfile) {
-    navigate("/", { replace: true });
-    return <div className={`min-h-screen ${themeClasses.bg}`} />;
+    console.debug(
+      "[GlobalLayout] REDIRECT → /faction-selection (sem perfil da API)",
+    );
+    return <Navigate to="/faction-selection" replace />;
   }
 
-  // Guarda de rota: usuário sem facção → seleção de facção
-  if (!userProfile.faction) {
-    navigate("/faction-selection", { replace: true });
-    return <div className={`min-h-screen ${themeClasses.bg}`} />;
+  // Guarda de rota 3: usuário autenticado e com perfil, mas SEM facção → Seleção de Facção
+  if (userProfile && !userProfile.faction) {
+    console.debug(
+      "[GlobalLayout] REDIRECT → /faction-selection (sem facção escolhida)",
+    );
+    return <Navigate to="/faction-selection" replace />;
   }
 
   // Guarda de rota: usuário sem clã → seleção de clã (REMOVIDO)
@@ -121,7 +142,9 @@ const GlobalLayout: React.FC<GlobalLayoutProps> = ({ children }) => {
       onTouchMove={onTouchMoveObj}
       onTouchEnd={onTouchEndObj}
     >
-      <div className={`flex flex-1 overflow-hidden ${isDashboard ? "bg-black/20" : ""}`}>
+      <div
+        className={`flex flex-1 overflow-hidden ${isDashboard ? "bg-black/20" : ""}`}
+      >
         {/* Sidebar para desktop, fixa na lateral */}
         <div className="hidden md:flex md:flex-shrink-0 z-20 h-full">
           <DashboardSidebar
