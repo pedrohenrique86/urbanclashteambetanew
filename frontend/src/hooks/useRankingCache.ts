@@ -5,11 +5,7 @@ import {
   fetchFullRankings,
 } from "../services/rankingService";
 import { apiClient } from "../lib/supabaseClient";
-import {
-  sortPlayers,
-  sortClans,
-  updatePositions,
-} from "../utils/rankingSorters";
+
 
 interface RankingData {
   gangsters: Player[];
@@ -339,95 +335,60 @@ export const useRankingCache = (
     if (!base) return;
 
     let eventSource: EventSource | null = null;
+    let reconnectTimeout: ReturnType<typeof setTimeout> | null = null;
 
     const connect = () => {
       if (eventSource) {
         eventSource.close();
       }
+      if (reconnectTimeout) {
+        clearTimeout(reconnectTimeout);
+      }
 
       try {
-        // A URL agora aponta para o novo endpoint de subscrição de ranking
-        const url = `${base}/api/ranking-events/subscribe`;
+        // Endpoint único de SSE alinhado com o backend
+        const url = `${base}/api/users/rankings/subscribe`;
         eventSource = new EventSource(url, { withCredentials: true });
 
-        // Listener para atualizações de jogadores
-        eventSource.addEventListener("ranking:player:update", (event) => {
-          const updatedPlayerData = JSON.parse(event.data);
-          setData((prevData) => {
-            const { playerId, faction, level, current_xp } = updatedPlayerData;
-            const listKey = faction === "gangsters" ? "gangsters" : "guardas";
+        // Listeners para eventos de snapshot de usuários
+        const userEvents = [
+          "ranking:snapshot:users:gangsters:5",
+          "ranking:snapshot:users:guardas:5",
+          "ranking:snapshot:users:all:5",
+          "ranking:snapshot:users:gangsters:26",
+          "ranking:snapshot:users:guardas:26",
+          "ranking:snapshot:users:all:26",
+        ];
 
-            let playerExists = false;
-            const updatedList = prevData[listKey].map((player) => {
-              if (player.id === playerId) {
-                playerExists = true;
-                // Retorna um novo objeto para o jogador atualizado
-                return { ...player, level, current_xp };
-              }
-              return player;
-            });
-
-            // Se o jogador não estava na lista, adiciona-o para re-avaliação.
-            if (!playerExists) {
-              updatedList.push({
-                id: playerId,
-                level,
-                current_xp,
-                // nickname e outros campos ficarão undefined até o próximo fetch
-                position: 0, // Posição temporária
-              } as Player);
+        userEvents.forEach((eventName) => {
+          eventSource!.addEventListener(eventName, () => {
+            if (mountedRef.current) {
+              forceRefreshRef.current();
             }
-
-            // Reordena a lista e atualiza as posições
-            const sortedList = sortPlayers(updatedList);
-            const finalList = updatePositions(sortedList);
-
-            return {
-              ...prevData,
-              [listKey]: finalList,
-            };
           });
         });
 
-        // Listener para atualizações de clãs
-        eventSource.addEventListener("ranking:clan-score:update", (event) => {
-          const updatedClanData = JSON.parse(event.data);
-          setData((prevData) => {
-            const { clanId, score } = updatedClanData;
+        // Listeners para eventos de snapshot de clãs
+        const clanEvents = [
+          "ranking:snapshot:clans:5",
+          "ranking:snapshot:clans:26",
+        ];
 
-            let clanExists = false;
-            const updatedList = prevData.clans.map((clan) => {
-              if (clan.id === clanId) {
-                clanExists = true;
-                return { ...clan, score };
-              }
-              return clan;
-            });
-
-            // Se o clã não estava na lista, adiciona-o para re-avaliação.
-            if (!clanExists) {
-              updatedList.push({
-                id: clanId,
-                score,
-                // name e faction ficarão undefined até o próximo fetch
-                position: 0, // Posição temporária
-              } as Clan);
+        clanEvents.forEach((eventName) => {
+          eventSource!.addEventListener(eventName, () => {
+            if (mountedRef.current) {
+              forceRefreshRef.current();
             }
-
-            const sortedList = sortClans(updatedList);
-            const finalList = updatePositions(sortedList);
-
-            return {
-              ...prevData,
-              clans: finalList,
-            };
           });
         });
 
         eventSource.onerror = () => {
           // Tenta reconectar após um pequeno atraso
-          if (eventSource) eventSource.close();
-          setTimeout(connect, 5000);
+          if (eventSource) {
+            eventSource.close();
+            eventSource = null;
+          }
+          reconnectTimeout = setTimeout(connect, 5000);
         };
       } catch (e) {
         console.error("Falha ao conectar ao SSE de ranking:", e);
@@ -440,6 +401,9 @@ export const useRankingCache = (
       if (eventSource) {
         eventSource.close();
         eventSource = null;
+      }
+      if (reconnectTimeout) {
+        clearTimeout(reconnectTimeout);
       }
     };
   }, []);

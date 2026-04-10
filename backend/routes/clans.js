@@ -62,6 +62,7 @@ router.get("/:id/events", authenticateToken, (req, res) => {
 });
 
 const sseService = require("../services/sseService");
+const rankingCacheService = require("../services/rankingCacheService");
 
 // Validações
 const createClanValidation = [
@@ -220,156 +221,40 @@ router.get("/by-faction/:faction", async (req, res) => {
   }
 });
 
-const CLANS_CACHE_TTL_MS = 10 * 60 * 1000;
-const CLANS_REDIS_PREFIX = "rankings:clans:";
 
-function getClansCacheKey(params) {
-  const limit = params?.limit || 26;
-  return `${CLANS_REDIS_PREFIX}${limit}`;
-}
-async function getCachedClans(params) {
-  const key = getClansCacheKey(params);
-  const cached = await redisClient.getAsync(key);
-  if (!cached) {
-    return null;
-  }
-  try {
-    // Se o valor já for um objeto, retorne-o diretamente.
-    // Se for uma string, faça o parse.
-    if (typeof cached === "object" && cached !== null) {
-      return cached;
-    }
-    return JSON.parse(cached);
-  } catch (e) {
-    console.error("❌ Erro ao fazer parse do cache de clãs:", e);
-    // Adiciona o valor problemático ao log para depuração
-    console.error("❌ Valor do cache que causou o erro:", cached);
-    return null;
-  }
-}
-function computeETag(data) {
-  const h = crypto.createHash("sha1");
-  h.update(JSON.stringify(data));
-  return `W/"${h.digest("hex")}"`;
-}
-async function setCachedClans(params, data) {
-  const key = getClansCacheKey(params);
-  const etag = computeETag(data);
-  const entry = { data, etag, timestamp: Date.now() };
-  await redisClient.setAsync(key, JSON.stringify(entry), "EX", 600);
-}
-async function refreshClansCache(limit) {
-  const rankingResult = await query(
-    `
-    SELECT 
-      c.id,
-      c.name,
-      c.faction,
-      c.points as score,
-      c.created_at,
-      c.updated_at,
-      COUNT(cm.id) as member_count,
-      ROW_NUMBER() OVER (ORDER BY c.points DESC, COUNT(cm.id) DESC) as rank
-    FROM clans c
-    LEFT JOIN clan_members cm ON c.id = cm.clan_id
-    GROUP BY c.id, c.name, c.faction, c.points, c.created_at, c.updated_at
-    ORDER BY c.points DESC, COUNT(cm.id) DESC
-    LIMIT $1
-  `,
-    [limit],
-  );
-  await setCachedClans({ limit }, rankingResult.rows);
-  // Notifica todos os clientes sobre a atualização do ranking de clãs
-  sseService.broadcast("rankings", { updated: true, type: "clans" });
-}
-
-/**
- * Inicializa o cache do ranking imediatamente e agenda as próximas atualizações
- */
-async function scheduleClansRefresh() {
-  try {
-    // Executa a primeira carga imediatamente para evitar ranking vazio em produção
-    console.log("📊 Inicializando cache de rankings de clãs...");
-    await refreshClansCache(26);
-  } catch (e) {
-    console.error("❌ Erro na carga inicial do ranking de clãs:", e.message);
-  }
-
-  // Sincronização usando o relógio do sistema (mais eficiente que query ao DB)
-  const now = new Date();
-  const minutes = now.getMinutes();
-  const seconds = now.getSeconds();
-  const milliseconds = now.getMilliseconds();
-  const minutesToNextInterval = 10 - (minutes % 10);
-  const delay = (minutesToNextInterval * 60 - seconds) * 1000 - milliseconds;
-
-  setTimeout(
-    async () => {
-      try {
-        await refreshClansCache(26);
-      } catch (e) {
-        console.error("❌ Falha no refresh agendado de clãs:", e.message);
-      } finally {
-        scheduleClansRefresh();
-      }
-    },
-    Math.max(0, delay),
-  );
-}
 
 // GET /api/clans/rankings - Ranking de clãs
 router.get("/rankings", async (req, res) => {
   try {
-    const { limit = 26 } = req.query;
-    const cacheKey = getClansCacheKey({ limit });
-    const cached = await getCachedClans({ limit });
+    const { limit: limitParam = 26 } = req.query;
+    const limit = Number(limitParam);
     const gameState = await getGameState();
 
-    if (cached && cached.data) {
-      console.log(
-        `CACHE HIT: Retornando ranking de clãs em cache para a chave: ${cacheKey}`,
-      );
-      const ifNoneMatch = req.headers["if-none-match"];
-      if (ifNoneMatch && ifNoneMatch === cached.etag) {
-        res.set("Cache-Control", "public, max-age=600");
-        res.set("ETag", cached.etag);
-        return res.status(304).end();
-      }
-      res.set("Cache-Control", "public, max-age=600");
-      res.set("ETag", cached.etag);
-      return res.json({ clans: cached.data, gameState });
+    // Cache centralizado com stale-while-revalidate
+    const cached = await rankingCacheService.ensureFreshRanking(
+      "clans",
+      null,
+      limit,
+    );
+
+    if (!cached) {
+      return res
+        .status(503)
+        .json({ error: "Ranking de clãs temporariamente indisponível" });
     }
 
-    console.log(
-      `CACHE MISS: Ranking de clãs não encontrado no cache para a chave: ${cacheKey}. Buscando no banco de dados.`,
-    );
+    const ifNoneMatch = req.headers["if-none-match"];
+    if (ifNoneMatch && ifNoneMatch === cached.etag) {
+      res.set("Cache-Control", "public, max-age=600");
+      res.set("ETag", cached.etag);
+      return res.status(304).end();
+    }
 
-    // Fallback seguro: se não houver cache, busca uma única vez e popula
-    const rankingResult = await query(
-      `
-      SELECT 
-        c.id,
-        c.name,
-        c.faction,
-        c.points as score,
-        c.created_at,
-        c.updated_at,
-        COUNT(cm.id) as member_count,
-        ROW_NUMBER() OVER (ORDER BY c.points DESC, COUNT(cm.id) DESC) as rank
-      FROM clans c
-      LEFT JOIN clan_members cm ON c.id = cm.clan_id
-      GROUP BY c.id, c.name, c.faction, c.points, c.created_at, c.updated_at
-      ORDER BY c.points DESC, COUNT(cm.id) DESC
-      LIMIT $1
-    `,
-      [limit],
-    );
-
-    await setCachedClans({ limit }, rankingResult.rows);
     res.set("Cache-Control", "public, max-age=600");
-    res.set("ETag", computeETag(rankingResult.rows));
-    res.json({ clans: rankingResult.rows, gameState });
+    res.set("ETag", cached.etag);
+    return res.json({ clans: cached.data, gameState });
   } catch (error) {
+    console.error("❌ [CLANS RANKINGS] Erro:", error.message);
     res.status(500).json({ error: "Erro interno do servidor" });
   }
 });
@@ -1073,5 +958,4 @@ router.delete("/:id", authenticateToken, async (req, res) => {
 
 module.exports = {
   router,
-  scheduleClansRefresh,
 };

@@ -181,6 +181,28 @@ module.exports = {
       return null;
     }
   },
+  setNXAsync: async (k, v, exMs) => {
+    if (!isReady) return null;
+    try {
+      if (isUpstash) {
+        // Upstash: SET com NX e PX em milissegundos
+        const result = await client.set(String(k), String(v), {
+          nx: true,
+          px: exMs,
+        });
+        return result === "OK" || result === true ? true : null;
+      } else {
+        // node-redis: SET com NX e PX em milissegundos
+        const result = await client.set(String(k), String(v), {
+          NX: true,
+          PX: exMs,
+        });
+        return result === "OK" ? true : null;
+      }
+    } catch {
+      return null;
+    }
+  },
   scanIterator: (options) => {
     if (!isReady || isUpstash) {
       async function* empty() {

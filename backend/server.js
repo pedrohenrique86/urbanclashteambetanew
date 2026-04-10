@@ -14,14 +14,14 @@ const morgan = require("morgan");
 const rateLimit = require("express-rate-limit");
 
 const authRoutes = require("./routes/auth");
-const { router: userRoutes, scheduleUsersRefresh } = require("./routes/users");
-const { router: clanRoutes, scheduleClansRefresh } = require("./routes/clans");
-const rankingEventsRouter = require("./routes/rankingEvents"); // Importa a nova rota
+const { router: userRoutes } = require("./routes/users");
+const { router: clanRoutes } = require("./routes/clans");
 const { connectDB, closePool, seedClans } = require("./config/database");
 const { redisReadyPromise } = require("./config/redisClient");
 const { checkAutoStart } = require("./services/gameStateService");
 const { schedulePersistence } = require("./services/playerStateService");
 const { initializeSocket } = require("./socketHandler");
+const rankingCacheService = require("./services/rankingCacheService");
 const http = require("http");
 const { Server } = require("socket.io");
 
@@ -107,7 +107,6 @@ app.use("/api/users", userRoutes);
 app.use("/api/clans", clanRoutes);
 app.use("/api/time", timeRoutes);
 app.use("/api/admin", adminRoutes);
-app.use("/api/ranking-events", rankingEventsRouter); // Registra a nova rota
 // app.use("/api/game", gameRoutes); // Replaced by Socket.IO
 
 // Rota de health check
@@ -163,11 +162,10 @@ async function startServer() {
 
     await startGameStateMonitor();
 
-    // Inicializa os caches de ranking aqui, APÓS a conexão com o banco estar pronta
-    // Isso evita condições de corrida no startup, especialmente em produção (Render)
-    console.log("⏱️ Iniciando agendadores de cache...");
-    void scheduleUsersRefresh();
-    void scheduleClansRefresh();
+    // Inicializa cache centralizado de ranking
+    console.log("⏱️ Iniciando warmup e agendador de ranking...");
+    await rankingCacheService.warmupRankings();
+    rankingCacheService.startPeriodicRefresh();
 
     initializeSocket(io);
 

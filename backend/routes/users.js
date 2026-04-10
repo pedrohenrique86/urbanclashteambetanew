@@ -11,155 +11,7 @@ const { getGameState } = require("../services/gameStateService");
 const router = express.Router();
 
 const sseService = require("../services/sseService");
-// Cache simples para rankings (TTL 10 minutos)
-const RANKINGS_CACHE_TTL_MS = 10 * 60 * 1000;
-const RANKINGS_REDIS_PREFIX = "rankings:users:";
-
-function getCacheKey(params) {
-  const faction = params?.faction || "all";
-  const limit = params?.limit || 26;
-  return `${RANKINGS_REDIS_PREFIX}${faction}:${limit}`;
-}
-
-async function getCachedRankings(params) {
-  const key = getCacheKey(params);
-  const cached = await redisClient.getAsync(key);
-
-  if (!cached) {
-    return null;
-  }
-
-  // Se o cliente Redis (como @upstash/redis) já desserializou os dados, retorne-os.
-  if (typeof cached === "object") {
-    return cached;
-  }
-
-  try {
-    // Caso contrário, se for uma string, faça o parse.
-    return JSON.parse(cached);
-  } catch (e) {
-    // Se o parse falhar (ex: "[object Object]"), o cache está corrompido.
-    console.error(
-      "❌ Falha ao fazer parse do ranking em cache. Invalidando a chave:",
-      {
-        key,
-        value: cached,
-        error: e.message,
-      },
-    );
-    // Invalida a chave corrompida para auto-correção na próxima requisição.
-    await redisClient.del(key);
-    return null;
-  }
-}
-function computeETag(data) {
-  const h = crypto.createHash("sha1");
-  h.update(JSON.stringify(data));
-  return `W/"${h.digest("hex")}"`;
-}
-async function setCachedRankings(params, data) {
-  const key = getCacheKey(params);
-  const etag = computeETag(data);
-  const entry = { data, etag, timestamp: Date.now() };
-  await redisClient.setAsync(key, JSON.stringify(entry), "EX", 600); // 10 min TTL
-}
-async function refreshRankingsCache(faction, limit) {
-  let whereClause = "WHERE u.is_email_confirmed = true AND p.id IS NOT NULL";
-  const queryParams = [];
-  let limitPlaceholder = "$1";
-
-  if (faction) {
-    whereClause += " AND p.faction = $1";
-    queryParams.push(faction);
-    limitPlaceholder = "$2";
-  }
-
-  queryParams.push(limit);
-
-  const leaderboardResult = await query(
-    `
-    SELECT 
-      u.id, u.username, u.country,
-      p.display_name, p.avatar_url, p.level, 
-      p.experience_points as current_xp, p.faction, p.victories, p.defeats, p.winning_streak,
-      ROW_NUMBER() OVER (ORDER BY p.level DESC, p.experience_points DESC) as rank
-    FROM users u
-    INNER JOIN user_profiles p ON u.id = p.user_id
-    ${whereClause}
-    ORDER BY p.level DESC, p.experience_points DESC
-    LIMIT ${limitPlaceholder}
-  `,
-    queryParams,
-  );
-  await setCachedRankings({ faction, limit }, leaderboardResult.rows);
-  // Notifica todos os clientes sobre a atualização do ranking
-  sseService.broadcast("rankings", { updated: true, type: "users", faction });
-}
-
-/**
- * Inicializa o cache imediatamente no boot e agenda atualizações a cada 10min cravados
- */
-async function scheduleUsersRefresh() {
-  try {
-    // Carga inicial imediata para evitar rankings vazios após restart do servidor
-    const results = await Promise.allSettled([
-      refreshRankingsCache("gangsters", 26),
-      refreshRankingsCache("guardas", 26),
-      refreshRankingsCache(null, 26), // `null` para ranking geral
-    ]);
-
-    results.forEach((result) => {
-      if (result.status === "rejected") {
-        console.error(
-          "❌ Erro em uma das atualizações de ranking na carga inicial:",
-          result.reason.message,
-        );
-      }
-    });
-  } catch (e) {
-    console.error(
-      "❌ Erro na carga inicial do ranking de usuários:",
-      e.message,
-    );
-  }
-
-  // Uso do relógio do sistema para evitar overhead de rede com o DB
-  const now = new Date();
-  const minutes = now.getMinutes();
-  const seconds = now.getSeconds();
-  const milliseconds = now.getMilliseconds();
-  const minutesToNextInterval = 10 - (minutes % 10);
-  const delay = (minutesToNextInterval * 60 - seconds) * 1000 - milliseconds;
-
-  setTimeout(
-    async () => {
-      try {
-        const results = await Promise.allSettled([
-          refreshRankingsCache("gangsters", 26),
-          refreshRankingsCache("guardas", 26),
-          refreshRankingsCache(null, 26), // `null` para ranking geral
-        ]);
-
-        results.forEach((result) => {
-          if (result.status === "rejected") {
-            console.error(
-              "❌ Falha em uma das atualizações de ranking agendadas:",
-              result.reason.message,
-            );
-          }
-        });
-      } catch (e) {
-        console.error("❌ Falha no refresh agendado de usuários:", e.message);
-      } finally {
-        scheduleUsersRefresh();
-      }
-    },
-    Math.max(0, delay),
-  );
-}
-
-// Agendamento será iniciado pelo server.js após a conexão com o banco
-// void scheduleUsersRefresh();
+const rankingCacheService = require("../services/rankingCacheService");
 
 router.get("/rankings/subscribe", (req, res) => {
   res.set({
@@ -170,10 +22,14 @@ router.get("/rankings/subscribe", (req, res) => {
   res.flushHeaders && res.flushHeaders();
   res.write("\n");
 
-  sseService.addClient(res);
+  sseService.subscribe(res, "ranking");
+
+  res.write(
+    `event: connection_established\ndata: ${JSON.stringify({ message: "Conectado ao ranking em tempo real." })}\n\n`,
+  );
 
   req.on("close", () => {
-    sseService.removeClient(res);
+    sseService.unsubscribe(res, "ranking");
   });
 });
 // Validações
@@ -313,34 +169,17 @@ router.delete("/:id", authenticateToken, async (req, res) => {
       }
     });
 
-    // Após a exclusão bem-sucedida, invalidar o cache do ranking de usuários
-    try {
-      const stream = redisClient.scanStream({
-        match: `${RANKINGS_REDIS_PREFIX}*`, // Invalida todos os rankings de usuários
-        count: 100,
-      });
-
-      const keys = [];
-      stream.on("data", (resultKeys) => {
-        // Adiciona as chaves encontradas ao array
-        keys.push(...resultKeys);
-      });
-
-      stream.on("end", async () => {
-        if (keys.length > 0) {
-          await redisClient.del(keys);
-          console.log(
-            `🧹 Cache do ranking de usuários invalidado. Chaves removidas: ${keys.length}`,
-          );
-        }
-      });
-    } catch (cacheError) {
-      // Logar o erro de cache, mas não falhar a requisição, pois o usuário já foi excluído
+    // Invalida cache de ranking após exclusão (dispara refresh em background)
+    Promise.allSettled([
+      rankingCacheService.triggerRefresh("users", "gangsters", 26),
+      rankingCacheService.triggerRefresh("users", "guardas", 26),
+      rankingCacheService.triggerRefresh("users", "all", 26),
+    ]).catch((cacheError) =>
       console.error(
-        "❌ Erro ao tentar invalidar o cache do ranking de usuários:",
+        "❌ Erro ao atualizar cache após exclusão:",
         cacheError.message,
-      );
-    }
+      ),
+    );
 
     res.status(200).json({ message: "Usuário excluído com sucesso." });
   } catch (error) {
@@ -584,69 +423,38 @@ router.put(
   },
 );
 
-// GET /api/users/rankings - Ranking de usuários (alias para leaderboard)
+// GET /api/users/rankings - Ranking de usuários
 router.get("/rankings", async (req, res) => {
   try {
-    const { faction, limit = 26 } = req.query;
+    const { faction, limit: limitParam = 26 } = req.query;
+    const limit = Number(limitParam);
+    const factionKey = faction || "all";
 
-    // Tenta usar cache
-    const cached = await getCachedRankings({ faction, limit });
     const gameState = await getGameState();
 
-    if (cached) {
-      const ifNoneMatch = req.headers["if-none-match"];
-      if (ifNoneMatch && ifNoneMatch === cached.etag) {
-        res.set("Cache-Control", "public, max-age=600");
-        res.set("ETag", cached.etag);
-        return res.status(304).end();
-      }
+    // Cache centralizado com stale-while-revalidate
+    const cached = await rankingCacheService.ensureFreshRanking(
+      "users",
+      factionKey,
+      limit,
+    );
+
+    if (!cached) {
+      return res
+        .status(503)
+        .json({ error: "Ranking temporariamente indisponível" });
+    }
+
+    const ifNoneMatch = req.headers["if-none-match"];
+    if (ifNoneMatch && ifNoneMatch === cached.etag) {
       res.set("Cache-Control", "public, max-age=600");
       res.set("ETag", cached.etag);
-      return res.json({ leaderboard: cached.data, gameState });
+      return res.status(304).end();
     }
 
-    let whereClause = "WHERE u.is_email_confirmed = true AND p.id IS NOT NULL";
-    const queryParams = [];
-    let limitPlaceholder = "$1";
-
-    if (faction) {
-      whereClause += " AND p.faction = $1";
-      queryParams.push(faction);
-      limitPlaceholder = "$2";
-    }
-
-    queryParams.push(limit);
-
-    const leaderboardResult = await query(
-      `
-      SELECT 
-        u.id, u.username, u.country,
-        p.display_name, p.avatar_url, p.level, 
-        p.experience_points as current_xp, p.faction, p.victories, p.defeats, p.winning_streak,
-        ROW_NUMBER() OVER (ORDER BY p.level DESC, p.experience_points DESC) as rank
-      FROM users u
-      INNER JOIN user_profiles p ON u.id = p.user_id
-      ${whereClause}
-      ORDER BY p.level DESC, p.experience_points DESC
-      LIMIT ${limitPlaceholder}
-    `,
-      queryParams,
-    );
-
-    console.log(
-      "✅ [RANKINGS] Retornando",
-      leaderboardResult.rows.length,
-      "resultados",
-    );
-    console.log(
-      "✅ [RANKINGS] Primeiro resultado com country:",
-      leaderboardResult.rows[0]?.country,
-    );
-
-    await setCachedRankings({ faction, limit }, leaderboardResult.rows);
     res.set("Cache-Control", "public, max-age=600");
-    res.set("ETag", computeETag(leaderboardResult.rows));
-    res.json({ leaderboard: leaderboardResult.rows, gameState });
+    res.set("ETag", cached.etag);
+    return res.json({ leaderboard: cached.data, gameState });
   } catch (error) {
     console.error("❌ [RANKINGS] Erro:", {
       message: error.message,
@@ -685,34 +493,17 @@ router.delete("/:id", authenticateToken, async (req, res) => {
       }
     });
 
-    // Após a exclusão bem-sucedida, invalidamos o cache do ranking.
-    try {
-      const stream = redisClient.scanStream({
-        match: `${RANKINGS_REDIS_PREFIX}*`,
-        count: 100,
-      });
-
-      const keys = [];
-      stream.on("data", (resultKeys) => {
-        keys.push(...resultKeys);
-      });
-
-      stream.on("end", async () => {
-        if (keys.length > 0) {
-          await redisClient.del(keys);
-          console.log(
-            `🧹 Cache do ranking de usuários invalidado. Chaves removidas: ${keys.length}`,
-          );
-        }
-      });
-    } catch (cacheError) {
+    // Invalida cache de ranking após exclusão (dispara refresh em background)
+    Promise.allSettled([
+      rankingCacheService.triggerRefresh("users", "gangsters", 26),
+      rankingCacheService.triggerRefresh("users", "guardas", 26),
+      rankingCacheService.triggerRefresh("users", "all", 26),
+    ]).catch((cacheError) =>
       console.error(
-        "❌ Erro ao tentar invalidar o cache do ranking de usuários:",
+        "❌ Erro ao atualizar cache após exclusão:",
         cacheError.message,
-      );
-      // Opcional: decidir se um erro de cache deve retornar um erro na resposta principal.
-      // Neste caso, a operação principal (exclusão) foi bem-sucedida, então apenas logamos o erro.
-    }
+      ),
+    );
 
     res.status(200).json({ message: "Usuário excluído com sucesso." });
   } catch (error) {
@@ -1310,5 +1101,4 @@ router.post("/action-points/reset", authenticateToken, async (req, res) => {
 
 module.exports = {
   router,
-  scheduleUsersRefresh,
 };
