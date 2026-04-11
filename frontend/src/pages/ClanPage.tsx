@@ -208,17 +208,29 @@ export default function ClanPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 space-y-6">
-          <div className={`${themeClasses.cardBg} p-6 rounded-xl border ${themeClasses.border}`}>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:items-stretch">
+        {/* Coluna da Esquerda: Chat */}
+        <div className="flex">
+          <ClanChat />
+        </div>
+
+        {/* Coluna da Direita: Membros e Opções */}
+        <div className="flex flex-col space-y-6">
+          {/* Card de Membros */}
+          <div
+            className={`${themeClasses.cardBg} p-6 rounded-xl border ${themeClasses.border} flex flex-col flex-grow`}
+          >
             <h2 className={`text-xl font-bold mb-4 ${factionColor.accent}`}>
               MEMBROS ({clan?.member_count || 0} / {clan?.max_members || 0})
             </h2>
-
-            <ul className="space-y-3">
+            <ul className="space-y-3 overflow-y-auto flex-grow min-h-[200px]">
               {clan?.members?.map((member, index) => (
                 <li
-                  key={member.id || member.user_id || `${member.username}-${index}`}
+                  key={
+                    member.id ||
+                    member.user_id ||
+                    `${member.username}-${index}`
+                  }
                   className="flex items-center justify-between p-3 bg-black/20 rounded-lg"
                 >
                   <span className="font-semibold">{member.username}</span>
@@ -229,14 +241,14 @@ export default function ClanPage() {
               ))}
             </ul>
           </div>
-        </div>
 
-        <div className="space-y-6">
-          <div className={`${themeClasses.cardBg} p-6 rounded-xl border ${themeClasses.border}`}>
+          {/* Card de Opções */}
+          <div
+            className={`${themeClasses.cardBg} p-6 rounded-xl border ${themeClasses.border} flex-shrink-0`}
+          >
             <h2 className={`text-xl font-bold mb-4 ${factionColor.accent}`}>
               OPÇÕES DO CLÃ
             </h2>
-
             <button
               type="button"
               onClick={() => setConfirmLeave(true)}
@@ -245,8 +257,6 @@ export default function ClanPage() {
               Sair do Clã
             </button>
           </div>
-
-          <ClanChat />
         </div>
       </div>
 

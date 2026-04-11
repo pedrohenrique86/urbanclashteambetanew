@@ -121,11 +121,11 @@ export const UserProfileProvider: React.FC<{ children: React.ReactNode }> = ({
     await fetchProfile();
   }, [fetchProfile]);
 
-  const handleLogout = async () => {
+  const handleLogout = useCallback(async () => {
     await logout();
     setUserProfile(null);
     navigate("/");
-  };
+  }, [logout, navigate]);
 
   // Passo 2: O `useEffect` que executa a busca de dados.
   useEffect(() => {
