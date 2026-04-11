@@ -114,7 +114,7 @@ export const UserProfileProvider: React.FC<{ children: React.ReactNode }> = ({
       } finally {
         setLoading(false);
       }
-  }, [user, processProfileData]);
+  }, [user, processProfileData, logout, navigate]);
 
   const refreshProfile = useCallback(async () => {
     setLoading(true);
