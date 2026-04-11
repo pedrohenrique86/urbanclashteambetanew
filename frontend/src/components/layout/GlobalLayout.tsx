@@ -4,7 +4,7 @@ import TopBar from "./TopBar";
 import DashboardSidebar from "./DashboardSidebar";
 import { FloatingMenuButton } from "./FloatingMenuButton";
 import { useTheme } from "../../contexts/ThemeContext";
-import { useUserProfile } from "../../hooks/useUserProfile";
+import { useUserProfileContext } from "../../contexts/UserProfileContext";
 import { useAuth } from "../../contexts/AuthContext";
 import { motion, AnimatePresence } from "framer-motion";
 import dashbgangster from "../../assets/dashbgangster.webp";
@@ -44,8 +44,8 @@ const GlobalLayout: React.FC<GlobalLayoutProps> = ({ children }) => {
     (p) => location.pathname === p || location.pathname.startsWith("/auth/"),
   );
 
-  const { userProfile, loading } = useUserProfile();
-  const { user, isHydrating, logout } = useAuth();
+  const { userProfile } = useUserProfileContext();
+  const { logout } = useAuth();
 
   const handleLogout = async () => {
     try {
@@ -89,42 +89,9 @@ const GlobalLayout: React.FC<GlobalLayoutProps> = ({ children }) => {
     return <>{children}</>;
   }
 
-  // CRÍTICO: Aguarda hidratação do AuthContext E carregamento do perfil.
-  if (isHydrating || loading) {
-    return (
-      <div className="flex h-screen items-center justify-center bg-gray-900">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-primary" />
-      </div>
-    );
-  }
-
-  // Guarda de rota 1: usuário não autenticado → Home
-  if (!user) {
-    console.debug("[GlobalLayout] REDIRECT → / (sem usuário)");
-    return <Navigate to="/" replace />;
-  }
-
-  // Guarda de rota 2: usuário autenticado, mas SEM perfil → Seleção de Facção
-  if (!userProfile) {
-    console.debug(
-      "[GlobalLayout] REDIRECT → /faction-selection (sem perfil da API)",
-    );
-    return <Navigate to="/faction-selection" replace />;
-  }
-
-  // Guarda de rota 3: usuário autenticado e com perfil, mas SEM facção → Seleção de Facção
-  if (userProfile && !userProfile.faction) {
-    console.debug(
-      "[GlobalLayout] REDIRECT → /faction-selection (sem facção escolhida)",
-    );
-    return <Navigate to="/faction-selection" replace />;
-  }
-
-  // Guarda de rota: usuário sem clã → seleção de clã (REMOVIDO)
-  /* if (!userProfile.clan_id) {
-    navigate("/clan-selection", { replace: true });
-    return <div className={`min-h-screen ${themeClasses.bg}`} />;
-  } */
+  // O spinner e o bloqueio de renderização foram removidos.
+  // O layout agora renderiza imediatamente, e os componentes filhos
+  // são responsáveis por lidar com o estado de carregamento do perfil.
 
   const isDashboard = location.pathname === "/dashboard";
 
@@ -148,10 +115,10 @@ const GlobalLayout: React.FC<GlobalLayoutProps> = ({ children }) => {
         {/* Sidebar para desktop, fixa na lateral */}
         <div className="hidden md:flex md:flex-shrink-0 z-20 h-full">
           <DashboardSidebar
-            username={userProfile.username}
-            faction={userProfile.faction}
+            username={userProfile?.username}
+            faction={userProfile?.faction}
             handleLogout={handleLogout}
-            isAdmin={userProfile.is_admin}
+            isAdmin={userProfile?.is_admin}
           />
         </div>
 

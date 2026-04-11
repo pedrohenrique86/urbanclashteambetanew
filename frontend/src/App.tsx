@@ -55,64 +55,69 @@ const RootWrapper = () => (
   </UserProfileProvider>
 );
 
+import FactionRequiredRoute from "./components/FactionRequiredRoute";
+
+// ... (imports lazy)
+
 const AppLayout = () => (
   <GlobalLayout>
-    <ProtectedRoute>
-      <Outlet />
-    </ProtectedRoute>
+    <Outlet />
   </GlobalLayout>
+);
+
+// Layout para rotas que exigem facção
+const FactionLayout = () => (
+  <FactionRequiredRoute>
+    <Outlet />
+  </FactionRequiredRoute>
 );
 
 const router = createBrowserRouter([
   {
     element: <RootWrapper />,
     children: [
-      {
-        path: "/",
-        element: <HomePage />,
-      },
-      {
-        path: "/auth/google/callback",
-        element: <GoogleCallbackPage />,
-      },
+      // --- Rotas Públicas ---
+      { path: "/", element: <HomePage /> },
+      { path: "/auth/google/callback", element: <GoogleCallbackPage /> },
       { path: "/confirm-email", element: <EmailConfirmationPage /> },
       { path: "/email-confirmation", element: <EmailConfirmationPage /> },
       { path: "/reset-password", element: <ResetPasswordPage /> },
+
+      // --- Rotas Protegidas ---
       {
-        path: "/",
-        element: <AppLayout />,
+        // Nível 1: Rotas que exigem apenas autenticação
+        element: (
+          <ProtectedRoute>
+            <AppLayout />
+          </ProtectedRoute>
+        ),
         children: [
-          // Rotas de Autenticação e Seleção
-          { path: "dashboard", element: <DashboardPage /> },
           { path: "faction-selection", element: <FactionSelectionPage /> },
-
-          // Rotas de Operações
-          { path: "contracts", element: <ContractsPage /> },
-          { path: "reckoning", element: <ReckoningPage /> },
-          { path: "squad-war", element: <SquadWarPage /> },
-          { path: "supply-extraction", element: <SupplyExtractionPage /> },
-          { path: "recovery-base", element: <RecoveryBasePage /> },
-          { path: "isolation", element: <IsolationPage /> },
-
-          // Rotas de Economia
-          { path: "dark-zones", element: <DarkZonesPage /> },
-          { path: "parallel-network", element: <ParallelNetworkPage /> },
-          { path: "safe", element: <SafePage /> },
-          { path: "corporations", element: <CorporationsPage /> },
-
-          // Rotas de Rede
-          { path: "qg", element: <QGPage /> },
-          { path: "social-zone", element: <SocialZonePage /> },
-          { path: "training", element: <TrainingPage /> },
-          { path: "digital-identity", element: <DigitalIdentityPage /> },
-
-          // Rotas Elite
-          { path: "vip-access", element: <VipAccessPage /> },
-          { path: "restricted-store", element: <RestrictedStorePage /> },
-
-          // Outras rotas
-          { path: "ranking", element: <RankingPage /> },
-          { path: "profile", element: <ProfilePage /> },
+          {
+            // Nível 2: Rotas que exigem autenticação E facção
+            element: <FactionLayout />,
+            children: [
+              { path: "dashboard", element: <DashboardPage /> },
+              { path: "contracts", element: <ContractsPage /> },
+              { path: "reckoning", element: <ReckoningPage /> },
+              { path: "squad-war", element: <SquadWarPage /> },
+              { path: "supply-extraction", element: <SupplyExtractionPage /> },
+              { path: "recovery-base", element: <RecoveryBasePage /> },
+              { path: "isolation", element: <IsolationPage /> },
+              { path: "dark-zones", element: <DarkZonesPage /> },
+              { path: "parallel-network", element: <ParallelNetworkPage /> },
+              { path: "safe", element: <SafePage /> },
+              { path: "corporations", element: <CorporationsPage /> },
+              { path: "qg", element: <QGPage /> },
+              { path: "social-zone", element: <SocialZonePage /> },
+              { path: "training", element: <TrainingPage /> },
+              { path: "digital-identity", element: <DigitalIdentityPage /> },
+              { path: "vip-access", element: <VipAccessPage /> },
+              { path: "restricted-store", element: <RestrictedStorePage /> },
+              { path: "ranking", element: <RankingPage /> },
+              { path: "profile", element: <ProfilePage /> },
+            ],
+          },
         ],
       },
     ],

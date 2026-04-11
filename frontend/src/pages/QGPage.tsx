@@ -1,30 +1,22 @@
 import React from 'react';
-import { useUserProfile } from '../hooks/useUserProfile';
-import LoadingSpinner from '../components/ui/LoadingSpinner';
+import { useUserProfileContext } from '../contexts/UserProfileContext';
 import SelecaoClasPage from './SelecaoClasPage';
 import ClanPage from './ClanPage';
 
 const QGPage: React.FC = () => {
-  const { userProfile, loading } = useUserProfile();
+  const { userProfile } = useUserProfileContext();
 
-  if (loading) {
-    return <LoadingSpinner />;
-  }
-
+  // Fallback leve e não bloqueante, conforme solicitado.
+  // Garante que a página não quebre se o perfil ainda não estiver disponível.
   if (!userProfile) {
-    // Idealmente, o usuário não deveria chegar aqui sem perfil,
-    // mas é bom ter um fallback.
-    return <div>Erro ao carregar perfil. Tente novamente.</div>;
+    return <div className="p-4 text-white">Carregando...</div>;
   }
 
-  // Se o usuário tem um clã, mostra a página do clã.
-  // A propriedade 'clan_id' ou similar deve existir no seu userProfile.
-  // Ajuste o nome da propriedade conforme sua estrutura de dados.
+  // Lógica principal da página, que agora usa a fonte de dados correta.
   if (userProfile.clan_id) {
     return <ClanPage />;
   }
 
-  // Se não tiver clã, mostra a página de seleção de clãs.
   return <SelecaoClasPage />;
 };
 

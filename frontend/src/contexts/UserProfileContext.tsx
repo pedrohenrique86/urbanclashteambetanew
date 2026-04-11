@@ -99,12 +99,21 @@ export const UserProfileProvider: React.FC<{ children: React.ReactNode }> = ({
       } else {
         setUserProfile(null);
       }
-    } catch (error) {
-      console.error("Erro ao buscar o perfil do usuário:", error);
-      setUserProfile(null);
-    } finally {
-      setLoading(false);
-    }
+    } catch (error: any) {
+        console.error("Falha ao buscar perfil do usuário:", error);
+        // Se o erro for de autorização (401), o token é inválido. Desloga.
+        if (error.response && error.response.status === 401) {
+          await logout();
+          navigate("/");
+          setUserProfile(null);
+        } else {
+          // Para outros erros (rede, etc.), não desloga para não perder a sessão.
+          // Apenas garantimos que o perfil não fique em estado inconsistente.
+          setUserProfile(null);
+        }
+      } finally {
+        setLoading(false);
+      }
   }, [user, processProfileData]);
 
   const refreshProfile = useCallback(async () => {

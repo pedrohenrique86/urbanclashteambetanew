@@ -1,14 +1,14 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
-import { useUserProfile } from "../hooks/useUserProfile";
+import { useUserProfileContext } from "../contexts/UserProfileContext";
 import { useTheme } from "../contexts/ThemeContext";
 import { apiClient } from "../lib/supabaseClient";
-import { ClanChat } from "../components/clan/ClanChat"; // 1. Importar o componente do chat
+import { ClanChat } from "../components/clan/ClanChat";
 
 type Player = {
-  id: string;
-  user_id: string;
+  id?: string;
+  user_id?: string;
   username: string;
   display_name?: string;
   level?: number;
@@ -31,11 +31,8 @@ type ClanData = {
 export default function ClanPage() {
   const navigate = useNavigate();
   const { themeClasses } = useTheme();
-  const {
-    userProfile,
-    loading: profileLoading,
-    setUserProfile,
-  } = useUserProfile();
+  const { userProfile, setUserProfile } = useUserProfileContext();
+
   const [clan, setClan] = useState<ClanData | null>(null);
   const [clanLoading, setClanLoading] = useState<boolean>(true);
   const [clanError, setClanError] = useState<string | null>(null);
@@ -60,32 +57,34 @@ export default function ClanPage() {
 
   const availableSlots = useMemo(() => {
     if (!clan) return 0;
-    if (typeof clan.available_slots === "number") return clan.available_slots;
+
+    if (typeof clan.available_slots === "number") {
+      return clan.available_slots;
+    }
+
     if (
       typeof clan.max_members === "number" &&
       typeof clan.member_count === "number"
     ) {
       return Math.max(clan.max_members - clan.member_count, 0);
     }
+
     return 0;
   }, [clan]);
 
   useEffect(() => {
-    if (!profileLoading) {
-      if (!userProfile?.clan_id) {
-        navigate("/clan-selection", {
-          state: { faction: userProfile?.faction },
-        });
-        return;
-      }
+    if (userProfile?.clan_id) {
       fetchClan(userProfile.clan_id);
+    } else if (userProfile) {
+      navigate("/qg", { replace: true });
     }
-  }, [profileLoading, userProfile?.clan_id, userProfile?.faction, navigate]);
+  }, [userProfile, navigate]);
 
   const fetchClan = async (clanId: string) => {
     try {
       setClanLoading(true);
       setClanError(null);
+
       const data = await apiClient.getClan(clanId);
 
       const rawClan = data?.clan || data || {};
@@ -106,7 +105,6 @@ export default function ClanPage() {
         members: Array.isArray(rawMembers) ? rawMembers : [],
       };
 
-      // Se não vier lista de membros, tentar endpoint dedicado
       if (
         (!normalized.members || normalized.members.length === 0) &&
         normalized.id
@@ -114,6 +112,7 @@ export default function ClanPage() {
         try {
           const m = await apiClient.getClanMembers(String(normalized.id));
           const membersList = m?.members || m || [];
+
           normalized = {
             ...normalized,
             members: Array.isArray(membersList) ? membersList : [],
@@ -122,12 +121,12 @@ export default function ClanPage() {
               : normalized.member_count,
           };
         } catch (error) {
-          /* silencioso: seguir com membros vazios */
+          console.warn("Falha ao carregar membros do clã:", error);
         }
       }
 
       setClan(normalized);
-    } catch (e: unknown) {
+    } catch (e) {
       setClanError("Erro ao carregar dados do clã");
     } finally {
       setClanLoading(false);
@@ -136,14 +135,16 @@ export default function ClanPage() {
 
   const handleLeaveClan = async () => {
     if (!clan?.id || !userProfile) return;
+
     try {
       setLeaving(true);
+
       await apiClient.leaveClan(clan.id);
-      // Atualização otimista: remove o clan_id do estado local
+
       setUserProfile({ ...userProfile, clan_id: undefined });
-      // Navega para a página QG, que irá renderizar a seleção de clãs
+
       navigate("/qg");
-    } catch (e: unknown) {
+    } catch (e) {
       setClanError("Erro ao sair do clã");
     } finally {
       setLeaving(false);
@@ -151,28 +152,27 @@ export default function ClanPage() {
     }
   };
 
-  if (profileLoading || clanLoading) {
+  if (clanLoading) {
     return (
-      <div
-        className={`min-h-screen ${themeClasses.bg} flex items-center justify-center`}
-      >
-        <div className="animate-spin h-8 w-8 border-4 border-gray-600 border-t-transparent rounded-full" />
+      <div className={`min-h-screen ${themeClasses.bg} flex items-center justify-center`}>
+        <div className="text-white">Carregando dados do clã...</div>
       </div>
     );
   }
 
   if (clanError) {
     return (
-      <div
-        className={`min-h-screen ${themeClasses.bg} flex items-center justify-center`}
-      >
-        <div
-          className={`${themeClasses.cardBg} p-6 rounded-lg border ${themeClasses.border} text-center`}
-        >
+      <div className={`min-h-screen ${themeClasses.bg} flex items-center justify-center`}>
+        <div className={`${themeClasses.cardBg} p-6 rounded-lg border ${themeClasses.border} text-center`}>
           <p className="text-red-400 mb-4">{clanError}</p>
+
           <button
             type="button"
-            onClick={() => fetchClan(String(userProfile?.clan_id))}
+            onClick={() => {
+              if (userProfile?.clan_id) {
+                fetchClan(userProfile.clan_id);
+              }
+            }}
             className="px-4 py-2 bg-blue-600 rounded hover:bg-blue-500 transition-colors"
           >
             Tentar Novamente
@@ -189,262 +189,99 @@ export default function ClanPage() {
       transition={{ duration: 0.5 }}
       className={`min-h-screen ${themeClasses.bg} text-white font-exo max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-6 space-y-6`}
     >
-      <div
-        className={`rounded-xl p-6 bg-gradient-to-r ${factionColor.gradient} shadow-xl ring-2 ${factionColor.ring}`}
-      >
+      <div className={`rounded-xl p-6 bg-gradient-to-r ${factionColor.gradient} shadow-xl ring-2 ${factionColor.ring}`}>
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl sm:text-3xl font-orbitron font-extrabold tracking-tight">
               {clan?.name || "Clã"}
             </h1>
+
             <p className="text-sm text-white/80 mt-1">
-              {clan?.description || "Sem descrição"}
+              {clan?.description || "Descrição do clã."}
             </p>
           </div>
-          <button
-            type="button"
-            onClick={() => setConfirmLeave(true)}
-            className="px-4 py-2 bg-black/30 hover:bg-black/40 rounded-lg text-white font-bold border border-white/30 transition-colors"
-          >
-            Sair do Clã
-          </button>
-        </div>
-      </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div
-          className={`${themeClasses.cardBg} rounded-xl p-4 border ${themeClasses.border} shadow`}
-        >
-          <div className="text-xs text-gray-400">Força do Clã</div>
-          <div className="text-3xl font-extrabold mt-1">{clan?.score ?? 0}</div>
-        </div>
-        <div
-          className={`${themeClasses.cardBg} rounded-xl p-4 border ${themeClasses.border} shadow`}
-        >
-          <div className="text-xs text-gray-400">Cofre</div>
-          <div className="text-3xl font-extrabold mt-1">
-            R$ {(clan?.vault ?? 0).toLocaleString("pt-BR")}
-          </div>
-        </div>
-        <div
-          className={`${themeClasses.cardBg} rounded-xl p-4 border ${themeClasses.border} shadow`}
-        >
-          <div className="text-xs text-gray-400">Vagas</div>
-          <div className="text-3xl font-extrabold mt-1">
-            {clan?.member_count ?? 0}/{clan?.max_members ?? 0}{" "}
-            <span className="text-sm text-gray-400">
-              ({availableSlots} livres)
-            </span>
+          <div className="text-right">
+            <p className="text-lg font-bold">{clan?.score || 0}</p>
+            <p className="text-xs text-white/70">PONTUAÇÃO</p>
           </div>
         </div>
       </div>
 
-      {/* Container principal para Chat e Membros */}
-      <div className="flex flex-col md:flex-row md:space-x-4 space-y-6 md:space-y-0">
-        {/* Coluna do Chat (Esquerda) */}
-        <div
-          className={`md:w-3/5 ${themeClasses.cardBg} rounded-xl border ${themeClasses.border} shadow flex flex-col h-[500px]`}
-        >
-          <div
-            className={`px-4 py-3 border-b ${themeClasses.border} flex-shrink-0`}
-          >
-            <h2 className="text-lg font-bold">Comunicações do Clã</h2>
-          </div>
-          <div className="flex-grow overflow-y-auto">
-            <ClanChat />
-          </div>
-        </div>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2 space-y-6">
+          <div className={`${themeClasses.cardBg} p-6 rounded-xl border ${themeClasses.border}`}>
+            <h2 className={`text-xl font-bold mb-4 ${factionColor.accent}`}>
+              MEMBROS ({clan?.member_count || 0} / {clan?.max_members || 0})
+            </h2>
 
-        {/* Coluna de Membros (Direita) */}
-        <div
-          className={`md:w-2/5 ${themeClasses.cardBg} rounded-xl border ${themeClasses.border} shadow overflow-hidden flex flex-col h-[500px]`}
-        >
-          <div
-            className={`px-4 py-3 border-b ${themeClasses.border} flex items-center justify-between flex-shrink-0`}
-          >
-            <h2 className="text-lg font-bold">Membros</h2>
-            <span className={`text-xs font-bold ${factionColor.accent}`}>
-              {clan?.members?.length ?? clan?.member_count ?? 0} membros
-            </span>
-          </div>
-          <ul className="divide-y divide-gray-700/60 overflow-y-auto flex-grow">
-            {(clan?.members ?? []).map((m: Player) => {
-              const mid = String(m.id || m.user_id);
-              const voterId = String(
-                userProfile?.user_id || userProfile?.id || "me",
-              );
-              const keyVotes = clan?.id ? `clan_votes:${clan.id}:${mid}` : "";
-              let votesSize = 0;
-              if (keyVotes) {
-                try {
-                  const lst = JSON.parse(
-                    localStorage.getItem(keyVotes) || "[]",
-                  );
-                  votesSize = Array.isArray(lst) ? lst.length : 0;
-                } catch (e) {
-                  /* Falha ao parsear votos do localStorage */
-                }
-              }
-              const total = clan?.members?.length ?? clan?.member_count ?? 1;
-              const threshold = Math.ceil(total / 2);
-              const isSelf = voterId === mid;
-              const banKey = clan?.id ? `clan_banlist:${clan.id}` : "";
-              let isBanned = false;
-              if (banKey) {
-                try {
-                  const obj: { [key: string]: string } = JSON.parse(
-                    localStorage.getItem(banKey) || "{}",
-                  );
-                  const exp = obj[mid];
-                  isBanned = !!exp && new Date(exp).getTime() > Date.now();
-                } catch (e) {
-                  /* Falha ao parsear banlist do localStorage */
-                }
-              }
-              return (
+            <ul className="space-y-3">
+              {clan?.members?.map((member, index) => (
                 <li
-                  key={mid}
-                  className="px-4 py-3 flex items-center justify-between"
+                  key={member.id || member.user_id || `${member.username}-${index}`}
+                  className="flex items-center justify-between p-3 bg-black/20 rounded-lg"
                 >
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded bg-gray-700 flex items-center justify-center font-bold">
-                      {(m.username || m.display_name || "U")
-                        .charAt(0)
-                        .toUpperCase()}
-                    </div>
-                    <div>
-                      <div className="font-semibold flex items-center gap-2">
-                        <span>{m.username || m.display_name || "Usuário"}</span>
-                        {isBanned && (
-                          <span className="text-[10px] px-2 py-0.5 rounded bg-red-600/40 border border-red-500/50">
-                            BANIDO 24h
-                          </span>
-                        )}
-                      </div>
-                      <div className="text-xs text-gray-400">
-                        Nível {m.level ?? "-"}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <div className="text-xs text-gray-400">
-                      {m.role || "Membro"}
-                    </div>
-                    {!isSelf && !isBanned && (
-                      <button
-                        type="button"
-                        onClick={async () => {
-                          if (!clan?.id) return;
-                          const key = `clan_votes:${clan.id}:${mid}`;
-                          let setVotes = new Set<string>();
-                          try {
-                            const arr = JSON.parse(
-                              localStorage.getItem(key) || "[]",
-                            );
-                            if (Array.isArray(arr)) setVotes = new Set(arr);
-                          } catch (e) {
-                            /* Falha ao parsear votos do localStorage para votar */
-                          }
-                          setVotes.add(voterId);
-                          localStorage.setItem(
-                            key,
-                            JSON.stringify(Array.from(setVotes)),
-                          );
-                          const totalMembers =
-                            clan?.members?.length ?? clan?.member_count ?? 1;
-                          const th = Math.ceil(totalMembers / 2);
-                          if (setVotes.size >= th) {
-                            try {
-                              await apiClient.kickMember(String(clan.id), mid);
-                            } catch (e) {
-                              /* Ignorar erro ao kickar, o processo continua */
-                              const bKey = `clan_banlist:${clan.id}`;
-                              const obj: { [key: string]: string } = {};
-                              try {
-                                const existing = localStorage.getItem(bKey);
-                                if (existing) {
-                                  Object.assign(obj, JSON.parse(existing));
-                                }
-                              } catch (parseError) {
-                                /* Falha ao parsear banlist */
-                              }
-                              obj[mid] = new Date(
-                                Date.now() + 24 * 3600 * 1000,
-                              ).toISOString();
-                              localStorage.setItem(bKey, JSON.stringify(obj));
-                            }
-                            // remover da lista local
-                            setClan((prev) => {
-                              if (!prev) return prev;
-                              const filtered = (prev.members || []).filter(
-                                (member) =>
-                                  String(member.id || member.user_id) !== mid,
-                              );
-                              return {
-                                ...prev,
-                                members: filtered,
-                                member_count: filtered.length,
-                              };
-                            });
-                          } else {
-                            // Força a re-renderização para atualizar a contagem de votos
-                            setClan((c) => ({ ...c }) as ClanData);
-                          }
-                        }}
-                        className="text-xs px-2 py-1 rounded bg-red-600 hover:bg-red-500 transition-colors font-bold"
-                        title={`Votos: ${votesSize}/${threshold}`}
-                      >
-                        Votar expulsão ({votesSize}/{threshold})
-                      </button>
-                    )}
-                  </div>
+                  <span className="font-semibold">{member.username}</span>
+                  <span className="text-sm text-gray-400">
+                    Nível {member.level || 1}
+                  </span>
                 </li>
-              );
-            })}
-            {(!clan?.members || clan.members.length === 0) && (
-              <li className="px-4 py-6 text-center text-gray-400">
-                Nenhum membro listado
-              </li>
-            )}
-          </ul>
-          {(clan?.members?.length ?? clan?.member_count ?? 0) <= 1 && (
-            <div className="px-4 py-3 text-xs text-gray-400 border-t border-gray-700/60 flex-shrink-0">
-              Adicione mais membros para habilitar a votação de expulsão.
-            </div>
-          )}
+              ))}
+            </ul>
+          </div>
+        </div>
+
+        <div className="space-y-6">
+          <div className={`${themeClasses.cardBg} p-6 rounded-xl border ${themeClasses.border}`}>
+            <h2 className={`text-xl font-bold mb-4 ${factionColor.accent}`}>
+              OPÇÕES DO CLÃ
+            </h2>
+
+            <button
+              type="button"
+              onClick={() => setConfirmLeave(true)}
+              className="w-full px-4 py-2 bg-red-800 rounded hover:bg-red-700 transition-colors font-semibold"
+            >
+              Sair do Clã
+            </button>
+          </div>
+
+          <ClanChat />
         </div>
       </div>
 
       {confirmLeave && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
-          <div
-            className={`${themeClasses.cardBg} border ${themeClasses.border} rounded-xl p-6 w-[90%] max-w-md`}
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
+          <motion.div
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className={`${themeClasses.cardBg} p-8 rounded-2xl border ${themeClasses.border} shadow-2xl max-w-sm w-full text-center`}
           >
-            <div className="text-lg font-bold mb-2">
-              Confirmar saída do clã?
-            </div>
-            <div className="text-sm text-gray-300 mb-4">
-              Você só poderá entrar novamente neste clã após 24 horas reais.
-              Deseja continuar?
-            </div>
-            <div className="flex items-center justify-end gap-2">
+            <h3 className="text-xl font-bold mb-4">Confirmar Saída</h3>
+
+            <p className="text-gray-300 mb-6">
+              Tem certeza de que deseja sair do clã &quot;{clan?.name}&quot;?
+            </p>
+
+            <div className="flex justify-center gap-4">
               <button
                 type="button"
                 onClick={() => setConfirmLeave(false)}
-                className="px-4 py-2 rounded bg-gray-700 hover:bg-gray-600 transition-colors"
+                className="px-6 py-2 bg-gray-600 rounded hover:bg-gray-500 transition-colors"
               >
                 Cancelar
               </button>
+
               <button
                 type="button"
                 onClick={handleLeaveClan}
                 disabled={leaving}
-                className="px-4 py-2 rounded bg-red-600 hover:bg-red-500 disabled:opacity-50 transition-colors font-bold"
+                className="px-6 py-2 bg-red-800 rounded hover:bg-red-700 transition-colors disabled:opacity-50"
               >
-                {leaving ? "Saindo..." : "Confirmar"}
+                {leaving ? "Saindo..." : "Sair"}
               </button>
             </div>
-          </div>
+          </motion.div>
         </div>
       )}
     </motion.div>
