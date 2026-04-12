@@ -7,118 +7,123 @@
 
 ## 📌 Visão Geral do Projeto
 
-O **UrbanClash Team** é uma aplicação web full-stack estruturada como um **monorepo**, composta por:
+O **UrbanClash Team** é uma aplicação web full-stack, desenvolvida como um **monorepo** para facilitar a integração e o desenvolvimento contínuo. O projeto é dividido em duas partes principais:
 
-- **Frontend:** React + TypeScript  
-- **Backend:** Node.js + Express  
+- **Frontend:** Uma interface de usuário moderna e reativa construída com **React** e **TypeScript**.
+- **Backend:** Uma API robusta e escalável, utilizando **Node.js** e **Express**.
 
-A aplicação possui características de **jogo multiplayer com gamificação**, incluindo:
+A aplicação incorpora elementos de **gamificação e interação social**, como um sistema de clãs, perfis de jogadores com atributos (ataque, defesa), pontos de ação e progressão de nível, criando uma experiência de jogo multiplayer envolvente.
 
-- Sistema de clãs  
-- Perfis de jogador  
-- Atributos (ataque, defesa, etc.)  
-- Pontos de ação  
-- Progressão por níveis  
-
-O ambiente de desenvolvimento é orquestrado com `concurrently`, permitindo rodar frontend e backend simultaneamente, e o uso de **Docker** garante consistência entre ambientes.
+Para garantir um ambiente de desenvolvimento consistente e eficiente, o projeto utiliza `concurrently` para executar o frontend e o backend simultaneamente. Além disso, o **Docker** é empregado para orquestrar os serviços essenciais, como o banco de dados, garantindo que o ambiente de desenvolvimento seja o mais próximo possível do de produção.
 
 ---
 
 ## 🧰 Tech Stack
 
 ### Frontend
-- React 18  
-- TypeScript  
-- Vite  
-- Tailwind CSS  
-- React Router DOM  
-- Axios  
-- Socket.IO Client  
-- ESLint  
+- **Framework:** React 18
+- **Linguagem:** TypeScript
+- **Build Tool:** Vite
+- **Estilização:** Tailwind CSS
+- **Roteamento:** React Router DOM
+- **Requisições HTTP:** Axios
+- **Comunicação em Tempo Real:** Socket.IO Client
+- **Linting:** ESLint
+- **Ícones:** Lucide React, React Icons
 
 ### Backend
-- Node.js  
-- Express.js  
-- JavaScript (ESM)  
-- PostgreSQL  
-- pg (cliente nativo)  
-- node-pg-migrate  
-- JWT  
-- Socket.IO  
-- Redis (@upstash/redis)  
-- express-validator  
+- **Plataforma:** Node.js
+- **Framework:** Express.js
+- **Linguagem:** JavaScript (ESM)
+- **Banco de Dados:** PostgreSQL
+- **Cliente PostgreSQL:** pg
+- **Migrations:** node-pg-migrate
+- **Autenticação:** JSON Web Token (JWT)
+- **Comunicação em Tempo Real:** Socket.IO
+- **Cache:** Redis (com `@upstash/redis`)
+- **Validação de Requisições:** express-validator
+- **Segurança:** Helmet, CORS, express-rate-limit
 
 ### DevOps & Ferramentas
-- npm  
-- concurrently  
-- Docker / docker-compose  
-- dotenv  
+- **Gerenciador de Pacotes:** npm
+- **Execução Concorrente:** concurrently
+- **Contêineres:** Docker / docker-compose
+- **Variáveis de Ambiente:** dotenv
+- **Monitoramento:** nodemon
+- **Testes (Backend):** Jest, Supertest
 
 ---
 
 ## 📁 Estrutura do Projeto
 urbanclashteam/
 ├── backend/
-│ ├── config/
-│ ├── middleware/
-│ ├── migrations/
-│ ├── routes/
-│ ├── services/
-│ ├── package.json
-│ └── server.js
+│   ├── config/
+│   ├── middleware/
+│   ├── migrations/
+│   ├── node_modules/
+│   ├── routes/
+│   ├── .env
+│   ├── server.js
+│   └── package.json
 ├── frontend/
-│ ├── public/
-│ ├── src/
-│ │ ├── components/
-│ │ ├── lib/
-│ │ ├── pages/
-│ │ └── services/
-│ ├── package.json
-│ └── vite.config.ts
-├── config/
-│ └── scripts/
+│   ├── public/
+│   ├── src/
+│   │   ├── components/
+│   │   ├── lib/
+│   │   ├── pages/
+│   │   └── services/
+│   ├── node_modules/
+│   ├── index.html
+│   ├── package.json
+│   └── vite.config.ts
+├── .ai/
+├── .husky/
 ├── docker-compose.yml
 ├── package.json
-└── README.md
-
-text
+└── .gitignore
 
 ---
 
 ## 🎮 Lógica de Negócio
 
-### Usuários
-- Cadastro e login com JWT  
-- Proteção de rotas  
+### Usuários e Autenticação
+- **Cadastro e Login:** Sistema seguro de autenticação baseado em JSON Web Token (JWT).
+- **Proteção de Rotas:** Middleware para garantir que apenas usuários autenticados possam acessar rotas protegidas.
 
-### Perfil
-- Nível, XP  
-- Atributos  
-- Dinheiro  
-- Pontos de ação  
+### Perfil do Jogador
+- **Atributos:** Gerenciamento de atributos como nível, experiência (XP), dinheiro e pontos de ação.
+- **Progressão:** Lógica para evolução do jogador com base em suas ações no jogo.
 
-### Clãs
-- Criação  
-- Membros  
-- Liderança  
+### Clãs e Interação Social
+- **Criação e Gerenciamento:** Funcionalidades para criar clãs, convidar membros e definir liderança.
+- **Interação:** Mecanismos para interação entre membros do mesmo clã.
 
-### Tempo Real
-- Socket.IO para eventos  
-- Redis para dados voláteis  
+### Funcionalidades em Tempo Real
+- **Eventos com Socket.IO:** Utilização de WebSockets para comunicação instantânea de eventos, como atualizações de estado e notificações.
+- **Gerenciamento de Estado Volátil com Redis:** Uso de Redis para armazenar dados de acesso rápido e estado temporário, como sessões de usuários online.
 
 ---
 
-## ⚙️ Setup do Projeto
+## ⚙️ Setup e Comandos
 
-```bash
-# Instalar todas as dependências (root, frontend, backend)
-npm run install:all
+Para configurar e executar o ambiente de desenvolvimento, siga os passos abaixo.
 
-# Rodar frontend e backend em modo desenvolvimento (concurrently)
-npm run dev
+1.  **Instalar todas as dependências** (root, frontend e backend):
+    ```bash
+    npm run install:all
+    ```
 
-# Subir banco de dados (PostgreSQL) com Docker
-docker-compose up -d
+2.  **Subir os serviços com Docker** (PostgreSQL e Redis):
+    ```bash
+    docker-compose up -d
+    ```
 
-# Rodar migrations no backend
-npm run migrate:up --prefix backend
+3.  **Executar as migrations** do banco de dados no backend:
+    ```bash
+    npm run migrate:up --prefix backend
+    ```
+
+4.  **Rodar o projeto em modo de desenvolvimento** (frontend e backend simultaneamente):
+    ```bash
+    npm run dev
+    ```

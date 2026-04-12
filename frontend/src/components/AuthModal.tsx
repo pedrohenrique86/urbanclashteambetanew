@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import api from "../lib/api";
 import { useAuth } from "../contexts/AuthContext";
 import { useUserProfileContext } from "../contexts/UserProfileContext";
+import { startGoogleLoginFlow } from '../services/authService';
 
 type AuthMode = "login" | "register" | "forgot-password";
 
@@ -152,61 +153,8 @@ export default function AuthModal({
     (import.meta.env?.VITE_GOOGLE_OAUTH_ENABLED ?? "true") !== "false";
 
   const handleGoogleLogin = async (intent: "login" | "register") => {
-    // PKCE: Criar o code verifier e o code challenge
-    const generateRandomString = (length: number) => {
-      const possible =
-        "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-      let text = "";
-      for (let i = 0; i < length; i++) {
-        text += possible.charAt(Math.floor(Math.random() * possible.length));
-      }
-      return text;
-    };
-
-    const sha256 = async (plain: string) => {
-      const encoder = new TextEncoder();
-      const data = encoder.encode(plain);
-      return window.crypto.subtle.digest("SHA-256", data);
-    };
-
-    const base64urlencode = (a: ArrayBuffer) => {
-      return btoa(String.fromCharCode(...new Uint8Array(a)))
-        .replace(/\+/g, "-")
-        .replace(/\//g, "_")
-        .replace(/=+$/, "");
-    };
-
-    const codeVerifier = generateRandomString(128);
-    sessionStorage.setItem("google_code_verifier", codeVerifier);
-    sessionStorage.setItem("google_auth_intent", intent); // Salva o intent
-
-    // Salva o país no sessionStorage se estiver disponível para capturar em novos registros via Google
-    if (formData.country) {
-      sessionStorage.setItem("google_auth_country", formData.country);
-    }
-
-    const hashed = await sha256(codeVerifier);
-    const codeChallenge = base64urlencode(hashed);
-
-    const redirectUri = `${window.location.origin}/auth/google/callback`;
-
-    // Objeto state para serialização
-    const state = {
-      intent: intent,
-      country: formData.country || null, // Garante que country seja null se não definido
-    };
-
-    const params = new URLSearchParams({
-      redirect_uri: redirectUri,
-      code_challenge: codeChallenge,
-      code_challenge_method: "S256",
-      // O state é passado como uma string JSON para o backend, que o encaminhará ao Google
-      state: JSON.stringify(state),
-    });
-
-    const startUrl = `${import.meta.env.VITE_API_URL || ""}/api/auth/google/start?${params.toString()}`;
-
-    window.location.href = startUrl;
+    // Chama a função centralizada, passando a intenção e o país (se disponível)
+    await startGoogleLoginFlow(intent, formData.country);
   };
 
   // Função para validar palavrões (simulação de API)

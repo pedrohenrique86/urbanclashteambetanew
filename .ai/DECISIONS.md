@@ -7,37 +7,37 @@
 
 ## 1. Decisões Arquiteturais
 
-- **Estrutura de Monorepo:** O projeto é organizado em um monorepo com workspaces distintos para `frontend` e `backend`. A orquestração é feita via `npm` na raiz, utilizando `concurrently` para gerenciar os processos.
+- **Estrutura de Monorepo:** O projeto é organizado em um monorepo com workspaces distintos para `frontend` e `backend`. A orquestração é feita via `npm` na raiz, utilizando `concurrently` para gerenciar os processos de desenvolvimento simultaneamente.
 
 - **Stack Tecnológica:**
-  - **Frontend:** React com TypeScript, utilizando Vite como bundler. Esta escolha favorece a performance no desenvolvimento (`HMR`) e a robustez do TypeScript.
-  - **Backend:** Node.js com Express.js. Uma escolha minimalista e performática para a construção de APIs REST.
+  - **Frontend:** React com TypeScript e Vite como bundler. Esta combinação oferece excelente performance de desenvolvimento (com Hot Module Replacement) e a segurança de tipos do TypeScript.
+  - **Backend:** Node.js com Express.js, uma escolha clássica, minimalista e performática para a construção de APIs RESTful.
 
-- **Banco de Dados:** PostgreSQL é o banco de dados relacional principal. A interação não utiliza um ORM completo (como Prisma ou Sequelize), mas sim o driver `pg` diretamente, o que oferece controle máximo sobre as queries SQL.
+- **Banco de Dados:** PostgreSQL é o banco de dados relacional principal. A interação é feita diretamente com o driver `pg`, o que proporciona controle total sobre as queries SQL, sem a abstração de um ORM.
 
-- **Migrações de Schema:** As migrações do banco de dados são gerenciadas pela biblioteca `node-pg-migrate`, garantindo um versionamento explícito e controlado do schema.
+- **Migrações de Schema:** As migrações do banco de dados são gerenciadas pela biblioteca `node-pg-migrate`, garantindo um versionamento explícito e controlado do schema da base de dados.
 
-- **Comunicação em Tempo Real:** WebSockets são implementados com a biblioteca `socket.io` para funcionalidades que exigem comunicação bidirecional e instantânea entre cliente e servidor.
+- **Comunicação em Tempo Real:** WebSockets são implementados com a biblioteca `socket.io` para funcionalidades que exigem comunicação bidirecional e instantânea, como notificações e atualizações de estado do jogo.
 
-- **Cache e Serviços Auxiliares:** Redis é utilizado como um armazenamento de dados em memória, indicado pela dependência `@upstash/redis` e pelo script de inicialização que aguarda o serviço na porta `6379`.
+- **Cache e Dados Voláteis:** Redis é utilizado como um armazenamento de dados em memória, principalmente para sessões e dados de acesso rápido. A integração é feita via `@upstash/redis`.
 
-- **Containerização:** Docker e `docker-compose` são utilizados para padronizar e orquestrar o ambiente de desenvolvimento, incluindo o banco de dados e outros serviços como o Redis.
+- **Containerização:** Docker e `docker-compose` são utilizados para padronizar e orquestrar o ambiente de desenvolvimento, incluindo serviços essenciais como PostgreSQL e Redis.
 
 ---
 
 ## 2. Padrões de Código
 
-- **Backend - Arquitetura de Serviços:** A lógica de negócio é encapsulada em "serviços" (ex: `actionPointsService`, `gameStateService`), separando as responsabilidades das camadas de rota e de acesso a dados.
+- **Backend - Arquitetura em Camadas:** A lógica de negócio é organizada em uma arquitetura de camadas, separando `routes` (controladores), `services` (lógica de negócio) e acesso a dados, promovendo a separação de responsabilidades.
 
-- **Backend - Padrão de Middleware:** O Express utiliza middlewares de forma extensiva para tarefas transversais, como autenticação (`middleware/auth.js`), logging (`morgan`) e segurança (`helmet`).
+- **Backend - Padrão de Middleware:** O Express utiliza middlewares de forma extensiva para tarefas transversais como autenticação (`middleware/auth.js`), logging de requisições (`morgan`), e segurança (`helmet`, `cors`).
 
-- **Frontend - Arquitetura de Componentes:** A UI é construída com base em componentes React, seguindo uma estrutura clara em `src/components`.
+- **Frontend - Arquitetura de Componentes:** A interface do usuário é construída com base em componentes React reutilizáveis, organizados de forma clara em `src/components`.
 
-- **Frontend - Gerenciamento de Estado:** O estado local é gerenciado por hooks do React (`useState`, `useEffect`). Para dados de servidor, `swr` ("stale-while-revalidate") é o padrão para fetching, cache e revalidação.
+- **Frontend - Gerenciamento de Estado e Dados:** O estado local é gerenciado por hooks nativos do React (`useState`, `useEffect`). Para o fetching de dados do servidor, `swr` é o padrão, oferecendo uma estratégia eficiente de "stale-while-revalidate" para cache e revalidação automática.
 
-- **Frontend - Estilização:** A estilização é feita primariamente com Tailwind CSS. Configurações de tema (cores, fontes) estão centralizadas em `tailwind.config.cjs`.
+- **Frontend - Estilização:** A estilização é feita primariamente com Tailwind CSS, permitindo um desenvolvimento rápido e consistente. As configurações de tema (cores, fontes) estão centralizadas em `tailwind.config.js`.
 
-- **Frontend - Path Aliasing:** Para evitar imports relativos complexos (`../../../`), foram configurados aliases de caminho no `tsconfig.json` (ex: `components/*`, `services/*`).
+- **Frontend - Path Aliasing:** Para evitar imports relativos complexos (como `../../../`), foram configurados aliases de caminho no `vite.config.ts` e `tsconfig.json`, permitindo imports mais limpos (ex: `@/components/*`).
 
 ---
 
@@ -47,13 +47,13 @@
 
 - **Variáveis de Ambiente:** A configuração de ambiente é gerenciada por arquivos `.env`, carregados pelo pacote `dotenv`. Arquivos `.env` são estritamente locais e não devem ser versionados (`.gitignore`).
 
-- **Proxy de API:** No ambiente de desenvolvimento, todas as chamadas do frontend para `/api` são redirecionadas para o servidor backend (`http://localhost:3001`) através do proxy configurado no `vite.config.ts`.
+- **Proxy de API:** No ambiente de desenvolvimento, o frontend não utiliza um proxy configurado no Vite. As chamadas de API são feitas diretamente para o endereço do backend, que deve ser configurado corretamente via variáveis de ambiente.
 
 - **Qualidade de Código:**
-  - **Linting:** ESLint é mandatório e configurado para JavaScript e TypeScript.
-  - **Formatação:** A formatação é automatizada ao salvar, conforme definido em `.vscode/settings.json`.
+  - **Linting:** ESLint é mandatório e está configurado para JavaScript e TypeScript, garantindo um padrão de código consistente.
+  - **Hooks de Git:** `Husky` é utilizado para rodar scripts de validação (como `lint`) antes de cada `commit`, prevenindo a introdução de código com problemas.
 
-- **Scripts de Validação:** Os comandos `predev` e `prebuild` nos `package.json` garantem que as validações de lint e tipo sejam executadas antes de iniciar o servidor de desenvolvimento ou de gerar um build, funcionando como um quality gate.
+- **Scripts de Validação:** Os comandos `predev` e `prebuild` nos `package.json` garantem que as validações de lint e tipo sejam executadas antes de iniciar o servidor de desenvolvimento ou de gerar um build, funcionando como um portão de qualidade (quality gate).
 
 ---
 
@@ -76,33 +76,31 @@ Para que o assistente (Gemini Code Assist) entenda rapidamente a espinha dorsal 
 ### Backend
 | Arquivo | Responsabilidade |
 |---------|------------------|
-| `backend/server.js` | Ponto de entrada do servidor Express. Configura middlewares, rotas e inicializa o servidor. |
-| `backend/config/db.js` | Configuração da conexão com PostgreSQL (pool de conexões). |
-| `backend/config/redis.js` | Configuração do cliente Redis (Upstash ou local). |
-| `backend/middleware/auth.js` | Middleware de autenticação JWT. |
-| `backend/routes/index.js` | Agregador de todas as rotas da API. |
-| `backend/services/index.js` | Agregador de serviços (lógica de negócio). |
-| `backend/services/gameStateService.js` | Gerencia o estado do jogo (cronômetro, rodadas). |
-| `backend/migrations/` | Pasta com as migrações do banco de dados (gerenciadas por `node-pg-migrate`). |
+| `backend/server.js` | Ponto de entrada do servidor Express. Configura middlewares, rotas e inicializa o servidor e o Socket.IO. |
+| `backend/config/database.js` | Configuração da conexão com o PostgreSQL (criação do pool de conexões). |
+| `backend/config/redisClient.js` | Configuração do cliente Redis (Upstash ou local). |
+| `backend/middleware/auth.js` | Middleware de autenticação que valida o token JWT. |
+| `backend/routes/` | Diretório que contém todos os arquivos de rota da API (ex: `authRoutes.js`, `clansRoutes.js`). |
+| `backend/services/` | Diretório que contém a lógica de negócio desacoplada das rotas. |
+| `backend/migrations/` | Pasta com as migrações do banco de dados, gerenciadas por `node-pg-migrate`. |
 
 ### Frontend
 | Arquivo | Responsabilidade |
 |---------|------------------|
-| `frontend/src/main.tsx` | Ponto de entrada da aplicação React. |
-| `frontend/src/App.tsx` | Componente raiz, define rotas e provedores (SWR, etc.). |
-| `frontend/src/pages/HomePage.tsx` | Página inicial (dashboard do jogador). |
-| `frontend/src/components/NavbarCountdown.tsx` | Componente de cronômetro (estado do jogo). |
-| `frontend/src/lib/api.ts` | Cliente HTTP (axios) com base URL e interceptadores. |
-| `frontend/src/services/playerService.ts` | Serviços para buscar dados do jogador. |
-| `frontend/tailwind.config.cjs` | Configuração de tema do Tailwind (cores, fontes). |
-| `frontend/tsconfig.json` | Configuração do TypeScript (inclui path aliases). |
+| `frontend/src/main.tsx` | Ponto de entrada da aplicação React, onde o App é renderizado no DOM. |
+| `frontend/src/App.tsx` | Componente raiz que define a estrutura de roteamento e os provedores globais (SWR, etc.). |
+| `frontend/src/pages/Home.tsx` | Exemplo de página principal ou dashboard do jogador. |
+| `frontend/src/lib/axios.ts` | Instância configurada do Axios para realizar chamadas à API. |
+| `frontend/src/services/` | Diretório com funções que encapsulam a lógica de chamada à API (ex: `playerService.ts`). |
+| `frontend/tailwind.config.js` | Arquivo de configuração do Tailwind CSS para customização do tema. |
+| `frontend/vite.config.ts` | Arquivo de configuração do Vite, incluindo plugins e aliases de caminho. |
 
 ### Raiz / Configuração
 | Arquivo | Responsabilidade |
 |---------|------------------|
-| `package.json` (raiz) | Orquestração com `concurrently` e scripts globais. |
-| `docker-compose.yml` | Orquestração de serviços (PostgreSQL, Redis). |
-| `.env` (não versionado) | Variáveis de ambiente (exemplo em `.env.example`). |
+| `package.json` (raiz) | Orquestra os workspaces `frontend` e `backend` com `concurrently` e define scripts globais. |
+| `docker-compose.yml` | Define e orquestra os serviços de infraestrutura (PostgreSQL, Redis) com Docker. |
+| `.env` (não versionado) | Arquivos para armazenar variáveis de ambiente sensíveis (chaves de API, senhas). |
 
 > **Nota para a IA:** Ao planejar alterações, consulte primeiro os arquivos centrais relevantes para a tarefa. Eles contêm a estrutura e a lógica base que devem ser respeitadas.
 

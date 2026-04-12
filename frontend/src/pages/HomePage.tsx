@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
-import { AnimatePresence, motion } from "framer-motion";
+import { FaSpinner } from "react-icons/fa";
+import { FcGoogle } from "react-icons/fc";
 import AuthModal from "../components/AuthModal";
+import { startGoogleLoginFlow } from "../services/authService";
 import RankingSection from "../components/RankingSection";
 import {
   HeroSection,
@@ -16,11 +18,24 @@ import ScrollToTopButton from "../components/layout/ScrollToTopButton";
 export default function HomePage() {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authMode, setAuthMode] = useState<"login" | "register">("login");
+  const [isGoogleLoginProcessing, setIsGoogleLoginProcessing] = useState(false);
   const { status, remainingTime } = useGameClock(); // Usar o hook para obter o estado do jogo
 
   const openAuthModal = (mode: "login" | "register") => {
     setAuthMode(mode);
     setShowAuthModal(true);
+  };
+
+  const handleGoogleLogin = async () => {
+    setIsGoogleLoginProcessing(true);
+    try {
+      // Chama a função centralizada para iniciar o fluxo de login
+      await startGoogleLoginFlow('login');
+    } catch (error) {
+      console.error("Falha ao iniciar login com Google:", error);
+      // Em caso de erro, reabilita o botão para nova tentativa
+      setIsGoogleLoginProcessing(false);
+    }
   };
 
   return (
@@ -51,8 +66,16 @@ export default function HomePage() {
               )}
             </div>
 
-            {/* Botões de Autenticação - Sempre visíveis, não encolhem */}
-            <div className="flex-shrink-0 flex gap-1 sm:gap-2">
+            {/* Botões de Autenticação */}
+            <div className="flex-shrink-0 flex items-center gap-1 sm:gap-2">
+              <button
+                onClick={handleGoogleLogin}
+                disabled={isGoogleLoginProcessing}
+                className="bg-white p-2 rounded-md sm:rounded-lg transition-all hover:scale-105 flex items-center justify-center disabled:opacity-50"
+                aria-label="Entrar com Google"
+              >
+                {isGoogleLoginProcessing ? <FaSpinner className="animate-spin text-lg" /> : <FcGoogle className="text-lg" />}
+              </button>
               <button
                 onClick={() => openAuthModal("login")}
                 className="bg-orange-600 hover:bg-orange-700 px-2 sm:px-4 py-1 sm:py-2 rounded-md sm:rounded-lg font-bold transition-all hover:scale-105 text-xs sm:text-sm font-orbitron"

@@ -6,36 +6,28 @@ Este arquivo define como o Gemini Code Assist deve se comportar ao gerar ou modi
 
 ## 🎯 OBJETIVO
 
-- Entrega de código SEM falhas
-- Uso do Agent Mode para aplicar alterações automaticamente quando possível
-- Fallback imediato com código completo quando necessário
-- Zero respostas vazias ou incompletas
+- **Entrega de Código Funcional:** Gerar código que seja diretamente aplicável e alinhado com as tecnologias do projeto (React/TypeScript no frontend, Node.js/Express no backend).
+- **Autonomia com Segurança:** Utilizar o modo de execução para aplicar alterações de forma autônoma, sempre que possível, mas com mecanismos de fallback para garantir a integridade do código.
+- **Consistência Arquitetural:** Seguir rigorosamente as decisões definidas no `DECISIONS.md` para manter a consistência do monorepo.
 
 ---
 
-## 🧠 MODO DE OPERAÇÃO
+## 🧠 MODO DE OPERAÇÃO: FOCO NA EXECUÇÃO
 
-O Gemini deve operar em **modo execução**, NÃO em modo explicação.
+O Gemini deve operar em **modo de execução**, priorizando a aplicação de código sobre a explicação.
 
-Após entender o problema:
-
-→ AGIR (usar Agent Mode)  
-→ APLICAR (alterações)  
-→ FINALIZAR
-
-> **Nota:** O Agent Mode é um recurso pré-visualização; ative‑o no topo do chat antes de solicitar alterações automáticas.
+1.  **Analisar:** Entender a solicitação e consultar os arquivos de contexto (`PROJECT_CONTEXT.md`, `DECISIONS.md`).
+2.  **Executar:** Aplicar as alterações diretamente nos arquivos do projeto.
+3.  **Confirmar:** Informar o que foi feito de forma concisa.
 
 ---
 
-## 🚫 PROIBIDO
+## 🚫 REGRAS ESTRITAS (NÃO FAZER)
 
-- Parar após análise sem executar
-- Repetir explicações sem aplicar alterações
-- Enviar "abaixo segue preview" sem código real
-- Depender apenas de respostas textuais quando há suporte a agent
-- Enviar código incompleto
-- Omitir partes do código
-- Inventar código não solicitado
+- **Não parar na análise:** Nunca explicar o que vai ser feito sem efetivamente fazer.
+- **Não enviar código parcial:** Sempre fornecer o bloco de código completo para substituição, a menos que a ferramenta de `diff` seja usada.
+- **Não ignorar o workspace:** Nunca aplicar uma alteração sem especificar claramente se é no `frontend` ou `backend`.
+- **Não inventar arquitetura:** Seguir os padrões de serviços, componentes e rotas já estabelecidos no `DECISIONS.md`.
 
 ---
 
@@ -55,20 +47,46 @@ Após entender o problema:
 
 ---
 
-## 🔥 FALLBACK OBRIGATÓRIO
+## 🔥 FALLBACK OBRIGATÓRIO: CÓDIGO COMPLETO
 
-Se QUALQUER problema ocorrer:
+Se a aplicação automática de código falhar por qualquer motivo (erro da ferramenta, arquivo não encontrado, etc.), o Gemini deve **imediatamente** fornecer o código completo do arquivo, pronto para ser copiado e colado.
 
-- Agent Mode não conseguir aplicar
-- Resposta truncada
-- Dúvida na execução
-- Arquivo não encontrado
+O formato deve ser claro e indicar o caminho completo do arquivo no monorepo.
 
-O Gemini deve IMEDIATAMENTE enviar o **código completo do(s) arquivo(s) afetado(s)** no formato:
+### Exemplo para um Componente React (Frontend):
 
-```markdown
-### 📄 arquivo: [caminho/do/arquivo]
+```tsx c:/Users/Administrador/Documents/urbanclashteambetanew/frontend/src/components/common/Button.tsx
+import React from 'react';
 
-\```[linguagem]
-[código completo]
-\```
+interface ButtonProps {
+  children: React.ReactNode;
+  onClick: () => void;
+}
+
+const Button: React.FC<ButtonProps> = ({ children, onClick }) => {
+  return (
+    <button onClick={onClick} className="bg-blue-500 text-white p-2 rounded">
+      {children}
+    </button>
+  );
+};
+
+export default Button;
+```
+
+### Exemplo para um Serviço (Backend):
+
+```javascript c:/Users/Administrador/Documents/urbanclashteambetanew/backend/services/playerService.js
+import db from '../config/database.js';
+
+const getPlayerById = async (id) => {
+  const { rows } = await db.query('SELECT * FROM players WHERE id = $1', [id]);
+  return rows[0];
+};
+
+export default {
+  getPlayerById,
+};
+```
+
+> **Nota:** O caminho do arquivo deve ser **absoluto e correto**, e a linguagem (`tsx`, `javascript`, etc.) deve ser especificada.
