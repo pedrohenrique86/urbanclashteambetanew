@@ -16,6 +16,12 @@ const TopBar: React.FC<TopBarProps> = ({
   onMenuToggle,
 }) => {
   const { themeClasses } = useTheme();
+
+  // Se o perfil do usuário ainda não foi carregado, não renderiza nada.
+  if (!userProfile) {
+    return null;
+  }
+  
   const usernameGradient =
     userProfile?.faction === "gangsters"
       ? "from-orange-300 to-orange-600"

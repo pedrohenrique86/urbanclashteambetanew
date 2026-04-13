@@ -11,7 +11,6 @@ import GlobalLayout from "./components/layout/GlobalLayout";
 import ProtectedRoute from "./components/ProtectedRoute";
 
 // --- Lazy Load das Páginas ---
-// ... (omitted for brevity in replacement chunk but I'll include necessary parts)
 const HomePage = lazy(() => import("./pages/HomePage"));
 const DashboardPage = lazy(() => import("./pages/DashboardPage"));
 const FactionSelectionPage = lazy(() => import("./pages/FactionSelectionPage"));
@@ -55,21 +54,13 @@ const RootWrapper = () => (
   </UserProfileProvider>
 );
 
-import FactionRequiredRoute from "./components/FactionRequiredRoute";
-
-// ... (imports lazy)
+// O FactionRequiredRoute foi removido. A lógica agora está no ProtectedRoute.
+// import FactionRequiredRoute from "./components/FactionRequiredRoute";
 
 const AppLayout = () => (
   <GlobalLayout>
     <Outlet />
   </GlobalLayout>
-);
-
-// Layout para rotas que exigem facção
-const FactionLayout = () => (
-  <FactionRequiredRoute>
-    <Outlet />
-  </FactionRequiredRoute>
 );
 
 const router = createBrowserRouter([
@@ -85,38 +76,177 @@ const router = createBrowserRouter([
 
       // --- Rotas Protegidas ---
       {
-        // Nível 1: Rotas que exigem apenas autenticação
-        element: (
-          <ProtectedRoute>
-            <AppLayout />
-          </ProtectedRoute>
-        ),
+        element: <AppLayout />,
         children: [
-          { path: "faction-selection", element: <FactionSelectionPage /> },
+          // Rota para seleção de facção: requer login, mas não facção.
           {
-            // Nível 2: Rotas que exigem autenticação E facção
-            element: <FactionLayout />,
-            children: [
-              { path: "dashboard", element: <DashboardPage /> },
-              { path: "contracts", element: <ContractsPage /> },
-              { path: "reckoning", element: <ReckoningPage /> },
-              { path: "squad-war", element: <SquadWarPage /> },
-              { path: "supply-extraction", element: <SupplyExtractionPage /> },
-              { path: "recovery-base", element: <RecoveryBasePage /> },
-              { path: "isolation", element: <IsolationPage /> },
-              { path: "dark-zones", element: <DarkZonesPage /> },
-              { path: "parallel-network", element: <ParallelNetworkPage /> },
-              { path: "safe", element: <SafePage /> },
-              { path: "corporations", element: <CorporationsPage /> },
-              { path: "qg", element: <QGPage /> },
-              { path: "social-zone", element: <SocialZonePage /> },
-              { path: "training", element: <TrainingPage /> },
-              { path: "digital-identity", element: <DigitalIdentityPage /> },
-              { path: "vip-access", element: <VipAccessPage /> },
-              { path: "restricted-store", element: <RestrictedStorePage /> },
-              { path: "ranking", element: <RankingPage /> },
-              { path: "profile", element: <ProfilePage /> },
-            ],
+            path: "faction-selection",
+            element: (
+              <ProtectedRoute>
+                <FactionSelectionPage />
+              </ProtectedRoute>
+            ),
+          },
+          // Rotas de jogo: requerem login E facção.
+          {
+            path: "dashboard",
+            element: (
+              <ProtectedRoute requiresFaction={true}>
+                <DashboardPage />
+              </ProtectedRoute>
+            ),
+          },
+          {
+            path: "contracts",
+            element: (
+              <ProtectedRoute requiresFaction={true}>
+                <ContractsPage />
+              </ProtectedRoute>
+            ),
+          },
+          {
+            path: "reckoning",
+            element: (
+              <ProtectedRoute requiresFaction={true}>
+                <ReckoningPage />
+              </ProtectedRoute>
+            ),
+          },
+          {
+            path: "squad-war",
+            element: (
+              <ProtectedRoute requiresFaction={true}>
+                <SquadWarPage />
+              </ProtectedRoute>
+            ),
+          },
+          {
+            path: "supply-extraction",
+            element: (
+              <ProtectedRoute requiresFaction={true}>
+                <SupplyExtractionPage />
+              </ProtectedRoute>
+            ),
+          },
+          {
+            path: "recovery-base",
+            element: (
+              <ProtectedRoute requiresFaction={true}>
+                <RecoveryBasePage />
+              </ProtectedRoute>
+            ),
+          },
+          {
+            path: "isolation",
+            element: (
+              <ProtectedRoute requiresFaction={true}>
+                <IsolationPage />
+              </ProtectedRoute>
+            ),
+          },
+          {
+            path: "dark-zones",
+            element: (
+              <ProtectedRoute requiresFaction={true}>
+                <DarkZonesPage />
+              </ProtectedRoute>
+            ),
+          },
+          {
+            path: "parallel-network",
+            element: (
+              <ProtectedRoute requiresFaction={true}>
+                <ParallelNetworkPage />
+              </ProtectedRoute>
+            ),
+          },
+          {
+            path: "safe",
+            element: (
+              <ProtectedRoute requiresFaction={true}>
+                <SafePage />
+              </ProtectedRoute>
+            ),
+          },
+          {
+            path: "corporations",
+            element: (
+              <ProtectedRoute requiresFaction={true}>
+                <CorporationsPage />
+              </ProtectedRoute>
+            ),
+          },
+          {
+            path: "qg",
+            element: (
+              <ProtectedRoute requiresFaction={true}>
+                <QGPage />
+              </ProtectedRoute>
+            ),
+          },
+          {
+            path: "social-zone",
+            element: (
+              <ProtectedRoute requiresFaction={true}>
+                <SocialZonePage />
+              </ProtectedRoute>
+            ),
+          },
+          {
+            path: "training",
+            element: (
+              <ProtectedRoute requiresFaction={true}>
+                <TrainingPage />
+              </ProtectedRoute>
+            ),
+          },
+          {
+            path: "digital-identity",
+            element: (
+              <ProtectedRoute requiresFaction={true}>
+                <DigitalIdentityPage />
+              </ProtectedRoute>
+            ),
+          },
+          {
+            path: "vip-access",
+            element: (
+              <ProtectedRoute requiresFaction={true}>
+                <VipAccessPage />
+              </ProtectedRoute>
+            ),
+          },
+          {
+            path: "restricted-store",
+            element: (
+              <ProtectedRoute requiresFaction={true}>
+                <RestrictedStorePage />
+              </ProtectedRoute>
+            ),
+          },
+          {
+            path: "ranking",
+            element: (
+              <ProtectedRoute requiresFaction={true}>
+                <RankingPage />
+              </ProtectedRoute>
+            ),
+          },
+          {
+            path: "profile",
+            element: (
+              <ProtectedRoute requiresFaction={true}>
+                <ProfilePage />
+              </ProtectedRoute>
+            ),
+          },
+           {
+            path: "clan",
+            element: (
+              <ProtectedRoute requiresFaction={true}>
+                <ClanPage />
+              </ProtectedRoute>
+            ),
           },
         ],
       },

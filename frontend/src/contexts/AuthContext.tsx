@@ -34,33 +34,39 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     const initAuth = async () => {
+      setIsHydrating(true);
       const token = tokenStorage.getToken();
-      
-      if (!token) {
-        setIsHydrating(false);
-        return;
+      const cachedUser = localStorage.getItem('cached_user');
+
+      if (cachedUser) {
+        setUser(JSON.parse(cachedUser));
       }
 
-      try {
-        // Valida o token persistido com o backend
-        const { data } = await api.get('/auth/me');
-        setUser(data.user);
-      } catch (error: any) {
-        if (error.response && error.response.status === 401) {
-          console.error("Sessão expirada ou inválida");
-          tokenStorage.clearToken();
-          localStorage.removeItem('cached_user');
-          setUser(null);
-        } else {
-          console.error("Erro de rede ao validar sessão, mantendo estado provisório.");
-          const cached = localStorage.getItem('cached_user');
-          if (cached) {
-            setUser(JSON.parse(cached));
+      if (token) {
+        try {
+          // Valida o token e atualiza os dados do usuário em background
+          const { data } = await api.get('/auth/me');
+          setUser(data.user); // Atualiza com dados frescos
+        } catch (error: any) {
+          if (error.response && error.response.status === 401) {
+            // Token é inválido ou expirado, limpar tudo.
+            console.error("Sessão inválida. Realizando logout forçado.");
+            tokenStorage.clearToken();
+            localStorage.removeItem('cached_user');
+            setUser(null);
+          } else {
+            // Erro de rede ou outro problema. O usuário continua logado com dados do cache.
+            // A sessão será revalidada na próxima interação com a API.
+            console.warn("Erro de rede ao validar sessão. Mantendo estado otimista.", error.message);
           }
         }
-      } finally {
-        setIsHydrating(false);
+      } else {
+        // Se não há token, garantimos que não há usuário.
+        setUser(null);
+        localStorage.removeItem('cached_user');
       }
+
+      setIsHydrating(false);
     };
 
     initAuth();
@@ -86,9 +92,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = async () => {
     try {
-      await api.post('/auth/logout');
+      // Notifica o backend sobre o logout, mas não espera pela resposta
+      // para garantir que o logout no frontend seja imediato.
+      api.post('/auth/logout').catch(err => {
+        console.warn("Chamada de logout para o backend falhou, mas o logout local prosseguirá.", err.message);
+      });
     } finally {
+      // Limpeza local é a prioridade para a experiência do usuário.
       tokenStorage.clearToken();
+      localStorage.removeItem('cached_user');
       setUser(null);
     }
   };

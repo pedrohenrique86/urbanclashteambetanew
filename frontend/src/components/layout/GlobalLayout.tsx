@@ -5,7 +5,6 @@ import DashboardSidebar from "./DashboardSidebar";
 import { FloatingMenuButton } from "./FloatingMenuButton";
 import { useTheme } from "../../contexts/ThemeContext";
 import { useUserProfileContext } from "../../contexts/UserProfileContext";
-import { useAuth } from "../../contexts/AuthContext";
 import { motion, AnimatePresence } from "framer-motion";
 import dashbgangster from "../../assets/dashbgangster.webp";
 import { Tooltip } from "react-tooltip";
@@ -44,17 +43,7 @@ const GlobalLayout: React.FC<GlobalLayoutProps> = ({ children }) => {
     (p) => location.pathname === p || location.pathname.startsWith("/auth/"),
   );
 
-  const { userProfile } = useUserProfileContext();
-  const { logout } = useAuth();
-
-  const handleLogout = async () => {
-    try {
-      await logout();
-      navigate("/");
-    } catch (error) {
-      console.error("Erro ao fazer logout:", error);
-    }
-  };
+  const { userProfile, handleLogout } = useUserProfileContext();
 
   const onTouchStartObj = (e: React.TouchEvent) => {
     setTouchEnd(null);
@@ -116,7 +105,7 @@ const GlobalLayout: React.FC<GlobalLayoutProps> = ({ children }) => {
         <div className="hidden md:flex md:flex-shrink-0 z-20 h-full">
           <DashboardSidebar
             username={userProfile?.username}
-            faction={userProfile?.faction}
+            faction={userProfile?.faction?.name as 'gangsters' | 'guardas' | undefined}
             handleLogout={handleLogout}
             isAdmin={userProfile?.is_admin}
           />
@@ -130,7 +119,7 @@ const GlobalLayout: React.FC<GlobalLayoutProps> = ({ children }) => {
             className="flex-1 relative overflow-y-auto overflow-x-hidden"
           >
             <TopBar
-              userProfile={userProfile}
+              userProfile={userProfile as any}
               handleLogout={handleLogout}
               onMenuToggle={() => setIsMobileMenuOpen(true)}
             />

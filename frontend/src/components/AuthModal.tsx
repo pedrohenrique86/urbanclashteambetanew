@@ -433,19 +433,13 @@ export default function AuthModal({
             // Registra token e usuario: UserProfileContext reage via useEffect
             await login(authData.token, userData);
 
-            // Fechar o modal e finalizar processamento
+            // Apenas fecha o modal. O ProtectedRoute cuidará do redirecionamento.
             onClose();
-            setIsProcessing(false);
-
-            // Verificar se é o primeiro login ou se já temos info no authData avisando
-            const isFirstLogin = authData.isFirstLogin;
-
-            if (isFirstLogin) {
-              navigate("/faction-selection", { replace: true });
-            } else {
-              navigate("/dashboard", { replace: true });
-            }
+            
+            // Navega para o dashboard. O ProtectedRoute irá interceptar e decidir o destino final.
+            navigate("/dashboard", { replace: true });
           } catch (authError) {
+            console.error("Erro durante o processo de autenticação/redirecionamento:", authError);
             navigate("/dashboard", { replace: true });
           }
         }

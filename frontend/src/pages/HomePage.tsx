@@ -15,11 +15,25 @@ import { useGameClock } from "../hooks/useGameClock";
 import NavbarCountdown from "../components/layout/NavbarCountdown";
 import ScrollToTopButton from "../components/layout/ScrollToTopButton";
 
+import { useAuth } from "../contexts/AuthContext";
+import { Navigate } from "react-router-dom";
+
 export default function HomePage() {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authMode, setAuthMode] = useState<"login" | "register">("login");
   const [isGoogleLoginProcessing, setIsGoogleLoginProcessing] = useState(false);
-  const { status, remainingTime } = useGameClock(); // Usar o hook para obter o estado do jogo
+  const { status, remainingTime } = useGameClock();
+  const { user, isHydrating } = useAuth();
+
+  // Se a autenticação ainda está sendo validada, não faz nada para evitar flicker.
+  if (isHydrating) {
+    return null; // ou um spinner de tela cheia, se preferir
+  }
+
+  // Se o usuário está autenticado, redireciona para o dashboard.
+  if (user) {
+    return <Navigate to="/dashboard" replace />;
+  }
 
   const openAuthModal = (mode: "login" | "register") => {
     setAuthMode(mode);

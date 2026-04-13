@@ -265,16 +265,10 @@ router.post("/login", authLimiter, loginValidation, async (req, res) => {
       });
     }
 
-    // Verificar se o usuário já tem um perfil criado.
-    // Se não houver perfil, é o primeiro login.
-    const profileResultForCheck = await query(
-      "SELECT id FROM user_profiles WHERE user_id = $1",
-      [user.id],
-    );
-
-    const isFirstLogin = profileResultForCheck.rows.length === 0;
+    // A rota de login não cria usuários, então isFirstLogin é sempre falso.
+    const isFirstLogin = false;
     console.log(
-      "👤 Verificação de primeiro login (baseado na existência do perfil):",
+      "👤 Flag de primeiro login definida como 'false' por regra de negócio.",
       {
         isFirstLogin,
       },
@@ -298,7 +292,7 @@ router.post("/login", authLimiter, loginValidation, async (req, res) => {
 
     const gameState = await getGameState();
 
-    // Buscar perfil do usuário (reutilizando a consulta se possível ou fazendo uma nova)
+    // Buscar perfil do usuário para retornar na resposta
     const profileResult = await query(
       "SELECT * FROM user_profiles WHERE user_id = $1",
       [user.id],
@@ -308,7 +302,7 @@ router.post("/login", authLimiter, loginValidation, async (req, res) => {
       token,
       user: { ...userWithoutPassword, profile: profileResult.rows[0] || null },
       gameState,
-      isFirstLogin,
+      isFirstLogin, // Sempre será `false`
     });
   } catch (error) {
     console.error("❌ Erro no login:", error.message);
@@ -552,13 +546,13 @@ router.post("/google/callback", async (req, res) => {
     );
     console.log("DEBUG: 18. Perfil do usuário buscado:", profileResult.rows[0]);
 
-    // Se é o primeiro login, o perfil ainda não existe
-    if (profileResult.rows.length === 0) {
-      isFirstLogin = true;
-      console.log(
-        "DEBUG: 19. isFirstLogin definido como true (perfil não encontrado).",
-      );
-    }
+    // A flag `isFirstLogin` foi definida anteriormente, indicando se a conta de usuário
+    // foi criada nesta requisição. A ausência de um perfil não altera essa flag.
+    // O frontend usará `user.profile === null` para o redirecionamento necessário.
+    console.log(
+      "DEBUG: 19. isFirstLogin (baseado na criação do usuário):",
+      isFirstLogin,
+    );
 
     console.log("DEBUG: 20. Enviando resposta JSON.");
     const gameState = await getGameState();

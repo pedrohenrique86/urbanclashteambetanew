@@ -1,160 +1,254 @@
-import React, {
+import {
   createContext,
   useContext,
   useState,
-  useEffect,
   useCallback,
+  useEffect,
+  ReactNode,
+  useRef,
 } from "react";
 import { useNavigate } from "react-router-dom";
-import api from "../lib/api";
 import { useAuth } from "./AuthContext";
-import { UserProfile } from "../types";
-import { calculateLevel } from "../utils/leveling";
+import api from "../lib/api";
 
-interface UserProfileContextType {
-  userProfile: UserProfile | null;
-  loading: boolean;
-  refreshProfile: () => Promise<void>;
-  handleLogout: () => Promise<void>;
-  setUserProfile: React.Dispatch<React.SetStateAction<UserProfile | null>>;
+// (Interfaces UserProfile, IUserProfileContext, etc. permanecem as mesmas)
+export interface Faction {
+  id: number;
+  name: string;
+  description: string;
+  icon_url: string;
 }
 
-const UserProfileContext = createContext<UserProfileContextType | undefined>(
+export interface UserProfile {
+  id: string;
+  username: string;
+  email: string;
+  faction: Faction | null;
+  level: number;
+  xp: number;
+  energy: number;
+  gold: number;
+  gems: number;
+  last_login_at: string;
+  created_at: string;
+  clan_id?: string;
+  is_admin?: boolean;
+  // For compatibility with ranking.ts UserProfile
+  user_id?: string;
+  current_xp?: number;
+  resources?: number;
+  wins?: number;
+  losses?: number;
+  streak?: number;
+  // Combat and other attributes
+  attack?: number;
+  defense?: number;
+  focus?: number;
+  max_energy?: number;
+  xp_required?: number;
+  action_points?: number;
+  money?: number;
+}
+
+export interface IUserProfileContext {
+  userProfile: UserProfile | null;
+  loading: boolean;
+  fetchProfile: () => Promise<UserProfile | null>;
+  refreshProfile: () => Promise<UserProfile | null>;
+  processProfileData: (
+    profileData: any,
+    currentUser: any,
+  ) => UserProfile | null;
+  setUserProfile: React.Dispatch<React.SetStateAction<UserProfile | null>>;
+  handleLogout: () => void;
+}
+
+const UserProfileContext = createContext<IUserProfileContext | undefined>(
   undefined,
 );
 
-export const UserProfileProvider: React.FC<{ children: React.ReactNode }> = ({
-  children,
-}) => {
-  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
-  const [loading, setLoading] = useState(true);
+export const UserProfileProvider = ({ children }: { children: ReactNode }) => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [loading, setLoading] = useState(false);
 
-  // --- Início do Padrão `trackedUserId` Corrigido ---
-  const userId = user?.id ?? null;
-  const [trackedUserId, setTrackedUserId] = useState(userId);
+  // ========================================================================
+  // PROTEÇÕES CONTRA LOOP INFINITO E CHAMADAS CONCORRENTES
+  // Usamos useRef para manter o estado entre renders sem causar novas renderizações.
+  // ========================================================================
 
-  // Passo 1: Detectar a mudança de ID durante a renderização.
-  // O objetivo é definir `loading` como `true` de forma síncrona para evitar
-  // que a UI renderize um estado inconsistente (usuário novo, perfil antigo).
-  if (userId !== trackedUserId) {
-    // Atualiza o ID que estamos rastreando e força o estado de carregamento.
-    // Isso causa uma nova renderização imediata.
-    setTrackedUserId(userId);
-    setLoading(true);
-  }
-  // --- Fim do Padrão ---
+  // PROTEÇÃO 1: Controle de busca ativa.
+  // Impede que fetchProfile seja chamado se uma requisição já estiver em andamento.
+  const isFetching = useRef(false);
+
+  // PROTEÇÃO 2: Controle de cooldown para erro 429 (Too Many Requests).
+  // Armazena o timestamp de quando poderemos tentar novamente.
+  const cooldownUntil = useRef(0);
+
+  // PROTEÇÃO 3: Controle de usuário já buscado.
+  // Impede buscas repetidas para o mesmo usuário logado.
+  const fetchedForUser = useRef<string | null>(null);
 
   const processProfileData = useCallback(
-    (profileData: any, user: any): UserProfile => {
-      const levelInfo = calculateLevel(profileData.current_xp || 0);
+    (profileData: any, currentUser: any): UserProfile | null => {
+      if (!profileData || !currentUser) return null;
+
+      // Log para depuração: veja o que o backend está realmente enviando.
+      console.log("Dados brutos do perfil recebidos:", profileData);
+
       return {
-        id: profileData.id ? profileData.id.toString() : profileData.user_id,
-        user_id: profileData.user_id,
-        email: user.email,
-        is_admin: profileData.is_admin,
-        faction: profileData.faction,
-        clan_id: profileData.clan_id,
-        username: (profileData.username || "Usuário").substring(0, 10),
+        id: currentUser.id,
+        username: profileData.username || currentUser.username,
+        email: currentUser.email,
+        faction: profileData.faction || null,
+        level: profileData.level || 1,
+        xp: profileData.xp || 0,
+        energy: profileData.energy || 100,
+        gold: profileData.gold || 0,
+        gems: profileData.gems || 0,
+        last_login_at: profileData.last_login_at,
         created_at: profileData.created_at,
-        current_xp: profileData.current_xp,
-        level: Number(profileData.level ?? levelInfo.level),
-        xp_required: Number(
-          profileData.xp_required ?? levelInfo.xpForNextLevel,
-        ),
-        resources: profileData.money,
-        money: profileData.money,
-        wins: profileData.victories,
-        losses: profileData.defeats,
-        victories: profileData.victories,
-        defeats: profileData.defeats,
-        streak: profileData.winning_streak,
-        winning_streak: profileData.winning_streak,
-        critical_damage: profileData.critical_damage,
-        action_points: profileData.action_points,
-        attack: profileData.attack,
-        defense: profileData.defense,
-        focus: profileData.focus,
-        energy: profileData.energy,
-        max_energy: profileData.max_energy,
-        intimidation: profileData.intimidation,
-        discipline: profileData.discipline,
+        clan_id: profileData.clan_id,
+        is_admin: profileData.is_admin || false,
+
+        // --- ATRIBUTOS DE COMBATE E OUTROS ---
+        // Garante que os valores sejam numéricos, com fallback para 0.
+        attack: Number(profileData.attack) || 0,
+        defense: Number(profileData.defense) || 0,
+        focus: Number(profileData.focus) || 0,
+        max_energy: Number(profileData.max_energy) || 100,
+        xp_required: Number(profileData.xp_required) || 0,
+        action_points: Number(profileData.action_points) || 0,
+        money: Number(profileData.money) || 0,
+
+        // Campos de compatibilidade (se ainda forem necessários)
+        user_id: currentUser.id,
+        current_xp: Number(profileData.xp) || 0,
+        resources: Number(profileData.gold) || 0,
+        wins: Number(profileData.wins) || 0,
+        losses: Number(profileData.losses) || 0,
+        streak: Number(profileData.streak) || 0,
       };
     },
     [],
   );
 
-  const fetchProfile = useCallback(async () => {
-    if (!user) return;
+  const fetchProfile = useCallback(async (): Promise<UserProfile | null> => {
+    // --- INÍCIO DAS VALIDAÇÕES DE SEGURANÇA ---
 
-    // O `loading` já foi definido como `true` na fase de renderização.
+    // Se não há usuário, limpa o perfil e reseta os controles.
+    if (!user) {
+      setUserProfile(null);
+      fetchedForUser.current = null;
+      return null;
+    }
+
+    // Validação 1: Se já estamos buscando, não faz nada.
+    if (isFetching.current) {
+      console.warn("Busca de perfil já em andamento. Nova chamada ignorada.");
+      return userProfile;
+    }
+
+    // Validação 2: Se estamos em cooldown por erro 429, não faz nada.
+    if (Date.now() < cooldownUntil.current) {
+      const remaining = Math.ceil((cooldownUntil.current - Date.now()) / 1000);
+      console.warn(`API em cooldown. Tente novamente em ${remaining}s.`);
+      return userProfile;
+    }
+
+    // Validação 3: Se já buscamos o perfil para o usuário atual, não faz nada.
+    if (fetchedForUser.current === user.id) {
+      return userProfile;
+    }
+
+    // --- FIM DAS VALIDAÇÕES ---
+
+    // Todos os checks passaram. Inicia a busca.
+    isFetching.current = true;
+    setLoading(true);
+
     try {
       const response = await api.get("/users/profile");
       const profileData = response.data;
 
       if (profileData) {
         const processed = processProfileData(profileData, user);
+
+        // Log para depuração: veja o perfil processado.
+        console.log("Perfil processado:", processed);
+
         setUserProfile(processed);
+        fetchedForUser.current = user.id; // Marca que a busca para este usuário foi concluída.
+        return processed;
       } else {
         setUserProfile(null);
+        fetchedForUser.current = user.id; // Marca mesmo se não houver perfil, para não tentar de novo.
+        return null;
       }
     } catch (error: any) {
-        console.error("Falha ao buscar perfil do usuário:", error);
-        // Se o erro for de autorização (401), o token é inválido. Desloga.
-        if (error.response && error.response.status === 401) {
-          await logout();
-          navigate("/");
-          setUserProfile(null);
-        } else {
-          // Para outros erros (rede, etc.), não desloga para não perder a sessão.
-          // Apenas garantimos que o perfil não fique em estado inconsistente.
-          setUserProfile(null);
-        }
-      } finally {
-        setLoading(false);
-      }
-  }, [user, processProfileData, logout, navigate]);
+      console.error("Falha ao buscar perfil do usuário:", error);
 
+      if (error.response) {
+        switch (error.response.status) {
+          // CASO CRÍTICO: 429 Too Many Requests
+          case 429:
+            console.warn(
+              "Muitas requisições. Tentando novamente em 10 segundos.",
+            );
+            cooldownUntil.current = Date.now() + 10000; // Ativa cooldown de 10s.
+            break;
+          // Erro de autenticação, desloga o usuário.
+          case 401:
+            await logout();
+            navigate("/");
+            break;
+          // Perfil não encontrado, estado normal para novos usuários.
+          case 404:
+            setUserProfile(null);
+            fetchedForUser.current = user.id; // Marca para não buscar de novo.
+            break;
+        }
+      }
+      return null;
+    } finally {
+      // Libera o lock e o estado de loading, independentemente do resultado.
+      isFetching.current = false;
+      setLoading(false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, logout, navigate, processProfileData]); // << DEPENDÊNCIA 'userProfile' REMOVIDA INTENCIONALMENTE PARA EVITAR LOOP
+
+  // Efeito principal que dispara a busca de perfil.
+  // A dependência [user] garante que ele só rode quando o usuário mudar (login/logout).
+  // A lógica interna de fetchProfile (com os useRef) previne execuções desnecessárias.
+  useEffect(() => {
+    fetchProfile();
+  }, [user, fetchProfile]);
+
+  // Função para forçar a atualização, limpando o controle de "usuário já buscado".
   const refreshProfile = useCallback(async () => {
-    setLoading(true);
-    await fetchProfile();
+    console.log("Forçando atualização do perfil do usuário...");
+    fetchedForUser.current = null; // Reseta o controle para permitir uma nova busca.
+    return await fetchProfile();
   }, [fetchProfile]);
 
-  const handleLogout = useCallback(async () => {
-    await logout();
-    setUserProfile(null);
-    navigate("/");
+  const handleLogout = useCallback(() => {
+    logout().then(() => {
+      navigate("/");
+    });
   }, [logout, navigate]);
-
-  // Passo 2: O `useEffect` que executa a busca de dados.
-  useEffect(() => {
-    // Se não há usuário, limpamos o perfil.
-    if (!userId) {
-      setUserProfile(null);
-      setLoading(false);
-      return;
-    }
-
-    // A VERIFICAÇÃO CRÍTICA:
-    // Só executamos o `fetchProfile` quando o `userId` da prop e o `trackedUserId`
-    // do estado estiverem sincronizados. Isso previne a chamada na "renderização
-    // intermediária" causada pela lógica síncrona acima.
-    if (userId === trackedUserId) {
-      fetchProfile();
-    }
-    // As dependências garantem que este efeito re-execute quando qualquer um
-    // desses valores mudar, e a lógica interna previne a chamada duplicada.
-  }, [userId, trackedUserId, fetchProfile]);
 
   return (
     <UserProfileContext.Provider
       value={{
         userProfile,
         loading,
+        fetchProfile,
         refreshProfile,
-        handleLogout,
+        processProfileData,
         setUserProfile,
+        handleLogout,
       }}
     >
       {children}
@@ -166,7 +260,7 @@ export const useUserProfileContext = () => {
   const context = useContext(UserProfileContext);
   if (context === undefined) {
     throw new Error(
-      "useUserProfileContext deve ser usado dentro de um UserProfileProvider",
+      "useUserProfileContext must be used within a UserProfileProvider",
     );
   }
   return context;

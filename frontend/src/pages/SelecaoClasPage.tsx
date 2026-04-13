@@ -21,9 +21,12 @@ const FactionColors = {
   },
 };
 
+type FactionName = keyof typeof FactionColors;
+
 const SelecaoClasPage: React.FC = () => {
   const { userProfile, refreshProfile, setUserProfile } = useUserProfile();
-  const { clans, isLoading: isLoadingClans, error: errorClans } = useClans(userProfile?.faction);
+  const factionName: FactionName = userProfile?.faction?.name === 'guardas' ? 'guardas' : 'gangsters';
+  const { clans, isLoading: isLoadingClans, error: errorClans } = useClans(factionName);
   const [joiningClanId, setJoiningClanId] = useState<number | null>(null);
   const [joinError, setJoinError] = useState<string | null>(null);
 
@@ -42,8 +45,7 @@ const SelecaoClasPage: React.FC = () => {
     }
   };
 
-  const faction = userProfile?.faction || 'gangsters'; // Default para evitar erros
-  const colors = FactionColors[faction];
+  const colors = FactionColors[factionName];
 
   if (isLoadingClans) {
     return <div className="flex items-center justify-center h-screen bg-black text-white">Carregando clãs...</div>;
@@ -62,7 +64,7 @@ const SelecaoClasPage: React.FC = () => {
       >
         <h1 className="text-3xl md:text-4xl font-bold font-orbitron">ESCOLHA SEU CLÃ</h1>
         <p className="text-gray-300 mt-2">
-          Junte-se a um clã para lutar ao lado da sua facção: <span className={`font-bold ${faction === 'guardas' ? 'text-blue-400' : 'text-orange-400'}`}>{faction}</span>
+          Junte-se a um clã para lutar ao lado da sua facção: <span className={`font-bold ${factionName === 'guardas' ? 'text-blue-400' : 'text-orange-400'}`}>{factionName}</span>
         </p>
       </motion.div>
 

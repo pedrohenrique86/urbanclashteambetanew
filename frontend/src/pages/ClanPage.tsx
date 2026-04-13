@@ -141,7 +141,7 @@ export default function ClanPage() {
 
       await apiClient.leaveClan(clan.id);
 
-      setUserProfile({ ...userProfile, clan_id: undefined });
+      setUserProfile((prev) => prev ? { ...prev, clan_id: undefined } : null);
 
       navigate("/qg");
     } catch (e) {
