@@ -49,8 +49,7 @@ export default function FactionSelectionPage() {
         );
       }
 
-      if (profile?.faction) {
-      } else {
+      if (!profile?.faction) {
         try {
           await api.post("/users/profile", {
             faction: selectedFaction,
