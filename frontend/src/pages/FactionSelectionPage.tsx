@@ -43,23 +43,15 @@ export default function FactionSelectionPage() {
     await new Promise((resolve) => setTimeout(resolve, 3000));
 
     try {
-      console.log(`🎯 Iniciando seleção de facção: ${selectedFaction}`);
-
       if (!user) {
         throw new Error(
           "Usuário não autenticado. Por favor, faça login novamente.",
         );
       }
 
-      console.log(`👤 Usuário autenticado: ${user.email}`);
-
       if (profile?.faction) {
-        console.log(
-          `⚠️ Usuário já tem facção: ${profile.faction}. Redirecionando para dashboard...`,
-        );
       } else {
         try {
-          console.log("🆕 Tentando criar um novo perfil para o usuário...");
           await api.post("/users/profile", {
             faction: selectedFaction,
             username:
@@ -67,32 +59,22 @@ export default function FactionSelectionPage() {
               user.email?.split("@")[0] ||
               "Usuário",
           });
-          console.log("✅ Perfil criado e facção selecionada com sucesso!");
         } catch (creationError: any) {
           const isDuplicateProfile =
             creationError.response?.status === 409 || 
             creationError.message?.includes("Perfil já existe");
 
           if (isDuplicateProfile) {
-            console.log(
-              "⚠️ Perfil já existente detectado. Tentando atualizar a facção...",
-            );
             await api.put(`/users/${user.id}/profile`, {
               faction: selectedFaction,
             });
-            console.log(
-              "✅ Facção atualizada com sucesso no perfil existente!",
-            );
           } else {
             throw creationError;
           }
         }
       }
-
-      console.log(`✅ Processo de facção (${selectedFaction}) concluído.`);
       await refreshProfile();
       hideLoading();
-      console.log("🔄 Redirecionando para a dashboard...");
       navigate("/dashboard");
     } catch (error: any) {
       console.error("❌ Erro na seleção de facção:", error);

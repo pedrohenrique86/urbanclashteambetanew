@@ -53,15 +53,9 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({
     }
 
     // --- Lógica de Autenticação e Listeners ---
-    console.log(
-      "[ChatContext] Usuário detectado, tentando autenticar o chat...",
-    );
     socketService.authenticateChat(token);
 
     const handleAuthSuccess = () => {
-      console.log(
-        "[ChatContext] Autenticação bem-sucedida. Registrando listeners...",
-      );
       setIsConnected(true);
 
       // Registra os listeners SOMENTE após a autenticação
@@ -83,7 +77,6 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({
     // A função de limpeza remove todos os listeners para evitar duplicatas
     // e vazamentos de memória quando o usuário desloga.
     return () => {
-      console.log("[ChatContext] Limpando todos os listeners do chat.");
       socketService.off("chat:auth_success", handleAuthSuccess);
       socketService.off("chat:auth_failed", handleAuthFailed);
       socketService.off("chat:history", handleChatHistory);

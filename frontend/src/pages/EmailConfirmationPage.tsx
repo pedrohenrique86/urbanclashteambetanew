@@ -24,27 +24,18 @@ const EmailConfirmationPage = () => {
       setHasProcessed(true);
 
       const token = searchParams.get("token");
-      console.log("🎫 Processando confirmação de email com token:", token);
 
       if (!token || token.length < 10) {
-        console.log(
-          "❌ Token inválido ou não encontrado, redirecionando para home",
-        );
         showToast("Token inválido ou não encontrado", "error");
         navigate("/");
         return;
       }
 
       try {
-        console.log("🔍 Confirmando email com token:", token);
-
         const { data: response } = await api.post("/auth/confirm-email", { token });
-
-        console.log("✅ Email confirmado com sucesso");
 
         // Armazenar o token e o usuário no contexto
         if (response.token) {
-          console.log("🔑 Token recebido, salvando...");
           await login(response.token, response.user);
         }
 
@@ -53,11 +44,9 @@ const EmailConfirmationPage = () => {
 
         // Verificar se é primeiro login para redirecionar para seleção de facção
         if (response.isFirstLogin && response.redirectTo) {
-          console.log("🔄 Redirecionando para seleção de facção...");
           navigate(response.redirectTo);
         } else {
           // Fallback para home se não houver redirecionamento específico
-          console.log("🔄 Redirecionando para home...");
           navigate("/");
         }
       } catch (error: any) {

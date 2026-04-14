@@ -47,10 +47,6 @@ export const GameClockProvider: React.FC<{ children: ReactNode }> = ({
     socketService.emit("getGameState");
 
     const handleInitialState = (initialState: GameState) => {
-      console.log(
-        "🎮 [Context] Estado inicial do jogo recebido:",
-        initialState,
-      );
       setGameState(initialState);
       if (initialState.serverTime) {
         lastServerUpdateTime.current = {
@@ -62,7 +58,6 @@ export const GameClockProvider: React.FC<{ children: ReactNode }> = ({
     };
 
     const handleStateUpdate = (updatedState: GameState) => {
-      console.log("🔄 [Context] Estado do jogo atualizado:", updatedState);
       setGameState(updatedState);
       if (updatedState.serverTime) {
         lastServerUpdateTime.current = {
@@ -77,7 +72,6 @@ export const GameClockProvider: React.FC<{ children: ReactNode }> = ({
     socketService.on<GameState>("gameStateUpdated", handleStateUpdate);
 
     return () => {
-      console.log("🧹 [Context] Limpando listeners globais do GameClock.");
       socketService.off("gameState", handleInitialState);
       socketService.off("gameStateUpdated", handleStateUpdate);
     };

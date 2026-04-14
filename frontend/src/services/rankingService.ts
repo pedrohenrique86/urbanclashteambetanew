@@ -9,7 +9,6 @@ export const fetchPlayerRankings = async (
   opts?: { force?: boolean },
 ): Promise<Player[]> => {
   try {
-    console.log(`🔍 Buscando ranking de ${faction} (SSOT)...`);
     const key = `etag_users_rankings_${faction}`;
     const etag = localStorage.getItem(key) || undefined;
     const params = faction ? `?faction=${faction}` : "";
@@ -68,7 +67,6 @@ export const fetchClanRankings = async (opts?: {
   force?: boolean;
 }): Promise<Clan[]> => {
   try {
-    console.log("🔍 Buscando ranking de clãs (SSOT)...");
     const key = `etag_clans_rankings`;
     const etag = localStorage.getItem(key) || undefined;
     

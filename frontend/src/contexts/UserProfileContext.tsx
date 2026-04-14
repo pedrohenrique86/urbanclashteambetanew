@@ -95,9 +95,6 @@ export const UserProfileProvider = ({ children }: { children: ReactNode }) => {
     (profileData: any, currentUser: any): UserProfile | null => {
       if (!profileData || !currentUser) return null;
 
-      // Log para depuração: veja o que o backend está realmente enviando.
-      console.log("Dados brutos do perfil recebidos:", profileData);
-
       return {
         id: currentUser.id,
         username: profileData.username || currentUser.username,
@@ -176,9 +173,6 @@ export const UserProfileProvider = ({ children }: { children: ReactNode }) => {
       if (profileData) {
         const processed = processProfileData(profileData, user);
 
-        // Log para depuração: veja o perfil processado.
-        console.log("Perfil processado:", processed);
-
         setUserProfile(processed);
         fetchedForUser.current = user.id; // Marca que a busca para este usuário foi concluída.
         return processed;
@@ -229,7 +223,6 @@ export const UserProfileProvider = ({ children }: { children: ReactNode }) => {
 
   // Função para forçar a atualização, limpando o controle de "usuário já buscado".
   const refreshProfile = useCallback(async () => {
-    console.log("Forçando atualização do perfil do usuário...");
     fetchedForUser.current = null; // Reseta o controle para permitir uma nova busca.
     return await fetchProfile();
   }, [fetchProfile]);

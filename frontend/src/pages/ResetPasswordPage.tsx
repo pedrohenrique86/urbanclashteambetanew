@@ -36,14 +36,12 @@ export default function ResetPasswordPage() {
     
     if (finalToken) {
       setToken(finalToken);
-      console.log('🔑 Token encontrado:', finalToken);
     } else {
       // Se não encontrar token válido
       setMessage({
         text: "Link de recuperação inválido. Por favor, solicite um novo link.",
         type: "error"
       });
-      console.log('❌ Nenhum token válido encontrado na URL');
      }
    }, []);
 
