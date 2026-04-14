@@ -1,15 +1,26 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import api from "../lib/api";
 import { useAuth } from "../contexts/AuthContext";
 import { useLoading } from "../contexts/LoadingContext";
+import { useUserProfileContext } from "../contexts/UserProfileContext";
 
 export default function GoogleCallbackPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const { login } = useAuth();
   const { showLoading, hideLoading } = useLoading();
+  const { loading: isProfileLoading } = useUserProfileContext();
   const hasProcessed = useRef(false);
+  const [authComplete, setAuthComplete] = useState(false);
+
+  // Monitora quando o perfil termina de carregar após o login, para remover o spinner suavemente
+  useEffect(() => {
+    if (authComplete && !isProfileLoading) {
+      hideLoading();
+      navigate("/dashboard", { replace: true });
+    }
+  }, [authComplete, isProfileLoading, hideLoading, navigate]);
 
   useEffect(() => {
     if (hasProcessed.current) {
@@ -47,28 +58,23 @@ export default function GoogleCallbackPage() {
         });
 
         if (authData.token) {
-          // Apenas faz o login. O UserProfileContext irá recarregar o perfil automaticamente.
+          // Apenas faz o login. O UserProfileContext irá começar a recarregar o perfil automaticamente.
           await login(authData.token, authData.user);
           
-          // A lógica de redirecionamento foi removida daqui.
-          // Após o login, o App será re-renderizado e o ProtectedRoute
-          // fará o trabalho de decidir para onde ir, com os dados já carregados.
-          // Simplesmente navegamos para o dashboard, e o ProtectedRoute corrige se necessário.
-          navigate("/dashboard", { replace: true });
+          // Libera o estado para que o outro useEffect espere o carregamento do perfil
+          setAuthComplete(true);
 
         } else {
           throw new Error("Token de autenticação não recebido.");
         }
       } catch (e: any) {
+        hideLoading(); // Só esconde em caso de erro. O fluxo de sucesso é controlado pelo outro useEffect.
         navigate(
           `/?error=${encodeURIComponent(
             e.message || "Erro ao autenticar com Google",
           )}`,
           { replace: true },
         );
-      } finally {
-        // O hideLoading pode ser chamado aqui, ou o spinner do ProtectedRoute assume.
-        hideLoading();
       }
     };
 
