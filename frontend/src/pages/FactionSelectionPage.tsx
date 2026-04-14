@@ -25,14 +25,6 @@ export default function FactionSelectionPage() {
   const { userProfile: profile, loading: profileLoading } = useUserProfile();
   const { refreshProfile } = useUserProfileContext();
 
-  useEffect(() => {
-    if (profileLoading) {
-      showLoading("Verificando seu perfil...");
-    } else {
-      hideLoading();
-    }
-  }, [profileLoading, showLoading, hideLoading]);
-
   const handleFactionSelect = async () => {
     if (profileLoading) {
       setError("Aguarde a verificação do seu perfil antes de continuar.");
@@ -99,7 +91,7 @@ export default function FactionSelectionPage() {
 
       console.log(`✅ Processo de facção (${selectedFaction}) concluído.`);
       await refreshProfile();
-
+      hideLoading();
       console.log("🔄 Redirecionando para a dashboard...");
       navigate("/dashboard");
     } catch (error: any) {

@@ -1,6 +1,5 @@
 import React, { useEffect } from "react";
 import { useUserProfile } from "../hooks/useUserProfile";
-import { useLoading } from "../contexts/LoadingContext";
 import {
   BoltIcon,
   BanknotesIcon,
@@ -252,18 +251,6 @@ const StatisticsPanel = React.memo(({ user }: { user: any }) => (
 // --- Página Principal do Dashboard ---
 export default function DashboardPage() {
   const { userProfile } = useUserProfile();
-  const { hideLoading } = useLoading();
-
-  useEffect(() => {
-    // Assim que o perfil do usuário estiver carregado, esconde o spinner global.
-    if (userProfile) {
-      // Um pequeno delay para evitar um "flash" de tela se os dados carregarem rápido demais.
-      const timer = setTimeout(() => {
-        hideLoading();
-      }, 500); // Meio segundo de delay.
-      return () => clearTimeout(timer);
-    }
-  }, [userProfile, hideLoading]);
 
   if (!userProfile || !userProfile.faction) {
     // Enquanto o perfil está carregando ou incompleto, não fazemos nada.

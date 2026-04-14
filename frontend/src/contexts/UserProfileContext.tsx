@@ -73,6 +73,7 @@ export const UserProfileProvider = ({ children }: { children: ReactNode }) => {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(false);
 
+
   // ========================================================================
   // PROTEÇÕES CONTRA LOOP INFINITO E CHAMADAS CONCORRENTES
   // Usamos useRef para manter o estado entre renders sem causar novas renderizações.
@@ -239,11 +240,13 @@ export const UserProfileProvider = ({ children }: { children: ReactNode }) => {
     });
   }, [logout, navigate]);
 
+  const isProfileLoading = loading || (user !== null && fetchedForUser.current !== user.id);
+
   return (
     <UserProfileContext.Provider
       value={{
         userProfile,
-        loading,
+        loading: isProfileLoading,
         fetchProfile,
         refreshProfile,
         processProfileData,
