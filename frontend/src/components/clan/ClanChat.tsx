@@ -50,23 +50,17 @@ export const ClanChat: React.FC = () => {
         <h3 className="font-bold text-white">Chat do Clã</h3>
       </div>
 
-      {/* Lista de Mensagens */}
-      <div className="flex-1 p-4 overflow-y-auto space-y-4">
-        {messages.map((msg, index) => (
-          <div
-            key={index}
-            className={`flex items-end gap-2 ${msg.userId === userProfile?.id ? "justify-end" : "justify-start"}`}
-          >
-            <div
-              className={`max-w-xs md:max-w-md p-3 rounded-lg ${msg.userId === userProfile?.id ? "bg-blue-600 text-white" : "bg-gray-700 text-gray-200"}`}
-            >
-              {msg.userId !== userProfile?.id && (
-                <p className="text-xs font-bold text-green-300">
-                  {msg.username}
-                </p>
-              )}
-              <p className="text-sm break-words">{msg.text}</p>
-              <p className="text-xs text-right mt-1 opacity-60">
+      <div className="flex-1 p-3 overflow-y-auto bg-gray-900/50 rounded-md m-3 space-y-1">
+        {messages.map((msg, index) => {
+          const isMe = msg.userId === userProfile?.id;
+          const displayUsername = msg.username || (isMe ? userProfile?.username : 'Membro');
+          
+          return (
+            <div key={index} className="text-sm break-words leading-relaxed">
+              <span className={`font-bold ${isMe ? "text-blue-400" : "text-green-400"}`}>
+                {displayUsername}
+              </span>
+              <span className="text-gray-500 text-xs mx-1">
                 {new Date(msg.timestamp).toLocaleString([], {
                   day: "2-digit",
                   month: "2-digit",
@@ -74,10 +68,13 @@ export const ClanChat: React.FC = () => {
                   hour: "2-digit",
                   minute: "2-digit",
                 })}
-              </p>
+              </span>
+              <span className="text-gray-300">
+                : {msg.text}
+              </span>
             </div>
-          </div>
-        ))}
+          );
+        })}
         <div ref={messagesEndRef} />
       </div>
 
