@@ -25,7 +25,12 @@ type FactionName = keyof typeof FactionColors;
 
 const SelecaoClasPage: React.FC = () => {
   const { userProfile, refreshProfile, setUserProfile } = useUserProfile();
-  const factionName: FactionName = userProfile?.faction?.name === 'guardas' ? 'guardas' : 'gangsters';
+  
+  // Extracting the faction name defensively (supports both string and object)
+  const rawFaction = userProfile?.faction as any;
+  const rawFactionName = typeof rawFaction === 'string' ? rawFaction : (rawFaction?.name || '');
+  const factionName: FactionName = rawFactionName.toLowerCase() === 'guardas' ? 'guardas' : 'gangsters';
+
   const { clans, isLoading: isLoadingClans, error: errorClans } = useClans(factionName);
   const [joiningClanId, setJoiningClanId] = useState<number | null>(null);
   const [joinError, setJoinError] = useState<string | null>(null);
