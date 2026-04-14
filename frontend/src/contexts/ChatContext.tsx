@@ -90,9 +90,9 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({
       socketService.off("chat:message", handleNewMessage);
       setIsConnected(false);
     };
-    // A dependência agora é o ID do usuário, que é um valor estável.
-    // O useEffect só será re-executado quando o usuário fizer login ou logout.
-  }, [userProfile?.id, handleChatHistory, handleNewMessage]);
+    // A dependência agora inclui o clan_id do usuário, que é fundamental.
+    // O useEffect será re-executado quando o usuário fizer login, logout, ou entrar/sair de um clã.
+  }, [userProfile?.id, userProfile?.clan_id, handleChatHistory, handleNewMessage]);
 
   const sendMessage = (text: string) => {
     if (text.trim()) {
