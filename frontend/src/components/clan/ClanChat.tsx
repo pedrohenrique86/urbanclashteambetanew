@@ -3,12 +3,25 @@ import { useClanChat } from "../../hooks/useClanChat";
 import { useUserProfile } from "../../hooks/useUserProfile";
 import { Send } from "lucide-react"; // Usando um ícone para o botão de enviar
 
-export const ClanChat: React.FC = () => {
+interface ClanMember {
+  username: string;
+}
+
+interface ClanChatProps {
+  members?: ClanMember[];
+}
+
+export const ClanChat: React.FC<ClanChatProps> = ({ members = [] }) => {
   const { messages, sendMessage, isConnected } = useClanChat();
   const { userProfile } = useUserProfile();
   const [newMessage, setNewMessage] = useState("");
   const [isSending, setIsSending] = useState(false); // Estado para o cooldown
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const [showMentions, setShowMentions] = useState(false);
+  const [mentionFilter, setMentionFilter] = useState("");
+  const [mentionIndex, setMentionIndex] = useState(0);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -20,17 +33,96 @@ export const ClanChat: React.FC = () => {
 
   const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault();
+    if (showMentions && filteredMembers.length > 0) {
+      // Prevent form submit if selecting a mention via enter
+      insertMention(filteredMembers[mentionIndex].username);
+      return;
+    }
+    
     if (
       newMessage.trim() &&
-      newMessage.length <= 100 && // Limite atualizado
+      newMessage.length <= 100 &&
       isConnected &&
-      !isSending // Verifica se não está em cooldown
+      !isSending
     ) {
       sendMessage(newMessage);
       setNewMessage("");
-      setIsSending(true); // Ativa o cooldown
-      setTimeout(() => setIsSending(false), 5000); // Desativa após 5s
+      setShowMentions(false);
+      setIsSending(true);
+      setTimeout(() => setIsSending(false), 5000);
     }
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    setNewMessage(val);
+
+    const cursorPosition = e.target.selectionStart || 0;
+    const textBeforeCursor = val.slice(0, cursorPosition);
+    
+    const match = textBeforeCursor.match(/@([a-zA-Z0-9_\u00C0-\u017F]*)$/);
+    if (match) {
+      setMentionFilter(match[1].toLowerCase());
+      setShowMentions(true);
+      setMentionIndex(0);
+    } else {
+      setShowMentions(false);
+    }
+  };
+
+  const insertMention = (username: string) => {
+    const cursorPosition = inputRef.current?.selectionStart || newMessage.length;
+    const textBeforeCursor = newMessage.slice(0, cursorPosition);
+    const textAfterCursor = newMessage.slice(cursorPosition);
+    
+    const newTextBefore = textBeforeCursor.replace(/@[a-zA-Z0-9_\u00C0-\u017F]*$/, `@${username} `);
+    
+    setNewMessage(newTextBefore + textAfterCursor);
+    setShowMentions(false);
+    setTimeout(() => {
+      inputRef.current?.focus();
+    }, 0);
+  };
+
+  const filteredMembers = members.filter((m) =>
+    m.username.toLowerCase().includes(mentionFilter)
+  );
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (showMentions && filteredMembers.length > 0) {
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        setMentionIndex((i) => (i < filteredMembers.length - 1 ? i + 1 : 0));
+      } else if (e.key === "ArrowUp") {
+        e.preventDefault();
+        setMentionIndex((i) => (i > 0 ? i - 1 : filteredMembers.length - 1));
+      } else if (e.key === "Escape") {
+        setShowMentions(false);
+      }
+    }
+  };
+
+  const renderMessageText = (text: string) => {
+    const parts = text.split(/(@[a-zA-Z0-9_\u00C0-\u017F]+)/g);
+    return parts.map((part, i) => {
+      if (part.startsWith("@")) {
+        const isMentioningMe =
+          userProfile && part.toLowerCase() === `@${userProfile.username.toLowerCase()}`;
+        return (
+          <span
+            key={i}
+            className={`font-bold ${
+              isMentioningMe
+                ? "text-yellow-400 bg-yellow-400/20 px-1 rounded"
+                : "text-yellow-300"
+            }`}
+          >
+            {part}
+          </span>
+        );
+      }
+      return part;
+    });
   };
 
   if (!isConnected) {
@@ -70,7 +162,7 @@ export const ClanChat: React.FC = () => {
                 })}
               </span>
               <span className="text-gray-300">
-                : {msg.text}
+                : {renderMessageText(msg.text)}
               </span>
             </div>
           );
@@ -78,17 +170,36 @@ export const ClanChat: React.FC = () => {
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Formulário de Envio */}
-      <div className="p-3 border-t border-gray-700">
+      {/* Formulário de Envio, Menções e Contador */}
+      <div className="p-3 border-t border-gray-700 relative">
+        {showMentions && filteredMembers.length > 0 && (
+          <div className="absolute bottom-full left-3 mb-2 w-64 max-h-48 overflow-y-auto bg-gray-800 border border-gray-600 rounded-lg shadow-lg z-50">
+            {filteredMembers.map((member, i) => (
+              <div
+                key={i}
+                className={`px-4 py-2 cursor-pointer ${
+                  mentionIndex === i
+                    ? "bg-blue-600 text-white"
+                    : "text-gray-300 hover:bg-gray-700"
+                }`}
+                onClick={() => insertMention(member.username)}
+              >
+                {member.username}
+              </div>
+            ))}
+          </div>
+        )}
         <form className="flex items-center gap-2" onSubmit={handleSendMessage}>
           <input
+            ref={inputRef}
             type="text"
             value={newMessage}
-            onChange={(e) => setNewMessage(e.target.value)}
-            placeholder="Digite sua mensagem..."
+            onChange={handleInputChange}
+            onKeyDown={handleKeyDown}
+            placeholder="Digite sua mensagem... Use @ para marcar alguém"
             className="flex-1 bg-gray-700 border border-gray-600 rounded-full py-2 px-4 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
             disabled={!isConnected}
-            maxLength={100} // Limite visual, um pouco maior que o real
+            maxLength={100}
           />
           <button
             type="submit"

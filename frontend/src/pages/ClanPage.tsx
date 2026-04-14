@@ -211,7 +211,7 @@ export default function ClanPage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:items-stretch">
         {/* Coluna da Esquerda: Chat */}
         <div className="flex">
-          <ClanChat />
+          <ClanChat members={clan?.members} />
         </div>
 
         {/* Coluna da Direita: Membros e Opções */}
