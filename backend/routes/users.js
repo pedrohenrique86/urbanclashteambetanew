@@ -42,7 +42,7 @@ const updateProfileValidation = [
       "Username deve ter 3-10 caracteres e conter apenas letras, números e underscore",
     ),
   body("bio")
-    .optional()
+    .optional({ checkFalsy: true })
     .isLength({ max: 100 })
     .withMessage("Bio deve ter no máximo 100 caracteres"),
   body("faction")
@@ -51,12 +51,11 @@ const updateProfileValidation = [
     .withMessage("Facção deve ser: gangsters ou guardas"),
   body("avatar_url")
     .optional({ checkFalsy: true })
-    .isURL()
-    .withMessage("Avatar URL deve ser uma URL válida"),
+    .isString()
+    .isLength({ max: 100 })
+    .withMessage("Avatar URL deve ser uma string de até 100 caracteres"),
   body("birth_date")
-    .optional({ checkFalsy: true })
-    .isISO8601()
-    .withMessage("Data de nascimento inválida"),
+    .optional({ checkFalsy: true }),
 ];
 
 const changePasswordValidation = [
