@@ -25,15 +25,17 @@ async function initRedis() {
         url: process.env.REDIS_URL || "redis://localhost:6379",
       });
 
-      localClient.on("error", () => {});
+      localClient.on("error", (err) => {
+        console.error("[RedisClient] Erro na conexão do client Local:", err.message);
+      });
 
       await localClient.connect();
       client = localClient;
       isReady = true;
       console.log("✅ Redis (Local) OK");
     }
-  } catch (e) {
-    console.log("⚠️ Redis indisponível");
+  } catch (err) {
+    console.error(`[RedisClient] Redis indisponível durante inicialização:`, err.message);
     client = null;
     isReady = false;
   }
@@ -57,7 +59,8 @@ module.exports = {
       } else {
         return await client.get(k);
       }
-    } catch {
+    } catch (err) {
+      console.error(`[RedisClient] Erro em getAsync key=${k}:`, err.message);
       return null;
     }
   },
@@ -73,7 +76,8 @@ module.exports = {
           ? await client.setEx(k, t, String(v))
           : await client.set(k, String(v));
       }
-    } catch {
+    } catch (err) {
+      console.error(`[RedisClient] Erro em setAsync key=${k}:`, err.message);
       return null;
     }
   },
@@ -81,7 +85,8 @@ module.exports = {
     if (!isReady) return null;
     try {
       return await client.del(k);
-    } catch {
+    } catch (err) {
+      console.error(`[RedisClient] Erro em delAsync key=${k}:`, err.message);
       return null;
     }
   },
@@ -89,7 +94,8 @@ module.exports = {
     if (!isReady) return null;
     try {
       return await client.hSet(k, f, String(v));
-    } catch {
+    } catch (err) {
+      console.error(`[RedisClient] Erro em hSetAsync key=${k} field=${f}:`, err.message);
       return null;
     }
   },
@@ -97,7 +103,8 @@ module.exports = {
     if (!isReady) return null;
     try {
       return await client.hGet(k, f);
-    } catch {
+    } catch (err) {
+      console.error(`[RedisClient] Erro em hGetAsync key=${k} field=${f}:`, err.message);
       return null;
     }
   },
@@ -105,7 +112,8 @@ module.exports = {
     if (!isReady) return null;
     try {
       return await client.expire(k, t);
-    } catch {
+    } catch (err) {
+      console.error(`[RedisClient] Erro em expireAsync key=${k}:`, err.message);
       return null;
     }
   },
@@ -113,7 +121,8 @@ module.exports = {
     if (!isReady) return null;
     try {
       return await client.hGetAll(k);
-    } catch {
+    } catch (err) {
+      console.error(`[RedisClient] Erro em hGetAllAsync key=${k}:`, err.message);
       return null;
     }
   },
@@ -125,8 +134,8 @@ module.exports = {
       } else {
         return await client.lRange(k, start, stop);
       }
-    } catch (error) {
-      console.error("❌ ERRO LRANGE:", error);
+    } catch (err) {
+      console.error(`[RedisClient] Erro em lRangeAsync key=${k}:`, err.message);
       return null;
     }
   },
@@ -148,7 +157,8 @@ module.exports = {
         });
         return result === "OK" ? true : null;
       }
-    } catch {
+    } catch (err) {
+      console.error(`[RedisClient] Erro em setNXAsync key=${k}:`, err.message);
       return null;
     }
   },
@@ -197,7 +207,8 @@ module.exports = {
         pipeline.expire(historyKey, ttlSeconds);
         return await pipeline.exec();
       }
-    } catch {
+    } catch (err) {
+      console.error(`[RedisClient] Erro no chatHistoryPipeline key=${historyKey}:`, err.message);
       return null;
     }
   },
