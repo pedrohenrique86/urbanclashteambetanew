@@ -106,18 +106,24 @@ export default function DigitalIdentity({
 
   const inputDateValue = useMemo(() => {
     const d = editData?.birth_date || player.birth_date;
-    if (!d || d === "null") return "";
+    if (!d || d === "null" || d === "undefined") return "";
     
-    // Se já estiver no formato YYYY-MM-DD, retorna direto
+    // Se já estiver no formato YYYY-MM-DD (4 dígitos de ano), retorna direto
     if (typeof d === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(d)) {
       return d;
     }
 
     try {
-      // Tenta converter qualquer formato (ISO, string humana, etc) para YYYY-MM-DD
       const date = new Date(d);
       if (isNaN(date.getTime())) return "";
-      return date.toISOString().split('T')[0];
+      
+      const year = date.getUTCFullYear();
+      // Browser input date só aceita 4 dígitos de ano (0001-9999)
+      if (year < 1 || year > 9999) return "";
+
+      const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+      const day = String(date.getUTCDate()).padStart(2, '0');
+      return `${String(year).padStart(4, '0')}-${month}-${day}`;
     } catch (e) {
       return "";
     }
@@ -246,12 +252,23 @@ export default function DigitalIdentity({
             <span className="flex items-center gap-1">
               NASCIMENTO: 
               {isEditing ? (
-                <input 
-                  type="date" 
-                  value={inputDateValue}
-                  onChange={(e) => onEditChange?.({ ...editData, birth_date: e.target.value })}
-                  className="bg-black/40 border border-white/10 rounded px-1 text-gray-300 focus:outline-none focus:border-white/30 text-[8px] sm:text-[10px]"
-                />
+                <div className="flex items-center gap-2">
+                  <input 
+                    type="date" 
+                    value={inputDateValue}
+                    onChange={(e) => onEditChange?.({ ...editData, birth_date: e.target.value })}
+                    className="bg-black/40 border border-white/10 rounded px-1 text-gray-300 focus:outline-none focus:border-white/30 text-[8px] sm:text-[10px]"
+                  />
+                  {inputDateValue && (
+                    <button 
+                      type="button"
+                      onClick={() => onEditChange?.({ ...editData, birth_date: "" })}
+                      className="text-[8px] text-red-500 hover:text-red-400 font-bold uppercase tracking-tighter"
+                    >
+                      [ Limpar ]
+                    </button>
+                  )}
+                </div>
               ) : (
                 <span className="text-gray-300">
                   {formatDate(player.birth_date)}
