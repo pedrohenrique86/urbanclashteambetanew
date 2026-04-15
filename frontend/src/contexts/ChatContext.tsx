@@ -5,6 +5,7 @@ import React, {
   useContext,
   ReactNode,
   useCallback,
+  useRef,
 } from "react";
 import { socketService, ChatMessage } from "../services/socketService";
 import { useUserProfile } from "../hooks/useUserProfile";
@@ -18,6 +19,51 @@ interface ChatContextType {
 
 const ChatContext = createContext<ChatContextType | undefined>(undefined);
 
+// --- Utilitários fora do componente para evitar recriação em re-render ---
+const getMessageKey = (msg: ChatMessage) => {
+  // Trata explicitamente o campo opcional 'id' se existir no payload estendido
+  if ((msg as any).id) return String((msg as any).id);
+
+  const ts =
+    typeof msg.timestamp === "number"
+      ? msg.timestamp
+      : new Date(msg.timestamp).getTime();
+
+  return `${ts}-${msg.userId}-${msg.text}`;
+};
+
+const mergeAndSortMessages = (
+  current: ChatMessage[],
+  incoming: ChatMessage[],
+) => {
+  const uniqueMap = new Map<string, ChatMessage>();
+
+  [...current, ...incoming].forEach((msg) => {
+    uniqueMap.set(getMessageKey(msg), msg);
+  });
+
+  return Array.from(uniqueMap.values())
+    .sort((a, b) => {
+      const ta =
+        typeof a.timestamp === "number"
+          ? a.timestamp
+          : new Date(a.timestamp).getTime();
+      const tb =
+        typeof b.timestamp === "number"
+          ? b.timestamp
+          : new Date(b.timestamp).getTime();
+
+      // Critério Primário: Ordernar numericamente por Data
+      if (ta !== tb) return ta - tb;
+
+      // Critério Secundário (Tie-Breaker Estável): Ordem Alfanumérica Lexicográfica
+      const aKey = getMessageKey(a);
+      const bKey = getMessageKey(b);
+      return aKey.localeCompare(bKey);
+    })
+    .slice(-20); // Mantém o cap severo de 20 entradas
+};
+
 export const ChatProvider: React.FC<{ children: ReactNode }> = ({
   children,
 }) => {
@@ -25,19 +71,29 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isConnected, setIsConnected] = useState(false);
 
+  const historyRetryTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const hasRetriedHistoryRef = useRef(false);
+
+  // Limpeza imediata do histórico local ao trocar de clã, evitando flash visual de mensagens antigas
+  useEffect(() => {
+    setMessages([]);
+    hasRetriedHistoryRef.current = false;
+    if (historyRetryTimeoutRef.current) {
+      clearTimeout(historyRetryTimeoutRef.current);
+      historyRetryTimeoutRef.current = null;
+    }
+  }, [userProfile?.clan_id]);
+
   // Envolve os handlers com useCallback para estabilizar suas referências.
   // Isso é crucial para usá-los como dependências no useEffect sem causar re-execuções indesejadas.
-  // Cap de 20 mensagens no estado React.
-  // Evita crescimento infinito do array durante sessões longas.
-  // A fonte de verdade permanece o backend — este slice é apenas proteção de memória no browser.
+  // Utiliza as funções isoladas fora do componente, 100% livres de dependências extras
   const handleNewMessage = useCallback((message: ChatMessage) => {
-    setMessages((prevMessages) => [...prevMessages, message].slice(-20));
+    setMessages((prev) => mergeAndSortMessages(prev, [message]));
   }, []);
 
   const handleChatHistory = useCallback((history: ChatMessage[]) => {
-    // O backend já retorna no máximo 20 msgs válidas, mas slice(-20) garante
-    // consistência mesmo que a resposta venha com mais entradas por qualquer motivo.
-    setMessages(history.slice(-20));
+    hasRetriedHistoryRef.current = false;
+    setMessages((prev) => mergeAndSortMessages(prev, history));
   }, []);
 
   useEffect(() => {
@@ -71,22 +127,41 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({
       setIsConnected(false);
     };
 
+    // Dispara 1 único retry tardio (Timeout age como break temporal pra recuperação do banco)
+    const handleHistoryError = () => {
+      if (hasRetriedHistoryRef.current) return;
+      hasRetriedHistoryRef.current = true;
+
+      if (historyRetryTimeoutRef.current) {
+        clearTimeout(historyRetryTimeoutRef.current);
+      }
+
+      console.warn("[ChatContext] Backend sinalizou falha no histórico. Tentando repescagem em 2s...");
+      historyRetryTimeoutRef.current = setTimeout(() => {
+        socketService.requestHistory();
+        historyRetryTimeoutRef.current = null;
+      }, 2000);
+    };
+
     // Registra TODOS os listeners ANTES de disparar a autenticação.
-    // Isso elimina a race condition onde o backend emite 'chat:history'
-    // em milissegundos após o 'chat:auth_success' e o frontend perde.
     socketService.onChatAuthSuccess(handleAuthSuccess);
     socketService.onChatAuthFailed(handleAuthFailed);
     socketService.onChatHistory(handleChatHistory);
+    socketService.onChatHistoryError(handleHistoryError);
     socketService.onMessageReceived(handleNewMessage);
 
     socketService.authenticateChat(token);
 
-    // A função de limpeza remove todos os listeners para evitar duplicatas
-    // e vazamentos de memória quando o usuário desloga.
+    // Limpeza de listeners para evitar duplicatas e vazamentos de memória
     return () => {
+      if (historyRetryTimeoutRef.current) {
+        clearTimeout(historyRetryTimeoutRef.current);
+        historyRetryTimeoutRef.current = null;
+      }
       socketService.off("chat:auth_success", handleAuthSuccess);
       socketService.off("chat:auth_failed", handleAuthFailed);
       socketService.off("chat:history", handleChatHistory);
+      socketService.off("chat:history_error", handleHistoryError);
       socketService.off("chat:message", handleNewMessage);
       setIsConnected(false);
     };

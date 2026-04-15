@@ -70,13 +70,12 @@ function initializeSocket(server) {
           `[Socket.IO] Usuário ${userId} autenticado e entrou na sala: ${clanRoom}`,
         );
 
-        // 1. Busca histórico do clã (com fallback resiliente caso o Redis falhe)
-        let history = [];
+        // 1. Busca histórico do clã
+        let history = null;
         try {
           history = await chatService.getChatHistory(clanId);
         } catch (historyErr) {
-          console.error(`[Chat] Aviso: Falha ao carregar histórico do clã ${clanId}, enviando vazio:`, historyErr.message);
-          // Nota: Falha no histórico não invalida a autenticação
+          console.error(`[Chat] Aviso: Falha ao carregar histórico do clã ${clanId}`, historyErr.message);
         }
 
         // Segunda checagem de versão:
@@ -89,13 +88,29 @@ function initializeSocket(server) {
         // 2. Notifica o cliente que a autenticação foi 100% resolvida e consolidada
         socket.emit("chat:auth_success");
 
-        // 3. Envia o histórico de chat limpo e pertencente ao clã correto
-        socket.emit("chat:history", history);
+        // 3. Envia o histórico se conseguiu buscar, ou sinaliza erro pra instigar 1 único retry local
+        if (history) {
+          socket.emit("chat:history", history);
+        } else {
+          socket.emit("chat:history_error");
+        }
 
         // Listener para novas mensagens com anti-flood e limite de caracteres.
         // Registrado apenas UMA VEZ usando flag de controle no próprio socket.
         if (!socket.hasChatListener) {
           socket.hasChatListener = true;
+
+          // Listener do Retry Simples (1 chamada per cycle se backend falhar)
+          socket.on("chat:request_history", async () => {
+            if (!socket.user || !socket.user.clan_id) return;
+            try {
+              const h = await chatService.getChatHistory(socket.user.clan_id);
+              socket.emit("chat:history", h);
+            } catch (err) {
+              console.error(`[Chat] Retry do histórico falhou pro usuário ${socket.user.id}`);
+            }
+          });
+
           socket.on("chat:sendMessage", async (messageData) => {
             const now = Date.now();
             if (now - socket.lastMessageTimestamp < MESSAGE_COOLDOWN_MS) {

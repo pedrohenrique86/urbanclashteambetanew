@@ -144,6 +144,20 @@ class SocketService {
   }
 
   /**
+   * Registra listener para falha no download do histórico.
+   */
+  onChatHistoryError(callback: () => void): void {
+    this.on<void>("chat:history_error", callback);
+  }
+
+  /**
+   * Pede repescagem do histórico sem refazer a autenticação.
+   */
+  requestHistory(): void {
+    this.emit("chat:request_history");
+  }
+
+  /**
    * Registra um listener para receber novas mensagens do chat.
    */
   onMessageReceived(callback: (message: ChatMessage) => void): void {
