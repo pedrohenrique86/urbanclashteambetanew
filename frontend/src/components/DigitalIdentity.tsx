@@ -105,7 +105,7 @@ export default function DigitalIdentity({
   };
 
   const inputDateValue = useMemo(() => {
-    const d = editData?.birth_date || player.birth_date;
+    const d = isEditing && editData ? editData.birth_date : player.birth_date;
     if (!d || d === "null" || d === "undefined") return "";
     
     // Se já estiver no formato YYYY-MM-DD (4 dígitos de ano), retorna direto
