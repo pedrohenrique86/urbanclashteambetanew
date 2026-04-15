@@ -127,7 +127,7 @@ export default function DigitalIdentity({
     } catch (e) {
       return "";
     }
-  }, [editData?.birth_date, player.birth_date]);
+  }, [editData, isEditing, player.birth_date]);
 
   return (
     <motion.div
