@@ -37,13 +37,16 @@ async function addMessageToHistory(clanId, message) {
   const historyKey = getHistoryKey(clanId);
   const messageJson = JSON.stringify(message);
 
+  console.log(`[ChatService] Salvando na key: ${historyKey} | Payload:`, messageJson);
+
   // Pipeline atômico: 1 round-trip ao invés de 3.
-  await redisClient.chatHistoryPipeline(
+  const pipelineResult = await redisClient.chatHistoryPipeline(
     historyKey,
     messageJson,
     HISTORY_MAX_LENGTH,
     HISTORY_TTL_SECONDS,
   );
+  console.log(`[ChatService] Pipeline result:`, pipelineResult);
 }
 
 /**
@@ -60,9 +63,15 @@ async function addMessageToHistory(clanId, message) {
  */
 async function getChatHistory(clanId) {
   const historyKey = getHistoryKey(clanId);
-  const historyJson = await redisClient.lRangeAsync(historyKey, 0, -1);
+  console.log(`[ChatService] Lendo de: ${historyKey}`);
 
-  if (!Array.isArray(historyJson) || historyJson.length === 0) return [];
+  const historyJson = await redisClient.lRangeAsync(historyKey, 0, -1);
+  console.log(`[ChatService] lRangeAsync retornou:`, historyJson);
+
+  if (!Array.isArray(historyJson) || historyJson.length === 0) {
+    console.log(`[ChatService] Fim da leitura. Array Vazio ou invalido retornado.`);
+    return [];
+  }
 
   const cutoff = Date.now() - EXPIRY_MS;
 
