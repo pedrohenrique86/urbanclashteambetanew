@@ -1,6 +1,9 @@
 const { query } = require("../config/database");
 const redisClient = require("../config/redisClient");
-// const { getIO } = require("../socketHandler"); // REMOVIDO PARA QUEBRAR DEPENDÊNCIA CIRCULAR
+const EventEmitter = require("events");
+
+// Emitter para SSE (usado em routes/time.js)
+const sseGameStateEmitter = new EventEmitter();
 
 // Wrappers seguros para Redis (Hash)
 async function safeRedisHGetAll(key) {
@@ -343,9 +346,18 @@ async function invalidateAndBroadcastState() {
       safeRedisDel(GAME_STATUS_CACHE_KEY),
     ]);
     const newState = await getGameState();
-    getIO().emit("gameStateUpdated", newState);
+    
+    // Broadcast via Socket.IO
+    const io = getIO();
+    if (io) {
+      io.emit("gameStateUpdated", newState);
+    }
+    
+    // Broadcast via SSE
+    sseGameStateEmitter.emit("gameStateChanged", newState);
+
     console.log(
-      "📢 Estado do jogo invalidado e transmitido para todos os clientes.",
+      "📢 Estado do jogo invalidado e transmitido para todos os clientes (Socket/SSE).",
     );
     return newState;
   } catch (error) {
@@ -411,4 +423,5 @@ module.exports = {
   checkAutoStart,
   getGameStateFromDB,
   calculateGameState,
+  sseGameStateEmitter,
 };

@@ -8,6 +8,16 @@ let io;
 function initializeSocket(server) {
   io = server;
   io.on("connection", async (socket) => {
+    // Sincronização inicial do estado do jogo
+    socket.on("getGameState", async () => {
+      try {
+        const state = await gameStateService.getGameState();
+        socket.emit("gameState", state);
+      } catch (error) {
+        console.error("Erro ao enviar estado inicial do jogo:", error);
+      }
+    });
+
     socket.on("chat:authenticate", async (data) => {
       socket.authVersion = (socket.authVersion || 0) + 1;
       const currentAuthVersion = socket.authVersion;
@@ -63,4 +73,6 @@ function initializeSocket(server) {
   });
 }
 
-module.exports = { initializeSocket };
+const getIO = () => io;
+
+module.exports = { initializeSocket, getIO };

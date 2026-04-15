@@ -42,9 +42,15 @@ export const GameClockProvider: React.FC<{ children: ReactNode }> = ({
   } | null>(null);
 
   useEffect(() => {
-    // 1. Conecta ao socket, registra os listeners e pede o estado atual
+    // 1. Conecta ao socket e registra os listeners
     socketService.connect();
-    socketService.emit("getGameState");
+
+    const onConnect = () => {
+      console.log("🔌 Socket conectado/reconectado - Solicitando estado do jogo");
+      socketService.emit("getGameState");
+    };
+
+    socketService.on("connect", onConnect);
 
     const handleInitialState = (initialState: GameState) => {
       setGameState(initialState);
@@ -72,6 +78,7 @@ export const GameClockProvider: React.FC<{ children: ReactNode }> = ({
     socketService.on<GameState>("gameStateUpdated", handleStateUpdate);
 
     return () => {
+      socketService.off("connect", onConnect);
       socketService.off("gameState", handleInitialState);
       socketService.off("gameStateUpdated", handleStateUpdate);
     };
@@ -88,13 +95,18 @@ export const GameClockProvider: React.FC<{ children: ReactNode }> = ({
 
     const intervalId = setInterval(() => {
       let remaining = 0;
+      
+      // Obtém a "Verdadeira Hora do Servidor" atual (sincronizada)
+      const nowServer = lastServerUpdateTime.current 
+        ? new Date(new Date(lastServerUpdateTime.current.serverTime).getTime() + (Date.now() - lastServerUpdateTime.current.localTime))
+        : new Date();
 
       if (gameState.status === "running" && gameState.endTime) {
         const endTime = new Date(gameState.endTime).getTime();
-        remaining = Math.floor((endTime - Date.now()) / 1000);
+        remaining = Math.floor((endTime - nowServer.getTime()) / 1000);
       } else if (gameState.status === "scheduled" && gameState.startTime) {
         const startTime = new Date(gameState.startTime).getTime();
-        remaining = Math.floor((startTime - Date.now()) / 1000);
+        remaining = Math.floor((startTime - nowServer.getTime()) / 1000);
       }
 
       setDisplayTime(Math.max(0, remaining));
