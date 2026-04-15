@@ -117,41 +117,10 @@ module.exports = {
       return null;
     }
   },
-  lPushAsync: async (k, v) => {
-    if (!isReady) return null;
-    try {
-      // O valor já deve ser uma string
-      return await client.lPush(k, v);
-    } catch {
-      return null;
-    }
-  },
-  lTrimAsync: async (k, start, stop) => {
-    if (!isReady) return null;
-    try {
-      return await client.lTrim(k, start, stop);
-    } catch {
-      return null;
-    }
-  },
   lRangeAsync: async (k, start, stop) => {
     if (!isReady) return null;
     try {
       return await client.lRange(k, start, stop);
-    } catch {
-      return null;
-    }
-  },
-  hKeysAsync: async (k) => {
-    if (!isReady) return null;
-    try {
-      if (isUpstash) {
-        // Upstash/redis não tem hKeys direto, mas tem hgetall
-        const obj = await client.hgetall(k);
-        return obj ? Object.keys(obj) : [];
-      } else {
-        return await client.hKeys(k);
-      }
     } catch {
       return null;
     }

@@ -58,14 +58,9 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({
     }
 
     // --- Lógica de Autenticação e Listeners ---
-    socketService.authenticateChat(token);
-
+    
     const handleAuthSuccess = () => {
       setIsConnected(true);
-
-      // Registra os listeners SOMENTE após a autenticação
-      socketService.onChatHistory(handleChatHistory);
-      socketService.onMessageReceived(handleNewMessage);
     };
 
     const handleAuthFailed = (error: { message: string }) => {
@@ -76,8 +71,15 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({
       setIsConnected(false);
     };
 
+    // Registra TODOS os listeners ANTES de disparar a autenticação.
+    // Isso elimina a race condition onde o backend emite 'chat:history'
+    // em milissegundos após o 'chat:auth_success' e o frontend perde.
     socketService.onChatAuthSuccess(handleAuthSuccess);
     socketService.onChatAuthFailed(handleAuthFailed);
+    socketService.onChatHistory(handleChatHistory);
+    socketService.onMessageReceived(handleNewMessage);
+
+    socketService.authenticateChat(token);
 
     // A função de limpeza remove todos os listeners para evitar duplicatas
     // e vazamentos de memória quando o usuário desloga.
