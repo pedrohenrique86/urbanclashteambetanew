@@ -84,6 +84,9 @@ export const GameClockProvider: React.FC<{ children: ReactNode }> = ({
     };
   }, []);
 
+  // Ref para evitar loops de sincronização quando o cronômetro zera
+  const lastAutoSyncRef = useRef<string | null>(null);
+
   // Timer para o Cronômetro do Jogo
   useEffect(() => {
     if (!gameState) return;
@@ -118,7 +121,13 @@ export const GameClockProvider: React.FC<{ children: ReactNode }> = ({
           );
         }
         if (gameState.status === "scheduled") {
-          socketService.emit("getGameState");
+          // Proteção para disparar apenas uma vez quando zerar
+          if (remaining === 0 && lastAutoSyncRef.current !== gameState.status) {
+             lastAutoSyncRef.current = gameState.status;
+             socketService.emit("getGameState");
+             // Reseta o flag após 5s para permitir nova tentativa se o servidor falhar
+             setTimeout(() => { lastAutoSyncRef.current = null; }, 5000);
+          }
         }
       }
     }, 1000);
