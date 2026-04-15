@@ -198,21 +198,23 @@ export default function ClanPage() {
       transition={{ duration: 0.5 }}
       className={`min-h-screen ${themeClasses.bg} text-white font-exo max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-6 space-y-6`}
     >
-      <div className={`rounded-xl p-6 bg-gradient-to-r ${factionColor.gradient} shadow-xl ring-2 ${factionColor.ring}`}>
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-orbitron font-extrabold tracking-tight">
+      <div className={`rounded-xl p-4 sm:p-6 bg-gradient-to-r ${factionColor.gradient} shadow-xl ring-2 ${factionColor.ring}`}>
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="min-w-0">
+            <h1 className="text-xl sm:text-2xl md:text-3xl font-orbitron font-extrabold tracking-tight truncate">
               {clan?.name || "Clã"}
             </h1>
 
-            <p className="text-sm text-white/80 mt-1">
+            <p className="text-xs sm:text-sm text-white/80 mt-1 line-clamp-2 sm:line-clamp-none">
               {clan?.description || "Descrição do clã."}
             </p>
           </div>
 
-          <div className="text-right">
-            <p className="text-lg font-bold">{clan?.score || 0}</p>
-            <p className="text-xs text-white/70">PONTUAÇÃO</p>
+          <div className="flex sm:flex-col items-center sm:items-end justify-between sm:justify-center w-full sm:w-auto pt-4 sm:pt-0 border-t border-white/10 sm:border-0">
+            <div className="sm:text-right">
+              <p className="text-base sm:text-lg font-bold">{clan?.score || 0}</p>
+              <p className="text-[10px] sm:text-xs text-white/70 uppercase">PONTUAÇÃO</p>
+            </div>
           </div>
         </div>
       </div>
@@ -365,16 +367,20 @@ function PlayerProfileModal({ userId, onClose }: { userId: string; onClose: () =
   }, [userId]);
 
   return (
-    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[60] p-4 text-white">
+    <div 
+      className="fixed inset-0 bg-black/90 backdrop-blur-md flex items-center justify-center z-[9999] p-4 sm:p-8 text-white overflow-y-auto"
+      onClick={onClose}
+    >
       <motion.div 
-        initial={{ opacity: 0, scale: 0.9 }}
-        animate={{ opacity: 1, scale: 1 }}
-        className="w-full max-w-2xl"
+        initial={{ opacity: 0, scale: 0.9, y: 30 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        className="w-full max-w-3xl my-auto shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
       >
         {loading ? (
           <div className="flex flex-col items-center gap-4">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500"></div>
-            <p className="font-orbitron text-xs animate-pulse text-orange-500/80">SINCRONIZANDO IDENTIDADE...</p>
+            <p className="font-orbitron text-[10px] animate-pulse text-orange-500/80">SINCRONIZANDO IDENTIDADE...</p>
           </div>
         ) : player ? (
           <DigitalIdentity player={player} onClose={onClose} />

@@ -202,7 +202,7 @@ export default function DigitalIdentityPage() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12 pt-6">
+    <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 pb-12 pt-6">
       {saving && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center">
           <div className="text-center">

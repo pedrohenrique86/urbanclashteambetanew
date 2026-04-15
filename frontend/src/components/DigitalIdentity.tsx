@@ -95,62 +95,61 @@ export default function DigitalIdentity({
     <motion.div
       initial={{ opacity: 0, scale: 0.95, y: 20 }}
       animate={{ opacity: 1, scale: 1, y: 0 }}
-      className={`relative w-full max-w-2xl mx-auto overflow-hidden rounded-2xl border-2 ${factionTheme.border} bg-gradient-to-br ${factionTheme.bg} p-6 shadow-2xl ${factionTheme.shadow} text-white font-exo`}
+      className={`relative w-full mx-auto overflow-y-auto max-h-[90vh] md:max-h-none rounded-2xl border-2 ${factionTheme.border} bg-gradient-to-br ${factionTheme.bg} p-4 sm:p-6 shadow-2xl ${factionTheme.shadow} text-white font-exo`}
     >
       {/* Botões de Controle */}
-      <div className="absolute top-4 right-4 flex gap-3 z-10">
+      <div className="sticky top-0 sm:absolute sm:top-4 sm:right-4 flex flex-wrap justify-end gap-2 mb-4 sm:mb-0 z-20">
         {isOwnProfile && !isEditing && (
           <button 
             onClick={onToggleEdit}
-            className="px-4 py-1.5 bg-white/10 hover:bg-white/20 rounded-full text-xs font-bold transition-all border border-white/10"
+            className="px-3 sm:px-4 py-1.5 bg-white/10 hover:bg-white/20 rounded-full text-[10px] sm:text-xs font-bold transition-all border border-white/10"
           >
             EDITAR PERFIL
           </button>
         )}
         {isEditing && (
-          <>
+          <div className="flex gap-2">
             <button 
               onClick={onToggleEdit}
-              className="px-4 py-1.5 bg-red-900/40 hover:bg-red-900/60 rounded-full text-xs font-bold transition-all border border-red-500/30"
+              className="px-3 sm:px-4 py-1.5 bg-red-900/40 hover:bg-red-900/60 rounded-full text-[10px] sm:text-xs font-bold transition-all border border-red-500/30"
             >
               CANCELAR
             </button>
             <button 
               onClick={onSave}
-              className={`px-4 py-1.5 ${factionTheme.accent} hover:brightness-110 rounded-full text-xs font-bold transition-all border border-white/20`}
+              className={`px-3 sm:px-4 py-1.5 ${factionTheme.accent} hover:brightness-110 rounded-full text-[10px] sm:text-xs font-bold transition-all border border-white/20`}
             >
-              SALVAR ALTERAÇÕES
+              SALVAR
             </button>
-          </>
+          </div>
         )}
         {onClose && !isEditing && (
           <button 
             onClick={onClose}
-            className="text-white/50 hover:text-white transition-colors p-1.5"
+            className="text-white/50 hover:text-white transition-colors p-1 bg-black/20 sm:bg-transparent rounded-full"
           >
-            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
         )}
       </div>
 
-      <div className="flex flex-col md:flex-row gap-8 items-center md:items-start text-white">
+      <div className="flex flex-col md:flex-row gap-6 sm:gap-8 items-center md:items-start text-white pt-2 sm:pt-0">
         {/* Lado Esquerdo: Avatar e Nível */}
-        <div className="relative group">
+        <div className="relative group shrink-0">
           <div className={`absolute -inset-1 rounded-full ${factionTheme.glow} blur-lg group-hover:blur-xl transition-all`}></div>
-          <div className="relative w-32 h-32 md:w-40 md:h-40 rounded-full border-4 border-white/10 overflow-hidden bg-black/40">
+          <div className="relative w-28 h-28 sm:w-32 sm:h-32 md:w-40 md:h-40 rounded-full border-4 border-white/10 overflow-hidden bg-black/40">
             {isEditing ? (
               <div className="relative w-full h-full">
                 <img src={editData?.avatar_url || player.avatar_url} alt="" className="w-full h-full object-cover opacity-50" />
                 <div className="absolute inset-0 flex flex-col items-center justify-center p-2 bg-black/40 backdrop-blur-[2px]">
-                  <span className="text-[10px] uppercase font-bold text-gray-400 mb-1">URL Avatar</span>
-                  <input 
+                   <input 
                     type="text" 
                     value={editData?.avatar_url || ""}
                     onChange={(e) => onEditChange?.({ ...editData, avatar_url: e.target.value })}
-                    className="w-full bg-black/60 border border-white/20 rounded px-2 py-1 text-[10px] focus:outline-none focus:border-white/40"
-                    placeholder="https://..."
+                    className="w-full bg-black/60 border border-white/20 rounded px-2 py-1 text-[8px] sm:text-[10px] focus:outline-none focus:border-white/40"
+                    placeholder="URL Avatar..."
                   />
                 </div>
               </div>
@@ -158,30 +157,30 @@ export default function DigitalIdentity({
               player.avatar_url ? (
                 <img src={player.avatar_url} alt={player.username} className="w-full h-full object-cover" />
               ) : (
-                <div className="w-full h-full flex items-center justify-center text-4xl font-bold text-white/20">
+                <div className="w-full h-full flex items-center justify-center text-3xl sm:text-4xl font-bold text-white/20">
                   {player.username[0].toUpperCase()}
                 </div>
               )
             )}
           </div>
           {/* Badge de Nível */}
-          <div className={`absolute -bottom-2 left-1/2 -translate-x-1/2 ${factionTheme.accent} px-3 py-1 rounded-full text-xs font-bold border-2 border-white/20 shadow-lg`}>
+          <div className={`absolute -bottom-2 left-1/2 -translate-x-1/2 ${factionTheme.accent} px-2 sm:px-3 py-1 rounded-full text-[10px] sm:text-xs font-bold border-2 border-white/20 shadow-lg whitespace-nowrap`}>
             NÍVEL {player.level}
           </div>
         </div>
 
         {/* Lado Direito: Identidade */}
-        <div className="flex-grow text-center md:text-left space-y-4">
+        <div className="flex-grow text-center md:text-left space-y-4 w-full min-w-0">
           <div>
-            <div className="flex items-center justify-center md:justify-start gap-3">
-              <h1 className="text-3xl md:text-4xl font-orbitron font-extrabold tracking-wider truncate max-w-[250px]">
+            <div className="flex flex-wrap items-center justify-center md:justify-start gap-2 sm:gap-3">
+              <h1 className="text-2xl sm:text-3xl md:text-4xl font-orbitron font-extrabold tracking-wider truncate max-w-full">
                 {player.display_name || player.username}
               </h1>
-              {getFlagUrl(player.country) && (
-                <img src={getFlagUrl(player.country)!} alt={player.country} className="h-6 rounded-sm shadow-sm" />
+              {player.country && player.country !== "null" && getFlagUrl(player.country) && (
+                <img src={getFlagUrl(player.country)!} alt={player.country} className="h-4 sm:h-5 md:h-6 rounded-sm shadow-sm" />
               )}
             </div>
-            <p className={`text-xs font-bold uppercase tracking-[0.2em] ${factionTheme.primary}`}>
+            <p className={`text-[10px] sm:text-xs font-bold uppercase tracking-[0.2em] ${factionTheme.primary} mt-1`}>
               {player.faction === "gangsters" ? "Alta Periculosidade" : "Ordem e Progresso"}
             </p>
           </div>
@@ -208,7 +207,7 @@ export default function DigitalIdentity({
           </div>
 
           {/* Datas */}
-          <div className="flex flex-wrap justify-center md:justify-start gap-x-6 gap-y-2 text-[10px] text-gray-500 uppercase font-bold tracking-widest">
+          <div className="flex flex-wrap justify-center md:justify-start gap-x-4 sm:gap-x-6 gap-y-2 text-[8px] sm:text-[10px] text-gray-500 uppercase font-bold tracking-widest">
             <span className="flex items-center gap-1">
                NA REDE DESDE: <span className="text-gray-300">{accountDate}</span>
             </span>
@@ -219,7 +218,7 @@ export default function DigitalIdentity({
                   type="date" 
                   value={editData?.birth_date ? new Date(editData.birth_date).toISOString().split('T')[0] : ""}
                   onChange={(e) => onEditChange?.({ ...editData, birth_date: e.target.value })}
-                  className="bg-black/40 border border-white/10 rounded px-1 text-gray-300 focus:outline-none focus:border-white/30"
+                  className="bg-black/40 border border-white/10 rounded px-1 text-gray-300 focus:outline-none focus:border-white/30 text-[8px] sm:text-[10px]"
                 />
               ) : (
                 <span className="text-gray-300">
@@ -232,7 +231,7 @@ export default function DigitalIdentity({
       </div>
 
       {/* Grid de Estatísticas AAA */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-8">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mt-6 sm:mt-8">
         {[
           { label: "Vitórias", value: player.victories, color: "text-green-400" },
           { label: "Derrotas", value: player.defeats, color: "text-red-400" },
@@ -246,11 +245,11 @@ export default function DigitalIdentity({
         ].map((stat, i) => (
           <div 
             key={i} 
-            className={`relative overflow-hidden bg-black/20 border ${factionTheme.border} rounded-xl p-3 text-center transition-transform hover:-translate-y-1 hover:bg-black/40`}
+            className={`relative overflow-hidden bg-black/20 border ${factionTheme.border} rounded-lg sm:rounded-xl p-2 sm:p-3 text-center transition-transform hover:-translate-y-1 hover:bg-black/40`}
           >
             {stat.glow && <div className="absolute inset-0 bg-yellow-400/5 animate-pulse"></div>}
-            <p className="text-[10px] text-gray-500 uppercase font-bold tracking-tighter mb-1">{stat.label}</p>
-            <p className={`text-xl font-orbitron font-bold ${stat.color}`}>{stat.value}</p>
+            <p className="text-[8px] sm:text-[10px] text-gray-500 uppercase font-bold tracking-tighter mb-1">{stat.label}</p>
+            <p className={`text-sm sm:text-lg md:text-xl font-orbitron font-bold ${stat.color}`}>{stat.value}</p>
           </div>
         ))}
       </div>
