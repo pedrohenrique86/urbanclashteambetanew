@@ -53,9 +53,9 @@ const redisWrapper = {
   },
 
   getAsync: async (k) => {
-    if (!isReady) return null;
+    if (!k || !isReady) return null;
     try {
-      return await client.get(k);
+      return await client.get(String(k));
     } catch (err) {
       console.error(`[RedisClient] Erro em getAsync key=${k}:`, err.message);
       return null;
@@ -63,16 +63,19 @@ const redisWrapper = {
   },
 
   setAsync: async (k, v, m, t) => {
-    if (!isReady) return null;
+    if (!k || !isReady) return null;
     try {
+      const key = String(k);
+      const val = String(v ?? "");
+
       if (isUpstash) {
         return m === "EX" && t
-          ? await client.set(k, String(v), { ex: t })
-          : await client.set(k, String(v));
+          ? await client.set(key, val, { ex: t })
+          : await client.set(key, val);
       } else {
         return m === "EX" && t
-          ? await client.setEx(k, t, String(v))
-          : await client.set(k, String(v));
+          ? await client.setEx(key, t, val)
+          : await client.set(key, val);
       }
     } catch (err) {
       console.error(`[RedisClient] Erro em setAsync key=${k}:`, err.message);
@@ -81,9 +84,9 @@ const redisWrapper = {
   },
 
   delAsync: async (k) => {
-    if (!isReady) return null;
+    if (!k || !isReady) return null;
     try {
-      return await client.del(k);
+      return await client.del(String(k));
     } catch (err) {
       console.error(`[RedisClient] Erro em delAsync key=${k}:`, err.message);
       return null;
@@ -91,13 +94,34 @@ const redisWrapper = {
   },
 
   hSetAsync: async (k, f, v) => {
+    if (!k || f === undefined || f === null) return null;
     if (!isReady) return null;
+
     try {
+      const key = String(k);
+
+      // 1. Caso f seja objeto: normalizar todas keys e values para String
+      if (typeof f === "object" && f !== null) {
+        const normalizedObj = {};
+        for (const [objKey, objVal] of Object.entries(f)) {
+          normalizedObj[String(objKey)] = String(objVal ?? "");
+        }
+
+        if (isUpstash) {
+          return await client.hset(key, normalizedObj);
+        } else {
+          return await client.hSet(key, normalizedObj);
+        }
+      }
+      
+      // 2. Caso f seja field/value individual
+      const field = String(f);
+      const value = String(v ?? "");
+      
       if (isUpstash) {
-        if (typeof f === 'object') return await client.hset(k, f);
-        return await client.hset(k, f, String(v));
+        return await client.hset(key, field, value);
       } else {
-        return await client.hSet(k, f, String(v));
+        return await client.hSet(key, field, value);
       }
     } catch (err) {
       console.error(`[RedisClient] Erro em hSetAsync key=${k}:`, err.message);
@@ -106,21 +130,27 @@ const redisWrapper = {
   },
 
   hGetAsync: async (k, f) => {
+    if (!k || f === undefined || f === null) return null;
     if (!isReady) return null;
+
     try {
-      if (isUpstash) return await client.hget(k, f);
-      return await client.hGet(k, f);
+      const key = String(k);
+      const field = String(f);
+
+      if (isUpstash) return await client.hget(key, field);
+      return await client.hGet(key, field);
     } catch (err) {
-      console.error(`[RedisClient] Erro em hGetAsync key=${k}:`, err.message);
+      console.error(`[RedisClient] Erro em hGetAsync key=${k} field=${f}:`, err.message);
       return null;
     }
   },
 
   hGetAllAsync: async (k) => {
-    if (!isReady) return null;
+    if (!k || !isReady) return null;
     try {
-      if (isUpstash) return await client.hgetall(k);
-      return await client.hGetAll(k);
+      const key = String(k);
+      if (isUpstash) return await client.hgetall(key);
+      return await client.hGetAll(key);
     } catch (err) {
       console.error(`[RedisClient] Erro em hGetAllAsync key=${k}:`, err.message);
       return null;
@@ -128,9 +158,9 @@ const redisWrapper = {
   },
 
   expireAsync: async (k, t) => {
-    if (!isReady) return null;
+    if (!k || !isReady) return null;
     try {
-      return await client.expire(k, t);
+      return await client.expire(String(k), t);
     } catch (err) {
       console.error(`[RedisClient] Erro em expireAsync key=${k}:`, err.message);
       return null;
@@ -138,24 +168,27 @@ const redisWrapper = {
   },
 
   lRangeAsync: async (k, start, stop) => {
-    if (!isReady) return null;
+    if (!k || !isReady) return [];
     try {
-      if (isUpstash) return await client.lrange(k, start, stop);
-      return await client.lRange(k, start, stop);
+      const key = String(k);
+      if (isUpstash) return await client.lrange(key, start, stop);
+      return await client.lRange(key, start, stop);
     } catch (err) {
       console.error(`[RedisClient] Erro em lRangeAsync key=${k}:`, err.message);
-      return null;
+      return [];
     }
   },
 
   setNXAsync: async (k, v, exMs) => {
-    if (!isReady) return null;
+    if (!k || !isReady) return null;
     try {
+      const key = String(k);
+      const val = String(v ?? "");
       if (isUpstash) {
-        const result = await client.set(String(k), String(v), { nx: true, px: exMs });
+        const result = await client.set(key, val, { nx: true, px: exMs });
         return result === "OK" || result === true ? true : null;
       } else {
-        const result = await client.set(String(k), String(v), { NX: true, PX: exMs });
+        const result = await client.set(key, val, { NX: true, PX: exMs });
         return result === "OK" ? true : null;
       }
     } catch (err) {
@@ -193,7 +226,7 @@ const redisWrapper = {
   },
 
   chatHistoryPipeline: async (historyKey, messageJson, maxLength, ttlSeconds) => {
-    if (!isReady) return null;
+    if (!historyKey || !isReady) return null;
     try {
       if (isUpstash) {
         const p = client.pipeline();

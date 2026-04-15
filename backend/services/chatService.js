@@ -1,129 +1,76 @@
 const redisClient = require("../config/redisClient");
 
-// Histórico limitado a 20 mensagens por clã.
-// Manter baixo é intencional: custo O(1) de escrita, leitura de lista pequena, RAM previsível.
-const HISTORY_MAX_LENGTH = 20;
-
-// TTL de 25 horas em segundos.
-// Renovado a cada nova mensagem — clãs inativos expiram automaticamente sem nenhum job.
-const HISTORY_TTL_SECONDS = 25 * 60 * 60; // 90.000s
-
-// Cutoff de 24 horas em milissegundos — usado no filtro de leitura.
-const EXPIRY_MS = 24 * 60 * 60 * 1000; // 86.400.000ms
-
+const HISTORY_MAX_LENGTH = 50;
+const HISTORY_TTL_SECONDS = 86400; // 24h
+const EXPIRY_MS = 24 * 60 * 60 * 1000;
 const CLAN_ROOM_PREFIX = "clan:";
-
-// --- Funções de Chave ---
 
 const getHistoryKey = (clanId) => `chat:history:${clanId}`;
 const getClanRoom = (clanId) => `${CLAN_ROOM_PREFIX}${clanId}`;
 
-// --- Funções Internas ---
-
-/**
- * Adiciona uma mensagem ao histórico Redis, mantém o limite e renova o TTL.
- *
- * Usa pipeline atômico: LPUSH + LTRIM + EXPIRE em um único round-trip Redis.
- * Antes eram 3 awaits sequenciais (3 round-trips). Agora é 1 exec().
- *
- * Compatibilidade garantida:
- *   - Upstash: pipeline REST batched (1 requisição HTTP)
- *   - node-redis: MULTI/EXEC sobre TCP
- *
- * @param {string} clanId   - ID do clã.
- * @param {object} message  - Objeto da mensagem já serializada.
- */
 async function addMessageToHistory(clanId, message) {
   const historyKey = getHistoryKey(clanId);
   const messageJson = JSON.stringify(message);
-
-  console.log(`[ChatService] Salvando na key: ${historyKey} | Payload:`, messageJson);
-
-  // Pipeline atômico: 1 round-trip ao invés de 3.
-  const pipelineResult = await redisClient.chatHistoryPipeline(
+  await redisClient.chatHistoryPipeline(
     historyKey,
     messageJson,
     HISTORY_MAX_LENGTH,
-    HISTORY_TTL_SECONDS,
+    HISTORY_TTL_SECONDS
   );
-  console.log(`[ChatService] Pipeline result:`, pipelineResult);
 }
 
-/**
- * Obtém o histórico de chat do Redis, filtrando mensagens com mais de 24h.
- *
- * O filtro é feito em Node.js sobre uma lista de no máximo 20 itens — custo O(20),
- * absolutamente desprezível. Nenhuma query extra ao Redis é necessária.
- *
- * O backend é a única fonte de verdade para expiração.
- * O frontend nunca decide o que é válido ou não.
- *
- * @param {string} clanId - ID do clã.
- * @returns {Promise<object[]>} Histórico de mensagens válidas (< 24h), em ordem cronológica.
- */
 async function getChatHistory(clanId) {
-  const historyKey = getHistoryKey(clanId);
-  console.log(`[ChatService] Lendo de: ${historyKey}`);
-
-  const historyJson = await redisClient.lRangeAsync(historyKey, 0, -1);
-  console.log(`[ChatService] lRangeAsync retornou:`, historyJson);
-
-  if (!Array.isArray(historyJson) || historyJson.length === 0) {
-    console.log(`[ChatService] Fim da leitura. Array Vazio ou invalido retornado.`);
+  const clanIdNorm = String(clanId ?? "").trim();
+  if (!clanIdNorm || clanIdNorm === "null" || clanIdNorm === "undefined") {
+    console.error("[ChatService] Tentativa de ler histórico sem clanId válido");
     return [];
   }
+  const historyKey = getHistoryKey(clanIdNorm);
 
-  const cutoff = Date.now() - EXPIRY_MS;
+  try {
+    const historyJson = await redisClient.lRangeAsync(historyKey, 0, -1);
+    if (!Array.isArray(historyJson) || historyJson.length === 0) return [];
 
-  return historyJson
-    .map((msg) => {
-      try {
-        return JSON.parse(msg);
-      } catch {
-        // Mensagem corrompida no Redis — ignora silenciosamente.
-        return null;
-      }
-    })
-    .filter((msg) => {
-      if (!msg || !msg.timestamp) return false;
-      // Compara milissegundos — timestamp é ISO string gerado pelo backend.
-      return new Date(msg.timestamp).getTime() >= cutoff;
-    })
-    .reverse(); // Redis LIST é LIFO (LPUSH) → reverse para ordem cronológica crescente.
+    const cutoff = Date.now() - EXPIRY_MS;
+    return historyJson
+      .map((msg) => {
+        try { return JSON.parse(msg); } catch { return null; }
+      })
+      .filter((msg) => msg && msg.timestamp && new Date(msg.timestamp).getTime() >= cutoff)
+      .reverse();
+  } catch (err) {
+    return [];
+  }
 }
 
-// --- Funções Exportadas (Manipuladores de Eventos) ---
-
-/**
- * Manipula o recebimento de uma nova mensagem de chat.
- *
- * O timestamp é gerado aqui, no processo Node.js do servidor.
- * Nunca confiamos no relógio do cliente para definir quando a mensagem foi criada.
- *
- * @param {object} io     - Instância do Socket.IO.
- * @param {object} socket - O objeto do socket do remetente.
- * @param {string} text   - O texto da mensagem (já validado no socketHandler).
- */
 async function handleNewMessage(io, socket, text) {
   const { user } = socket;
-  if (!user || !user.clan_id) return;
+  if (!user) return; // Proteção adicional contra socket sem payload de usuário
+  
+  const clanId = String(user?.clan_id ?? "").trim();
 
+  if (!clanId || clanId === "null" || clanId === "undefined") {
+    console.warn(`[ChatService] BLOQUEIO: Usuário ${socket.id} sem clan_id válido.`);
+    return;
+  }
+
+  const trimmedText = typeof text === "string" ? text.trim() : "";
+  if (!trimmedText) return;
+
+  const clanRoom = `clan:${clanId}`;
   const message = {
     userId: user.id,
     username: user.username,
-    text: text.trim(),
-    // ISO 8601 UTC — consistente independente do fuso do servidor.
-    // Usado como única referência de tempo para o filtro de 24h.
+    text: trimmedText,
     timestamp: new Date().toISOString(),
   };
 
-  await addMessageToHistory(user.clan_id, message);
-
-  // Broadcast para todos os sockets autenticados na sala do clã.
-  io.to(getClanRoom(user.clan_id)).emit("chat:message", message);
+  try {
+    await addMessageToHistory(clanId, message);
+    io.to(clanRoom).emit("chat:message", message);
+  } catch (err) {
+    console.error(`[ChatService] ERRO CRÍTICO no clã ${clanId}:`, err.message);
+  }
 }
 
-module.exports = {
-  getChatHistory,
-  handleNewMessage,
-};
+module.exports = { getChatHistory, handleNewMessage };
