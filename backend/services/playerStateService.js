@@ -22,7 +22,14 @@ async function loadPlayerState(userId) {
 
   try {
     const profileResult = await query(
-      "SELECT * FROM user_profiles WHERE user_id = $1",
+      `
+      SELECT 
+        p.*,
+        u.username, u.country, u.created_at as account_created_at, u.birth_date
+      FROM user_profiles p
+      JOIN users u ON p.user_id = u.id
+      WHERE p.user_id = $1
+      `,
       [userId],
     );
 

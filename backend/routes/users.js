@@ -514,65 +514,39 @@ router.delete("/:id", authenticateToken, async (req, res) => {
   }
 });
 
-// GET /api/users/:id - Obter perfil de usuário
+// GET /api/users/:id - Obter perfil público do usuário (Otimizado via Redis)
 router.get("/:id", async (req, res) => {
   try {
     const { id } = req.params;
+    const playerStateService = require("../services/playerStateService");
 
-    // Buscar usuário e perfil
-    const userResult = await query(
-      `
-      SELECT 
-        u.id, u.username, u.created_at, u.birth_date, u.country,
-        p.avatar_url, p.bio, p.level, 
-        p.experience_points, p.faction, p.created_at as profile_created_at
-      FROM users u
-      LEFT JOIN user_profiles p ON u.id = p.user_id
-      WHERE u.id = $1 AND u.is_email_confirmed = true
-    `,
-      [id],
-    );
+    // A mágica acontece aqui: Busca do Redis se estiver ativo, ou carrega uma única vez do DB.
+    const player = await playerStateService.getPlayerState(id);
 
-    if (userResult.rows.length === 0) {
+    if (!player) {
       return res.status(404).json({ error: "Usuário não encontrado" });
     }
 
-    const user = userResult.rows[0];
-
-    // Buscar estatísticas do usuário
-    const statsResult = await query(
-      `
-      SELECT 
-        COUNT(cm.id) as clans_joined,
-        COUNT(CASE WHEN cm.role = 'leader' THEN 1 END) as clans_led
-      FROM clan_members cm
-      WHERE cm.user_id = $1
-    `,
-      [id],
-    );
-
-    const stats = statsResult.rows[0] || { clans_joined: 0, clans_led: 0 };
-
+    // Retornamos apenas os dados públicos necessários
     res.json({
       user: {
-        id: user.id,
-        username: user.username, // username vem da tabela users
-        birth_date: user.birth_date,
-        country: user.country,
-        avatar_url: user.avatar_url,
-        bio: user.bio,
-        level: user.level || 1,
-        experience_points: user.experience_points || 0,
-        faction: user.faction,
-        created_at: user.created_at,
-        stats: {
-          clans_joined: parseInt(stats.clans_joined),
-          clans_led: parseInt(stats.clans_led),
-        },
+        id: player.user_id,
+        username: player.username,
+        display_name: player.display_name,
+        country: player.country,
+        avatar_url: player.avatar_url,
+        bio: player.bio,
+        level: parseInt(player.level) || 1,
+        faction: player.faction,
+        victories: parseInt(player.victories) || 0,
+        defeats: parseInt(player.defeats) || 0,
+        winning_streak: parseInt(player.winning_streak) || 0,
+        created_at: player.account_created_at,
+        birth_date: player.birth_date,
       },
     });
   } catch (error) {
-    console.error("❌ Erro ao buscar usuário:", error.message);
+    console.error("❌ Erro ao buscar perfil (Redis):", error.message);
     res.status(500).json({ error: "Erro interno do servidor" });
   }
 });
