@@ -43,7 +43,15 @@ async function loadPlayerState(userId) {
     // Converte todos os valores para string para armazenamento no Redis Hash
     const stateForRedis = Object.entries(playerState).reduce(
       (acc, [key, value]) => {
-        acc[key] = String(value);
+        if (value instanceof Date) {
+          acc[key] = value.toISOString();
+        } else if (key === 'birth_date' && value) {
+          // birth_date no Postgres 'date' vem como objeto Date. 
+          // Se vier como string/outro, tentamos garantir o formato ISO date.
+          acc[key] = new Date(value).toISOString().split('T')[0];
+        } else {
+          acc[key] = String(value ?? "");
+        }
         return acc;
       },
       {},

@@ -91,6 +91,38 @@ export default function DigitalIdentity({
     ? new Date(player.created_at).toLocaleDateString("pt-BR", { month: "long", year: "numeric" })
     : "Membro antigo";
 
+  // Helper para formatar data sem shift de timezone
+  const formatDate = (dateStr?: string) => {
+    if (!dateStr) return "Não informada";
+    try {
+      // Se for apenas YYYY-MM-DD, o new Date(dateStr) cria em UTC. 
+      // Para exibir localmente de forma consistente, forçamos o meio do dia.
+      const date = dateStr.includes('T') ? new Date(dateStr) : new Date(`${dateStr}T12:00:00`);
+      return date.toLocaleDateString("pt-BR");
+    } catch (e) {
+      return "Data inválida";
+    }
+  };
+
+  const inputDateValue = useMemo(() => {
+    const d = editData?.birth_date || player.birth_date;
+    if (!d || d === "null") return "";
+    
+    // Se já estiver no formato YYYY-MM-DD, retorna direto
+    if (typeof d === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(d)) {
+      return d;
+    }
+
+    try {
+      // Tenta converter qualquer formato (ISO, string humana, etc) para YYYY-MM-DD
+      const date = new Date(d);
+      if (isNaN(date.getTime())) return "";
+      return date.toISOString().split('T')[0];
+    } catch (e) {
+      return "";
+    }
+  }, [editData?.birth_date, player.birth_date]);
+
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.95, y: 20 }}
@@ -216,13 +248,13 @@ export default function DigitalIdentity({
               {isEditing ? (
                 <input 
                   type="date" 
-                  value={editData?.birth_date ? new Date(editData.birth_date).toISOString().split('T')[0] : ""}
+                  value={inputDateValue}
                   onChange={(e) => onEditChange?.({ ...editData, birth_date: e.target.value })}
                   className="bg-black/40 border border-white/10 rounded px-1 text-gray-300 focus:outline-none focus:border-white/30 text-[8px] sm:text-[10px]"
                 />
               ) : (
                 <span className="text-gray-300">
-                  {player.birth_date ? new Date(player.birth_date).toLocaleDateString() : "Não informada"}
+                  {formatDate(player.birth_date)}
                 </span>
               )}
             </span>
