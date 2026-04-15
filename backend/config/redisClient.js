@@ -120,8 +120,13 @@ module.exports = {
   lRangeAsync: async (k, start, stop) => {
     if (!isReady) return null;
     try {
-      return await client.lRange(k, start, stop);
-    } catch {
+      if (isUpstash) {
+        return await client.lrange(k, start, stop);
+      } else {
+        return await client.lRange(k, start, stop);
+      }
+    } catch (error) {
+      console.error("❌ ERRO LRANGE:", error);
       return null;
     }
   },
