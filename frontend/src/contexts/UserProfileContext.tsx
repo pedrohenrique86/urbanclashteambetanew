@@ -144,7 +144,9 @@ export const UserProfileProvider = ({ children }: { children: ReactNode }) => {
 
     // Validação 1: Se já estamos buscando, não faz nada.
     if (isFetching.current) {
-      console.warn("Busca de perfil já em andamento. Nova chamada ignorada.");
+      if (import.meta.env.DEV) {
+        console.debug("Busca de perfil já em andamento. Nova chamada ignorada.");
+      }
       return userProfile;
     }
 

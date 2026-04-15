@@ -92,11 +92,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = async () => {
     try {
-      // Notifica o backend sobre o logout, mas não espera pela resposta
-      // para garantir que o logout no frontend seja imediato.
-      api.post('/auth/logout').catch(err => {
-        console.warn("Chamada de logout para o backend falhou, mas o logout local prosseguirá.", err.message);
-      });
+      await api.post('/auth/logout');
+    } catch (err: any) {
+      // Se a sessão já estava morta (401), não é um erro real para o usuário que apenas quer sair
+      if (err.response?.status === 401) {
+        if (import.meta.env.DEV) {
+          console.debug("[AuthContext] Sessão já havia expirado no servidor. Logout finalizado de qualquer forma.");
+        }
+      } else {
+        // Erros graves (500) ou de rede
+        console.error("[AuthContext] Falha externa ao tentar destruir sessão no backend:", err.message);
+      }
     } finally {
       // Limpeza local é a prioridade para a experiência do usuário.
       tokenStorage.clearToken();

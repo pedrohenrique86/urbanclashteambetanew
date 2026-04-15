@@ -97,18 +97,16 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({
   }, []);
 
   useEffect(() => {
-    // A lógica do chat só precisa saber SE há um usuário e qual o token.
-    // Depender do ID do perfil é mais estável do que depender do objeto inteiro.
-    if (!userProfile?.id) {
+    if (!userProfile?.id || !userProfile?.clan_id) {
       setIsConnected(false);
       return;
     }
 
     const token = apiClient.getToken();
     if (!token) {
-      console.warn(
-        "[ChatContext] Usuário detectado, mas sem token. O chat não pode autenticar.",
-      );
+      if (import.meta.env.DEV) {
+        console.debug("[ChatContext] Usuário detectado, mas sem token.");
+      }
       setIsConnected(false);
       return;
     }
@@ -116,14 +114,16 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({
     // --- Lógica de Autenticação e Listeners ---
     
     const handleAuthSuccess = () => {
+      if (import.meta.env.DEV) console.debug("[ChatContext] Chat autenticado com sucesso no socket.");
       setIsConnected(true);
     };
 
     const handleAuthFailed = (error: { message: string }) => {
-      console.error(
-        "[ChatContext] Falha na autenticação do chat:",
-        error.message,
-      );
+      if (error.message.includes("Usuário inválido ou sem clã")) {
+        if (import.meta.env.DEV) console.debug("[ChatContext] Auth abortada (usuário ainda sem clã).");
+      } else {
+        console.error("[ChatContext] Falha real na autenticação do chat:", error.message);
+      }
       setIsConnected(false);
     };
 
@@ -136,7 +136,9 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({
         clearTimeout(historyRetryTimeoutRef.current);
       }
 
-      console.warn("[ChatContext] Backend sinalizou falha no histórico. Tentando repescagem em 2s...");
+      if (import.meta.env.DEV) {
+        console.warn("[ChatContext] Backend sinalizou falha no histórico. Tentando repescagem em 2s...");
+      }
       historyRetryTimeoutRef.current = setTimeout(() => {
         socketService.requestHistory();
         historyRetryTimeoutRef.current = null;
