@@ -117,31 +117,6 @@ module.exports = {
       return null;
     }
   },
-  hIncrByAsync: async (k, f, v) => {
-    if (!isReady) return null;
-    try {
-      if (isUpstash) {
-        // Upstash/redis usa pipeline para hincrby
-        const pipeline = client.pipeline();
-        pipeline.hincrby(k, f, v);
-        const [result] = await pipeline.exec();
-        return result;
-      } else {
-        // node-redis tem o método direto
-        return await client.hIncrBy(k, f, v);
-      }
-    } catch {
-      return null;
-    }
-  },
-  hDelAsync: async (k, f) => {
-    if (!isReady) return null;
-    try {
-      return await client.hDel(k, f);
-    } catch {
-      return null;
-    }
-  },
   lPushAsync: async (k, v) => {
     if (!isReady) return null;
     try {
@@ -211,5 +186,45 @@ module.exports = {
       return empty();
     }
     return client.scanIterator(options);
+  },
+
+  /**
+   * Pipeline atômico para adicionar mensagem ao histórico de chat.
+   *
+   * Executa LPUSH + LTRIM + EXPIRE em um único round-trip Redis.
+   * Compatível com Upstash (pipeline REST batched) e node-redis (MULTI/EXEC TCP).
+   *
+   * Antes: 3 awaits sequenciais → 3 round-trips (até ~3× latência de rede no Upstash).
+   * Depois: 1 exec()           → 1 round-trip, resultado atomicamente garantido.
+   *
+   * @param {string} historyKey    - Chave Redis da lista de histórico.
+   * @param {string} messageJson   - JSON da mensagem já serializado.
+   * @param {number} maxLength     - Número máximo de entradas na lista (LTRIM stop = maxLength - 1).
+   * @param {number} ttlSeconds    - TTL em segundos para EXPIRE na key.
+   * @returns {Promise<Array|null>} Resultado do exec() do pipeline, ou null em caso de erro.
+   */
+  chatHistoryPipeline: async (historyKey, messageJson, maxLength, ttlSeconds) => {
+    if (!isReady) return null;
+    try {
+      if (isUpstash) {
+        // Upstash @upstash/redis: .pipeline() aceita comandos em lowercase.
+        // Todos os comandos são batched em uma única requisição HTTP REST.
+        const pipeline = client.pipeline();
+        pipeline.lpush(historyKey, messageJson);
+        pipeline.ltrim(historyKey, 0, maxLength - 1);
+        pipeline.expire(historyKey, ttlSeconds);
+        return await pipeline.exec();
+      } else {
+        // node-redis: .multi() cria um bloco MULTI/EXEC — pipeline sobre TCP.
+        // Comandos em camelCase conforme API do node-redis v4+.
+        const pipeline = client.multi();
+        pipeline.lPush(historyKey, messageJson);
+        pipeline.lTrim(historyKey, 0, maxLength - 1);
+        pipeline.expire(historyKey, ttlSeconds);
+        return await pipeline.exec();
+      }
+    } catch {
+      return null;
+    }
   },
 };

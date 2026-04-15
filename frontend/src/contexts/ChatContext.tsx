@@ -27,12 +27,17 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({
 
   // Envolve os handlers com useCallback para estabilizar suas referências.
   // Isso é crucial para usá-los como dependências no useEffect sem causar re-execuções indesejadas.
+  // Cap de 20 mensagens no estado React.
+  // Evita crescimento infinito do array durante sessões longas.
+  // A fonte de verdade permanece o backend — este slice é apenas proteção de memória no browser.
   const handleNewMessage = useCallback((message: ChatMessage) => {
-    setMessages((prevMessages) => [...prevMessages, message]);
+    setMessages((prevMessages) => [...prevMessages, message].slice(-20));
   }, []);
 
   const handleChatHistory = useCallback((history: ChatMessage[]) => {
-    setMessages(history);
+    // O backend já retorna no máximo 20 msgs válidas, mas slice(-20) garante
+    // consistência mesmo que a resposta venha com mais entradas por qualquer motivo.
+    setMessages(history.slice(-20));
   }, []);
 
   useEffect(() => {

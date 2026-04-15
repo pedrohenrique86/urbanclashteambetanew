@@ -53,10 +53,7 @@ function initializeSocket(server) {
         // 1. Notifica o cliente que a autenticação foi bem-sucedida
         socket.emit("chat:auth_success");
 
-        // 2. Notifica a todos sobre a nova conexão (atualiza contagem de online)
-        await chatService.handleUserConnection(io, clanId, userId);
-
-        // 3. Envia o histórico de chat APENAS para o socket que acabou de se conectar
+        // 2. Envia o histórico de chat APENAS para o socket que acabou de se conectar
         const history = await chatService.getChatHistory(clanId);
         socket.emit("chat:history", history);
 
@@ -100,12 +97,6 @@ function initializeSocket(server) {
     // --- LÓGICA DE DESCONEXÃO ---
     socket.on("disconnect", () => {
       console.log(`🔌 Cliente desconectado: ${socket.id}`);
-      // Se o usuário foi autenticado, ele terá a propriedade 'user'
-      if (socket.user && socket.user.clan_id) {
-        const { id: userId, clan_id: clanId } = socket.user;
-        console.log(`[Socket.IO] Usuário desconectado do chat: ${userId}`);
-        chatService.handleUserDisconnection(io, clanId, userId);
-      }
     });
   });
 }
