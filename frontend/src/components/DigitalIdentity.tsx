@@ -20,14 +20,30 @@ interface PublicPlayer {
 interface DigitalIdentityProps {
   player: PublicPlayer;
   onClose?: () => void;
+  // Props de Edição
+  isEditing?: boolean;
+  editData?: Partial<PublicPlayer>;
+  onEditChange?: (data: Partial<PublicPlayer>) => void;
+  onToggleEdit?: () => void;
+  onSave?: () => void;
+  isOwnProfile?: boolean;
 }
 
 /**
- * DigitalIdentity - Um componente de perfil público com estética AAA.
- * Focado em impacto visual, performance e semântica de jogo.
+ * DigitalIdentity - Layout AAA para perfil de jogador.
+ * Suporta modo apenas leitura (público) e modo edição (identidade própria).
  */
-export default function DigitalIdentity({ player, onClose }: DigitalIdentityProps) {
-  // Coores baseadas na facção
+export default function DigitalIdentity({ 
+  player, 
+  onClose, 
+  isEditing, 
+  editData, 
+  onEditChange, 
+  onToggleEdit,
+  onSave,
+  isOwnProfile
+}: DigitalIdentityProps) {
+  // Cores baseadas na facção
   const factionTheme = useMemo(() => {
     return player.faction === "gangsters"
       ? {
@@ -55,13 +71,9 @@ export default function DigitalIdentity({ player, onClose }: DigitalIdentityProp
   // Motor de renderização BBCode simples e seguro
   const renderBio = (text?: string) => {
     if (!text) return <span className="text-gray-500 italic">Este jogador não definiu uma biografia ainda.</span>;
-    
-    // Limita a 100 caracteres antes de renderizar
     const cleanText = text.substring(0, 100);
     
-    // Regex para BBCode básico
-    // [b] -> strong, [i] -> em, [color=hex] -> span style
-    let processed = cleanText
+    const processed = cleanText
       .replace(/\[b\](.*?)\[\/b\]/gi, "<strong>$1</strong>")
       .replace(/\[i\](.*?)\[\/i\]/gi, "<em>$1</em>")
       .replace(/\[color=(.*?)\](.*?)\[\/color\]/gi, '<span style="color: $1">$2</span>');
@@ -85,29 +97,71 @@ export default function DigitalIdentity({ player, onClose }: DigitalIdentityProp
       animate={{ opacity: 1, scale: 1, y: 0 }}
       className={`relative w-full max-w-2xl mx-auto overflow-hidden rounded-2xl border-2 ${factionTheme.border} bg-gradient-to-br ${factionTheme.bg} p-6 shadow-2xl ${factionTheme.shadow} text-white font-exo`}
     >
-      {/* Botão Curtir/Fechar se disponível */}
-      {onClose && (
-        <button 
-          onClick={onClose}
-          className="absolute top-4 right-4 text-white/50 hover:text-white transition-colors"
-        >
-          <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
-      )}
+      {/* Botões de Controle */}
+      <div className="absolute top-4 right-4 flex gap-3 z-10">
+        {isOwnProfile && !isEditing && (
+          <button 
+            onClick={onToggleEdit}
+            className="px-4 py-1.5 bg-white/10 hover:bg-white/20 rounded-full text-xs font-bold transition-all border border-white/10"
+          >
+            EDITAR PERFIL
+          </button>
+        )}
+        {isEditing && (
+          <>
+            <button 
+              onClick={onToggleEdit}
+              className="px-4 py-1.5 bg-red-900/40 hover:bg-red-900/60 rounded-full text-xs font-bold transition-all border border-red-500/30"
+            >
+              CANCELAR
+            </button>
+            <button 
+              onClick={onSave}
+              className={`px-4 py-1.5 ${factionTheme.accent} hover:brightness-110 rounded-full text-xs font-bold transition-all border border-white/20`}
+            >
+              SALVAR ALTERAÇÕES
+            </button>
+          </>
+        )}
+        {onClose && !isEditing && (
+          <button 
+            onClick={onClose}
+            className="text-white/50 hover:text-white transition-colors p-1.5"
+          >
+            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        )}
+      </div>
 
-      <div className="flex flex-col md:flex-row gap-8 items-center md:items-start">
+      <div className="flex flex-col md:flex-row gap-8 items-center md:items-start text-white">
         {/* Lado Esquerdo: Avatar e Nível */}
         <div className="relative group">
           <div className={`absolute -inset-1 rounded-full ${factionTheme.glow} blur-lg group-hover:blur-xl transition-all`}></div>
           <div className="relative w-32 h-32 md:w-40 md:h-40 rounded-full border-4 border-white/10 overflow-hidden bg-black/40">
-            {player.avatar_url ? (
-              <img src={player.avatar_url} alt={player.username} className="w-full h-full object-cover" />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center text-4xl font-bold text-white/20">
-                {player.username[0].toUpperCase()}
+            {isEditing ? (
+              <div className="relative w-full h-full">
+                <img src={editData?.avatar_url || player.avatar_url} alt="" className="w-full h-full object-cover opacity-50" />
+                <div className="absolute inset-0 flex flex-col items-center justify-center p-2 bg-black/40 backdrop-blur-[2px]">
+                  <span className="text-[10px] uppercase font-bold text-gray-400 mb-1">URL Avatar</span>
+                  <input 
+                    type="text" 
+                    value={editData?.avatar_url || ""}
+                    onChange={(e) => onEditChange?.({ ...editData, avatar_url: e.target.value })}
+                    className="w-full bg-black/60 border border-white/20 rounded px-2 py-1 text-[10px] focus:outline-none focus:border-white/40"
+                    placeholder="https://..."
+                  />
+                </div>
               </div>
+            ) : (
+              player.avatar_url ? (
+                <img src={player.avatar_url} alt={player.username} className="w-full h-full object-cover" />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center text-4xl font-bold text-white/20">
+                  {player.username[0].toUpperCase()}
+                </div>
+              )
             )}
           </div>
           {/* Badge de Nível */}
@@ -132,9 +186,25 @@ export default function DigitalIdentity({ player, onClose }: DigitalIdentityProp
             </p>
           </div>
 
-          {/* Bio Renderizada */}
+          {/* Bio Renderizada ou Editor */}
           <div className="bg-black/30 backdrop-blur-sm border border-white/5 rounded-xl p-4 text-sm text-gray-200">
-            {renderBio(player.bio)}
+            {isEditing ? (
+              <div className="space-y-2">
+                 <textarea 
+                  maxLength={100}
+                  value={editData?.bio || ""}
+                  onChange={(e) => onEditChange?.({ ...editData, bio: e.target.value })}
+                  className="w-full bg-black/40 border border-white/10 rounded-lg p-2 text-sm focus:outline-none focus:border-white/30 h-20 resize-none"
+                  placeholder="Conte sua história... (Suporta BBCode [b], [i], [color])"
+                />
+                <div className="flex justify-between text-[10px] text-gray-500 font-bold uppercase">
+                  <span>BBCode habilitado</span>
+                  <span>{editData?.bio?.length || 0}/100</span>
+                </div>
+              </div>
+            ) : (
+              renderBio(player.bio)
+            )}
           </div>
 
           {/* Datas */}
@@ -142,11 +212,21 @@ export default function DigitalIdentity({ player, onClose }: DigitalIdentityProp
             <span className="flex items-center gap-1">
                NA REDE DESDE: <span className="text-gray-300">{accountDate}</span>
             </span>
-            {player.birth_date && (
-               <span className="flex items-center gap-1">
-                NASCIMENTO: <span className="text-gray-300">{new Date(player.birth_date).toLocaleDateString()}</span>
-               </span>
-            )}
+            <span className="flex items-center gap-1">
+              NASCIMENTO: 
+              {isEditing ? (
+                <input 
+                  type="date" 
+                  value={editData?.birth_date ? new Date(editData.birth_date).toISOString().split('T')[0] : ""}
+                  onChange={(e) => onEditChange?.({ ...editData, birth_date: e.target.value })}
+                  className="bg-black/40 border border-white/10 rounded px-1 text-gray-300 focus:outline-none focus:border-white/30"
+                />
+              ) : (
+                <span className="text-gray-300">
+                  {player.birth_date ? new Date(player.birth_date).toLocaleDateString() : "Não informada"}
+                </span>
+              )}
+            </span>
           </div>
         </div>
       </div>
@@ -175,10 +255,10 @@ export default function DigitalIdentity({ player, onClose }: DigitalIdentityProp
         ))}
       </div>
 
-      {/* Rodapé Decorativo */}
+      {/* Rodapé Decorativo (Removido texto fixo do Redis como solicitado) */}
       <div className="mt-6 pt-4 border-t border-white/5 flex justify-between items-center text-[9px] text-gray-600 font-mono">
         <span>ID #{player.id.substring(0, 8).toUpperCase()}</span>
-        <span className="animate-pulse">SISTEMA ATRAVÉS DO REDIS • CLOUDLINK SECURE</span>
+        <span>VERIFICAÇÃO DE IDENTIDADE • {player.username.toUpperCase()}</span>
       </div>
     </motion.div>
   );

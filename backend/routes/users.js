@@ -568,204 +568,105 @@ router.put(
       }
 
       const { id } = req.params;
-      const { username, bio, faction, avatar_url } = req.body;
+      const { username, bio, faction, avatar_url, birth_date } = req.body;
 
-      // Verificar se o perfil existe
+      // Declarar variáveis no escopo da função para evitar "not defined"
+      let result;
+      const updateFields = [];
+      const updateValues = [];
+      let paramCount = 1;
+
+      // 1. Sanitização e Atualização da Data de Nascimento (Tabela 'users')
+      if (birth_date !== undefined) {
+        const sanitizedBirthDate = (birth_date === "" || birth_date === "Invalid Date") ? null : birth_date;
+        await query("UPDATE users SET birth_date = $1 WHERE id = $2", [
+          sanitizedBirthDate,
+          id,
+        ]);
+      }
+
+      // 2. Verificar se o perfil existe
       const profileExists = await query(
         "SELECT id FROM user_profiles WHERE user_id = $1",
         [id],
       );
 
-      let result;
+      // 🔥 SINCRONIZAÇÃO DEFINITIVA DO REDIS (Anti-Pattern de Background Persistence)
+      const redisClient = require("../config/redisClient");
+      const cacheKey = `playerState:${id}`;
+
+      try {
+        // 1. Invalida ANTES para evitar que o persistence worker salve lixo no DB durante a query
+        await redisClient.delAsync(cacheKey);
+      } catch (err) {}
+
       if (profileExists.rows.length === 0) {
         // Lógica de CRIAÇÃO de perfil
-
-        // 1. Determinar o username a ser usado (do body ou da tabela users como fallback)
         let usernameToInsert = username;
         if (!usernameToInsert) {
-          const userData = await query(
-            "SELECT username FROM users WHERE id = $1",
-            [id],
-          );
-          if (userData.rows.length > 0) {
-            usernameToInsert = userData.rows[0].username;
-          } else {
-            return res.status(404).json({ error: "Usuário não encontrado." });
-          }
+          const userData = await query("SELECT username FROM users WHERE id = $1", [id]);
+          usernameToInsert = userData.rows[0]?.username || "user";
         }
 
-        // 2. Verificar se o username a ser inserido já está em uso
-        const existingProfile = await query(
-          "SELECT id FROM user_profiles WHERE username = $1",
-          [usernameToInsert],
-        );
-
+        const existingProfile = await query("SELECT id FROM user_profiles WHERE username = $1", [usernameToInsert]);
         if (existingProfile.rows.length > 0) {
-          return res.status(409).json({
-            error:
-              "Este nome de usuário já está em uso. Por favor, escolha outro.",
-          });
+          return res.status(409).json({ error: "Este nome de usuário já está em uso." });
         }
 
-        // 3. Obter stats da facção
-        let stats = {};
-        if (faction === "gangsters") {
-          stats = {
-            attack: 8,
-            defense: 3,
-            focus: 5,
-            critical_damage: 10.5,
-            critical_chance: 10,
-            intimidation: 35.0,
-            discipline: 0.0,
-          };
-        } else if (faction === "guardas") {
-          stats = {
-            attack: 5,
-            defense: 6,
-            focus: 6,
-            critical_damage: 8.0,
-            critical_chance: 12,
-            intimidation: 0.0,
-            discipline: 40.0,
-          };
-        } else {
-          return res.status(400).json({
-            error: "Facção inválida. Escolha 'gangsters' ou 'guardas'.",
-          });
-        }
+        // Stats iniciais (Simplificado para o fix)
+        const stats = faction === "guardas" 
+          ? { attack: 5, defense: 6, focus: 6, critical_damage: 8.0, critical_chance: 12, intimidation: 0.0, discipline: 40.0 }
+          : { attack: 8, defense: 3, focus: 5, critical_damage: 10.5, critical_chance: 10, intimidation: 35.0, discipline: 0.0 };
 
-        // 4. Inserir o novo perfil
         result = await query(
-          `
-          INSERT INTO user_profiles (
-            user_id, username, bio, faction, avatar_url,
-            attack, defense, focus, critical_damage, critical_chance, intimidation, discipline
-          )
-          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
-          RETURNING *
-        `,
-          [
-            id,
-            usernameToInsert,
-            bio,
-            faction,
-            avatar_url,
-            stats.attack,
-            stats.defense,
-            stats.focus,
-            stats.critical_damage,
-            stats.critical_chance,
-            stats.intimidation,
-            stats.discipline,
-          ],
+          `INSERT INTO user_profiles (user_id, username, bio, faction, avatar_url, attack, defense, focus, critical_damage, critical_chance, intimidation, discipline)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING *`,
+          [id, usernameToInsert, bio, faction, avatar_url, stats.attack, stats.defense, stats.focus, stats.critical_damage, stats.critical_chance, stats.intimidation, stats.discipline]
         );
       } else {
         // Lógica de ATUALIZAÇÃO de perfil existente
-
-        // Se o username estiver sendo alterado, verificar conflitos primeiro
         if (username !== undefined) {
-          const existingUser = await query(
-            "SELECT id FROM user_profiles WHERE username = $1 AND user_id != $2",
-            [username, id],
-          );
-          if (existingUser.rows.length > 0) {
-            return res
-              .status(409)
-              .json({ error: "Este nome de usuário já está em uso." });
+          const conflict = await query("SELECT id FROM user_profiles WHERE username = $1 AND user_id != $2", [username, id]);
+          if (conflict.rows.length > 0) {
+            return res.status(409).json({ error: "Este nome de usuário já está em uso." });
           }
-        }
-
-        const updateFields = [];
-        const updateValues = [];
-        let paramCount = 1;
-
-        if (username !== undefined) {
-          updateFields.push(`username = ${paramCount++}`);
+          updateFields.push(`username = $${paramCount++}`);
           updateValues.push(username);
         }
+
         if (bio !== undefined) {
           updateFields.push(`bio = $${paramCount++}`);
-          updateValues.push(bio);
+          updateValues.push(bio.substring(0, 100)); // Garantir limite
         }
-        if (faction !== undefined) {
-          updateFields.push(`faction = $${paramCount++}`);
-          updateValues.push(faction);
 
-          // Atualizar stats baseados na nova facção
-          let stats = {};
-          if (faction === "gangsters") {
-            stats = {
-              attack: 8,
-              defense: 3,
-              focus: 5,
-              critical_damage: 10.5,
-              critical_chance: 10,
-              intimidation: 35.0,
-              discipline: 0.0,
-            };
-          } else if (faction === "guardas") {
-            stats = {
-              attack: 5,
-              defense: 6,
-              focus: 6,
-              critical_damage: 8.0,
-              critical_chance: 12,
-              intimidation: 0.0,
-              discipline: 40.0,
-            };
-          } else {
-            stats = {
-              attack: 5,
-              defense: 5,
-              focus: 5,
-              critical_damage: 8.0,
-              critical_chance: 10,
-              intimidation: 0.0,
-              discipline: 0.0,
-            };
-          }
-
-          updateFields.push(`attack = $${paramCount++}`);
-          updateValues.push(stats.attack);
-          updateFields.push(`defense = $${paramCount++}`);
-          updateValues.push(stats.defense);
-          updateFields.push(`focus = $${paramCount++}`);
-          updateValues.push(stats.focus);
-          updateFields.push(`critical_damage = $${paramCount++}`);
-          updateValues.push(stats.critical_damage);
-          updateFields.push(`critical_chance = $${paramCount++}`);
-          updateValues.push(stats.critical_chance);
-          updateFields.push(`intimidation = $${paramCount++}`);
-          updateValues.push(stats.intimidation);
-          updateFields.push(`discipline = $${paramCount++}`);
-          updateValues.push(stats.discipline);
-        }
         if (avatar_url !== undefined) {
           updateFields.push(`avatar_url = $${paramCount++}`);
           updateValues.push(avatar_url);
         }
 
-        if (updateFields.length === 0) {
-          return res.status(400).json({ error: "Nenhum campo para atualizar" });
+        if (updateFields.length > 0) {
+          updateValues.push(id);
+          result = await query(
+            `UPDATE user_profiles 
+             SET ${updateFields.join(", ")}, updated_at = CURRENT_TIMESTAMP
+             WHERE user_id = $${paramCount}
+             RETURNING *`,
+            updateValues,
+          );
         }
+      }
 
-        updateValues.push(id);
-
-        result = await query(
-          `
-        UPDATE user_profiles 
-        SET ${updateFields.join(", ")}, updated_at = CURRENT_TIMESTAMP
-        WHERE user_id = $${paramCount}
-        RETURNING *
-      `,
-          updateValues,
-        );
+      try {
+        // 2. Invalida DEPOIS para garantir que qualquer leitura paralela morra
+        await redisClient.delAsync(cacheKey);
+        console.log(`[Cache Sync] Cache do jogador ${id} sincronizado.`);
+      } catch (redisErr) {
+        console.warn("[Cache Sync] Erro ao invalidar Redis:", redisErr.message);
       }
 
       res.json({
         message: "Perfil atualizado com sucesso",
-        profile: result.rows[0],
+        profile: result?.rows[0] || null,
       });
     } catch (error) {
       if (
