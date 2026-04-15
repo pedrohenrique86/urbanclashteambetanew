@@ -13,6 +13,7 @@ type Player = {
   display_name?: string;
   level?: number;
   role?: string;
+  country?: string;
 };
 
 type ClanData = {
@@ -39,6 +40,12 @@ export default function ClanPage() {
   const [leaving, setLeaving] = useState<boolean>(false);
   const [confirmLeave, setConfirmLeave] = useState<boolean>(false);
   const broadcastRef = useRef<BroadcastChannel | null>(null);
+
+  // Função para obter a URL da bandeira do país (Reutilizada do PlayerRankingItem)
+  const getCountryFlag = (countryCode?: string) => {
+    if (!countryCode) return null;
+    return `https://flagcdn.com/24x18/${countryCode.toLowerCase()}.png`;
+  };
 
   const factionColor = useMemo(() => {
     const f = clan?.faction || userProfile?.faction;
@@ -223,7 +230,7 @@ export default function ClanPage() {
             <h2 className={`text-xl font-bold mb-4 ${factionColor.accent}`}>
               MEMBROS ({clan?.member_count || 0} / {clan?.max_members || 0})
             </h2>
-            <ul className="space-y-3 overflow-y-auto flex-grow min-h-[200px]">
+            <ul className="space-y-2 overflow-y-auto flex-grow min-h-[200px]">
               {clan?.members?.map((member, index) => (
                 <li
                   key={
@@ -231,11 +238,29 @@ export default function ClanPage() {
                     member.user_id ||
                     `${member.username}-${index}`
                   }
-                  className="flex items-center justify-between p-3 bg-black/20 rounded-lg"
+                  className="flex items-center p-2 bg-black/30 rounded-lg hover:bg-black/40 transition-colors"
                 >
-                  <span className="font-semibold">{member.username}</span>
-                  <span className="text-sm text-gray-400">
-                    Nível {member.level || 1}
+                  {/* Bandeira */}
+                  <div className="w-6 flex-shrink-0 flex justify-center mr-3">
+                    {getCountryFlag(member.country) ? (
+                      <img
+                        src={getCountryFlag(member.country)!}
+                        alt=""
+                        className="w-5 h-3.5 object-cover rounded-sm shadow-sm"
+                      />
+                    ) : (
+                      <div className="w-5 h-3.5 bg-white/5 rounded-sm"></div>
+                    )}
+                  </div>
+
+                  {/* Nome */}
+                  <span className="font-semibold flex-grow min-w-0 truncate text-sm">
+                    {member.username}
+                  </span>
+
+                  {/* Nível */}
+                  <span className={`text-xs font-bold px-2 py-0.5 rounded ${factionColor.accent} bg-black/20 ml-2`}>
+                    Lvl {member.level || 1}
                   </span>
                 </li>
               ))}

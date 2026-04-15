@@ -282,7 +282,7 @@ router.get("/:id", async (req, res) => {
       `
       SELECT 
         cm.role, cm.joined_at,
-        u.id as user_id, u.username,
+        u.id as user_id, u.username, u.country,
         u.username as display_name, p.avatar_url, p.level, p.experience_points -- username vem da tabela users
       FROM clan_members cm
       INNER JOIN users u ON cm.user_id = u.id
