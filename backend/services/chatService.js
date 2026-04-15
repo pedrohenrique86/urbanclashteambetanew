@@ -29,16 +29,35 @@ async function getChatHistory(clanId) {
 
   try {
     const historyJson = await redisClient.lRangeAsync(historyKey, 0, -1);
-    if (!Array.isArray(historyJson) || historyJson.length === 0) return [];
+    
+    // Log apenas em produção se o histórico vier vazio quando não deveria
+    if (!Array.isArray(historyJson)) {
+      console.error(`[ChatService] Retorno inválido do Redis para chave ${historyKey}:`, typeof historyJson);
+      return [];
+    }
+
+    if (historyJson.length === 0) return [];
 
     const cutoff = Date.now() - EXPIRY_MS;
     return historyJson
       .map((msg) => {
-        try { return JSON.parse(msg); } catch { return null; }
+        if (!msg) return null;
+        // Se já for objeto (comum no Upstash REST SDK), retorna direto. Se for string, faz o parse.
+        if (typeof msg === "object") return msg;
+        try { 
+          return JSON.parse(msg); 
+        } catch (err) { 
+          console.error("[ChatService] Falha ao parsear mensagem do histórico:", msg);
+          return null; 
+        }
       })
-      .filter((msg) => msg && msg.timestamp && new Date(msg.timestamp).getTime() >= cutoff)
+      .filter((msg) => {
+        const isValid = msg && msg.timestamp && new Date(msg.timestamp).getTime() >= cutoff;
+        return isValid;
+      })
       .reverse();
   } catch (err) {
+    console.error(`[ChatService] Erro ao buscar histórico do clã ${clanId}:`, err.message);
     return [];
   }
 }
