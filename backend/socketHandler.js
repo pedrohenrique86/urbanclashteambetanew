@@ -26,13 +26,9 @@ function initializeSocket(server) {
 
     // --- LÓGICA DO CHAT (REQUER AUTENTICAÇÃO) ---
     socket.on("chat:authenticate", async (data) => {
-      // Guard: se o socket já foi autenticado, não registra um novo listener
-      // de chat:sendMessage. Apenas reemite o sucesso para o cliente reconectar
-      // o estado sem duplicar handlers.
-      if (socket.user) {
-        socket.emit("chat:auth_success");
-        return;
-      }
+      // Controle de versão para evitar stale state gerado por race condition (ex: clicks múltiplos)
+      socket.authVersion = (socket.authVersion || 0) + 1;
+      const currentAuthVersion = socket.authVersion;
 
       try {
         const token = data.token;
@@ -41,6 +37,13 @@ function initializeSocket(server) {
         }
 
         const user = await authenticateSocket(token);
+
+        // Se uma chamada mais nova foi disparada enquanto esperávamos o BD,
+        // esta request tornou-se obsoleta. Aborta silenciosamente.
+        if (currentAuthVersion !== socket.authVersion) {
+          return;
+        }
+
         if (!user || !user.clan_id) {
           socket.emit("chat:auth_failed", {
             message: "Usuário inválido ou sem clã.",
@@ -48,8 +51,17 @@ function initializeSocket(server) {
           return;
         }
 
-        socket.user = user; // Anexa o usuário ao objeto do socket
-        socket.lastMessageTimestamp = 0; // Inicializa o timestamp para o anti-flood
+        // Se o usuário mudou de clã na mesma conexão, remove da sala antiga
+        if (socket.user && socket.user.clan_id && socket.user.clan_id !== user.clan_id) {
+          const oldClanRoom = `clan:${socket.user.clan_id}`;
+          socket.leave(oldClanRoom);
+          console.log(`[Socket.IO] Usuário ${user.id} saiu da sala antiga: ${oldClanRoom}`);
+        }
+
+        socket.user = user; // Anexa/Atualiza o usuário no objeto do socket
+        if (socket.lastMessageTimestamp === undefined) {
+          socket.lastMessageTimestamp = 0; // Inicializa o timestamp para o anti-flood
+        }
 
         const { id: userId, clan_id: clanId } = user;
         const clanRoom = `clan:${clanId}`;
@@ -58,50 +70,68 @@ function initializeSocket(server) {
           `[Socket.IO] Usuário ${userId} autenticado e entrou na sala: ${clanRoom}`,
         );
 
-        // 1. Notifica o cliente que a autenticação foi bem-sucedida
+        // 1. Busca histórico do clã (com fallback resiliente caso o Redis falhe)
+        let history = [];
+        try {
+          history = await chatService.getChatHistory(clanId);
+        } catch (historyErr) {
+          console.error(`[Chat] Aviso: Falha ao carregar histórico do clã ${clanId}, enviando vazio:`, historyErr.message);
+          // Nota: Falha no histórico não invalida a autenticação
+        }
+
+        // Segunda checagem de versão:
+        // Se uma nova autenticação iniciou durante o tempo de busca no Redis,
+        // o histórico retornado pertence ao contexto antigo. Aborta emissões.
+        if (currentAuthVersion !== socket.authVersion) {
+          return;
+        }
+
+        // 2. Notifica o cliente que a autenticação foi 100% resolvida e consolidada
         socket.emit("chat:auth_success");
 
-        // 2. Envia o histórico de chat APENAS para o socket que acabou de se conectar
-        const history = await chatService.getChatHistory(clanId);
+        // 3. Envia o histórico de chat limpo e pertencente ao clã correto
         socket.emit("chat:history", history);
 
         // Listener para novas mensagens com anti-flood e limite de caracteres.
-        // Registrado apenas UMA vez por socket (guard acima garante isso).
-        socket.on("chat:sendMessage", async (messageData) => {
-          const now = Date.now();
-          if (now - socket.lastMessageTimestamp < MESSAGE_COOLDOWN_MS) {
-            console.log(
-              `[Anti-Flood] Mensagem bloqueada (cooldown) para o usuário ${socket.user.id}`,
-            );
-            return;
-          }
+        // Registrado apenas UMA VEZ usando flag de controle no próprio socket.
+        if (!socket.hasChatListener) {
+          socket.hasChatListener = true;
+          socket.on("chat:sendMessage", async (messageData) => {
+            const now = Date.now();
+            if (now - socket.lastMessageTimestamp < MESSAGE_COOLDOWN_MS) {
+              console.log(
+                `[Anti-Flood] Mensagem bloqueada (cooldown) para o usuário ${socket.user.id}`,
+              );
+              return;
+            }
 
-          const messageText =
-            typeof messageData.text === "string" ? messageData.text.trim() : "";
+            const messageText =
+              typeof messageData.text === "string" ? messageData.text.trim() : "";
 
-          if (messageText.length === 0) {
-            return;
-          }
+            if (messageText.length === 0) {
+              return;
+            }
 
-          if (messageText.length > 100) {
-            console.log(
-              `[Anti-Flood] Mensagem bloqueada (muito longa) para o usuário ${socket.user.id}`,
-            );
-            return;
-          }
+            if (messageText.length > 100) {
+              console.log(
+                `[Anti-Flood] Mensagem bloqueada (muito longa) para o usuário ${socket.user.id}`,
+              );
+              return;
+            }
 
-          // Atualiza o timestamp antes do await para manter o cooldown mesmo em caso de erro.
-          socket.lastMessageTimestamp = now;
+            // Atualiza o timestamp antes do await para manter o cooldown mesmo em caso de erro.
+            socket.lastMessageTimestamp = now;
 
-          try {
-            await chatService.handleNewMessage(io, socket, messageText);
-          } catch (err) {
-            console.error(
-              `[Chat] Erro ao processar mensagem do usuário ${socket.user.id}:`,
-              err.message,
-            );
-          }
-        });
+            try {
+              await chatService.handleNewMessage(io, socket, messageText);
+            } catch (err) {
+              console.error(
+                `[Chat] Erro ao processar mensagem do usuário ${socket.user.id}:`,
+                err.message,
+              );
+            }
+          });
+        }
       } catch (error) {
         console.error(
           "❌ Falha na autenticação do chat via socket:",
