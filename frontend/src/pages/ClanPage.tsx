@@ -5,6 +5,7 @@ import { useUserProfileContext } from "../contexts/UserProfileContext";
 import { useTheme } from "../contexts/ThemeContext";
 import { apiClient } from "../lib/supabaseClient";
 import { ClanChat } from "../components/clan/ClanChat";
+import DigitalIdentity from "../components/DigitalIdentity";
 
 type Player = {
   id?: string;
@@ -39,6 +40,7 @@ export default function ClanPage() {
   const [clanError, setClanError] = useState<string | null>(null);
   const [leaving, setLeaving] = useState<boolean>(false);
   const [confirmLeave, setConfirmLeave] = useState<boolean>(false);
+  const [selectedPlayerId, setSelectedPlayerId] = useState<string | null>(null);
   const broadcastRef = useRef<BroadcastChannel | null>(null);
 
   // Função para obter a URL da bandeira do país (Reutilizada do PlayerRankingItem)
@@ -238,7 +240,8 @@ export default function ClanPage() {
                     member.user_id ||
                     `${member.username}-${index}`
                   }
-                  className="flex items-center p-2 bg-black/30 rounded-lg hover:bg-black/40 transition-colors"
+                  className="flex items-center p-2 bg-black/30 rounded-lg hover:bg-black/40 transition-colors cursor-pointer group"
+                  onClick={() => setSelectedPlayerId(member.user_id || member.id || null)}
                 >
                   {/* Bandeira */}
                   <div className="w-6 flex-shrink-0 flex justify-center mr-3">
@@ -285,6 +288,14 @@ export default function ClanPage() {
         </div>
       </div>
 
+      {/* MODAL DE PERFIL DO JOGADOR (Identidade Digital) */}
+      {selectedPlayerId && (
+        <PlayerProfileModal 
+          userId={selectedPlayerId} 
+          onClose={() => setSelectedPlayerId(null)} 
+        />
+      )}
+
       {confirmLeave && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
           <motion.div
@@ -320,5 +331,60 @@ export default function ClanPage() {
         </div>
       )}
     </motion.div>
+  );
+}
+
+/**
+ * Wrapper de Modal que faz o fetch do player apenas quando necessário.
+ * Mantém a ClanPage leve e cumpre a regra de fetch único.
+ */
+function PlayerProfileModal({ userId, onClose }: { userId: string; onClose: () => void }) {
+  const [player, setPlayer] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let isMounted = true;
+    
+    async function load() {
+      try {
+        setLoading(true);
+        // Usa o endpoint otimizado via Redis no backend
+        const data = await apiClient.getUser(userId);
+        if (isMounted && data?.user) {
+          setPlayer(data.user);
+        }
+      } catch (err) {
+        console.error("Erro ao carregar perfil no modal:", err);
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    }
+
+    load();
+    return () => { isMounted = false; };
+  }, [userId]);
+
+  return (
+    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[60] p-4 text-white">
+      <motion.div 
+        initial={{ opacity: 0, scale: 0.9 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className="w-full max-w-2xl"
+      >
+        {loading ? (
+          <div className="flex flex-col items-center gap-4">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500"></div>
+            <p className="font-orbitron text-xs animate-pulse text-orange-500/80">SINCRONIZANDO IDENTIDADE...</p>
+          </div>
+        ) : player ? (
+          <DigitalIdentity player={player} onClose={onClose} />
+        ) : (
+          <div className="bg-gray-900/90 p-8 rounded-xl border border-red-500/50 text-center backdrop-blur-md">
+            <p className="text-red-400 mb-4">Falha ao localizar registro do jogador.</p>
+            <button onClick={onClose} className="px-6 py-2 bg-gray-800 hover:bg-gray-700 rounded-lg transition-colors border border-white/5">Fechar</button>
+          </div>
+        )}
+      </motion.div>
+    </div>
   );
 }
