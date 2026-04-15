@@ -160,13 +160,6 @@ async function startServer() {
     // Popula a tabela de clãs, se necessário.
     // await seedClans(); // Desativado para evitar a limpeza dos dados dos clãs a cada reinício.
 
-    await startGameStateMonitor();
-
-    // Inicializa cache centralizado de ranking
-    console.log("⏱️ Iniciando warmup e agendador de ranking...");
-    await rankingCacheService.warmupRankings();
-    rankingCacheService.startPeriodicRefresh();
-
     initializeSocket(io);
 
     schedulePersistence(); // Inicia o worker de persistência de estado do jogador
@@ -174,9 +167,22 @@ async function startServer() {
     server.listen(PORT, () => {
       console.log(`🚀 Servidor rodando na porta ${PORT}`);
       console.log(`📱 Frontend URL: ${process.env.FRONTEND_URL}`);
+
+      // Executa tarefas de background de forma assíncrona para não travar o boot
+      (async () => {
+        try {
+          await startGameStateMonitor();
+          console.log("⏱️ Iniciando warmup de ranking...");
+          await rankingCacheService.warmupRankings();
+          rankingCacheService.startPeriodicRefresh();
+          console.log("✅ Warmup de background concluído.");
+        } catch (bgError) {
+          console.error("❌ Erro em tarefas de background:", bgError);
+        }
+      })();
     });
   } catch (error) {
-    console.error("❌ Erro ao iniciar servidor:", error);
+    console.error("❌ Erro fatal ao iniciar servidor:", error);
     process.exit(1);
   }
 }

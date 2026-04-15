@@ -44,26 +44,24 @@ async function initRedis() {
 // Instância da Promise de inicialização para ser aguardada pelo servidor
 const redisReadyPromise = initRedis();
 
-module.exports = {
+const redisWrapper = {
   redisReadyPromise,
   client: {
     get isReady() {
       return isReady;
     },
   },
+
   getAsync: async (k) => {
     if (!isReady) return null;
     try {
-      if (isUpstash) {
-        return await client.get(k);
-      } else {
-        return await client.get(k);
-      }
+      return await client.get(k);
     } catch (err) {
       console.error(`[RedisClient] Erro em getAsync key=${k}:`, err.message);
       return null;
     }
   },
+
   setAsync: async (k, v, m, t) => {
     if (!isReady) return null;
     try {
@@ -81,6 +79,7 @@ module.exports = {
       return null;
     }
   },
+
   delAsync: async (k) => {
     if (!isReady) return null;
     try {
@@ -90,24 +89,44 @@ module.exports = {
       return null;
     }
   },
+
   hSetAsync: async (k, f, v) => {
     if (!isReady) return null;
     try {
-      return await client.hSet(k, f, String(v));
+      if (isUpstash) {
+        if (typeof f === 'object') return await client.hset(k, f);
+        return await client.hset(k, f, String(v));
+      } else {
+        return await client.hSet(k, f, String(v));
+      }
     } catch (err) {
-      console.error(`[RedisClient] Erro em hSetAsync key=${k} field=${f}:`, err.message);
+      console.error(`[RedisClient] Erro em hSetAsync key=${k}:`, err.message);
       return null;
     }
   },
+
   hGetAsync: async (k, f) => {
     if (!isReady) return null;
     try {
+      if (isUpstash) return await client.hget(k, f);
       return await client.hGet(k, f);
     } catch (err) {
-      console.error(`[RedisClient] Erro em hGetAsync key=${k} field=${f}:`, err.message);
+      console.error(`[RedisClient] Erro em hGetAsync key=${k}:`, err.message);
       return null;
     }
   },
+
+  hGetAllAsync: async (k) => {
+    if (!isReady) return null;
+    try {
+      if (isUpstash) return await client.hgetall(k);
+      return await client.hGetAll(k);
+    } catch (err) {
+      console.error(`[RedisClient] Erro em hGetAllAsync key=${k}:`, err.message);
+      return null;
+    }
+  },
+
   expireAsync: async (k, t) => {
     if (!isReady) return null;
     try {
@@ -117,44 +136,26 @@ module.exports = {
       return null;
     }
   },
-  hGetAllAsync: async (k) => {
-    if (!isReady) return null;
-    try {
-      return await client.hGetAll(k);
-    } catch (err) {
-      console.error(`[RedisClient] Erro em hGetAllAsync key=${k}:`, err.message);
-      return null;
-    }
-  },
+
   lRangeAsync: async (k, start, stop) => {
     if (!isReady) return null;
     try {
-      if (isUpstash) {
-        return await client.lrange(k, start, stop);
-      } else {
-        return await client.lRange(k, start, stop);
-      }
+      if (isUpstash) return await client.lrange(k, start, stop);
+      return await client.lRange(k, start, stop);
     } catch (err) {
       console.error(`[RedisClient] Erro em lRangeAsync key=${k}:`, err.message);
       return null;
     }
   },
+
   setNXAsync: async (k, v, exMs) => {
     if (!isReady) return null;
     try {
       if (isUpstash) {
-        // Upstash: SET com NX e PX em milissegundos
-        const result = await client.set(String(k), String(v), {
-          nx: true,
-          px: exMs,
-        });
+        const result = await client.set(String(k), String(v), { nx: true, px: exMs });
         return result === "OK" || result === true ? true : null;
       } else {
-        // node-redis: SET com NX e PX em milissegundos
-        const result = await client.set(String(k), String(v), {
-          NX: true,
-          PX: exMs,
-        });
+        const result = await client.set(String(k), String(v), { NX: true, PX: exMs });
         return result === "OK" ? true : null;
       }
     } catch (err) {
@@ -162,50 +163,50 @@ module.exports = {
       return null;
     }
   },
+
   scanIterator: (options) => {
     if (!isReady || isUpstash) {
-      async function* empty() {
-        yield* [];
-      }
+      async function* empty() { yield* []; }
       return empty();
     }
     return client.scanIterator(options);
   },
 
-  /**
-   * Pipeline atômico para adicionar mensagem ao histórico de chat.
-   *
-   * Executa LPUSH + LTRIM + EXPIRE em um único round-trip Redis.
-   * Compatível com Upstash (pipeline REST batched) e node-redis (MULTI/EXEC TCP).
-   *
-   * Antes: 3 awaits sequenciais → 3 round-trips (até ~3× latência de rede no Upstash).
-   * Depois: 1 exec()           → 1 round-trip, resultado atomicamente garantido.
-   *
-   * @param {string} historyKey    - Chave Redis da lista de histórico.
-   * @param {string} messageJson   - JSON da mensagem já serializado.
-   * @param {number} maxLength     - Número máximo de entradas na lista (LTRIM stop = maxLength - 1).
-   * @param {number} ttlSeconds    - TTL em segundos para EXPIRE na key.
-   * @returns {Promise<Array|null>} Resultado do exec() do pipeline, ou null em caso de erro.
-   */
+  // Suporte a pipeline (usado em playerStateService.js)
+  pipeline: () => {
+    if (!isReady) throw new Error("RedisClient não está pronto para pipeline");
+    if (isUpstash) {
+      const p = client.pipeline();
+      // Mapeia métodos camelCase usados em node-redis para lowercase do Upstash
+      const proxy = {
+        hIncrBy: (k, f, v) => { p.hincrby(k, f, v); return proxy; },
+        hSet: (k, f, v) => { p.hset(k, f, v); return proxy; },
+        lpush: (k, v) => { p.lpush(k, v); return proxy; },
+        ltrim: (k, s, st) => { p.ltrim(k, s, st); return proxy; },
+        expire: (k, t) => { p.expire(k, t); return proxy; },
+        exec: async () => await p.exec(),
+      };
+      return proxy;
+    } else {
+      return client.multi();
+    }
+  },
+
   chatHistoryPipeline: async (historyKey, messageJson, maxLength, ttlSeconds) => {
     if (!isReady) return null;
     try {
       if (isUpstash) {
-        // Upstash @upstash/redis: .pipeline() aceita comandos em lowercase.
-        // Todos os comandos são batched em uma única requisição HTTP REST.
-        const pipeline = client.pipeline();
-        pipeline.lpush(historyKey, messageJson);
-        pipeline.ltrim(historyKey, 0, maxLength - 1);
-        pipeline.expire(historyKey, ttlSeconds);
-        return await pipeline.exec();
+        const p = client.pipeline();
+        p.lpush(historyKey, messageJson);
+        p.ltrim(historyKey, 0, maxLength - 1);
+        p.expire(historyKey, ttlSeconds);
+        return await p.exec();
       } else {
-        // node-redis: .multi() cria um bloco MULTI/EXEC — pipeline sobre TCP.
-        // Comandos em camelCase conforme API do node-redis v4+.
-        const pipeline = client.multi();
-        pipeline.lPush(historyKey, messageJson);
-        pipeline.lTrim(historyKey, 0, maxLength - 1);
-        pipeline.expire(historyKey, ttlSeconds);
-        return await pipeline.exec();
+        const p = client.multi();
+        p.lPush(historyKey, messageJson);
+        p.lTrim(historyKey, 0, maxLength - 1);
+        p.expire(historyKey, ttlSeconds);
+        return await p.exec();
       }
     } catch (err) {
       console.error(`[RedisClient] Erro no chatHistoryPipeline key=${historyKey}:`, err.message);
@@ -213,3 +214,10 @@ module.exports = {
     }
   },
 };
+
+// Aliases para compatibilidade legada
+redisWrapper.hsetAsync = redisWrapper.hSetAsync;
+redisWrapper.hgetAsync = redisWrapper.hGetAsync;
+redisWrapper.hgetallAsync = redisWrapper.hGetAllAsync;
+
+module.exports = redisWrapper;
