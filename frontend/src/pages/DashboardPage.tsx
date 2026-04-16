@@ -177,13 +177,6 @@ const FactionPanel = React.memo(({ user }: { user: any }) => (
     icon={<ShieldCheckIcon className="w-6 h-6 text-orange-400" />}
   >
     <div className="h-full flex flex-col justify-center items-center text-center text-slate-300">
-      <div className="mb-2" style={{ filter: "drop-shadow(0 0 8px #f97316)" }}>
-        <img
-          src="/gangstersa_icon.png"
-          alt="Gangsters"
-          className="w-12 h-12 mx-auto"
-        />
-      </div>
       <h3
         className="text-2xl font-orbitron text-orange-400 uppercase"
         style={{ textShadow: "0 0 5px #f97316" }}
