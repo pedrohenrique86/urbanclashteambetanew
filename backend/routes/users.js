@@ -550,6 +550,7 @@ router.get("/:id", async (req, res) => {
         winning_streak: parseInt(player.winning_streak) || 0,
         created_at: player.account_created_at,
         birth_date: player.birth_date ? (typeof player.birth_date === 'string' ? player.birth_date.split('T')[0] : new Date(player.birth_date).toISOString().split('T')[0]) : null,
+        clan_name: player.clan_name || null,
       },
     });
   } catch (error) {

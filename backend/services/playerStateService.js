@@ -25,9 +25,11 @@ async function loadPlayerState(userId) {
       `
       SELECT 
         p.*,
-        u.username, u.country, u.created_at as account_created_at, u.birth_date
+        u.username, u.country, u.created_at as account_created_at, u.birth_date,
+        c.name as clan_name
       FROM user_profiles p
       JOIN users u ON p.user_id = u.id
+      LEFT JOIN clans c ON p.clan_id = c.id
       WHERE p.user_id = $1
       `,
       [userId],

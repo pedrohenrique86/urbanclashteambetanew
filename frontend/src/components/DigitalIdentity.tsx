@@ -15,6 +15,7 @@ interface PublicPlayer {
   winning_streak: number;
   created_at?: string;
   birth_date?: string;
+  clan_name?: string;
 }
 
 interface DigitalIdentityProps {
@@ -248,7 +249,7 @@ export default function DigitalIdentity({
               )}
             </div>
             <p className={`text-[10px] sm:text-xs font-bold uppercase tracking-[0.2em] ${factionTheme.primary} mt-1`}>
-              {player.faction === "gangsters" ? "Alta Periculosidade" : "Ordem e Progresso"}
+              {player.clan_name || "Sem Divisão"}
             </p>
           </div>
 

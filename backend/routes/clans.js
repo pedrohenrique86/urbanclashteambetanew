@@ -405,6 +405,9 @@ router.post("/", authenticateToken, createClanValidation, async (req, res) => {
       return clan;
     });
 
+    // Invalida cache do perfil para refletir novo clã
+    await redisClient.delAsync(`playerState:${userId}`);
+
     res.status(201).json({
       message: "Clã criado com sucesso",
       clan: result,
@@ -580,6 +583,9 @@ router.post("/:id/join", authenticateToken, async (req, res) => {
       return res.status(result.status).json({ error: result.error });
     }
 
+    // Invalida cache do perfil para refletir novo clã
+    await redisClient.delAsync(`playerState:${userId}`);
+
     console.log(
       `[CLAN_JOIN_SUCCESS] User ${userId} entrou com sucesso no clã ${clanId}`,
     );
@@ -659,6 +665,9 @@ router.post("/:id/leave", authenticateToken, async (req, res) => {
     if (result.status !== 200) {
       return res.status(result.status).json({ error: result.error });
     }
+
+    // Invalida cache do perfil para refletir saída do clã
+    await redisClient.delAsync(`playerState:${userId}`);
 
     broadcastToClan(clanId, "member_left", { userId, clanId });
     res.json({ message: result.message });
@@ -748,10 +757,10 @@ router.post(
             `UPDATE clans SET member_count = member_count - 1, updated_at = CURRENT_TIMESTAMP WHERE id = $1`,
             [clanId],
           );
-          // Limpar os votos para este usuário
+          // Limpar clan_id no perfil do usuário
           await client.query(
-            `DELETE FROM clan_kick_votes WHERE clan_id = $1 AND target_user_id = $2`,
-            [clanId, targetUserId],
+            `UPDATE user_profiles SET clan_id = NULL, updated_at = CURRENT_TIMESTAMP WHERE user_id = $1`,
+            [targetUserId],
           );
 
           // Notificar que o membro foi expulso
@@ -767,6 +776,11 @@ router.post(
           body: { message: "Voto registrado com sucesso.", voteCount },
         };
       });
+
+      // Invalida cache do alvo se foi expulso
+      if (result.status === 200 && result.body.message.includes("expulso")) {
+        await redisClient.delAsync(`playerState:${targetUserId}`);
+      }
 
       return res.status(result.status).json(result.body);
     } catch (error) {
@@ -829,6 +843,12 @@ router.post("/:id/kick/:userId", authenticateToken, async (req, res) => {
         [id],
       );
 
+      // Limpar clan_id no perfil do usuário expulso
+      await client.query(
+        "UPDATE user_profiles SET clan_id = NULL, updated_at = CURRENT_TIMESTAMP WHERE user_id = $1",
+        [targetUserId],
+      );
+
       return { success: true };
     });
 
@@ -836,8 +856,8 @@ router.post("/:id/kick/:userId", authenticateToken, async (req, res) => {
       return res.status(404).json({ error: "Membro alvo não encontrado." });
     }
 
-    // Notificar em tempo real
-    broadcastToClan(id, "member_kicked", { userId: targetUserId, clanId: id });
+    // Invalida cache do perfil do expulso
+    await redisClient.delAsync(`playerState:${targetUserId}`);
 
     res.json({ message: "Membro expulso com sucesso." });
   } catch (error) {
@@ -945,6 +965,12 @@ router.delete("/:id", authenticateToken, async (req, res) => {
       // Deletar clã (ON DELETE CASCADE cuidará dos clan_members)
       await client.query("DELETE FROM clans WHERE id = $1", [id]);
     });
+
+    // Como deletar um clã afeta muitos usuários, não invalidamos todos um por um aqui 
+    // para evitar gargalo, mas os perfis no DB já estão corretos (NULL).
+    // O cache expirará naturalmente ou será resetado em outras ações.
+    // Mas invalidamos o do líder pelo menos.
+    await redisClient.delAsync(`playerState:${userId}`);
 
     res.json({ message: "Clã deletado com sucesso" });
   } catch (error) {
