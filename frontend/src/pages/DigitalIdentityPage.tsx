@@ -4,6 +4,7 @@ import { useUserProfileContext } from "../contexts/UserProfileContext";
 import { apiClient } from "../lib/supabaseClient";
 import DigitalIdentity from "../components/DigitalIdentity";
 import { useTheme } from "../contexts/ThemeContext";
+import { HUDCache } from "../hooks/useHUDCache";
 
 type DigitalIdentityProps = React.ComponentProps<typeof DigitalIdentity>;
 type IdentityPlayer = DigitalIdentityProps["player"];
@@ -17,7 +18,10 @@ interface DigitalIdentityPageProps {
   onClose?: () => void;
 }
 
-export default function DigitalIdentityPage({ forcedId, onClose: forcedOnClose }: DigitalIdentityPageProps = {}) {
+export default function DigitalIdentityPage({
+  forcedId,
+  onClose: forcedOnClose,
+}: DigitalIdentityPageProps = {}) {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { userProfile, setUserProfile } = useUserProfileContext();
@@ -27,61 +31,65 @@ export default function DigitalIdentityPage({ forcedId, onClose: forcedOnClose }
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Estados de edição
   const [isEditing, setIsEditing] = useState(false);
   const [editData, setEditData] = useState<IdentityEditData>(undefined);
   const [saving, setSaving] = useState(false);
 
-  // ID-alvo estável: se for modal usa forcedId, senão usa o da rota ou o próprio
   const targetId = useMemo(() => {
     return forcedId || id || userProfile?.user_id || userProfile?.id || null;
   }, [forcedId, id, userProfile?.user_id, userProfile?.id]);
 
-  // Verifica se o perfil visualizado pertence ao usuário logado
   const isOwnProfile = useMemo(() => {
     if (!userProfile || !targetId) return false;
     return targetId === userProfile.user_id || targetId === userProfile.id;
   }, [targetId, userProfile]);
 
-  const normalizePlayer = useCallback(
-    (raw: any, fallbackId: string): IdentityPlayer | null => {
-      if (!raw) return null;
+  const fetchProfile = useCallback(async (targetId: string) => {
+    const data = await apiClient.getUser(targetId);
 
-      return {
-        ...raw,
-        id: raw.user_id || raw.id || fallbackId,
-      } as IdentityPlayer;
-    },
-    []
-  );
+    if (!data?.user) {
+      throw new Error("Jogador não encontrado na rede.");
+    }
 
-  const fetchProfile = useCallback(
-    async (currentTargetId: string): Promise<IdentityPlayer> => {
-      const data = await apiClient.getUser(currentTargetId);
-
-      if (!data?.user) {
-        throw new Error("Jogador não encontrado na rede.");
-      }
-
-      const normalized = normalizePlayer(data.user, currentTargetId);
-
-      if (!normalized) {
-        throw new Error("Jogador não encontrado na rede.");
-      }
-
-      return normalized;
-    },
-    [normalizePlayer]
-  );
+    return {
+      ...data.user,
+      id: data.user.user_id || data.user.id || targetId,
+    };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
 
-    const loadProfile = async () => {
+    async function load() {
       if (!targetId) {
-        setPlayerData(null);
         setError("Identidade não encontrada.");
         setLoading(false);
+        return;
+      }
+
+      // 🔥 1. CACHE
+      const cached = HUDCache.getProfile<IdentityPlayer>(targetId);
+      if (cached) {
+        setPlayerData(cached);
+        setLoading(false);
+        return;
+      }
+
+      // 🔥 2. REQUEST EM ANDAMENTO
+      const pending = HUDCache.getPendingProfile<IdentityPlayer>(targetId);
+      if (pending) {
+        try {
+          const data = await pending;
+          if (!cancelled) {
+            setPlayerData(data);
+            setLoading(false);
+          }
+        } catch {
+          if (!cancelled) {
+            setError("Erro ao carregar perfil.");
+            setLoading(false);
+          }
+        }
         return;
       }
 
@@ -89,29 +97,36 @@ export default function DigitalIdentityPage({ forcedId, onClose: forcedOnClose }
         setLoading(true);
         setError(null);
 
-        // Fonte oficial unificada: sempre backend
-        const freshPlayer = await fetchProfile(targetId);
+        const request = fetchProfile(targetId);
+
+        HUDCache.setPendingProfile(targetId, request);
+
+        const fresh = await request;
 
         if (cancelled) return;
-        setPlayerData(freshPlayer);
+
+        HUDCache.setProfile(targetId, fresh);
+        setPlayerData(fresh);
       } catch (err: any) {
-        console.error("Erro ao carregar perfil:", err);
-
         if (cancelled) return;
-        setPlayerData(null);
+
+        HUDCache.invalidateProfile(targetId);
+
         setError(
           err?.message === "Jogador não encontrado na rede."
             ? "Jogador não encontrado na rede."
             : "Erro ao conectar com a Digital Link."
         );
       } finally {
+        HUDCache.clearPendingProfile(targetId);
+
         if (!cancelled) {
           setLoading(false);
         }
       }
-    };
+    }
 
-    loadProfile();
+    load();
 
     return () => {
       cancelled = true;
@@ -138,97 +153,73 @@ export default function DigitalIdentityPage({ forcedId, onClose: forcedOnClose }
 
   const handleSave = async () => {
     try {
-      if (!targetId || !editData) {
-        throw new Error("Dados de edição inválidos.");
-      }
+      if (!targetId || !editData) return;
 
       setSaving(true);
       setError(null);
 
-      // Validação de data completa (se informada)
-      if (editData.birth_date && !/^\d{4}-\d{2}-\d{2}$/.test(editData.birth_date)) {
-        setError("Data de nascimento incompleta ou inválida. Preencha todos os campos (dia, mês e ano).");
-        setSaving(false);
-        return;
-      }
-
-      // Persiste no backend
       await apiClient.updateUserProfile(targetId, editData);
 
-      // Refetch da fonte oficial após salvar
-      const freshPlayer = await fetchProfile(targetId);
+      const fresh = await fetchProfile(targetId);
 
-      setPlayerData(freshPlayer);
+      // 🔥 sincroniza cache
+      HUDCache.setProfile(targetId, fresh);
 
-      // Sincroniza contexto global apenas se for o próprio perfil
+      setPlayerData(fresh);
+
       if (isOwnProfile) {
-        setUserProfile((prev: any) => {
+        setUserProfile((prev) => {
           if (!prev) return prev;
-          return {
-            ...prev,
-            ...freshPlayer,
-          };
+          return { ...prev, ...fresh };
         });
       }
 
       setIsEditing(false);
       setEditData(undefined);
     } catch (err) {
-      console.error("Erro ao salvar perfil:", err);
-      alert("Falha ao salvar. Verifique sua conexão.");
+      setError("Falha ao salvar.");
     } finally {
       setSaving(false);
     }
   };
 
-  const handleClose = forcedOnClose || (id ? () => navigate(-1) : undefined);
+  const handleClose =
+    forcedOnClose || (id ? () => navigate(-1) : undefined);
 
-  const containerClasses = forcedId 
-    ? "w-full max-w-4xl mx-auto p-2 sm:p-6" 
-    : "max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 pb-12 pt-6";
+  if (loading) {
+    return (
+      <div className="flex min-h-[400px] items-center justify-center text-white">
+        <div className="h-12 w-12 animate-spin rounded-full border-b-2 border-orange-500" />
+      </div>
+    );
+  }
 
-  const renderLoading = () => (
-    <div className={`min-h-[400px] flex flex-col items-center justify-center ${forcedId ? "" : themeClasses.bg} text-white`}>
-      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mb-4"></div>
-      <p className="font-orbitron text-[10px] animate-pulse">SINCRO DE DADOS REDIS...</p>
-    </div>
-  );
+  if (error || !playerData) {
+    return (
+      <div className="text-center text-red-400">
+        {error || "Erro ao carregar perfil"}
+      </div>
+    );
+  }
 
-  const renderError = () => (
-    <div className={`max-w-7xl mx-auto px-4 py-12 text-center ${forcedId ? "" : themeClasses.bg}`}>
-      <h2 className="text-2xl font-bold text-red-500 mb-4">Falha na Sincronização</h2>
-      <p className="text-gray-400 mb-6">{error || "Não foi possível carregar o perfil."}</p>
-      <button onClick={handleClose} className="px-6 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors text-white">
-        Voltar
-      </button>
-    </div>
-  );
-
-  const mainContent = (
-    <div className={containerClasses}>
+  return (
+    <>
       {saving && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[110] flex items-center justify-center">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-orange-500 mx-auto mb-3"></div>
-            <p className="font-orbitron text-[10px] text-orange-500 tracking-widest">ATUALIZANDO IDENTIDADE...</p>
-          </div>
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60">
+          <div className="h-10 w-10 animate-spin rounded-full border-b-2 border-orange-500" />
         </div>
       )}
 
-      {loading ? renderLoading() : (error || !playerData ? renderError() : (
-        <DigitalIdentity
-          player={playerData}
-          onClose={handleClose}
-          isOwnProfile={isOwnProfile}
-          isEditing={isEditing}
-          editData={editData}
-          onEditChange={handleEditChange}
-          onToggleEdit={handleToggleEdit}
-          onSave={handleSave}
-        />
-      ))}
-    </div>
+      <DigitalIdentity
+        player={playerData}
+        onClose={handleClose}
+        isOwnProfile={isOwnProfile}
+        isEditing={isEditing}
+        editData={editData}
+        onEditChange={handleEditChange}
+        onToggleEdit={handleToggleEdit}
+        onSave={handleSave}
+      />
+    </>
   );
-
-  return mainContent;
 }

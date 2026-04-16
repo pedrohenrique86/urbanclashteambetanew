@@ -2,10 +2,10 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { useUserProfileContext } from "../contexts/UserProfileContext";
+import { useHUD } from "../contexts/HUDContext";
 import { useTheme } from "../contexts/ThemeContext";
 import { apiClient } from "../lib/supabaseClient";
 import { ClanChat } from "../components/clan/ClanChat";
-import DigitalIdentity from "../components/DigitalIdentity";
 
 type Player = {
   id?: string;
@@ -34,35 +34,35 @@ export default function ClanPage() {
   const navigate = useNavigate();
   const { themeClasses } = useTheme();
   const { userProfile, setUserProfile } = useUserProfileContext();
+  const { openUserPanel } = useHUD();
 
   const [clan, setClan] = useState<ClanData | null>(null);
   const [clanLoading, setClanLoading] = useState<boolean>(true);
   const [clanError, setClanError] = useState<string | null>(null);
   const [leaving, setLeaving] = useState<boolean>(false);
   const [confirmLeave, setConfirmLeave] = useState<boolean>(false);
-  const [selectedPlayerId, setSelectedPlayerId] = useState<string | null>(null);
   const broadcastRef = useRef<BroadcastChannel | null>(null);
 
-  // Função para obter a URL da bandeira do país (Reutilizada do PlayerRankingItem)
   const getCountryFlag = (countryCode?: string) => {
     if (!countryCode) return null;
     return `https://flagcdn.com/24x18/${countryCode.toLowerCase()}.png`;
   };
 
   const factionColor = useMemo(() => {
-    const f = clan?.faction || userProfile?.faction;
+    const f = clan?.faction || userProfile?.faction?.name;
+
     return f === "gangsters"
       ? {
-          gradient: "from-orange-500 to-orange-700",
-          ring: "ring-orange-400",
-          accent: "text-orange-400",
-        }
+        gradient: "from-orange-500 to-orange-700",
+        ring: "ring-orange-400",
+        accent: "text-orange-400",
+      }
       : {
-          gradient: "from-blue-500 to-blue-700",
-          ring: "ring-blue-400",
-          accent: "text-blue-400",
-        };
-  }, [clan?.faction, userProfile?.faction]);
+        gradient: "from-blue-500 to-blue-700",
+        ring: "ring-blue-400",
+        accent: "text-blue-400",
+      };
+  }, [clan?.faction, userProfile?.faction?.name]);
 
   const availableSlots = useMemo(() => {
     if (!clan) return 0;
@@ -150,7 +150,7 @@ export default function ClanPage() {
 
       await apiClient.leaveClan(clan.id);
 
-      setUserProfile((prev) => prev ? { ...prev, clan_id: undefined } : null);
+      setUserProfile((prev) => (prev ? { ...prev, clan_id: undefined } : null));
 
       navigate("/qg");
     } catch (e) {
@@ -163,7 +163,9 @@ export default function ClanPage() {
 
   if (clanLoading) {
     return (
-      <div className={`min-h-screen ${themeClasses.bg} flex items-center justify-center`}>
+      <div
+        className={`min-h-screen ${themeClasses.bg} flex items-center justify-center`}
+      >
         <div className="text-white">Carregando dados do clã...</div>
       </div>
     );
@@ -171,8 +173,12 @@ export default function ClanPage() {
 
   if (clanError) {
     return (
-      <div className={`min-h-screen ${themeClasses.bg} flex items-center justify-center`}>
-        <div className={`${themeClasses.cardBg} p-6 rounded-lg border ${themeClasses.border} text-center`}>
+      <div
+        className={`min-h-screen ${themeClasses.bg} flex items-center justify-center`}
+      >
+        <div
+          className={`${themeClasses.cardBg} p-6 rounded-lg border ${themeClasses.border} text-center`}
+        >
           <p className="text-red-400 mb-4">{clanError}</p>
 
           <button
@@ -198,7 +204,9 @@ export default function ClanPage() {
       transition={{ duration: 0.5 }}
       className={`min-h-screen ${themeClasses.bg} text-white font-exo max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-6 space-y-6`}
     >
-      <div className={`rounded-xl p-4 sm:p-6 bg-gradient-to-r ${factionColor.gradient} shadow-xl ring-2 ${factionColor.ring}`}>
+      <div
+        className={`rounded-xl p-4 sm:p-6 bg-gradient-to-r ${factionColor.gradient} shadow-xl ring-2 ${factionColor.ring}`}
+      >
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div className="min-w-0">
             <h1 className="text-xl sm:text-2xl md:text-3xl font-orbitron font-extrabold tracking-tight truncate">
@@ -213,27 +221,27 @@ export default function ClanPage() {
           <div className="flex sm:flex-col items-center sm:items-end justify-between sm:justify-center w-full sm:w-auto pt-4 sm:pt-0 border-t border-white/10 sm:border-0">
             <div className="sm:text-right">
               <p className="text-base sm:text-lg font-bold">{clan?.score || 0}</p>
-              <p className="text-[10px] sm:text-xs text-white/70 uppercase">PONTUAÇÃO</p>
+              <p className="text-[10px] sm:text-xs text-white/70 uppercase">
+                PONTUAÇÃO
+              </p>
             </div>
           </div>
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:items-stretch">
-        {/* Coluna da Esquerda: Chat */}
         <div className="flex">
           <ClanChat members={clan?.members} />
         </div>
 
-        {/* Coluna da Direita: Membros e Opções */}
         <div className="flex flex-col space-y-6">
-          {/* Card de Membros */}
           <div
             className={`${themeClasses.cardBg} p-6 rounded-xl border ${themeClasses.border} flex flex-col flex-grow`}
           >
             <h2 className={`text-xl font-bold mb-4 ${factionColor.accent}`}>
               MEMBROS ({clan?.member_count || 0} / {clan?.max_members || 0})
             </h2>
+
             <ul className="space-y-2 overflow-y-auto flex-grow min-h-[200px]">
               {clan?.members?.map((member, index) => (
                 <li
@@ -243,9 +251,13 @@ export default function ClanPage() {
                     `${member.username}-${index}`
                   }
                   className="flex items-center p-2 bg-black/30 rounded-lg hover:bg-black/40 transition-colors cursor-pointer group"
-                  onClick={() => setSelectedPlayerId(member.user_id || member.id || null)}
+                  onClick={() => {
+                    const memberId = member.user_id || member.id;
+                    if (memberId) {
+                      openUserPanel(memberId);
+                    }
+                  }}
                 >
-                  {/* Bandeira */}
                   <div className="w-6 flex-shrink-0 flex justify-center mr-3">
                     {getCountryFlag(member.country) ? (
                       <img
@@ -254,17 +266,17 @@ export default function ClanPage() {
                         className="w-5 h-3.5 object-cover rounded-sm shadow-sm"
                       />
                     ) : (
-                      <div className="w-5 h-3.5 bg-white/5 rounded-sm"></div>
+                      <div className="w-5 h-3.5 bg-white/5 rounded-sm" />
                     )}
                   </div>
 
-                  {/* Nome */}
                   <span className="font-semibold flex-grow min-w-0 truncate text-sm">
                     {member.username}
                   </span>
 
-                  {/* Nível */}
-                  <span className={`text-xs font-bold px-2 py-0.5 rounded ${factionColor.accent} bg-black/20 ml-2`}>
+                  <span
+                    className={`text-xs font-bold px-2 py-0.5 rounded ${factionColor.accent} bg-black/20 ml-2`}
+                  >
                     Lvl {member.level || 1}
                   </span>
                 </li>
@@ -272,13 +284,13 @@ export default function ClanPage() {
             </ul>
           </div>
 
-          {/* Card de Opções */}
           <div
             className={`${themeClasses.cardBg} p-6 rounded-xl border ${themeClasses.border} flex-shrink-0`}
           >
             <h2 className={`text-xl font-bold mb-4 ${factionColor.accent}`}>
               OPÇÕES DO CLÃ
             </h2>
+
             <button
               type="button"
               onClick={() => setConfirmLeave(true)}
@@ -289,14 +301,6 @@ export default function ClanPage() {
           </div>
         </div>
       </div>
-
-      {/* MODAL DE PERFIL DO JOGADOR (Identidade Digital) */}
-      {selectedPlayerId && (
-        <PlayerProfileModal 
-          userId={selectedPlayerId} 
-          onClose={() => setSelectedPlayerId(null)} 
-        />
-      )}
 
       {confirmLeave && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
@@ -333,64 +337,5 @@ export default function ClanPage() {
         </div>
       )}
     </motion.div>
-  );
-}
-
-/**
- * Wrapper de Modal que faz o fetch do player apenas quando necessário.
- * Mantém a ClanPage leve e cumpre a regra de fetch único.
- */
-function PlayerProfileModal({ userId, onClose }: { userId: string; onClose: () => void }) {
-  const [player, setPlayer] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    let isMounted = true;
-    
-    async function load() {
-      try {
-        setLoading(true);
-        // Usa o endpoint otimizado via Redis no backend
-        const data = await apiClient.getUser(userId);
-        if (isMounted && data?.user) {
-          setPlayer(data.user);
-        }
-      } catch (err) {
-        console.error("Erro ao carregar perfil no modal:", err);
-      } finally {
-        if (isMounted) setLoading(false);
-      }
-    }
-
-    load();
-    return () => { isMounted = false; };
-  }, [userId]);
-
-  return (
-    <div 
-      className="fixed inset-0 bg-black/90 backdrop-blur-md flex items-center justify-center z-[9999] p-4 sm:p-8 text-white overflow-y-auto"
-      onClick={onClose}
-    >
-      <motion.div 
-        initial={{ opacity: 0, scale: 0.9, y: 30 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        className="w-full max-w-3xl my-auto shadow-2xl"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {loading ? (
-          <div className="flex flex-col items-center gap-4">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500"></div>
-            <p className="font-orbitron text-[10px] animate-pulse text-orange-500/80">SINCRONIZANDO IDENTIDADE...</p>
-          </div>
-        ) : player ? (
-          <DigitalIdentity player={player} onClose={onClose} />
-        ) : (
-          <div className="bg-gray-900/90 p-8 rounded-xl border border-red-500/50 text-center backdrop-blur-md">
-            <p className="text-red-400 mb-4">Falha ao localizar registro do jogador.</p>
-            <button onClick={onClose} className="px-6 py-2 bg-gray-800 hover:bg-gray-700 rounded-lg transition-colors border border-white/5">Fechar</button>
-          </div>
-        )}
-      </motion.div>
-    </div>
   );
 }

@@ -1,16 +1,18 @@
-import React, { useState, useRef } from "react";
-import { useLocation, useNavigate, Navigate } from "react-router-dom";
+import React, { useState, useRef, useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import TopBar from "./TopBar";
 import DashboardSidebar from "./DashboardSidebar";
 import { FloatingMenuButton } from "./FloatingMenuButton";
 import { useTheme } from "../../contexts/ThemeContext";
 import { useUserProfileContext } from "../../contexts/UserProfileContext";
-import { motion, AnimatePresence } from "framer-motion";
+import { useHUD } from "../../contexts/HUDContext";
 import dashbgangster from "../../assets/dashbgangster.webp";
 import { Tooltip } from "react-tooltip";
 import { useGameClock } from "../../hooks/useGameClock";
 import GameClockDisplay from "./GameClockDisplay";
 import ScrollToTopButton from "./ScrollToTopButton";
+import DigitalIdentityModal from "../DigitalIdentityModal";
+import ClanIdentityModal from "../ClanIdentityModal";
 
 interface GlobalLayoutProps {
   children: React.ReactNode;
@@ -18,8 +20,10 @@ interface GlobalLayoutProps {
 
 const GlobalLayout: React.FC<GlobalLayoutProps> = ({ children }) => {
   const location = useLocation();
-  const navigate = useNavigate();
   const { themeClasses } = useTheme();
+  const { userProfile, handleLogout } = useUserProfileContext();
+  const { currentPanel, closePanel, clearPanels, hasOpenPanel } = useHUD();
+
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
@@ -28,8 +32,32 @@ const GlobalLayout: React.FC<GlobalLayoutProps> = ({ children }) => {
   const minSwipeDistance = 50;
   const { remainingTime, status, serverTime } = useGameClock();
 
-  // Páginas que NÃO têm a navegação (sidebar/topbar)
-  // O GlobalLayout não é renderizado para essas páginas pois elas usam rota direta
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && hasOpenPanel) {
+        closePanel();
+      }
+    };
+
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [closePanel, hasOpenPanel]);
+
+  useEffect(() => {
+    clearPanels();
+  }, [location.pathname, clearPanels]);
+
+  useEffect(() => {
+    if (!hasOpenPanel) return;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [hasOpenPanel]);
+
   const pagesWithoutNav = [
     "/",
     "/faction",
@@ -39,11 +67,10 @@ const GlobalLayout: React.FC<GlobalLayoutProps> = ({ children }) => {
     "/reset-password",
     "/auth/google/callback",
   ];
+
   const shouldShowNav = !pagesWithoutNav.some(
     (p) => location.pathname === p || location.pathname.startsWith("/auth/"),
   );
-
-  const { userProfile, handleLogout } = useUserProfileContext();
 
   const onTouchStartObj = (e: React.TouchEvent) => {
     setTouchEnd(null);
@@ -56,6 +83,7 @@ const GlobalLayout: React.FC<GlobalLayoutProps> = ({ children }) => {
 
   const onTouchEndObj = () => {
     if (!touchStart || !touchEnd) return;
+
     const distance = touchStart - touchEnd;
     const isLeftSwipe = distance > minSwipeDistance;
     const isRightSwipe = distance < -minSwipeDistance;
@@ -73,14 +101,9 @@ const GlobalLayout: React.FC<GlobalLayoutProps> = ({ children }) => {
     }
   };
 
-  // Páginas sem nav renderizam os filhos diretamente
   if (!shouldShowNav) {
     return <>{children}</>;
   }
-
-  // O spinner e o bloqueio de renderização foram removidos.
-  // O layout agora renderiza imediatamente, e os componentes filhos
-  // são responsáveis por lidar com o estado de carregamento do perfil.
 
   const isDashboard = location.pathname === "/dashboard";
 
@@ -99,21 +122,24 @@ const GlobalLayout: React.FC<GlobalLayoutProps> = ({ children }) => {
       onTouchEnd={onTouchEndObj}
     >
       <div
-        className={`flex flex-1 overflow-hidden ${isDashboard ? "bg-black/20" : ""}`}
+        className={`flex flex-1 overflow-hidden ${isDashboard ? "bg-black/20" : ""
+          }`}
       >
-        {/* Sidebar para desktop, fixa na lateral */}
         <div className="hidden md:flex md:flex-shrink-0 z-20 h-full">
           <DashboardSidebar
             username={userProfile?.username}
-            faction={userProfile?.faction?.name as 'gangsters' | 'guardas' | undefined}
+            faction={
+              userProfile?.faction?.name as
+              | "gangsters"
+              | "guardas"
+              | undefined
+            }
             handleLogout={handleLogout}
             isAdmin={userProfile?.is_admin}
           />
         </div>
 
-        {/* Conteúdo principal */}
         <div className="flex flex-col flex-1 w-0">
-          {/* Container para o conteúdo que rola, sem padding */}
           <div
             ref={scrollableContainerRef}
             className="flex-1 relative overflow-y-auto overflow-x-hidden"
@@ -123,9 +149,24 @@ const GlobalLayout: React.FC<GlobalLayoutProps> = ({ children }) => {
               handleLogout={handleLogout}
               onMenuToggle={() => setIsMobileMenuOpen(true)}
             />
+
             <main className="focus:outline-none pt-[115px] md:pt-[70px] px-4 md:px-6 pb-[60px] md:pb-6 relative z-10 w-full">
               {children}
             </main>
+
+            {currentPanel?.type === "user" && (
+              <DigitalIdentityModal
+                userId={currentPanel.id}
+                onClose={closePanel}
+              />
+            )}
+
+            {currentPanel?.type === "clan" && (
+              <ClanIdentityModal
+                clanId={currentPanel.id}
+                onClose={closePanel}
+              />
+            )}
           </div>
         </div>
       </div>
@@ -137,6 +178,7 @@ const GlobalLayout: React.FC<GlobalLayoutProps> = ({ children }) => {
         isCollapsed={false}
         isMobileMode={true}
       />
+
       <Tooltip
         id="server-time-tooltip"
         place="top-end"
@@ -149,6 +191,7 @@ const GlobalLayout: React.FC<GlobalLayoutProps> = ({ children }) => {
         style={{ zIndex: 99999 }}
         className="!bg-slate-700 !bg-opacity-80 !backdrop-blur-sm !text-white !rounded-lg !px-3 !py-1 !text-[8px] !font-sans"
       />
+
       <FloatingMenuButton />
       <ScrollToTopButton scrollableRef={scrollableContainerRef} />
     </div>

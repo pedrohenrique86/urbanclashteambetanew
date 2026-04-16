@@ -4,6 +4,7 @@ import { ThemeProvider } from "./contexts/ThemeContext";
 import { ToastProvider } from "./contexts/ToastContext";
 import { GameClockProvider } from "./contexts/GameClockContext";
 import { LoadingProvider } from "./contexts/LoadingContext";
+import { HUDProvider } from "./contexts/HUDContext";
 import { GlobalLoadingSpinner } from "./components/ui/GlobalLoadingSpinner";
 import { ChatProvider } from "./contexts/ChatContext";
 import { UserProfileProvider } from "./contexts/UserProfileContext";
@@ -126,13 +127,15 @@ export default function App() {
       <ToastProvider>
         <GameClockProvider>
           <LoadingProvider>
-            <Suspense fallback={<PageLoader />}>
-              <GlobalLoadingSpinner />
-              <RouterProvider
-                router={router}
-                future={{ v7_startTransition: true }}
-              />
-            </Suspense>
+            <HUDProvider>
+              <Suspense fallback={<PageLoader />}>
+                <GlobalLoadingSpinner />
+                <RouterProvider
+                  router={router}
+                  future={{ v7_startTransition: true }}
+                />
+              </Suspense>
+            </HUDProvider>
           </LoadingProvider>
         </GameClockProvider>
       </ToastProvider>
