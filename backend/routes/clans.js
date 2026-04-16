@@ -541,24 +541,26 @@ router.post("/:id/join", authenticateToken, async (req, res) => {
       }
 
       // 3. Tenta inserir o usuário no clã.
-      // A constraint UNIQUE(user_id) na tabela clan_members garante que um usuário
-      // não pode estar em mais de um clã. ON CONFLICT trata a tentativa de entrar
-      // em um novo clã quando já se está em um.
-      const insertResult = await client.query(
-        "INSERT INTO clan_members (clan_id, user_id, role) VALUES ($1, $2, 'member') ON CONFLICT (user_id) DO NOTHING",
-        [clanId, userId],
+      // Primeiro, verificamos se o usuário já faz parte de QUALQUER clã.
+      // Usamos a tabela clan_members para essa verificação de integridade.
+      const existingMembership = await client.query(
+        "SELECT clan_id FROM clan_members WHERE user_id = $1",
+        [userId],
       );
-
-      // 4. Se rowCount for 0, o usuário já estava em um clã (conflito ocorreu).
-      if (insertResult.rowCount === 0) {
-        console.log(
-          `[JOIN_CLAN_CONFLICT] User ${userId} já é membro de um clã. Tentativa no clã ${clanId} abortada.`,
-        );
+      
+      if (existingMembership.rows.length > 0) {
         return {
           status: 409,
           error: "Você já faz parte de um clã.",
         };
       }
+
+      // 4. Insere o usuário no novo clã.
+      // Nota: Removido 'ON CONFLICT (user_id)' pois a constraint unique faltava no schema, causando Erro 500.
+      await client.query(
+        "INSERT INTO clan_members (clan_id, user_id, role) VALUES ($1, $2, 'member')",
+        [clanId, userId],
+      );
 
       console.log(
         `[JOIN_CLAN_SUCCESS] User ${userId} inserido com sucesso no clã ${clanId}.`,

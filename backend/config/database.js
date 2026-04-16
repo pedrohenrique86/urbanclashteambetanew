@@ -5,22 +5,27 @@ const isProduction = process.env.NODE_ENV === "production";
 
 let poolConfig;
 
-// A lógica agora decide a configuração ANTES de criar o Pool.
-if (process.env.DATABASE_URL) {
-  // Configuração para produção ou desenvolvimento com Neon (requer SSL)
+// Seleção inteligente da URL de conexão (DATABASE_URL > DATABASE_URL_PROD > DATABASE_URL_DEV)
+const databaseUrl = process.env.DATABASE_URL || 
+                   (isProduction ? process.env.DATABASE_URL_PROD : process.env.DATABASE_URL_DEV);
+
+if (databaseUrl) {
+  // Configuração para produção ou desenvolvimento com Neon/Cloud (requer SSL)
   poolConfig = {
-    connectionString: process.env.DATABASE_URL,
-    // Garante que SSL seja usado, como exigido pelo Neon/Render.
-    // Adiciona 'mode: require' para ser explícito e remover o aviso de segurança.
+    connectionString: databaseUrl,
     ssl: {
       rejectUnauthorized: false,
       mode: "require",
     },
   };
 } else {
-  // Fallback para configuração local
+  if (isProduction) {
+    throw new Error("❌ ERRO FATAL: Nenhuma variável de banco de dados (DATABASE_URL ou DATABASE_URL_PROD) encontrada em produção.");
+  }
+  
+  // Fallback para configuração local apenas em desenvolvimento
   console.warn(
-    "⚠️ AVISO: DATABASE_URL não encontrada. Usando fallback para configuração local do PostgreSQL.",
+    "⚠️ AVISO: Nenhuma DATABASE_URL encontrada no .env. Usando fallback localhost:5433.",
   );
   poolConfig = {
     user: "postgres",
