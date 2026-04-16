@@ -29,7 +29,8 @@ async function loadPlayerState(userId) {
         c.name as clan_name
       FROM user_profiles p
       JOIN users u ON p.user_id = u.id
-      LEFT JOIN clans c ON p.clan_id = c.id
+      LEFT JOIN clan_members cm ON cm.user_id = p.user_id
+      LEFT JOIN clans c ON cm.clan_id = c.id
       WHERE p.user_id = $1
       `,
       [userId],
@@ -47,10 +48,10 @@ async function loadPlayerState(userId) {
       (acc, [key, value]) => {
         if (value instanceof Date) {
           acc[key] = value.toISOString();
-        } else if (key === 'birth_date' && value) {
-          // birth_date no Postgres 'date' vem como objeto Date. 
+        } else if (key === "birth_date" && value) {
+          // birth_date no Postgres 'date' vem como objeto Date.
           // Se vier como string/outro, tentamos garantir o formato ISO date.
-          acc[key] = new Date(value).toISOString().split('T')[0];
+          acc[key] = new Date(value).toISOString().split("T")[0];
         } else {
           acc[key] = String(value ?? "");
         }
