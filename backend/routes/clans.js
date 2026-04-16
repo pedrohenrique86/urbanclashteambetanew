@@ -375,11 +375,10 @@ router.post("/", authenticateToken, createClanValidation, async (req, res) => {
 
     // Criar clã e adicionar líder em uma transação
     const result = await transaction(async (client) => {
-      // Criar clã
       const clanResult = await client.query(
         `
         INSERT INTO clans (name, description, faction, max_members, member_count)
-        VALUES ($1, $2, $3, $4, 1)
+        VALUES ($1, $2, $3, $4, 0)
         RETURNING *
       `,
         [name, description, faction, max_members],
@@ -572,12 +571,6 @@ router.post("/:id/join", authenticateToken, async (req, res) => {
         [clanId, userId],
       );
 
-      // 6. Incrementa o contador de membros do clã.
-      await client.query(
-        "UPDATE clans SET member_count = member_count + 1, updated_at = CURRENT_TIMESTAMP WHERE id = $1",
-        [clanId],
-      );
-
       return { status: 200, message: "Você entrou no clã com sucesso" };
     });
 
@@ -649,13 +642,7 @@ router.post("/:id/leave", authenticateToken, async (req, res) => {
         };
       }
 
-      // 4. Decrementa o contador de membros do clã.
-      await client.query(
-        "UPDATE clans SET member_count = member_count - 1, updated_at = CURRENT_TIMESTAMP WHERE id = $1",
-        [clanId],
-      );
-
-      // 5. Limpa o clan_id do perfil do usuário.
+      // 4. Limpa o clan_id do perfil do usuário.
       await client.query(
         "UPDATE user_profiles SET clan_id = NULL, updated_at = CURRENT_TIMESTAMP WHERE user_id = $1",
         [userId],
@@ -754,11 +741,6 @@ router.post(
             `DELETE FROM clan_members WHERE clan_id = $1 AND user_id = $2`,
             [clanId, targetUserId],
           );
-          // Decrementar member_count e atualizar timestamp
-          await client.query(
-            `UPDATE clans SET member_count = member_count - 1, updated_at = CURRENT_TIMESTAMP WHERE id = $1`,
-            [clanId],
-          );
           // Limpar clan_id no perfil do usuário
           await client.query(
             `UPDATE user_profiles SET clan_id = NULL, updated_at = CURRENT_TIMESTAMP WHERE user_id = $1`,
@@ -837,12 +819,6 @@ router.post("/:id/kick/:userId", authenticateToken, async (req, res) => {
       await client.query(
         "DELETE FROM clan_members WHERE clan_id = $1 AND user_id = $2",
         [id, targetUserId],
-      );
-
-      // Decrementar a contagem de membros e atualizar timestamp
-      await client.query(
-        "UPDATE clans SET member_count = member_count - 1, updated_at = CURRENT_TIMESTAMP WHERE id = $1",
-        [id],
       );
 
       // Limpar clan_id no perfil do usuário expulso
