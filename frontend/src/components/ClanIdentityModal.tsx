@@ -107,12 +107,12 @@ const ClanIdentityModal = React.memo(
 
     const factionStyles =
       clan?.faction === "gangsters"
-        ? "border-orange-500/30 bg-gradient-to-br from-orange-600/40 to-stone-950"
-        : "border-blue-500/30 bg-gradient-to-br from-blue-600/40 to-stone-950";
+        ? "border-orange-500/40 bg-gradient-to-br from-orange-600/60 to-stone-950/90"
+        : "border-blue-500/40 bg-gradient-to-br from-blue-600/60 to-stone-950/90";
 
     return (
       <AnimatePresence>
-        <div className="fixed inset-0 z-[9000] flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[9000] flex items-center justify-center p-4 md:left-48">
           <motion.button
             type="button"
             aria-label="Fechar painel do clã"
@@ -120,7 +120,7 @@ const ClanIdentityModal = React.memo(
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.15 }}
-            className="absolute inset-0 bg-black/5 backdrop-blur-[1px]"
+            className="absolute inset-0 bg-black/40 backdrop-blur-sm"
             onClick={onClose}
           />
 

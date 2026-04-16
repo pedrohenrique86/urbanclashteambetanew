@@ -107,17 +107,17 @@ const DigitalIdentity = React.memo(
       return faction === "gangsters"
         ? {
           primary: "text-orange-500",
-          bg: "from-orange-600/40 to-stone-950",
-          border: "border-orange-500/30",
-          shadow: "shadow-orange-500/10",
+          bg: "from-orange-600/60 to-stone-950/90",
+          border: "border-orange-500/40",
+          shadow: "shadow-orange-500/20",
           accent: "bg-orange-600",
           glow: "bg-orange-500/20",
         }
         : {
           primary: "text-blue-500",
-          bg: "from-blue-600/40 to-stone-950",
-          border: "border-blue-500/30",
-          shadow: "shadow-blue-500/10",
+          bg: "from-blue-600/60 to-stone-950/90",
+          border: "border-blue-500/40",
+          shadow: "shadow-blue-500/20",
           accent: "bg-blue-600",
           glow: "bg-blue-500/20",
         };
@@ -205,7 +205,7 @@ const DigitalIdentity = React.memo(
       <motion.div
         initial={{ opacity: 0, scale: 0.95, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
-        className={`relative mx-auto max-h-[90vh] w-full overflow-y-auto rounded-2xl border-2 bg-gradient-to-br p-4 font-exo text-white shadow-2xl sm:p-6 md:max-h-none ${factionTheme.border} ${factionTheme.bg} ${factionTheme.shadow}`}
+        className={`relative mx-auto max-h-[90vh] w-full overflow-y-auto rounded-2xl border-2 backdrop-blur-md p-4 font-exo text-white shadow-2xl sm:p-6 md:max-h-none ${factionTheme.border} bg-gradient-to-br ${factionTheme.bg} ${factionTheme.shadow}`}
       >
         <div className="sticky top-0 z-20 mb-4 flex flex-wrap justify-end gap-2 sm:absolute sm:right-4 sm:top-4 sm:mb-0">
           {isOwnProfile && !isEditing && (
