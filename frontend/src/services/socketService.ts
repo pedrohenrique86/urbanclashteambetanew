@@ -22,6 +22,7 @@ interface ServerTime {
 // --- Tipagens do Chat ---
 
 interface ChatMessage {
+  id: string; // Adicionado ID robusto para deduplicação
   userId: string;
   username: string;
   text: string;

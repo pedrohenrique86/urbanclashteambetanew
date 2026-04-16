@@ -18,7 +18,7 @@ if (process.env.DATABASE_URL) {
     },
   };
 } else {
-  // Fallback para configuração local (o que está causando o erro)
+  // Fallback para configuração local
   console.warn(
     "⚠️ AVISO: DATABASE_URL não encontrada. Usando fallback para configuração local do PostgreSQL.",
   );
@@ -33,7 +33,7 @@ if (process.env.DATABASE_URL) {
 }
 
 const pool = new Pool({
-  ...poolConfig, // Usa a configuração decidida acima
+  ...poolConfig,
   max: 20,
   idleTimeoutMillis: 600000, // 10 minutos
   connectionTimeoutMillis: 10000, // 10 segundos
@@ -45,8 +45,10 @@ async function connectDB() {
   console.log(
     "🏁 Iniciando processo de conexão e seeding do banco de dados...",
   );
+
+  let client;
   try {
-    const client = await pool.connect();
+    client = await pool.connect();
     console.log("🔗 Testando conexão com PostgreSQL...");
 
     await client.query("SELECT NOW()");
@@ -54,6 +56,10 @@ async function connectDB() {
   } catch (error) {
     console.error("❌ Erro ao conectar com PostgreSQL:", error.message);
     throw error;
+  } finally {
+    if (client) {
+      client.release();
+    }
   }
 }
 
@@ -111,16 +117,37 @@ async function cleanExpiredSessions() {
     const result = await query(
       "DELETE FROM user_sessions WHERE expires_at < NOW()",
     );
-    console.log(
-      `🧹 Limpeza de sessões: ${result.rowCount} sessões expiradas removidas`,
-    );
+    if (result.rowCount > 0) {
+      console.log(
+        `🧹 Limpeza de sessões: ${result.rowCount} sessões expiradas removidas do banco`,
+      );
+    }
   } catch (error) {
     console.error("❌ Erro ao limpar sessões expiradas:", error.message);
   }
 }
 
-// Limpar sessões expiradas a cada hora
-setInterval(cleanExpiredSessions, 60 * 60 * 1000);
+// Função para limpar mensagens de chat antigas (24h)
+async function cleanExpiredChatMessages() {
+  try {
+    const result = await query(
+      "DELETE FROM chat_messages WHERE created_at < NOW() - INTERVAL '24 hours'",
+    );
+    if (result.rowCount > 0) {
+      console.log(
+        `🧹 Limpeza de Chat: ${result.rowCount} mensagens expiradas (24h+) removidas do banco`,
+      );
+    }
+  } catch (error) {
+    console.error("❌ Erro ao limpar mensagens de chat expiradas:", error.message);
+  }
+}
+
+// Limpar sessões e mensagens expiradas a cada hora
+setInterval(async () => {
+  await cleanExpiredSessions();
+  await cleanExpiredChatMessages();
+}, 60 * 60 * 1000);
 
 // Graceful shutdown function (to be called from server.js)
 async function closePool() {
@@ -415,6 +442,7 @@ module.exports = {
   connectDB,
   tableExists,
   cleanExpiredSessions,
+  cleanExpiredChatMessages,
   closePool,
-  seedClans, // Exporta a nova função
+  seedClans,
 };

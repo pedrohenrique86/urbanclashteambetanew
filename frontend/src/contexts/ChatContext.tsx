@@ -21,14 +21,15 @@ const ChatContext = createContext<ChatContextType | undefined>(undefined);
 
 // --- Utilitários fora do componente para evitar recriação em re-render ---
 const getMessageKey = (msg: ChatMessage) => {
-  // Trata explicitamente o campo opcional 'id' se existir no payload estendido
-  if ((msg as any).id) return String((msg as any).id);
+  // Prioridade total para o ID robusto vindo do backend
+  if (msg.id) return String(msg.id);
 
   const ts =
     typeof msg.timestamp === "number"
       ? msg.timestamp
       : new Date(msg.timestamp).getTime();
 
+  // Fallback seguro apenas para mensagens legadas
   return `${ts}-${msg.userId}-${msg.text}`;
 };
 
@@ -39,29 +40,19 @@ const mergeAndSortMessages = (
   const uniqueMap = new Map<string, ChatMessage>();
 
   [...current, ...incoming].forEach((msg) => {
-    uniqueMap.set(getMessageKey(msg), msg);
+    const key = getMessageKey(msg);
+    if (key) uniqueMap.set(key, msg);
   });
 
   return Array.from(uniqueMap.values())
     .sort((a, b) => {
-      const ta =
-        typeof a.timestamp === "number"
-          ? a.timestamp
-          : new Date(a.timestamp).getTime();
-      const tb =
-        typeof b.timestamp === "number"
-          ? b.timestamp
-          : new Date(b.timestamp).getTime();
+      const ta = new Date(a.timestamp).getTime();
+      const tb = new Date(b.timestamp).getTime();
 
-      // Critério Primário: Ordernar numericamente por Data
       if (ta !== tb) return ta - tb;
-
-      // Critério Secundário (Tie-Breaker Estável): Ordem Alfanumérica Lexicográfica
-      const aKey = getMessageKey(a);
-      const bKey = getMessageKey(b);
-      return aKey.localeCompare(bKey);
+      return getMessageKey(a).localeCompare(getMessageKey(b));
     })
-    .slice(-20); // Mantém o cap severo de 20 entradas
+    .slice(-20); // Padronizado em 20 mensagens
 };
 
 export const ChatProvider: React.FC<{ children: ReactNode }> = ({

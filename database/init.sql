@@ -8,6 +8,7 @@ DROP TABLE IF EXISTS game_config CASCADE;
 DROP TABLE IF EXISTS user_profiles CASCADE;
 DROP TABLE IF EXISTS clans CASCADE;
 DROP TABLE IF EXISTS users CASCADE;
+DROP TABLE IF EXISTS chat_messages CASCADE;
 
 -- Extensões necessárias
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
@@ -36,7 +37,7 @@ CREATE TABLE clans (
     name VARCHAR(100) UNIQUE NOT NULL,
     description TEXT,
     faction VARCHAR(50) NOT NULL,
-    leader_id UUID REFERENCES users(id) ON DELETE SET NULL, -- <<< CORREÇÃO ADICIONADA AQUI
+    leader_id UUID REFERENCES users(id) ON DELETE SET NULL,
     member_count INTEGER DEFAULT 0,
     max_members INTEGER DEFAULT 40,
     is_recruiting BOOLEAN DEFAULT TRUE,
@@ -82,10 +83,10 @@ CREATE TABLE clan_members (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     clan_id UUID REFERENCES clans(id) ON DELETE CASCADE,
     user_id UUID REFERENCES users(id) ON DELETE CASCADE,
-    role VARCHAR(50) DEFAULT 'member', -- member, officer, leader
+    role VARCHAR(50) DEFAULT 'member',
     joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(clan_id, user_id),
-    UNIQUE(user_id) -- Garante que um usuário não possa estar em mais de um clã
+    UNIQUE(user_id)
 );
 
 -- Tabela de configuração do jogo (chave-valor)
@@ -96,13 +97,22 @@ CREATE TABLE game_config (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Tabela de sessões (para gerenciar tokens JWT)
+-- Tabela de sessões
 CREATE TABLE user_sessions (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     user_id UUID REFERENCES users(id) ON DELETE CASCADE,
     token_hash VARCHAR(255) NOT NULL,
     expires_at TIMESTAMP NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 🔥 NOVA: Tabela de mensagens do chat
+CREATE TABLE chat_messages (
+    id UUID PRIMARY KEY,
+    clan_id UUID REFERENCES clans(id) ON DELETE CASCADE,
+    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    text TEXT NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Índices para melhor performance
@@ -115,9 +125,9 @@ CREATE INDEX idx_clan_members_user_id ON clan_members(user_id);
 CREATE INDEX idx_user_sessions_user_id ON user_sessions(user_id);
 CREATE INDEX idx_user_sessions_expires_at ON user_sessions(expires_at);
 
-
-
-
+-- 🔥 Índice essencial do chat
+CREATE INDEX idx_chat_messages_clan_created_at
+ON chat_messages(clan_id, created_at DESC);
 
 -- Inserir os 26 clãs iniciais
 INSERT INTO clans (name, faction, points, description) VALUES
