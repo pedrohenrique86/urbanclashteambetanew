@@ -149,49 +149,30 @@ const generateToken = (userId) => {
   );
 };
 
-// Função para criar sessão no banco
+/**
+ * Função para criar sessão (Legado/No-op)
+ * A autenticação agora é estritamente stateless baseada em JWT.
+ */
 const createSession = async (userId) => {
-  try {
-    console.log("✅ Sessão criada para usuário:", userId);
-    // Usando a tabela user_profiles existente ao invés de user_sessions
-    // A autenticação será baseada apenas no JWT token
-    return true;
-  } catch (error) {
-    console.error("❌ Erro ao criar sessão:", error.message);
-    throw error;
-  }
+  // console.log("✅ Sessão validada (JWT) para usuário:", userId);
+  return true;
 };
 
-// Função para invalidar sessão
+/**
+ * Função para invalidar sessão (Legado/No-op)
+ * Como não há persistência de estado de sessão em banco, o logout é handled no client descartando o JWT.
+ */
 const invalidateSession = async (userId, token) => {
-  try {
-    const tokenHash = require("crypto")
-      .createHash("sha256")
-      .update(token)
-      .digest("hex");
-
-    await query(
-      "DELETE FROM user_sessions WHERE user_id = $1 AND token_hash = $2",
-      [userId, tokenHash],
-    );
-
-    return true;
-  } catch (error) {
-    console.error("❌ Erro ao invalidar sessão:", error.message);
-    throw error;
-  }
+  // No-op: arquitetura stateless
+  return true;
 };
 
-// Função para invalidar todas as sessões do usuário
+/**
+ * Função para invalidar todas as sessões (Legado/No-op)
+ */
 const invalidateAllSessions = async (userId) => {
-  try {
-    await query("DELETE FROM user_sessions WHERE user_id = $1", [userId]);
-
-    return true;
-  } catch (error) {
-    console.error("❌ Erro ao invalidar todas as sessões:", error.message);
-    throw error;
-  }
+  // No-op: arquitetura stateless
+  return true;
 };
 
 module.exports = {

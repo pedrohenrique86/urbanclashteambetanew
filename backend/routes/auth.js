@@ -282,14 +282,6 @@ router.post("/login", authLimiter, loginValidation, async (req, res) => {
     // Criar sessão no banco
     await createSession(user.id, token);
 
-    // Atualizar último login (comentado temporariamente pois a coluna last_login não existe na tabela user_profiles)
-    /*
-    await query(
-      "UPDATE user_profiles SET last_login = NOW() WHERE user_id = $1",
-      [user.id],
-    );
-    */
-
     const gameState = await getGameState();
 
     // Buscar perfil do usuário para retornar na resposta

@@ -2,13 +2,12 @@
 -- Este arquivo será executado automaticamente quando o container PostgreSQL for iniciado
 
 -- Limpeza inicial para garantir recriação limpa
+DROP TABLE IF EXISTS chat_messages CASCADE;
 DROP TABLE IF EXISTS clan_members CASCADE;
-DROP TABLE IF EXISTS user_sessions CASCADE;
 DROP TABLE IF EXISTS game_config CASCADE;
 DROP TABLE IF EXISTS user_profiles CASCADE;
 DROP TABLE IF EXISTS clans CASCADE;
 DROP TABLE IF EXISTS users CASCADE;
-DROP TABLE IF EXISTS chat_messages CASCADE;
 
 -- Extensões necessárias
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
@@ -18,7 +17,7 @@ CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 CREATE TABLE users (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     email VARCHAR(255) UNIQUE NOT NULL,
-    password_hash VARCHAR(255) NOT NULL,
+    password_hash VARCHAR(255),
     username VARCHAR(50) UNIQUE NOT NULL,
     birth_date DATE,
     country VARCHAR(3),
@@ -26,6 +25,7 @@ CREATE TABLE users (
     email_confirmation_token VARCHAR(255),
     password_reset_token VARCHAR(255),
     password_reset_expires TIMESTAMP,
+    google_id VARCHAR(255) UNIQUE,
     is_admin BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -97,20 +97,11 @@ CREATE TABLE game_config (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Tabela de sessões
-CREATE TABLE user_sessions (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
-    token_hash VARCHAR(255) NOT NULL,
-    expires_at TIMESTAMP NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
--- 🔥 NOVA: Tabela de mensagens do chat
+-- Tabela de mensagens do chat
 CREATE TABLE chat_messages (
     id UUID PRIMARY KEY,
-    clan_id UUID REFERENCES clans(id) ON DELETE CASCADE,
-    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    clan_id UUID REFERENCES clans(id) ON DELETE CASCADE NOT NULL,
+    user_id UUID REFERENCES users(id) ON DELETE CASCADE NOT NULL,
     text TEXT NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
@@ -122,14 +113,10 @@ CREATE INDEX idx_user_profiles_user_id ON user_profiles(user_id);
 CREATE INDEX idx_clans_faction ON clans(faction);
 CREATE INDEX idx_clan_members_clan_id ON clan_members(clan_id);
 CREATE INDEX idx_clan_members_user_id ON clan_members(user_id);
-CREATE INDEX idx_user_sessions_user_id ON user_sessions(user_id);
-CREATE INDEX idx_user_sessions_expires_at ON user_sessions(expires_at);
-
--- 🔥 Índice essencial do chat
 CREATE INDEX idx_chat_messages_clan_created_at
-ON chat_messages(clan_id, created_at DESC);
+ON chat_messages (clan_id, created_at DESC);
 
--- Inserir os 26 clãs iniciais
+-- Inserir os 26 clãs iniciais (PONTUAÇÃO ZERADA)
 INSERT INTO clans (name, faction, points, description) VALUES
 ('Sindicato da Sombra', 'gangsters', 0, 'Onde a lealdade é comprada e a traição é punida.'),
 ('Navalhas Noturnas', 'gangsters', 0, 'Cortamos o silêncio da noite com o som do aço.'),
