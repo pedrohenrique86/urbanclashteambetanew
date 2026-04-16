@@ -75,11 +75,12 @@ async function getChatHistory(clanId) {
     // 2. Fallback no Banco (Se Redis estiver vazio ou falhar)
     console.log(`[ChatService] Redis vazio para clã ${clanIdNorm}. Buscando no Banco (últimas 24h)...`);
     const { rows } = await db.query(
-      `SELECT id, user_id as "userId", text, created_at as "timestamp"
-       FROM chat_messages 
-       WHERE clan_id = $1 
-         AND created_at >= NOW() - INTERVAL '24 hours'
-       ORDER BY created_at DESC 
+      `SELECT m.id, m.user_id as "userId", u.username, m.text, m.created_at as "timestamp"
+       FROM chat_messages m
+       INNER JOIN users u ON m.user_id = u.id
+       WHERE m.clan_id = $1 
+         AND m.created_at >= NOW() - INTERVAL '24 hours'
+       ORDER BY m.created_at DESC 
        LIMIT $2`,
       [clanIdNorm, HISTORY_MAX_LENGTH]
     );

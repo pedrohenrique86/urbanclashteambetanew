@@ -622,19 +622,32 @@ router.put(
           usernameToInsert = userData.rows[0]?.username || "user";
         }
 
-        const existingProfile = await query("SELECT id FROM user_profiles WHERE username = $1", [usernameToInsert]);
-        if (existingProfile.rows.length > 0) {
-          return res.status(409).json({ error: "Este nome de usuário já está em uso." });
-        }
-
         const stats = faction === "guardas"
           ? { attack: 5, defense: 6, focus: 6, critical_damage: 8.0, critical_chance: 12, intimidation: 0.0, discipline: 40.0 }
           : { attack: 8, defense: 3, focus: 5, critical_damage: 10.5, critical_chance: 10, intimidation: 35.0, discipline: 0.0 };
 
         const insertResult = await query(
-          `INSERT INTO user_profiles (user_id, username, bio, faction, avatar_url, attack, defense, focus, critical_damage, critical_chance, intimidation, discipline)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING *`,
-          [id, usernameToInsert, bio || '', faction || 'gangsters', avatar_url || '', stats.attack, stats.defense, stats.focus, stats.critical_damage, stats.critical_chance, stats.intimidation, stats.discipline]
+          `INSERT INTO user_profiles (
+            user_id, username, display_name, bio, faction, avatar_url, 
+            attack, defense, focus, critical_damage, critical_chance, 
+            intimidation, discipline
+          )
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) RETURNING *`,
+          [
+            id, 
+            usernameToInsert, 
+            usernameToInsert, // display_name sincronizado
+            bio || '', 
+            faction || 'gangsters', 
+            avatar_url || '', 
+            stats.attack, 
+            stats.defense, 
+            stats.focus, 
+            stats.critical_damage, 
+            stats.critical_chance, 
+            stats.intimidation, 
+            stats.discipline
+          ]
         );
         updatedProfile = insertResult.rows[0];
       } else {
@@ -643,12 +656,10 @@ router.put(
         const updateValues = [];
         let paramCount = 1;
 
-        if (username !== undefined && username !== updatedProfile.username) {
-          const conflict = await query("SELECT id FROM user_profiles WHERE username = $1 AND user_id != $2", [username, id]);
-          if (conflict.rows.length > 0) {
-            return res.status(409).json({ error: "Este nome de usuário já está em uso." });
-          }
+        if (username !== undefined) {
           updateFields.push(`username = $${paramCount++}`);
+          updateFields.push(`display_name = $${paramCount++}`);
+          updateValues.push(username);
           updateValues.push(username);
         }
 
@@ -672,11 +683,10 @@ router.put(
             updateValues,
           );
           updatedProfile = updateResult.rows[0];
-        } else {
-          console.log(`[Profile Update] Nenhuma alteração necessária para user_profiles de ${id}`);
         }
       }
 
+      // Garante invalidação do cache Redis (Padrão Double-Delete para evitar stale data)
       try {
         await redisClient.delAsync(cacheKey);
       } catch (redisErr) { }
