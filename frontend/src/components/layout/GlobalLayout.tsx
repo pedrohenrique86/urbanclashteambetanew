@@ -43,8 +43,23 @@ const GlobalLayout: React.FC<GlobalLayoutProps> = ({ children }) => {
     return () => window.removeEventListener("keydown", handler);
   }, [closePanel, hasOpenPanel]);
 
+  // Bloqueio de scroll no body durante o jogo para evitar double scrollbars
+  // e garantir que o reset de rotas funcione no container correto.
+  useEffect(() => {
+    const originalStyle = window.getComputedStyle(document.body).overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = originalStyle;
+    };
+  }, []);
+
   useEffect(() => {
     clearPanels();
+    // Reseta o scroll para o topo ao mudar de rota (Container interno + Viewport)
+    if (scrollableContainerRef.current) {
+      scrollableContainerRef.current.scrollTop = 0;
+    }
+    window.scrollTo(0, 0);
   }, [location.pathname, clearPanels]);
 
   useEffect(() => {

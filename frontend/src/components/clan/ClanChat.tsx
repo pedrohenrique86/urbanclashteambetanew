@@ -17,6 +17,7 @@ export const ClanChat: React.FC<ClanChatProps> = ({ members = [] }) => {
   const [newMessage, setNewMessage] = useState("");
   const [isSending, setIsSending] = useState(false); // Estado para o cooldown
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const chatContainerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const [showMentions, setShowMentions] = useState(false);
@@ -24,7 +25,9 @@ export const ClanChat: React.FC<ClanChatProps> = ({ members = [] }) => {
   const [mentionIndex, setMentionIndex] = useState(0);
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    if (chatContainerRef.current) {
+      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+    }
   };
 
   useEffect(() => {
@@ -147,7 +150,10 @@ export const ClanChat: React.FC<ClanChatProps> = ({ members = [] }) => {
         </h3>
       </div>
 
-      <div className="flex-1 p-3 overflow-y-auto bg-gray-900/50 rounded-md m-3 space-y-1">
+      <div 
+        ref={chatContainerRef}
+        className="flex-1 p-3 overflow-y-auto bg-gray-900/50 rounded-md m-3 space-y-1 custom-scrollbar scroll-smooth"
+      >
         {messages.map((msg, index) => {
           const isMe = msg.userId === userProfile?.id;
           const displayUsername = msg.username || (isMe ? userProfile?.username : 'Membro');
