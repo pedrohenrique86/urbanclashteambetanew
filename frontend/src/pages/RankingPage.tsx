@@ -2,53 +2,46 @@ import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Player, Clan } from "../types/ranking";
 import { useRankingCache } from "../hooks/useRankingCache";
+import DigitalIdentityModal from "../components/DigitalIdentityModal";
 
 // Componente para item do ranking de jogadores
-const PlayerRankingItem: React.FC<{ player: Player; gradient: string }> = ({
+const PlayerRankingItem: React.FC<{ player: Player; gradient: string; onSelect: (id: string) => void }> = ({
   player,
   gradient,
+  onSelect,
 }) => {
   const getCountryFlag = (countryCode?: string) => {
     if (!countryCode) {
-      return null; // Sem bandeira quando país não definido
+      return null;
     }
     return `https://flagcdn.com/24x18/${countryCode.toLowerCase()}.png`;
   };
 
-  // Função para obter a cor da posição
   const getPositionColor = (position: number) => {
     switch (position) {
-      case 1:
-        return "text-yellow-400"; // Ouro
-      case 2:
-        return "text-gray-300"; // Prata
-      case 3:
-        return "text-orange-500"; // Bronze
-      default:
-        return "text-gray-400";
+      case 1: return "text-yellow-400";
+      case 2: return "text-gray-300";
+      case 3: return "text-orange-500";
+      default: return "text-gray-400";
     }
   };
 
-  // Função para exibir troféu ou número
   const getPositionDisplay = (position?: number) => {
     if (!position) return "—";
     switch (position) {
-      case 1:
-        return "🏆";
-      case 2:
-        return "🥈";
-      case 3:
-        return "🥉";
-      default:
-        return position;
+      case 1: return "🏆";
+      case 2: return "🥈";
+      case 3: return "🥉";
+      default: return position;
     }
   };
 
   return (
     <motion.div
-      className={`bg-gradient-to-r ${gradient} p-[1px] rounded-lg mb-2`}
-      whileHover={{ scale: 1.02 }}
+      className={`bg-gradient-to-r ${gradient} p-[1px] rounded-lg mb-2 cursor-pointer hover:shadow-lg transition-all active:scale-95`}
+      whileHover={{ scale: 1.015 }}
       transition={{ duration: 0.2 }}
+      onClick={() => onSelect(player.id)}
     >
       <div className="bg-gray-800/80 backdrop-blur-sm rounded-lg p-3">
         <div className="flex items-center justify-between min-w-0">
@@ -73,7 +66,7 @@ const PlayerRankingItem: React.FC<{ player: Player; gradient: string }> = ({
                 "🏳️"
               )}
             </span>
-            <span className="text-white font-bold text-sm min-w-0 flex-1 truncate">
+            <span className="text-white font-bold text-sm min-w-0 flex-1 truncate group-hover:text-blue-400">
               {player.username}
             </span>
           </div>
@@ -223,8 +216,10 @@ const EmptyRankingItem: React.FC<{
   );
 };
 
+
 export default function RankingPage() {
   const [selectedRanking, setSelectedRanking] = useState(0);
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
 
   // Limpa o cache antigo do localStorage apenas uma vez
   useEffect(() => {
@@ -315,7 +310,19 @@ export default function RankingPage() {
       </div>
 
       {/* Coluna de Ranking */}
-      <RankingColumn config={currentConfig} isLoading={isLoading} />
+      <RankingColumn 
+        config={currentConfig} 
+        isLoading={isLoading} 
+        onSelectPlayer={(id) => setSelectedUserId(id)} 
+      />
+
+      {/* Modal de Perfil do Jogador */}
+      {selectedUserId && (
+        <DigitalIdentityModal 
+          userId={selectedUserId} 
+          onClose={() => setSelectedUserId(null)} 
+        />
+      )}
     </div>
   );
 }
@@ -324,7 +331,8 @@ export default function RankingPage() {
 const RankingColumn: React.FC<{
   config: any;
   isLoading: boolean;
-}> = ({ config, isLoading }) => (
+  onSelectPlayer: (id: string) => void;
+}> = ({ config, isLoading, onSelectPlayer }) => (
   <motion.div
     initial={{ opacity: 0, y: 50 }}
     animate={{ opacity: 1, y: 0 }}
@@ -365,6 +373,7 @@ const RankingColumn: React.FC<{
                   key={item.id}
                   player={item}
                   gradient={gradient}
+                  onSelect={onSelectPlayer}
                 />
               ) : (
                 <ClanRankingItem

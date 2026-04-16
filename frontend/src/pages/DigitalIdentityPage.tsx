@@ -12,7 +12,12 @@ type IdentityEditChangeData = Parameters<
   NonNullable<DigitalIdentityProps["onEditChange"]>
 >[0];
 
-export default function DigitalIdentityPage() {
+interface DigitalIdentityPageProps {
+  forcedId?: string;
+  onClose?: () => void;
+}
+
+export default function DigitalIdentityPage({ forcedId, onClose: forcedOnClose }: DigitalIdentityPageProps = {}) {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { userProfile, setUserProfile } = useUserProfileContext();
@@ -27,10 +32,10 @@ export default function DigitalIdentityPage() {
   const [editData, setEditData] = useState<IdentityEditData>(undefined);
   const [saving, setSaving] = useState(false);
 
-  // ID-alvo estável: se veio pela rota, usa ele; senão usa o perfil logado
+  // ID-alvo estável: se for modal usa forcedId, senão usa o da rota ou o próprio
   const targetId = useMemo(() => {
-    return id || userProfile?.user_id || userProfile?.id || null;
-  }, [id, userProfile?.user_id, userProfile?.id]);
+    return forcedId || id || userProfile?.user_id || userProfile?.id || null;
+  }, [forcedId, id, userProfile?.user_id, userProfile?.id]);
 
   // Verifica se o perfil visualizado pertence ao usuário logado
   const isOwnProfile = useMemo(() => {
@@ -176,61 +181,54 @@ export default function DigitalIdentityPage() {
     }
   };
 
-  if (loading) {
-    return (
-      <div
-        className={`min-h-[400px] flex flex-col items-center justify-center ${themeClasses.bg} text-white`}
-      >
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mb-4"></div>
-        <p className="font-orbitron text-[10px] animate-pulse">
-          SINCRO DE DADOS REDIS...
-        </p>
-      </div>
-    );
-  }
+  const handleClose = forcedOnClose || (id ? () => navigate(-1) : undefined);
 
-  if (error || !playerData) {
-    return (
-      <div className={`max-w-7xl mx-auto px-4 py-12 text-center ${themeClasses.bg}`}>
-        <h2 className="text-2xl font-bold text-red-500 mb-4">
-          Falha na Sincronização
-        </h2>
-        <p className="text-gray-400 mb-6">
-          {error || "Não foi possível carregar o perfil."}
-        </p>
-        <button
-          onClick={() => navigate(-1)}
-          className="px-6 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors text-white"
-        >
-          Voltar
-        </button>
-      </div>
-    );
-  }
+  const containerClasses = forcedId 
+    ? "w-full max-w-4xl mx-auto p-2 sm:p-6" 
+    : "max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 pb-12 pt-6";
 
-  return (
-    <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 pb-12 pt-6">
+  const renderLoading = () => (
+    <div className={`min-h-[400px] flex flex-col items-center justify-center ${forcedId ? "" : themeClasses.bg} text-white`}>
+      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mb-4"></div>
+      <p className="font-orbitron text-[10px] animate-pulse">SINCRO DE DADOS REDIS...</p>
+    </div>
+  );
+
+  const renderError = () => (
+    <div className={`max-w-7xl mx-auto px-4 py-12 text-center ${forcedId ? "" : themeClasses.bg}`}>
+      <h2 className="text-2xl font-bold text-red-500 mb-4">Falha na Sincronização</h2>
+      <p className="text-gray-400 mb-6">{error || "Não foi possível carregar o perfil."}</p>
+      <button onClick={handleClose} className="px-6 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors text-white">
+        Voltar
+      </button>
+    </div>
+  );
+
+  const mainContent = (
+    <div className={containerClasses}>
       {saving && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[110] flex items-center justify-center">
           <div className="text-center">
             <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-orange-500 mx-auto mb-3"></div>
-            <p className="font-orbitron text-[10px] text-orange-500 tracking-widest">
-              ATUALIZANDO IDENTIDADE...
-            </p>
+            <p className="font-orbitron text-[10px] text-orange-500 tracking-widest">ATUALIZANDO IDENTIDADE...</p>
           </div>
         </div>
       )}
 
-      <DigitalIdentity
-        player={playerData}
-        onClose={id ? () => navigate(-1) : undefined}
-        isOwnProfile={isOwnProfile}
-        isEditing={isEditing}
-        editData={editData}
-        onEditChange={handleEditChange}
-        onToggleEdit={handleToggleEdit}
-        onSave={handleSave}
-      />
+      {loading ? renderLoading() : (error || !playerData ? renderError() : (
+        <DigitalIdentity
+          player={playerData}
+          onClose={handleClose}
+          isOwnProfile={isOwnProfile}
+          isEditing={isEditing}
+          editData={editData}
+          onEditChange={handleEditChange}
+          onToggleEdit={handleToggleEdit}
+          onSave={handleSave}
+        />
+      ))}
     </div>
   );
+
+  return mainContent;
 }
