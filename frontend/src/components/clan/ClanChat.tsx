@@ -139,7 +139,12 @@ export const ClanChat: React.FC<ClanChatProps> = ({ members = [] }) => {
     <div className="flex flex-col h-full w-full bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-lg shadow-lg">
       {/* Cabeçalho do Chat */}
       <div className="flex justify-between items-center p-3 border-b border-gray-700">
-        <h3 className="font-bold text-white">Chat do Clã</h3>
+        <h3 className="font-bold text-white flex items-center gap-2">
+          Chat do Clã
+          <span className="text-white/60 text-[10px] font-normal uppercase tracking-wider">
+            | Mensagens serão apagadas após 24h
+          </span>
+        </h3>
       </div>
 
       <div className="flex-1 p-3 overflow-y-auto bg-gray-900/50 rounded-md m-3 space-y-1">
