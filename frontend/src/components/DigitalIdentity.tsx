@@ -33,12 +33,12 @@ interface DigitalIdentityProps {
  * DigitalIdentity - Layout AAA para perfil de jogador.
  * Suporta modo apenas leitura (público) e modo edição (identidade própria).
  */
-export default function DigitalIdentity({ 
-  player, 
-  onClose, 
-  isEditing, 
-  editData, 
-  onEditChange, 
+export default function DigitalIdentity({
+  player,
+  onClose,
+  isEditing,
+  editData,
+  onEditChange,
   onToggleEdit,
   onSave,
   isOwnProfile
@@ -47,32 +47,32 @@ export default function DigitalIdentity({
   const factionTheme = useMemo(() => {
     return player.faction === "gangsters"
       ? {
-          primary: "text-orange-500",
-          bg: "from-orange-600/20 to-stone-900",
-          border: "border-orange-500/30",
-          shadow: "shadow-orange-500/10",
-          accent: "bg-orange-600",
-          glow: "bg-orange-500/20",
-        }
+        primary: "text-orange-500",
+        bg: "from-orange-600/20 to-stone-900",
+        border: "border-orange-500/30",
+        shadow: "shadow-orange-500/10",
+        accent: "bg-orange-600",
+        glow: "bg-orange-500/20",
+      }
       : {
-          primary: "text-blue-500",
-          bg: "from-blue-600/20 to-stone-900",
-          border: "border-blue-500/30",
-          shadow: "shadow-blue-500/10",
-          accent: "bg-blue-600",
-          glow: "bg-blue-500/20",
-        };
+        primary: "text-blue-500",
+        bg: "from-blue-600/20 to-stone-900",
+        border: "border-blue-500/30",
+        shadow: "shadow-blue-500/10",
+        accent: "bg-blue-600",
+        glow: "bg-blue-500/20",
+      };
   }, [player.faction]);
 
   // Função para obter a bandeira (reutilizada)
-  const getFlagUrl = (code?: string) => 
+  const getFlagUrl = (code?: string) =>
     code ? `https://flagcdn.com/w40/${code.toLowerCase()}.png` : null;
 
   // Motor de renderização BBCode simples e seguro
   const renderBio = (text?: string) => {
     if (!text) return <span className="text-gray-500 italic">Este jogador não definiu uma biografia ainda.</span>;
     const cleanText = text.substring(0, 100);
-    
+
     const processed = cleanText
       .replace(/\[b\](.*?)\[\/b\]/gi, "<strong>$1</strong>")
       .replace(/\[i\](.*?)\[\/i\]/gi, "<em>$1</em>")
@@ -87,17 +87,20 @@ export default function DigitalIdentity({
     return Math.round((player.victories / total) * 100);
   }, [player.victories, player.defeats]);
 
-  const accountDate = player.created_at 
+  const accountDate = player.created_at
     ? new Date(player.created_at).toLocaleDateString("pt-BR", { month: "long", year: "numeric" })
     : "Membro antigo";
 
   // Helper para formatar data sem shift de timezone
   const formatDate = (dateStr?: string) => {
-    if (!dateStr) return "Não informada";
+    if (!dateStr || dateStr === "null" || dateStr === "undefined") return "Não informada";
+
+    // Se a string tem cara de data incompleta ou formatada incorretamente
+    if (dateStr.length < 10 && !dateStr.includes('T')) return "Data incompleta";
+
     try {
-      // Se for apenas YYYY-MM-DD, o new Date(dateStr) cria em UTC. 
-      // Para exibir localmente de forma consistente, forçamos o meio do dia.
       const date = dateStr.includes('T') ? new Date(dateStr) : new Date(`${dateStr}T12:00:00`);
+      if (isNaN(date.getTime())) return "Data inválida";
       return date.toLocaleDateString("pt-BR");
     } catch (e) {
       return "Data inválida";
@@ -107,7 +110,7 @@ export default function DigitalIdentity({
   const inputDateValue = useMemo(() => {
     const d = isEditing && editData ? editData.birth_date : player.birth_date;
     if (!d || d === "null" || d === "undefined") return "";
-    
+
     // Se já estiver no formato YYYY-MM-DD (4 dígitos de ano), retorna direto
     if (typeof d === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(d)) {
       return d;
@@ -116,7 +119,7 @@ export default function DigitalIdentity({
     try {
       const date = new Date(d);
       if (isNaN(date.getTime())) return "";
-      
+
       const year = date.getUTCFullYear();
       // Browser input date só aceita 4 dígitos de ano (0001-9999)
       if (year < 1 || year > 9999) return "";
@@ -138,7 +141,7 @@ export default function DigitalIdentity({
       {/* Botões de Controle */}
       <div className="sticky top-0 sm:absolute sm:top-4 sm:right-4 flex flex-wrap justify-end gap-2 mb-4 sm:mb-0 z-20">
         {isOwnProfile && !isEditing && (
-          <button 
+          <button
             onClick={onToggleEdit}
             className="px-3 sm:px-4 py-1.5 bg-white/10 hover:bg-white/20 rounded-full text-[10px] sm:text-xs font-bold transition-all border border-white/10"
           >
@@ -147,13 +150,13 @@ export default function DigitalIdentity({
         )}
         {isEditing && (
           <div className="flex gap-2">
-            <button 
+            <button
               onClick={onToggleEdit}
               className="px-3 sm:px-4 py-1.5 bg-red-900/40 hover:bg-red-900/60 rounded-full text-[10px] sm:text-xs font-bold transition-all border border-red-500/30"
             >
               CANCELAR
             </button>
-            <button 
+            <button
               onClick={onSave}
               className={`px-3 sm:px-4 py-1.5 ${factionTheme.accent} hover:brightness-110 rounded-full text-[10px] sm:text-xs font-bold transition-all border border-white/20`}
             >
@@ -162,7 +165,7 @@ export default function DigitalIdentity({
           </div>
         )}
         {onClose && !isEditing && (
-          <button 
+          <button
             onClick={onClose}
             className="text-white/50 hover:text-white transition-colors p-1 bg-black/20 sm:bg-transparent rounded-full"
           >
@@ -181,14 +184,40 @@ export default function DigitalIdentity({
             {isEditing ? (
               <div className="relative w-full h-full">
                 <img src={editData?.avatar_url || player.avatar_url} alt="" className="w-full h-full object-cover opacity-50" />
-                <div className="absolute inset-0 flex flex-col items-center justify-center p-2 bg-black/40 backdrop-blur-[2px]">
-                   <input 
-                    type="text" 
-                    value={editData?.avatar_url || ""}
-                    onChange={(e) => onEditChange?.({ ...editData, avatar_url: e.target.value })}
-                    className="w-full bg-black/60 border border-white/20 rounded px-2 py-1 text-[8px] sm:text-[10px] focus:outline-none focus:border-white/40"
-                    placeholder="URL Avatar..."
-                  />
+                <div className="absolute inset-0 flex flex-col items-center justify-center p-2 bg-black/70 backdrop-blur-[2px] group/avatar">
+                  {/* Dica instantânea acima do input */}
+                  <div className="absolute top-[30%] opacity-0 group-hover/avatar:opacity-100 transition-all duration-300 text-[6px] sm:text-[7px] text-blue-300 font-bold uppercase tracking-widest text-center pointer-events-none">
+                    Ex.: imgur.com/123456789.jpeg
+                  </div>
+
+                  <div className="flex items-center gap-1 w-full translate-y-1">
+                    <input
+                      type="text"
+                      maxLength={100}
+                      value={editData?.avatar_url || ""}
+                      onChange={(e) => onEditChange?.({ ...editData, avatar_url: e.target.value })}
+                      className="flex-1 bg-black/80 border border-white/30 rounded px-1.5 py-0.5 text-[7px] sm:text-[9px] focus:outline-none focus:border-white/60 text-center text-white placeholder-white/30"
+                      placeholder="URL Avatar..."
+                    />
+                    {editData?.avatar_url && (
+                      <button
+                        type="button"
+                        onClick={() => onEditChange?.({ ...editData, avatar_url: "" })}
+                        className="text-[8px] sm:text-[10px] text-red-500 hover:text-red-400 font-bold px-0.5"
+                        title="Limpar foto"
+                      >
+                        ✕
+                      </button>
+                    )}
+                  </div>
+                  <div className="mt-1 flex flex-col items-center">
+                    <span className="text-[6px] sm:text-[7px] text-white/50 uppercase font-bold">
+                      {editData?.avatar_url?.length || 0}/100
+                    </span>
+                    <span className="text-[8px] sm:text-[8px] text-white/30 uppercase font-bold tracking-tighter">
+                      .jpeg .png
+                    </span>
+                  </div>
                 </div>
               </div>
             ) : (
@@ -227,7 +256,7 @@ export default function DigitalIdentity({
           <div className="bg-black/30 backdrop-blur-sm border border-white/5 rounded-xl p-4 text-sm text-gray-200">
             {isEditing ? (
               <div className="space-y-2">
-                 <textarea 
+                <textarea
                   maxLength={100}
                   value={editData?.bio || ""}
                   onChange={(e) => onEditChange?.({ ...editData, bio: e.target.value })}
@@ -247,20 +276,20 @@ export default function DigitalIdentity({
           {/* Datas */}
           <div className="flex flex-wrap justify-center md:justify-start gap-x-4 sm:gap-x-6 gap-y-2 text-[8px] sm:text-[10px] text-gray-500 uppercase font-bold tracking-widest">
             <span className="flex items-center gap-1">
-               NA REDE DESDE: <span className="text-gray-300">{accountDate}</span>
+              NA REDE DESDE: <span className="text-gray-300">{accountDate}</span>
             </span>
             <span className="flex items-center gap-1">
-              NASCIMENTO: 
+              NASCIMENTO:
               {isEditing ? (
                 <div className="flex items-center gap-2">
-                  <input 
-                    type="date" 
+                  <input
+                    type="date"
                     value={inputDateValue}
                     onChange={(e) => onEditChange?.({ ...editData, birth_date: e.target.value })}
                     className="bg-black/40 border border-white/10 rounded px-1 text-gray-300 focus:outline-none focus:border-white/30 text-[8px] sm:text-[10px]"
                   />
                   {inputDateValue && (
-                    <button 
+                    <button
                       type="button"
                       onClick={() => onEditChange?.({ ...editData, birth_date: "" })}
                       className="text-[8px] text-red-500 hover:text-red-400 font-bold uppercase tracking-tighter"
@@ -285,15 +314,15 @@ export default function DigitalIdentity({
           { label: "Vitórias", value: player.victories, color: "text-green-400" },
           { label: "Derrotas", value: player.defeats, color: "text-red-400" },
           { label: "Win Rate", value: `${winRate}%`, color: "text-white" },
-          { 
-            label: "Streak", 
-            value: `x${player.winning_streak}`, 
+          {
+            label: "Streak",
+            value: `x${player.winning_streak}`,
             color: player.winning_streak >= 5 ? "text-yellow-400" : "text-gray-400",
-            glow: player.winning_streak >= 5 
+            glow: player.winning_streak >= 5
           },
         ].map((stat, i) => (
-          <div 
-            key={i} 
+          <div
+            key={i}
             className={`relative overflow-hidden bg-black/20 border ${factionTheme.border} rounded-lg sm:rounded-xl p-2 sm:p-3 text-center transition-transform hover:-translate-y-1 hover:bg-black/40`}
           >
             {stat.glow && <div className="absolute inset-0 bg-yellow-400/5 animate-pulse"></div>}

@@ -140,6 +140,13 @@ export default function DigitalIdentityPage() {
       setSaving(true);
       setError(null);
 
+      // Validação de data completa (se informada)
+      if (editData.birth_date && !/^\d{4}-\d{2}-\d{2}$/.test(editData.birth_date)) {
+        setError("Data de nascimento incompleta ou inválida. Preencha todos os campos (dia, mês e ano).");
+        setSaving(false);
+        return;
+      }
+
       // Persiste no backend
       await apiClient.updateUserProfile(targetId, editData);
 
