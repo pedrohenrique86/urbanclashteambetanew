@@ -7,6 +7,7 @@ import { useTheme } from "../../contexts/ThemeContext";
 import { useUserProfileContext } from "../../contexts/UserProfileContext";
 import { useHUD } from "../../contexts/HUDContext";
 import dashbgangster from "../../assets/dashbgangster.webp";
+import dashguardas from "../../assets/dashguardas.webp";
 import { Tooltip } from "react-tooltip";
 import { useGameClock } from "../../hooks/useGameClock";
 import GameClockDisplay from "./GameClockDisplay";
@@ -122,8 +123,15 @@ const GlobalLayout: React.FC<GlobalLayoutProps> = ({ children }) => {
 
   const isDashboard = location.pathname === "/dashboard";
 
+  const factionName =
+    typeof userProfile?.faction === "string"
+      ? userProfile.faction
+      : userProfile?.faction?.name;
+
+  const dashboardBg = factionName === "guardas" ? dashguardas : dashbgangster;
+
   const backgroundStyle = isDashboard
-    ? { backgroundImage: `url(${dashbgangster})` }
+    ? { backgroundImage: `url(${dashboardBg})` }
     : {};
 
   const layoutClasses = isDashboard ? "bg-cover bg-center" : themeClasses.bg;
