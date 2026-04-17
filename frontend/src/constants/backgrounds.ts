@@ -16,9 +16,10 @@ import acertoContasBg from "../assets/acerto-contas.webp";
 import cardClansBg from "../assets/cardclans-home.webp";
 import squadWarBg from "../assets/squad-war.webp";
 import recoveryBaseBg from "../assets/recovery-base.webp";
-import supplyGangsterBg from "../assets/stretching station-gangsters.webp";
-import supplyGuardBg from "../assets/stretching station-guardas.webp";
+import restrictedStoreBg from "../assets/restricted-store.webp";
 import isolationBg from "../assets/isolation.webp";
+import supplyStationGuardioes from "../assets/supply-station-guardioes.webp";
+import supplyStationRenegados from "../assets/supply-station-renegados.webp";
 import contractGuardiaoBg from "../assets/contract-guardiao.webp";
 import contractRenegadosBg from "../assets/contract-renegados.webp";
 import darkZonesBg from "../assets/dark-zones.webp";
@@ -103,8 +104,9 @@ export const PAGE_BACKGROUNDS: BackgroundMap = {
   },
   "/supply-station": (profile: any) => {
     const faction = typeof profile?.faction === "string" ? profile.faction : profile?.faction?.name;
+    const isGuard = faction?.toLowerCase() === "guardas";
     return {
-      src: faction === "guardas" ? supplyGuardBg : supplyGangsterBg,
+      src: isGuard ? supplyStationGuardioes : supplyStationRenegados,
       overlay: "bg-black/60",
       position: "bg-center",
     };
@@ -169,6 +171,11 @@ export const PAGE_BACKGROUNDS: BackgroundMap = {
   },
   "/vip-access": {
     src: vipAccessBg,
+    overlay: "bg-black/60",
+    position: "bg-center",
+  },
+  "/restricted-store": {
+    src: restrictedStoreBg,
     overlay: "bg-black/60",
     position: "bg-center",
   },
