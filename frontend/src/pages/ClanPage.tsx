@@ -164,7 +164,7 @@ export default function ClanPage() {
   if (clanLoading) {
     return (
       <div
-        className={`min-h-screen ${themeClasses.bg} flex items-center justify-center`}
+        className={`min-h-screen flex items-center justify-center`}
       >
         <div className="text-white">Carregando dados da divisão...</div>
       </div>
@@ -174,7 +174,7 @@ export default function ClanPage() {
   if (clanError) {
     return (
       <div
-        className={`min-h-screen ${themeClasses.bg} flex items-center justify-center`}
+        className={`min-h-screen flex items-center justify-center`}
       >
         <div
           className={`${themeClasses.cardBg} p-6 rounded-lg border ${themeClasses.border} text-center`}
@@ -202,7 +202,7 @@ export default function ClanPage() {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
-      className={`min-h-screen ${themeClasses.bg} text-white font-exo max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-6 space-y-6`}
+      className={`min-h-screen text-white font-exo max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-6 space-y-6`}
     >
       <div
         className={`rounded-xl p-4 sm:p-6 bg-gradient-to-r ${factionColor.gradient} shadow-xl ring-2 ${factionColor.ring}`}

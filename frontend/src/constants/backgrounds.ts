@@ -24,6 +24,8 @@ import darkZonesBg from "../assets/dark-zones.webp";
 import parallelNetworkBg from "../assets/parallel-network.webp";
 import safeBg from "../assets/safe.webp";
 import corporationsBg from "../assets/corporations.webp";
+import qgChatGuardioes from "../assets/qg-chat-guardioes.webp";
+import qgChatRenegados from "../assets/qg-chat-renegados.webp";
 
 export interface BackgroundConfig {
   src: string;
@@ -66,10 +68,23 @@ export const PAGE_BACKGROUNDS: BackgroundMap = {
     overlay: "bg-black/70",
     blur: true,
   },
-  "/clan": {
-    src: cardClansBg,
-    overlay: "bg-black/40",
-    position: "bg-center",
+  "/clan": (profile: any) => {
+    const faction = typeof profile?.faction === "string" ? profile.faction : profile?.faction?.name;
+    const isGuard = faction?.toLowerCase() === "guardas";
+    return {
+      src: isGuard ? qgChatGuardioes : qgChatRenegados,
+      overlay: "bg-black/40",
+      position: "bg-center",
+    };
+  },
+  "/qg": (profile: any) => {
+    const faction = typeof profile?.faction === "string" ? profile.faction : profile?.faction?.name;
+    const isGuard = faction?.toLowerCase() === "guardas";
+    return {
+      src: isGuard ? qgChatGuardioes : qgChatRenegados,
+      overlay: "bg-black/40",
+      position: "bg-center",
+    };
   },
   "/clan-selection": {
     src: cardClansBg,
