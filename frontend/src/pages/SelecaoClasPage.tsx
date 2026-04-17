@@ -54,12 +54,12 @@ const SelecaoClasPage: React.FC = () => {
   const colors = FactionColors[factionName];
 
   if (isLoadingClans) {
-    return <div className="flex items-center justify-center h-screen bg-black text-white">Carregando divisões...</div>;
+    return <div className="flex items-center justify-center min-h-screen bg-black text-white">Carregando divisões...</div>;
   }
 
   return (
     <div 
-      className="min-h-screen w-full p-4 text-white transition-all duration-500"
+      className="min-h-screen w-full overflow-y-auto p-4 text-white transition-all duration-500"
       style={{ backgroundImage: colors.gradient }}
     >
       <motion.div 
