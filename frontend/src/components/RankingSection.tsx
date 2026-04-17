@@ -122,8 +122,7 @@ export default function RankingSection() {
                 roundedDate.setMinutes(
                   Math.floor(lastUpdated.getMinutes() / 10) * 10,
                   0,
-                  0,
-                  0,
+                  0
                 );
                 return roundedDate.toLocaleTimeString("pt-BR", {
                   hour: "2-digit",
