@@ -6,6 +6,7 @@ import {
   useEffect,
   ReactNode,
   useRef,
+  useMemo,
 } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "./AuthContext";
@@ -203,18 +204,28 @@ export const UserProfileProvider = ({ children }: { children: ReactNode }) => {
   const isProfileLoading =
     loading || (user !== null && fetchedForUser.current !== user.id);
 
+  const contextValue = useMemo(
+    () => ({
+      userProfile,
+      loading: isProfileLoading,
+      fetchProfile,
+      refreshProfile,
+      processProfileData,
+      setUserProfile,
+      handleLogout,
+    }),
+    [
+      userProfile,
+      isProfileLoading,
+      fetchProfile,
+      refreshProfile,
+      processProfileData,
+      handleLogout,
+    ]
+  );
+
   return (
-    <UserProfileContext.Provider
-      value={{
-        userProfile,
-        loading: isProfileLoading,
-        fetchProfile,
-        refreshProfile,
-        processProfileData,
-        setUserProfile,
-        handleLogout,
-      }}
-    >
+    <UserProfileContext.Provider value={contextValue}>
       {children}
     </UserProfileContext.Provider>
   );

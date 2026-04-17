@@ -6,6 +6,7 @@ import React, {
   ReactNode,
   useCallback,
   useRef,
+  useMemo,
 } from "react";
 import { socketService, ChatMessage } from "../services/socketService";
 import { useUserProfile } from "../hooks/useUserProfile";
@@ -79,7 +80,20 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({
   // Isso é crucial para usá-los como dependências no useEffect sem causar re-execuções indesejadas.
   // Utiliza as funções isoladas fora do componente, 100% livres de dependências extras
   const handleNewMessage = useCallback((message: ChatMessage) => {
-    setMessages((prev) => mergeAndSortMessages(prev, [message]));
+    setMessages((prev) => {
+      const newKey = getMessageKey(message);
+      
+      // Fast-path: deduplicação simples e barata
+      if (prev.some((msg) => getMessageKey(msg) === newKey)) {
+        return prev;
+      }
+      
+      // Inserção O(1) no final (mensagens em tempo real assumem o tempo presente)
+      const next = [...prev, message];
+      
+      // Mantém o limite rígido de 20 mensagens sem sort pesado
+      return next.length > 20 ? next.slice(-20) : next;
+    });
   }, []);
 
   const handleChatHistory = useCallback((history: ChatMessage[]) => {
@@ -162,14 +176,19 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({
     // O useEffect será re-executado quando o usuário fizer login, logout, ou entrar/sair de um clã.
   }, [userProfile?.id, userProfile?.clan_id, handleChatHistory, handleNewMessage]);
 
-  const sendMessage = (text: string) => {
+  const sendMessage = useCallback((text: string) => {
     if (text.trim()) {
       socketService.sendMessage(text);
     }
-  };
+  }, []);
+
+  const contextValue = useMemo(
+    () => ({ messages, sendMessage, isConnected }),
+    [messages, sendMessage, isConnected]
+  );
 
   return (
-    <ChatContext.Provider value={{ messages, sendMessage, isConnected }}>
+    <ChatContext.Provider value={contextValue}>
       {children}
     </ChatContext.Provider>
   );

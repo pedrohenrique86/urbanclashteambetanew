@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import api, { tokenStorage } from '../lib/api';
 
 interface AuthContextType {
@@ -72,7 +72,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     initAuth();
   }, []);
 
-  const login = async (token: string, userData?: any) => {
+  const login = useCallback(async (token: string, userData?: any) => {
     tokenStorage.setToken(token);
     
     if (userData) {
@@ -88,9 +88,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setIsLoggingIn(false);
       }
     }
-  };
+  }, []);
 
-  const logout = async () => {
+  const logout = useCallback(async () => {
     try {
       await api.post('/auth/logout');
     } catch (err: any) {
@@ -109,10 +109,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       localStorage.removeItem('cached_user');
       setUser(null);
     }
-  };
+  }, []);
+
+  const contextValue = useMemo(
+    () => ({ user, isHydrating, isLoggingIn, login, logout }),
+    [user, isHydrating, isLoggingIn, login, logout]
+  );
 
   return (
-    <AuthContext.Provider value={{ user, isHydrating, isLoggingIn, login, logout }}>
+    <AuthContext.Provider value={contextValue}>
       {children}
     </AuthContext.Provider>
   );
