@@ -14,6 +14,7 @@ import homeMobileBg from "../assets/home-mobile.webp";
 import acertoContasBg from "../assets/acerto-contas.webp";
 import cardClansBg from "../assets/cardclans-home.webp";
 import squadWarBg from "../assets/squad-war.webp";
+import recoveryBaseBg from "../assets/recovery-base.webp";
 import supplyGangsterBg from "../assets/stretching station-gangsters.webp";
 import supplyGuardBg from "../assets/stretching station-guardas.webp";
 
@@ -80,6 +81,11 @@ export const PAGE_BACKGROUNDS: BackgroundMap = {
       overlay: "bg-black/60",
       position: "bg-center",
     };
+  },
+  "/recovery-base": {
+    src: recoveryBaseBg,
+    overlay: "bg-black/60",
+    position: "bg-center",
   },
   // Future pages can be registered here easily
 };

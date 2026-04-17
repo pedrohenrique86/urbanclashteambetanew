@@ -1,17 +1,12 @@
-import { motion } from "framer-motion";
+import { UnderConstruction } from "../components/ui/UnderConstruction";
+import { UsersIcon } from "@heroicons/react/24/outline";
 
 export default function SquadWarPage() {
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
-      className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-8"
-    >
-      <div className="text-center">
-        <h2 className="text-2xl font-bold text-gray-300 mb-4">Guerra de Esquadrão</h2>
-        <p className="text-gray-400">Esta página está em desenvolvimento.</p>
-      </div>
-    </motion.div>
+    <UnderConstruction 
+      title="GUERRA DE ESQUADRÃO"
+      icon={<UsersIcon />}
+      description="Coordenação estratégica e combate em larga escala entre esquadrões estão sendo simulados para garantir o domínio territorial."
+    />
   );
 }

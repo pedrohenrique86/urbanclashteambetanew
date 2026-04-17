@@ -1,17 +1,12 @@
-import { motion } from "framer-motion";
+import { UnderConstruction } from "../components/ui/UnderConstruction";
+import { AcademicCapIcon } from "@heroicons/react/24/outline";
 
 export default function TrainingPage() {
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
-      className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-8"
-    >
-      <div className="text-center">
-        <h2 className="text-2xl font-bold text-gray-300 mb-4">Treinamento</h2>
-        <p className="text-gray-400">Esta página está em desenvolvimento.</p>
-      </div>
-    </motion.div>
+    <UnderConstruction 
+      title="CENTRO DE TREINAMENTO"
+      icon={<AcademicCapIcon />}
+      description="Circuitos de treinamento tático e simulações de combate avançado estão sendo configurados para elevar suas capacidades físicas e mentais."
+    />
   );
 }

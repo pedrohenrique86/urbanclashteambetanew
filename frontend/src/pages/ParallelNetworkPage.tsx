@@ -1,17 +1,12 @@
-import { motion } from "framer-motion";
+import { UnderConstruction } from "../components/ui/UnderConstruction";
+import { GlobeAltIcon } from "@heroicons/react/24/outline";
 
 export default function ParallelNetworkPage() {
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
-      className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-8"
-    >
-      <div className="text-center">
-        <h2 className="text-2xl font-bold text-gray-300 mb-4">Rede Paralela</h2>
-        <p className="text-gray-400">Esta página está em desenvolvimento.</p>
-      </div>
-    </motion.div>
+    <UnderConstruction 
+      title="REDE PARALELA"
+      icon={<GlobeAltIcon />}
+      description="A infraestrutura da rede paralela está sendo descriptografada para permitir comunicações seguras e transferências de dados criptografados."
+    />
   );
 }
