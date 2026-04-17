@@ -1,5 +1,4 @@
 const express = require("express");
-const crypto = require("crypto");
 const { body, validationResult } = require("express-validator");
 const { query, transaction } = require("../config/database");
 const { authenticateToken } = require("../middleware/auth");
@@ -9,29 +8,23 @@ const { getGameState } = require("../services/gameStateService");
 const router = express.Router();
 
 // --- Sistema de Eventos em Tempo Real (SSE) por Clã ---
-// Armazena os clientes SSE por ID do clã
 const clanEventClients = new Map();
 
-// Função para enviar eventos para todos os clientes de um clã específico
 function broadcastToClan(clanId, event, data) {
   const clients = clanEventClients.get(clanId);
-  if (!clients) {
-    return;
-  }
+  if (!clients) return;
 
   const message = `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`;
 
   clients.forEach((client) => {
     try {
       client.write(message);
-    } catch (e) {
-      // Se houver erro ao escrever (ex: cliente desconectado), removemos o cliente.
+    } catch (_) {
       clients.delete(client);
     }
   });
 }
 
-// Rota para um cliente se inscrever para receber eventos de um clã
 router.get("/:id/events", authenticateToken, (req, res) => {
   const { id: clanId } = req.params;
 
@@ -40,15 +33,15 @@ router.get("/:id/events", authenticateToken, (req, res) => {
     "Cache-Control": "no-cache",
     Connection: "keep-alive",
   });
-  res.flushHeaders();
+  if (res.flushHeaders) res.flushHeaders();
 
   if (!clanEventClients.has(clanId)) {
     clanEventClients.set(clanId, new Set());
   }
+
   const clients = clanEventClients.get(clanId);
   clients.add(res);
 
-  // Envia um evento de conexão para confirmar que a inscrição foi bem-sucedida
   res.write(
     `event: connection_established\ndata: ${JSON.stringify({ message: "Conectado aos eventos do clã." })}\n\n`,
   );
@@ -61,10 +54,11 @@ router.get("/:id/events", authenticateToken, (req, res) => {
   });
 });
 
-const sseService = require("../services/sseService");
 const rankingCacheService = require("../services/rankingCacheService");
 
+// =========================
 // Validações
+// =========================
 const createClanValidation = [
   body("name")
     .isLength({ min: 3, max: 50 })
@@ -100,7 +94,20 @@ const updateClanValidation = [
     .withMessage("is_recruiting deve ser true ou false"),
 ];
 
+// =========================
+// Helpers
+// =========================
+function parseClanCount(row) {
+  return {
+    ...row,
+    member_count: Number(row.member_count || 0),
+    max_members: Number(row.max_members || 0),
+  };
+}
+
+// =========================
 // GET /api/clans - Listar clãs
+// =========================
 router.get("/", async (req, res) => {
   try {
     const {
@@ -113,14 +120,16 @@ router.get("/", async (req, res) => {
       order = "desc",
     } = req.query;
 
-    const offset = (page - 1) * limit;
+    const pageNum = Number(page);
+    const limitNum = Number(limit);
+    const offset = (pageNum - 1) * limitNum;
+
     const validSorts = ["created_at", "name", "member_count"];
     const validOrders = ["asc", "desc"];
 
     const sortField = validSorts.includes(sort) ? sort : "created_at";
     const sortOrder = validOrders.includes(order) ? order : "desc";
 
-    // Construir query com filtros
     let whereClause = "WHERE 1=1";
     const queryParams = [];
     let paramCount = 1;
@@ -136,45 +145,62 @@ router.get("/", async (req, res) => {
     }
 
     if (recruiting_only === "true") {
-      whereClause += ` AND c.is_recruiting = true AND c.member_count < c.max_members`;
+      whereClause += ` AND c.is_recruiting = true AND mc.member_count < c.max_members`;
     }
 
-    // Query principal
+    const orderBy =
+      sortField === "member_count" ? "mc.member_count" : `c.${sortField}`;
+
     const clansResult = await query(
       `
       SELECT 
-        c.id, c.name, c.description, c.faction, c.member_count, 
-        c.max_members, c.is_recruiting, c.created_at
+        c.id,
+        c.name,
+        c.description,
+        c.faction,
+        mc.member_count,
+        c.max_members,
+        c.is_recruiting,
+        c.created_at
       FROM clans c
+      LEFT JOIN LATERAL (
+        SELECT COUNT(*)::int AS member_count
+        FROM clan_members cm
+        WHERE cm.clan_id = c.id
+      ) mc ON true
       ${whereClause}
-      ORDER BY c.${sortField} ${sortOrder}
+      ORDER BY ${orderBy} ${sortOrder}
       LIMIT $${paramCount++} OFFSET $${paramCount++}
-    `,
-      [...queryParams, limit, offset],
+      `,
+      [...queryParams, limitNum, offset],
     );
 
-    // Query para contar total
     const countResult = await query(
       `
       SELECT COUNT(*) as total
       FROM clans c
+      LEFT JOIN LATERAL (
+        SELECT COUNT(*)::int AS member_count
+        FROM clan_members cm
+        WHERE cm.clan_id = c.id
+      ) mc ON true
       ${whereClause}
-    `,
+      `,
       queryParams,
     );
 
-    const total = parseInt(countResult.rows[0].total);
-    const totalPages = Math.ceil(total / limit);
+    const total = parseInt(countResult.rows[0].total, 10);
+    const totalPages = Math.ceil(total / limitNum);
 
     res.json({
-      clans: clansResult.rows,
+      clans: clansResult.rows.map(parseClanCount),
       pagination: {
-        page: parseInt(page),
-        limit: parseInt(limit),
+        page: pageNum,
+        limit: limitNum,
         total,
         totalPages,
-        hasNext: page < totalPages,
-        hasPrev: page > 1,
+        hasNext: pageNum < totalPages,
+        hasPrev: pageNum > 1,
       },
     });
   } catch (error) {
@@ -188,12 +214,13 @@ router.get("/", async (req, res) => {
   }
 });
 
-// GET /api/clans/by-faction/:faction - Buscar clãs por facção
+// =========================
+// GET /api/clans/by-faction/:faction
+// =========================
 router.get("/by-faction/:faction", async (req, res) => {
   try {
     const { faction } = req.params;
 
-    // Validar facção
     if (!["gangsters", "guardas"].includes(faction)) {
       return res
         .status(400)
@@ -203,17 +230,28 @@ router.get("/by-faction/:faction", async (req, res) => {
     const clansResult = await query(
       `
       SELECT 
-        c.id, c.name, c.description, c.faction, c.member_count, 
-        c.max_members, c.is_recruiting, c.created_at
+        c.id,
+        c.name,
+        c.description,
+        c.faction,
+        mc.member_count,
+        c.max_members,
+        c.is_recruiting,
+        c.created_at
       FROM clans c
+      LEFT JOIN LATERAL (
+        SELECT COUNT(*)::int AS member_count
+        FROM clan_members cm
+        WHERE cm.clan_id = c.id
+      ) mc ON true
       WHERE c.faction = $1
       ORDER BY c.name ASC
-    `,
+      `,
       [faction],
     );
 
     res.json({
-      clans: clansResult.rows,
+      clans: clansResult.rows.map(parseClanCount),
     });
   } catch (error) {
     console.error("❌ Erro ao buscar clãs por facção:", error.message);
@@ -221,18 +259,14 @@ router.get("/by-faction/:faction", async (req, res) => {
   }
 });
 
-
-
-// GET /api/clans/rankings - Ranking de clãs
+// =========================
+// GET /api/clans/rankings
+// =========================
 router.get("/rankings", async (req, res) => {
   try {
     const gameState = await getGameState();
 
-    // Cache centralizado com stale-while-revalidate (SSOT)
-    const cached = await rankingCacheService.ensureFreshRanking(
-      "clans",
-      null
-    );
+    const cached = await rankingCacheService.ensureFreshRanking("clans", null);
 
     if (!cached) {
       return res
@@ -256,18 +290,26 @@ router.get("/rankings", async (req, res) => {
   }
 });
 
-// GET /api/clans/:id - Obter detalhes do clã
+// =========================
+// GET /api/clans/:id
+// =========================
 router.get("/:id", async (req, res) => {
   try {
     const { id } = req.params;
 
-    // Buscar clã
     const clanResult = await query(
       `
-      SELECT c.*
+      SELECT
+        c.*,
+        mc.member_count
       FROM clans c
+      LEFT JOIN LATERAL (
+        SELECT COUNT(*)::int AS member_count
+        FROM clan_members cm
+        WHERE cm.clan_id = c.id
+      ) mc ON true
       WHERE c.id = $1
-    `,
+      `,
       [id],
     );
 
@@ -275,15 +317,20 @@ router.get("/:id", async (req, res) => {
       return res.status(404).json({ error: "Clã não encontrado" });
     }
 
-    const clan = clanResult.rows[0];
+    const clan = parseClanCount(clanResult.rows[0]);
 
-    // Buscar membros do clã
     const membersResult = await query(
       `
       SELECT 
-        cm.role, cm.joined_at,
-        u.id as user_id, u.username, u.country,
-        u.username as display_name, p.avatar_url, p.level, p.experience_points -- username vem da tabela users
+        cm.role,
+        cm.joined_at,
+        u.id as user_id,
+        u.username,
+        u.country,
+        COALESCE(p.display_name, p.username, u.username) as display_name,
+        p.avatar_url,
+        p.level,
+        p.experience_points
       FROM clan_members cm
       INNER JOIN users u ON cm.user_id = u.id
       LEFT JOIN user_profiles p ON u.id = p.user_id
@@ -295,7 +342,7 @@ router.get("/:id", async (req, res) => {
           ELSE 3 
         END,
         cm.joined_at ASC
-    `,
+      `,
       [id],
     );
 
@@ -304,10 +351,10 @@ router.get("/:id", async (req, res) => {
         ...clan,
         leader: clan.leader_username
           ? {
-              username: clan.leader_username,
-              display_name: clan.leader_display_name,
-              avatar_url: clan.leader_avatar,
-            }
+            username: clan.leader_username,
+            display_name: clan.leader_display_name,
+            avatar_url: clan.leader_avatar,
+          }
           : null,
         members: membersResult.rows,
       },
@@ -318,7 +365,9 @@ router.get("/:id", async (req, res) => {
   }
 });
 
+// =========================
 // POST /api/clans - Criar novo clã
+// =========================
 router.post("/", authenticateToken, createClanValidation, async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -332,9 +381,6 @@ router.post("/", authenticateToken, createClanValidation, async (req, res) => {
     const { name, description, faction, max_members = 50 } = req.body;
     const userId = req.user.id;
 
-    // Verificação de líder removida - funcionalidade não implementada
-
-    // Verificar se o usuário já é membro de algum clã
     const existingMemberResult = await query(
       "SELECT id FROM clan_members WHERE user_id = $1",
       [userId],
@@ -344,7 +390,6 @@ router.post("/", authenticateToken, createClanValidation, async (req, res) => {
       return res.status(400).json({ error: "Você já é membro de um clã" });
     }
 
-    // Verificar se o usuário tem a mesma facção do clã
     const userProfileResult = await query(
       "SELECT faction FROM user_profiles WHERE user_id = $1",
       [userId],
@@ -363,48 +408,58 @@ router.post("/", authenticateToken, createClanValidation, async (req, res) => {
         .json({ error: "Você só pode entrar em clãs da sua facção" });
     }
 
-    // Verificar se o nome do clã já existe
-    const nameExistsResult = await query(
-      "SELECT id FROM clans WHERE name = $1",
-      [name],
-    );
+    const nameExistsResult = await query("SELECT id FROM clans WHERE name = $1", [
+      name,
+    ]);
 
     if (nameExistsResult.rows.length > 0) {
       return res.status(409).json({ error: "Nome do clã já está em uso" });
     }
 
-    // Criar clã e adicionar líder em uma transação
     const result = await transaction(async (client) => {
       const clanResult = await client.query(
         `
-        INSERT INTO clans (name, description, faction, max_members, member_count)
-        VALUES ($1, $2, $3, $4, 0)
-        RETURNING *
-      `,
+        INSERT INTO clans (name, description, faction, max_members)
+        VALUES ($1, $2, $3, $4)
+        RETURNING id
+        `,
         [name, description, faction, max_members],
       );
 
-      const clan = clanResult.rows[0];
+      const clanId = clanResult.rows[0].id;
 
-      // Adicionar líder como membro
       await client.query(
         `
         INSERT INTO clan_members (clan_id, user_id, role)
         VALUES ($1, $2, 'leader')
-      `,
-        [clan.id, userId],
+        `,
+        [clanId, userId],
       );
 
-      // Atualizar clan_id no perfil do usuário
       await client.query(
         "UPDATE user_profiles SET clan_id = $1, updated_at = CURRENT_TIMESTAMP WHERE user_id = $2",
-        [clan.id, userId],
+        [clanId, userId],
       );
 
-      return clan;
+      const finalClanResult = await client.query(
+        `
+        SELECT
+          c.*,
+          mc.member_count
+        FROM clans c
+        LEFT JOIN LATERAL (
+          SELECT COUNT(*)::int AS member_count
+          FROM clan_members cm
+          WHERE cm.clan_id = c.id
+        ) mc ON true
+        WHERE c.id = $1
+        `,
+        [clanId],
+      );
+
+      return parseClanCount(finalClanResult.rows[0]);
     });
 
-    // Invalida cache do perfil para refletir novo clã
     await redisClient.delAsync(`playerState:${userId}`);
 
     res.status(201).json({
@@ -417,99 +472,108 @@ router.post("/", authenticateToken, createClanValidation, async (req, res) => {
   }
 });
 
+// =========================
 // PUT /api/clans/:id - Atualizar clã
-router.put(
-  "/:id",
-  authenticateToken,
-  updateClanValidation,
-  async (req, res) => {
-    try {
-      const errors = validationResult(req);
-      if (!errors.isEmpty()) {
-        return res.status(400).json({
-          error: "Dados inválidos",
-          details: errors.array(),
-        });
-      }
+// =========================
+router.put("/:id", authenticateToken, updateClanValidation, async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        error: "Dados inválidos",
+        details: errors.array(),
+      });
+    }
 
-      const { id } = req.params;
-      const { description, max_members, is_recruiting } = req.body;
-      const userId = req.user.id;
+    const { id } = req.params;
+    const { description, max_members, is_recruiting } = req.body;
+    const userId = req.user.id;
 
-      // Verificar se o usuário é líder do clã
-      const clanResult = await query("SELECT * FROM clans WHERE id = $1", [id]);
+    const clanResult = await query(
+      `
+      SELECT
+        c.*,
+        mc.member_count
+      FROM clans c
+      LEFT JOIN LATERAL (
+        SELECT COUNT(*)::int AS member_count
+        FROM clan_members cm
+        WHERE cm.clan_id = c.id
+      ) mc ON true
+      WHERE c.id = $1
+      `,
+      [id],
+    );
 
-      if (clanResult.rows.length === 0) {
-        return res.status(404).json({ error: "Clã não encontrado" });
-      }
+    if (clanResult.rows.length === 0) {
+      return res.status(404).json({ error: "Clã não encontrado" });
+    }
 
-      const clan = clanResult.rows[0];
+    const clan = parseClanCount(clanResult.rows[0]);
 
-      // Verificar se o usuário é líder do clã
-      const leaderResult = await query(
-        "SELECT id FROM clan_members WHERE clan_id = $1 AND user_id = $2 AND role = $3",
-        [id, userId, "leader"],
-      );
+    const leaderResult = await query(
+      "SELECT id FROM clan_members WHERE clan_id = $1 AND user_id = $2 AND role = $3",
+      [id, userId, "leader"],
+    );
 
-      if (leaderResult.rows.length === 0) {
-        return res
-          .status(403)
-          .json({ error: "Apenas o líder pode atualizar o clã" });
-      }
+    if (leaderResult.rows.length === 0) {
+      return res
+        .status(403)
+        .json({ error: "Apenas o líder pode atualizar o clã" });
+    }
 
-      // Verificar se max_members não é menor que o número atual de membros
-      if (max_members && max_members < clan.member_count) {
-        return res.status(400).json({
-          error: `Máximo de membros não pode ser menor que o número atual (${clan.member_count})`,
-        });
-      }
+    if (max_members !== undefined && Number(max_members) < clan.member_count) {
+      return res.status(400).json({
+        error: `Máximo de membros não pode ser menor que o número atual (${clan.member_count})`,
+      });
+    }
 
-      // Construir query de atualização
-      const updateFields = [];
-      const updateValues = [];
-      let paramCount = 1;
+    const updateFields = [];
+    const updateValues = [];
+    let paramCount = 1;
 
-      if (description !== undefined) {
-        updateFields.push(`description = $${paramCount++}`);
-        updateValues.push(description);
-      }
-      if (max_members !== undefined) {
-        updateFields.push(`max_members = $${paramCount++}`);
-        updateValues.push(max_members);
-      }
-      if (is_recruiting !== undefined) {
-        updateFields.push(`is_recruiting = $${paramCount++}`);
-        updateValues.push(is_recruiting);
-      }
+    if (description !== undefined) {
+      updateFields.push(`description = $${paramCount++}`);
+      updateValues.push(description);
+    }
+    if (max_members !== undefined) {
+      updateFields.push(`max_members = $${paramCount++}`);
+      updateValues.push(max_members);
+    }
+    if (is_recruiting !== undefined) {
+      updateFields.push(`is_recruiting = $${paramCount++}`);
+      updateValues.push(is_recruiting);
+    }
 
-      if (updateFields.length === 0) {
-        return res.status(400).json({ error: "Nenhum campo para atualizar" });
-      }
+    if (updateFields.length === 0) {
+      return res.status(400).json({ error: "Nenhum campo para atualizar" });
+    }
 
-      updateValues.push(id);
+    updateValues.push(id);
 
-      const result = await query(
-        `
-      UPDATE clans 
+    const result = await query(
+      `
+      UPDATE clans
       SET ${updateFields.join(", ")}, updated_at = CURRENT_TIMESTAMP
       WHERE id = $${paramCount}
       RETURNING *
-    `,
-        updateValues,
-      );
+      `,
+      updateValues,
+    );
 
-      res.json({
-        message: "Clã atualizado com sucesso",
-        clan: result.rows[0],
-      });
-    } catch (error) {
-      console.error("❌ Erro ao atualizar clã:", error.message);
-      res.status(500).json({ error: "Erro interno do servidor" });
-    }
-  },
-);
+    res.json({
+      message: "Clã atualizado com sucesso",
+      clan: result.rows[0],
+    });
+  } catch (error) {
+    console.error("❌ Erro ao atualizar clã:", error.message);
+    res.status(500).json({ error: "Erro interno do servidor" });
+  }
+});
 
-// POST /api/clans/:id/join - Entrar no clã
+// =========================
+// POST /api/clans/:id/join
+// =========================
 router.post("/:id/join", authenticateToken, async (req, res) => {
   const { id: clanId } = req.params;
   const userId = req.user.id;
@@ -520,33 +584,42 @@ router.post("/:id/join", authenticateToken, async (req, res) => {
 
   try {
     const result = await transaction(async (client) => {
-      // Etapa 1: Bloquear e verificar o clã para atualização.
       const clanResult = await client.query(
-        "SELECT * FROM clans WHERE id = $1 FOR UPDATE",
+        `
+        SELECT
+          c.*,
+          mc.member_count
+        FROM clans c
+        LEFT JOIN LATERAL (
+          SELECT COUNT(*)::int AS member_count
+          FROM clan_members cm
+          WHERE cm.clan_id = c.id
+        ) mc ON true
+        WHERE c.id = $1
+        FOR UPDATE OF c
+        `,
         [clanId],
       );
 
       if (clanResult.rows.length === 0) {
         return { status: 404, error: "Clã não encontrado" };
       }
-      const clan = clanResult.rows[0];
 
-      // Etapa 2: Validar regras de negócio (sem bloquear perfil do usuário, pois o ON CONFLICT cuidará disso)
+      const clan = parseClanCount(clanResult.rows[0]);
+
       if (!clan.is_recruiting) {
         return { status: 400, error: "Clã não está recrutando" };
       }
+
       if (clan.member_count >= clan.max_members) {
         return { status: 400, error: "Clã está cheio" };
       }
 
-      // 3. Tenta inserir o usuário no clã.
-      // Primeiro, verificamos se o usuário já faz parte de QUALQUER clã.
-      // Usamos a tabela clan_members para essa verificação de integridade.
       const existingMembership = await client.query(
         "SELECT clan_id FROM clan_members WHERE user_id = $1",
         [userId],
       );
-      
+
       if (existingMembership.rows.length > 0) {
         return {
           status: 409,
@@ -554,18 +627,11 @@ router.post("/:id/join", authenticateToken, async (req, res) => {
         };
       }
 
-      // 4. Insere o usuário no novo clã.
-      // Nota: Removido 'ON CONFLICT (user_id)' pois a constraint unique faltava no schema, causando Erro 500.
       await client.query(
         "INSERT INTO clan_members (clan_id, user_id, role) VALUES ($1, $2, 'member')",
         [clanId, userId],
       );
 
-      console.log(
-        `[JOIN_CLAN_SUCCESS] User ${userId} inserido com sucesso no clã ${clanId}.`,
-      );
-
-      // 5. Atualiza o perfil do usuário com o novo clan_id.
       await client.query(
         "UPDATE user_profiles SET clan_id = $1, updated_at = CURRENT_TIMESTAMP WHERE user_id = $2",
         [clanId, userId],
@@ -578,7 +644,6 @@ router.post("/:id/join", authenticateToken, async (req, res) => {
       return res.status(result.status).json({ error: result.error });
     }
 
-    // Invalida cache do perfil para refletir novo clã
     await redisClient.delAsync(`playerState:${userId}`);
 
     console.log(
@@ -595,7 +660,9 @@ router.post("/:id/join", authenticateToken, async (req, res) => {
   }
 });
 
-// POST /api/clans/:id/leave - Sair do clã
+// =========================
+// POST /api/clans/:id/leave
+// =========================
 router.post("/:id/leave", authenticateToken, async (req, res) => {
   const { id: clanId } = req.params;
   const userId = req.user.id;
@@ -606,7 +673,6 @@ router.post("/:id/leave", authenticateToken, async (req, res) => {
 
   try {
     const result = await transaction(async (client) => {
-      // 1. Verifica se o usuário é membro do clã especificado.
       const memberResult = await client.query(
         "SELECT role FROM clan_members WHERE user_id = $1 AND clan_id = $2",
         [userId, clanId],
@@ -618,7 +684,6 @@ router.post("/:id/leave", authenticateToken, async (req, res) => {
 
       const userRole = memberResult.rows[0].role;
 
-      // 2. Regra de negócio: O líder não pode sair do clã.
       if (userRole === "leader") {
         return {
           status: 400,
@@ -627,22 +692,18 @@ router.post("/:id/leave", authenticateToken, async (req, res) => {
         };
       }
 
-      // 3. Remove o usuário da tabela de membros.
       const deleteResult = await client.query(
         "DELETE FROM clan_members WHERE user_id = $1 AND clan_id = $2",
         [userId, clanId],
       );
 
-      // Se nada foi deletado (verificação extra de segurança)
       if (deleteResult.rowCount === 0) {
-        // Isso não deve acontecer devido à verificação inicial, mas é uma boa prática.
         return {
           status: 404,
           error: "Falha ao encontrar o membro para remover.",
         };
       }
 
-      // 4. Limpa o clan_id do perfil do usuário.
       await client.query(
         "UPDATE user_profiles SET clan_id = NULL, updated_at = CURRENT_TIMESTAMP WHERE user_id = $1",
         [userId],
@@ -655,7 +716,6 @@ router.post("/:id/leave", authenticateToken, async (req, res) => {
       return res.status(result.status).json({ error: result.error });
     }
 
-    // Invalida cache do perfil para refletir saída do clã
     await redisClient.delAsync(`playerState:${userId}`);
 
     broadcastToClan(clanId, "member_left", { userId, clanId });
@@ -666,121 +726,110 @@ router.post("/:id/leave", authenticateToken, async (req, res) => {
   }
 });
 
-// POST /api/clans/:id/vote-kick/:targetUserId - Votar para expulsar um membro
-router.post(
-  "/:id/vote-kick/:targetUserId",
-  authenticateToken,
-  async (req, res) => {
-    try {
-      const { id: clanId, targetUserId } = req.params;
-      const { id: voterId } = req.user;
-      const KICK_VOTE_THRESHOLD = 10;
+// =========================
+// POST /api/clans/:id/vote-kick/:targetUserId
+// =========================
+router.post("/:id/vote-kick/:targetUserId", authenticateToken, async (req, res) => {
+  try {
+    const { id: clanId, targetUserId } = req.params;
+    const { id: voterId } = req.user;
+    const KICK_VOTE_THRESHOLD = 10;
 
-      if (voterId === targetUserId) {
-        return res
-          .status(400)
-          .json({ error: "Você não pode votar para expulsar a si mesmo." });
+    if (voterId === targetUserId) {
+      return res
+        .status(400)
+        .json({ error: "Você não pode votar para expulsar a si mesmo." });
+    }
+
+    const result = await transaction(async (client) => {
+      const membersCheck = await client.query(
+        `SELECT user_id, role FROM clan_members WHERE clan_id = $1 AND user_id = ANY($2::uuid[])`,
+        [clanId, [voterId, targetUserId]],
+      );
+
+      const voterInfo = membersCheck.rows.find((m) => m.user_id === voterId);
+      const targetInfo = membersCheck.rows.find((m) => m.user_id === targetUserId);
+
+      if (!voterInfo) {
+        return {
+          status: 403,
+          body: { error: "Você não é membro deste clã." },
+        };
       }
 
-      const result = await transaction(async (client) => {
-        // Validar se todos os envolvidos pertencem ao clã
-        const membersCheck = await client.query(
-          `SELECT user_id, role FROM clan_members WHERE clan_id = $1 AND user_id = ANY($2::uuid[])`,
-          [clanId, [voterId, targetUserId]],
-        );
+      if (!targetInfo) {
+        return {
+          status: 404,
+          body: { error: "O membro alvo não foi encontrado neste clã." },
+        };
+      }
 
-        const voterInfo = membersCheck.rows.find((m) => m.user_id === voterId);
-        const targetInfo = membersCheck.rows.find(
-          (m) => m.user_id === targetUserId,
-        );
+      if (targetInfo.role === "leader") {
+        return {
+          status: 400,
+          body: { error: "O líder do clã não pode ser expulso por votação." },
+        };
+      }
 
-        if (!voterInfo) {
-          return {
-            status: 403,
-            body: { error: "Você não é membro deste clã." },
-          };
-        }
-
-        if (!targetInfo) {
-          return {
-            status: 404,
-            body: { error: "O membro alvo não foi encontrado neste clã." },
-          };
-        }
-
-        // Líder não pode ser expulso por votação
-        if (targetInfo.role === "leader") {
-          return {
-            status: 400,
-            body: { error: "O líder do clã não pode ser expulso por votação." },
-          };
-        }
-
-        // Registrar o voto, ignorando se já votou
-        await client.query(
-          `INSERT INTO clan_kick_votes (clan_id, target_user_id, voter_user_id)
+      await client.query(
+        `INSERT INTO clan_kick_votes (clan_id, target_user_id, voter_user_id)
          VALUES ($1, $2, $3)
          ON CONFLICT (clan_id, target_user_id, voter_user_id) DO NOTHING`,
-          [clanId, targetUserId, voterId],
-        );
+        [clanId, targetUserId, voterId],
+      );
 
-        // Contar os votos
-        const voteCountResult = await client.query(
-          `SELECT COUNT(*) as count FROM clan_kick_votes WHERE clan_id = $1 AND target_user_id = $2`,
+      const voteCountResult = await client.query(
+        `SELECT COUNT(*) as count FROM clan_kick_votes WHERE clan_id = $1 AND target_user_id = $2`,
+        [clanId, targetUserId],
+      );
+      const voteCount = parseInt(voteCountResult.rows[0].count, 10);
+
+      broadcastToClan(clanId, "vote_update", { targetUserId, voteCount });
+
+      if (voteCount >= KICK_VOTE_THRESHOLD) {
+        await client.query(
+          `DELETE FROM clan_members WHERE clan_id = $1 AND user_id = $2`,
           [clanId, targetUserId],
         );
-        const voteCount = parseInt(voteCountResult.rows[0].count, 10);
 
-        // Notificar sobre o novo voto
-        broadcastToClan(clanId, "vote_update", { targetUserId, voteCount });
+        await client.query(
+          `UPDATE user_profiles SET clan_id = NULL, updated_at = CURRENT_TIMESTAMP WHERE user_id = $1`,
+          [targetUserId],
+        );
 
-        // Se atingiu o limite, expulsar o membro
-        if (voteCount >= KICK_VOTE_THRESHOLD) {
-          // Remover da tabela clan_members
-          await client.query(
-            `DELETE FROM clan_members WHERE clan_id = $1 AND user_id = $2`,
-            [clanId, targetUserId],
-          );
-          // Limpar clan_id no perfil do usuário
-          await client.query(
-            `UPDATE user_profiles SET clan_id = NULL, updated_at = CURRENT_TIMESTAMP WHERE user_id = $1`,
-            [targetUserId],
-          );
-
-          // Notificar que o membro foi expulso
-          broadcastToClan(clanId, "member_kicked", { targetUserId, clanId });
-          return {
-            status: 200,
-            body: { message: `Membro expulso com ${voteCount} votos.` },
-          };
-        }
+        broadcastToClan(clanId, "member_kicked", { targetUserId, clanId });
 
         return {
           status: 200,
-          body: { message: "Voto registrado com sucesso.", voteCount },
+          body: { message: `Membro expulso com ${voteCount} votos.` },
         };
-      });
-
-      // Invalida cache do alvo se foi expulso
-      if (result.status === 200 && result.body.message.includes("expulso")) {
-        await redisClient.delAsync(`playerState:${targetUserId}`);
       }
 
-      return res.status(result.status).json(result.body);
-    } catch (error) {
-      console.error("❌ Erro ao votar para expulsar membro:", error.message);
-      res.status(500).json({ error: "Erro interno do servidor" });
-    }
-  },
-);
+      return {
+        status: 200,
+        body: { message: "Voto registrado com sucesso.", voteCount },
+      };
+    });
 
-// POST /api/clans/:id/kick/:userId - Expulsar membro do clã
+    if (result.status === 200 && result.body.message.includes("expulso")) {
+      await redisClient.delAsync(`playerState:${targetUserId}`);
+    }
+
+    return res.status(result.status).json(result.body);
+  } catch (error) {
+    console.error("❌ Erro ao votar para expulsar membro:", error.message);
+    res.status(500).json({ error: "Erro interno do servidor" });
+  }
+});
+
+// =========================
+// POST /api/clans/:id/kick/:userId
+// =========================
 router.post("/:id/kick/:userId", authenticateToken, async (req, res) => {
   try {
     const { id, userId: targetUserId } = req.params;
     const requesterId = req.user.id;
 
-    // Verificar se o requisitante é líder do clã
     const requesterMember = await query(
       "SELECT role FROM clan_members WHERE clan_id = $1 AND user_id = $2",
       [id, requesterId],
@@ -795,33 +844,27 @@ router.post("/:id/kick/:userId", authenticateToken, async (req, res) => {
         .json({ error: "Apenas o líder pode expulsar membros." });
     }
 
-    // O líder não pode expulsar a si mesmo
     if (String(requesterId) === String(targetUserId)) {
       return res
         .status(400)
         .json({ error: "Você não pode expulsar a si mesmo." });
     }
 
-    // Usar transação para garantir a consistência
     const result = await transaction(async (client) => {
-      // Verificar se o alvo é membro do clã
       const targetMember = await client.query(
         "SELECT role FROM clan_members WHERE clan_id = $1 AND user_id = $2",
         [id, targetUserId],
       );
 
       if (targetMember.rows.length === 0) {
-        // Retornar um objeto para indicar que o membro não foi encontrado
         return { notFound: true };
       }
 
-      // Remover membro do clã
       await client.query(
         "DELETE FROM clan_members WHERE clan_id = $1 AND user_id = $2",
         [id, targetUserId],
       );
 
-      // Limpar clan_id no perfil do usuário expulso
       await client.query(
         "UPDATE user_profiles SET clan_id = NULL, updated_at = CURRENT_TIMESTAMP WHERE user_id = $1",
         [targetUserId],
@@ -834,7 +877,6 @@ router.post("/:id/kick/:userId", authenticateToken, async (req, res) => {
       return res.status(404).json({ error: "Membro alvo não encontrado." });
     }
 
-    // Invalida cache do perfil do expulso
     await redisClient.delAsync(`playerState:${targetUserId}`);
 
     res.json({ message: "Membro expulso com sucesso." });
@@ -844,7 +886,9 @@ router.post("/:id/kick/:userId", authenticateToken, async (req, res) => {
   }
 });
 
-// POST /api/clans/:id/promote/:userId - Promover membro
+// =========================
+// POST /api/clans/:id/promote/:userId
+// =========================
 router.post("/:id/promote/:userId", authenticateToken, async (req, res) => {
   try {
     const { id, userId: targetUserId } = req.params;
@@ -855,14 +899,12 @@ router.post("/:id/promote/:userId", authenticateToken, async (req, res) => {
       return res.status(400).json({ error: "Cargo inválido" });
     }
 
-    // Verificar se o clã existe
     const clanResult = await query("SELECT * FROM clans WHERE id = $1", [id]);
 
     if (clanResult.rows.length === 0) {
       return res.status(404).json({ error: "Clã não encontrado" });
     }
 
-    // Verificar se o usuário é líder do clã
     const leaderResult = await query(
       "SELECT id FROM clan_members WHERE clan_id = $1 AND user_id = $2 AND role = $3",
       [id, userId, "leader"],
@@ -874,7 +916,6 @@ router.post("/:id/promote/:userId", authenticateToken, async (req, res) => {
         .json({ error: "Apenas o líder pode alterar cargos" });
     }
 
-    // Verificar se o alvo é membro do clã
     const memberResult = await query(
       "SELECT * FROM clan_members WHERE clan_id = $1 AND user_id = $2",
       [id, targetUserId],
@@ -886,14 +927,12 @@ router.post("/:id/promote/:userId", authenticateToken, async (req, res) => {
 
     const member = memberResult.rows[0];
 
-    // Não pode alterar cargo do líder
     if (member.role === "leader") {
       return res
         .status(400)
         .json({ error: "Não é possível alterar o cargo do líder" });
     }
 
-    // Atualizar cargo
     await query(
       "UPDATE clan_members SET role = $1 WHERE clan_id = $2 AND user_id = $3",
       [role, id, targetUserId],
@@ -908,20 +947,20 @@ router.post("/:id/promote/:userId", authenticateToken, async (req, res) => {
   }
 });
 
-// DELETE /api/clans/:id - Deletar clã
+// =========================
+// DELETE /api/clans/:id
+// =========================
 router.delete("/:id", authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
     const userId = req.user.id;
 
-    // Verificar se o clã existe
     const clanResult = await query("SELECT * FROM clans WHERE id = $1", [id]);
 
     if (clanResult.rows.length === 0) {
       return res.status(404).json({ error: "Clã não encontrado" });
     }
 
-    // Verificar se o usuário é líder do clã
     const leaderResult = await query(
       "SELECT id FROM clan_members WHERE clan_id = $1 AND user_id = $2 AND role = $3",
       [id, userId, "leader"],
@@ -933,21 +972,15 @@ router.delete("/:id", authenticateToken, async (req, res) => {
         .json({ error: "Apenas o líder pode deletar o clã" });
     }
 
-    // Deletar clã e atualizar perfis de usuário em uma transação
     await transaction(async (client) => {
-      // Limpar clan_id nos perfis dos membros e atualizar updated_at
       await client.query(
         "UPDATE user_profiles SET clan_id = NULL, updated_at = CURRENT_TIMESTAMP WHERE clan_id = $1",
         [id],
       );
-      // Deletar clã (ON DELETE CASCADE cuidará dos clan_members)
+
       await client.query("DELETE FROM clans WHERE id = $1", [id]);
     });
 
-    // Como deletar um clã afeta muitos usuários, não invalidamos todos um por um aqui 
-    // para evitar gargalo, mas os perfis no DB já estão corretos (NULL).
-    // O cache expirará naturalmente ou será resetado em outras ações.
-    // Mas invalidamos o do líder pelo menos.
     await redisClient.delAsync(`playerState:${userId}`);
 
     res.json({ message: "Clã deletado com sucesso" });

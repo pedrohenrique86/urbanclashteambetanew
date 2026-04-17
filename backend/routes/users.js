@@ -803,10 +803,15 @@ router.get("/:id/clans", async (req, res) => {
     const clansResult = await query(
       `
       SELECT 
-        c.id, c.name, c.description, c.faction, c.member_count, c.max_members,
+        c.id, c.name, c.description, c.faction, mc.member_count, c.max_members,
         cm.role, cm.joined_at
       FROM clans c
       INNER JOIN clan_members cm ON c.id = cm.clan_id
+      LEFT JOIN LATERAL (
+        SELECT COUNT(*)::int AS member_count
+        FROM clan_members
+        WHERE clan_id = c.id
+      ) mc ON true
       WHERE cm.user_id = $1
       ORDER BY cm.joined_at DESC
       `,
