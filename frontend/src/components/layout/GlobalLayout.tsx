@@ -6,14 +6,13 @@ import { FloatingMenuButton } from "./FloatingMenuButton";
 import { useTheme } from "../../contexts/ThemeContext";
 import { useUserProfileContext } from "../../contexts/UserProfileContext";
 import { useHUD } from "../../contexts/HUDContext";
-import dashbgangster from "../../assets/dashbgangster.webp";
-import dashguardas from "../../assets/dashguardas.webp";
 import { Tooltip } from "react-tooltip";
 import { useGameClock } from "../../hooks/useGameClock";
 import GameClockDisplay from "./GameClockDisplay";
 import ScrollToTopButton from "./ScrollToTopButton";
 import DigitalIdentityModal from "../DigitalIdentityModal";
 import ClanIdentityModal from "../ClanIdentityModal";
+import { DynamicBackground } from "./DynamicBackground";
 
 interface GlobalLayoutProps {
   children: React.ReactNode;
@@ -123,27 +122,14 @@ const GlobalLayout: React.FC<GlobalLayoutProps> = ({ children }) => {
 
   const isDashboard = location.pathname === "/dashboard";
 
-  const factionName =
-    typeof userProfile?.faction === "string"
-      ? userProfile.faction
-      : userProfile?.faction?.name;
-
-  const dashboardBg = factionName === "guardas" ? dashguardas : dashbgangster;
-
-  const backgroundStyle = isDashboard
-    ? { backgroundImage: `url(${dashboardBg})` }
-    : {};
-
-  const layoutClasses = isDashboard ? "bg-cover bg-center" : themeClasses.bg;
-
   return (
     <div
-      className={`h-screen font-exo text-white ${layoutClasses} overflow-hidden flex flex-col`}
-      style={backgroundStyle}
+      className={`h-screen font-exo text-white ${isDashboard ? "" : themeClasses.bg} overflow-hidden flex flex-col`}
       onTouchStart={onTouchStartObj}
       onTouchMove={onTouchMoveObj}
       onTouchEnd={onTouchEndObj}
     >
+      <DynamicBackground />
       <div
         className={`flex flex-1 overflow-hidden ${isDashboard ? "bg-black/20" : ""
           }`}
