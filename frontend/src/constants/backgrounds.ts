@@ -11,6 +11,7 @@ import dashguardas from "../assets/dashguardas.webp";
 import rankingBg from "../assets/ranking.webp";
 import homeBg from "../assets/home.webp";
 import homeMobileBg from "../assets/home-mobile.webp";
+import idBg from "../assets/id.webp";
 import acertoContasBg from "../assets/acerto-contas.webp";
 import cardClansBg from "../assets/cardclans-home.webp";
 import squadWarBg from "../assets/squad-war.webp";
@@ -159,6 +160,11 @@ export const PAGE_BACKGROUNDS: BackgroundMap = {
       overlay: "bg-black/60",
       position: "bg-center",
     };
+  },
+  "/digital-identity": {
+    src: idBg,
+    overlay: "bg-black/40",
+    position: "bg-center",
   },
   // Future pages can be registered here easily
 };
