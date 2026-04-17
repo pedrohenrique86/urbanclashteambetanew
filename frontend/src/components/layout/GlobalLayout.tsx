@@ -54,6 +54,20 @@ const GlobalLayout: React.FC<GlobalLayoutProps> = ({ children }) => {
 
   const minSwipeDistance = 50;
 
+  const pagesWithoutNav = [
+    "/",
+    "/faction",
+    "/faction-selection",
+    "/clan-selection",
+    "/confirm-email",
+    "/reset-password",
+    "/auth/google/callback",
+  ];
+
+  const shouldShowNav = !pagesWithoutNav.some(
+    (p) => location.pathname === p || location.pathname.startsWith("/auth/"),
+  );
+
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.key === "Escape" && hasOpenPanel) {
@@ -69,11 +83,17 @@ const GlobalLayout: React.FC<GlobalLayoutProps> = ({ children }) => {
   // e garantir que o reset de rotas funcione no container correto.
   useEffect(() => {
     const originalStyle = window.getComputedStyle(document.body).overflow;
-    document.body.style.overflow = "hidden";
+    
+    if (shouldShowNav) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "auto";
+    }
+
     return () => {
       document.body.style.overflow = originalStyle;
     };
-  }, []);
+  }, [shouldShowNav]);
 
   useEffect(() => {
     clearPanels();
@@ -95,19 +115,7 @@ const GlobalLayout: React.FC<GlobalLayoutProps> = ({ children }) => {
     };
   }, [hasOpenPanel]);
 
-  const pagesWithoutNav = [
-    "/",
-    "/faction",
-    "/faction-selection",
-    "/clan-selection",
-    "/confirm-email",
-    "/reset-password",
-    "/auth/google/callback",
-  ];
 
-  const shouldShowNav = !pagesWithoutNav.some(
-    (p) => location.pathname === p || location.pathname.startsWith("/auth/"),
-  );
 
   const onTouchStartObj = (e: React.TouchEvent) => {
     setTouchEnd(null);

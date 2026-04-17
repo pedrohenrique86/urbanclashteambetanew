@@ -59,7 +59,7 @@ const SelecaoClasPage: React.FC = () => {
 
   return (
     <div 
-      className="min-h-screen w-full overflow-y-auto p-4 text-white transition-all duration-500"
+      className="min-h-screen w-full p-4 text-white transition-all duration-500"
       style={{ backgroundImage: colors.gradient }}
     >
       <motion.div 
