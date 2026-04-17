@@ -14,6 +14,28 @@ import DigitalIdentityModal from "../DigitalIdentityModal";
 import ClanIdentityModal from "../ClanIdentityModal";
 import { DynamicBackground } from "./DynamicBackground";
 
+/**
+ * Micro-componente isolado que consome o GameClockContext.
+ * Ao isolar o useGameClock() aqui, o GlobalLayout deixa de ser
+ * re-renderizado a cada tick do cronômetro (1s), eliminando o
+ * gargalo de performance identificado na auditoria.
+ *
+ * Re-renders do contexto ficam contidos apenas neste widget,
+ * sem propagar para a árvore principal da aplicação.
+ */
+const GameClockWidget: React.FC = () => {
+  const { remainingTime, status, serverTime } = useGameClock();
+  return (
+    <GameClockDisplay
+      remainingTime={remainingTime}
+      status={status}
+      serverTime={serverTime}
+      isCollapsed={false}
+      isMobileMode={true}
+    />
+  );
+};
+
 interface GlobalLayoutProps {
   children: React.ReactNode;
 }
@@ -30,7 +52,6 @@ const GlobalLayout: React.FC<GlobalLayoutProps> = ({ children }) => {
   const scrollableContainerRef = useRef<HTMLDivElement>(null);
 
   const minSwipeDistance = 50;
-  const { remainingTime, status, serverTime } = useGameClock();
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -180,13 +201,8 @@ const GlobalLayout: React.FC<GlobalLayoutProps> = ({ children }) => {
         </div>
       </div>
 
-      <GameClockDisplay
-        remainingTime={remainingTime}
-        status={status}
-        serverTime={serverTime}
-        isCollapsed={false}
-        isMobileMode={true}
-      />
+      {/* Widget isolado do cronômetro — o único assinante do GameClockContext aqui */}
+      <GameClockWidget />
 
       <Tooltip
         id="server-time-tooltip"
