@@ -41,6 +41,6 @@ export const getPositionDisplay = (
     case 3:
       return "🥉";
     default:
-      return type === "player" ? `${position}º` : String(position);
+      return `${position}º`;
   }
 };

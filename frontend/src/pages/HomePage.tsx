@@ -85,10 +85,10 @@ export default function HomePage() {
               <button
                 onClick={handleGoogleLogin}
                 disabled={isGoogleLoginProcessing}
-                className="bg-white p-2 rounded-md sm:rounded-lg transition-all hover:scale-105 flex items-center justify-center disabled:opacity-50"
+                className="bg-white p-1 sm:p-2 rounded-md sm:rounded-lg transition-all hover:scale-105 flex items-center justify-center disabled:opacity-50"
                 aria-label="Entrar com Google"
               >
-                {isGoogleLoginProcessing ? <FaSpinner className="animate-spin text-lg" /> : <FcGoogle className="text-lg" />}
+                {isGoogleLoginProcessing ? <FaSpinner className="animate-spin text-sm sm:text-lg" /> : <FcGoogle className="text-sm sm:text-lg" />}
               </button>
               <button
                 onClick={() => openAuthModal("login")}
