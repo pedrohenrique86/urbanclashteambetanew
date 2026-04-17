@@ -30,6 +30,7 @@ import qgChatRenegados from "../assets/qg-chat-renegados.webp";
 import zonaSocialBg from "../assets/zona-social.webp";
 import trainingGuardioes from "../assets/training-guardioes.webp";
 import trainingRenegados from "../assets/training-renegados.webp";
+import vipAccessBg from "../assets/vip-access.webp";
 
 export interface BackgroundConfig {
   src: string;
@@ -164,6 +165,11 @@ export const PAGE_BACKGROUNDS: BackgroundMap = {
   "/digital-identity": {
     src: idBg,
     overlay: "bg-black/40",
+    position: "bg-center",
+  },
+  "/vip-access": {
+    src: vipAccessBg,
+    overlay: "bg-black/60",
     position: "bg-center",
   },
   // Future pages can be registered here easily
