@@ -32,7 +32,7 @@ const DashboardPanel: React.FC<{
 );
 
 // --- Painel de Nível ---
-const CircularProgressBar: React.FC<{ progress: number }> = ({ progress }) => {
+const CircularProgressBar: React.FC<{ progress: number; isGangster: boolean }> = ({ progress, isGangster }) => {
   const size = 100;
   const strokeWidth = 10;
   const center = size / 2;
@@ -40,13 +40,17 @@ const CircularProgressBar: React.FC<{ progress: number }> = ({ progress }) => {
   const circumference = 2 * Math.PI * radius;
   const offset = circumference - (progress / 100) * circumference;
 
+  const colors = isGangster 
+    ? { stop1: "#fb923c", stop2: "#ea580c", shadow: "#f97316" }
+    : { stop1: "#60a5fa", stop2: "#2563eb", shadow: "#3b82f6" };
+
   return (
     <div
       className="relative"
       style={{
         width: size,
         height: size,
-        filter: "drop-shadow(0 0 7px #f97316)",
+        filter: `drop-shadow(0 0 7px ${colors.shadow})`,
       }}
     >
       <svg width={size} height={size} className="transform -rotate-90">
@@ -78,8 +82,8 @@ const CircularProgressBar: React.FC<{ progress: number }> = ({ progress }) => {
             x2="100%"
             y2="100%"
           >
-            <stop offset="0%" stopColor="#fb923c" />
-            <stop offset="100%" stopColor="#ea580c" />
+            <stop offset="0%" stopColor={colors.stop1} />
+            <stop offset="100%" stopColor={colors.stop2} />
           </linearGradient>
         </defs>
       </svg>
@@ -89,13 +93,18 @@ const CircularProgressBar: React.FC<{ progress: number }> = ({ progress }) => {
 
 const LevelPanel = React.memo(({ user }: { user: any }) => {
   const progress = user.xp_needed ? (user.xp / user.xp_needed) * 100 : 0;
+  const factionName = typeof user?.faction === 'string' 
+    ? user.faction 
+    : (user?.faction as any)?.name ?? "GANGSTERS";
+  const isGangster = factionName.toLowerCase().includes("gangster");
+
   return (
     <DashboardPanel
       title="NÍVEL"
-      icon={<BoltIcon className="w-6 h-6 text-orange-400" />}
+      icon={<BoltIcon className={`w-6 h-6 ${isGangster ? "text-orange-400" : "text-blue-400"}`} />}
     >
       <div className="flex flex-col sm:flex-row items-center justify-center sm:justify-around text-center sm:text-left h-full gap-4 p-2">
-        <CircularProgressBar progress={progress} />
+        <CircularProgressBar progress={progress} isGangster={isGangster} />
         <div className="text-slate-300 space-y-1 text-sm">
           <p>
             <span className="font-bold text-white">
