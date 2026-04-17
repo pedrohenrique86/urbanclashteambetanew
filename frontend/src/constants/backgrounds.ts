@@ -74,7 +74,7 @@ export const PAGE_BACKGROUNDS: BackgroundMap = {
     overlay: "bg-black/50",
     position: "bg-center",
   },
-  "/supply-extraction": (profile: any) => {
+  "/supply-station": (profile: any) => {
     const faction = typeof profile?.faction === "string" ? profile.faction : profile?.faction?.name;
     return {
       src: faction === "guardas" ? supplyGuardBg : supplyGangsterBg,

@@ -25,7 +25,7 @@ const ContractsPage = lazy(() => import("./pages/ContractsPage"));
 const ReckoningPage = lazy(() => import("./pages/ReckoningPage"));
 const SquadWarPage = lazy(() => import("./pages/SquadWarPage"));
 const ProfilePage = lazy(() => import("./pages/ProfilePage"));
-const SupplyExtractionPage = lazy(() => import("./pages/SupplyExtractionPage"));
+const SupplyStationPage = lazy(() => import("./pages/SupplyStationPage"));
 const RecoveryBasePage = lazy(() => import("./pages/RecoveryBasePage"));
 const IsolationPage = lazy(() => import("./pages/IsolationPage"));
 const DarkZonesPage = lazy(() => import("./pages/DarkZonesPage"));
@@ -99,7 +99,7 @@ const router = createBrowserRouter([
           { path: "contracts", element: <ContractsPage /> },
           { path: "reckoning", element: <ReckoningPage /> },
           { path: "squad-war", element: <SquadWarPage /> },
-          { path: "supply-extraction", element: <SupplyExtractionPage /> },
+          { path: "supply-station", element: <SupplyStationPage /> },
           { path: "recovery-base", element: <RecoveryBasePage /> },
           { path: "isolation", element: <IsolationPage /> },
           { path: "dark-zones", element: <DarkZonesPage /> },

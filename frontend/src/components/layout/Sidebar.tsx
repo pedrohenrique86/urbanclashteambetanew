@@ -108,7 +108,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         },
         {
           title: "Estação de Suprimentos",
-          path: "/supply-extraction",
+          path: "/supply-station",
           icon: <BuildingStorefrontIcon className="w-5 h-5" />,
         },
         {

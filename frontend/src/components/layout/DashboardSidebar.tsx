@@ -73,7 +73,7 @@ export const navItems: NavItem[] = [
       },
       {
         name: "Estação de Suprimentos",
-        path: "/supply-extraction",
+        path: "/supply-station",
         icon: <BuildingStorefrontIcon className="w-4 h-4" />,
       },
       {
