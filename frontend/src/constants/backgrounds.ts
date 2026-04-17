@@ -26,6 +26,7 @@ import safeBg from "../assets/safe.webp";
 import corporationsBg from "../assets/corporations.webp";
 import qgChatGuardioes from "../assets/qg-chat-guardioes.webp";
 import qgChatRenegados from "../assets/qg-chat-renegados.webp";
+import zonaSocialBg from "../assets/zona-social.webp";
 
 export interface BackgroundConfig {
   src: string;
@@ -141,6 +142,11 @@ export const PAGE_BACKGROUNDS: BackgroundMap = {
   "/corporations": {
     src: corporationsBg,
     overlay: "bg-black/60",
+    position: "bg-center",
+  },
+  "/social-zone": {
+    src: zonaSocialBg,
+    overlay: "bg-black/40",
     position: "bg-center",
   },
   // Future pages can be registered here easily
