@@ -50,7 +50,7 @@ export default function RankingSection() {
 
   // Configurações para os diferentes tipos de ranking
   const gangsterConfig = {
-    title: "TOP 5 GANGSTERS",
+    title: "TOP 5 RENEGADOS",
     gradient: "from-orange-600 to-orange-500",
     bgColor: "bg-orange-600/20",
     borderColor: "border-orange-500/30",
@@ -60,7 +60,7 @@ export default function RankingSection() {
   };
 
   const guardConfig = {
-    title: "TOP 5 GUARDAS",
+    title: "TOP 5 GUARDIÕES",
     gradient: "from-blue-600 to-blue-400",
     bgColor: "bg-blue-500/20",
     borderColor: "border-blue-500/30",
@@ -121,6 +121,7 @@ export default function RankingSection() {
                 const roundedDate = new Date(lastUpdated);
                 roundedDate.setMinutes(
                   Math.floor(lastUpdated.getMinutes() / 10) * 10,
+                  0,
                   0,
                   0,
                 );

@@ -93,8 +93,8 @@ export function PrizesSection() {
             className="mt-8 text-center"
           >
             <p className="text-xl font-orbitron text-gray-300">
-              Top 3 <span className="text-orange-500 font-bold">Gangsters</span>
-              , <span className="text-blue-500 font-bold">Guardas</span> e{" "}
+              Top 3 <span className="text-orange-500 font-bold">Renegados</span>
+              , <span className="text-blue-500 font-bold">Guardiões</span> e{" "}
               <span className="text-purple-500 font-bold">Divisões</span> ganham!
             </p>
           </motion.div>

@@ -1,5 +1,6 @@
 import React, { useEffect } from "react";
 import { useUserProfile } from "../hooks/useUserProfile";
+import { getDisplayName } from "../utils/displayNames";
 import {
   BoltIcon,
   BanknotesIcon,
@@ -212,7 +213,7 @@ const FactionPanel = React.memo(({ user }: { user: any }) => {
             className={`text-2xl font-orbitron uppercase ${factionData.theme}`}
             style={{ textShadow: `0 0 5px ${factionData.shadow}` }}
           >
-            {factionName.toUpperCase()}
+            {getDisplayName(factionName).toUpperCase()}
           </h3>
           <p className="text-sm mt-2">
             Habilidade Especial:{" "}

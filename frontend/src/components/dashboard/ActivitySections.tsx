@@ -41,7 +41,7 @@ export function ActivitySections({
 
       {/* Clan Activities */}
       <div>
-        <h2 className={`text-2xl font-orbitron mb-6 ${themeClasses.text}`}>Atividades do Clã</h2>
+        <h2 className={`text-2xl font-orbitron mb-6 ${themeClasses.text}`}>Atividades da Divisão</h2>
         <div className={`${themeClasses.cardBg} rounded-lg ${themeClasses.shadow} overflow-hidden transition-colors duration-300`}>
           <ul className={`divide-y ${isDarkTheme ? 'divide-gray-700' : 'divide-gray-200'}`}>
             {clanActivities.map((activity) => (

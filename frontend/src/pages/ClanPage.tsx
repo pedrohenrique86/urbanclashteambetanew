@@ -101,7 +101,7 @@ export default function ClanPage() {
 
       let normalized: ClanData = {
         id: rawClan?.id || clanId,
-        name: rawClan?.name || "Clã",
+        name: rawClan?.name || "Divisão",
         description: rawClan?.description || "",
         faction: rawClan?.faction,
         member_count: Array.isArray(rawMembers)
@@ -130,13 +130,13 @@ export default function ClanPage() {
               : normalized.member_count,
           };
         } catch (error) {
-          console.warn("Falha ao carregar membros do clã:", error);
+          console.warn("Falha ao carregar membros da divisão:", error);
         }
       }
 
       setClan(normalized);
     } catch (e) {
-      setClanError("Erro ao carregar dados do clã");
+      setClanError("Erro ao carregar dados da divisão");
     } finally {
       setClanLoading(false);
     }
@@ -154,7 +154,7 @@ export default function ClanPage() {
 
       navigate("/qg");
     } catch (e) {
-      setClanError("Erro ao sair do clã");
+      setClanError("Erro ao sair da divisão");
     } finally {
       setLeaving(false);
       setConfirmLeave(false);
@@ -166,7 +166,7 @@ export default function ClanPage() {
       <div
         className={`min-h-screen ${themeClasses.bg} flex items-center justify-center`}
       >
-        <div className="text-white">Carregando dados do clã...</div>
+        <div className="text-white">Carregando dados da divisão...</div>
       </div>
     );
   }
@@ -210,11 +210,11 @@ export default function ClanPage() {
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div className="min-w-0">
             <h1 className="text-xl sm:text-2xl md:text-3xl font-orbitron font-extrabold tracking-tight truncate">
-              {clan?.name || "Clã"}
+              {clan?.name || "Divisão"}
             </h1>
 
             <p className="text-xs sm:text-sm text-white/80 mt-1 line-clamp-2 sm:line-clamp-none">
-              {clan?.description || "Descrição do clã."}
+              {clan?.description || "Descrição da divisão."}
             </p>
           </div>
 
@@ -288,7 +288,7 @@ export default function ClanPage() {
             className={`${themeClasses.cardBg} p-6 rounded-xl border ${themeClasses.border} flex-shrink-0`}
           >
             <h2 className={`text-xl font-bold mb-4 ${factionColor.accent}`}>
-              OPÇÕES DO CLÃ
+              OPÇÕES DA DIVISÃO
             </h2>
 
             <button
@@ -296,7 +296,7 @@ export default function ClanPage() {
               onClick={() => setConfirmLeave(true)}
               className="w-full px-4 py-2 bg-red-800 rounded hover:bg-red-700 transition-colors font-semibold"
             >
-              Sair do Clã
+              Sair da Divisão
             </button>
           </div>
         </div>
@@ -312,7 +312,7 @@ export default function ClanPage() {
             <h3 className="text-xl font-bold mb-4">Confirmar Saída</h3>
 
             <p className="text-gray-300 mb-6">
-              Tem certeza de que deseja sair do clã &quot;{clan?.name}&quot;?
+              Tem certeza de que deseja sair da divisão &quot;{clan?.name}&quot;?
             </p>
 
             <div className="flex justify-center gap-4">

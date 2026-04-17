@@ -15,10 +15,10 @@ export default function FactionCard({
 
   const config = {
     gangsters: {
-      title: "GANGSTERS",
+      title: "RENEGADOS",
       color: "orange",
       description:
-        "Domine as ruas com estratégia e força. Os Gangsters controlam o submundo.",
+        "Domine as ruas com estratégia e força. Os Renegados controlam o submundo.",
       strength: "Intimidação e controle territorial",
       weakness: "Vulnerabilidade à lei e ordem",
       powerLabel: "Poder",
@@ -32,10 +32,10 @@ export default function FactionCard({
       ),
     },
     guardas: {
-      title: "GUARDAS",
+      title: "GUARDIÕES",
       color: "blue",
       description:
-        "Mantenha a ordem e proteja a cidade. Os Guardas defendem a lei e combatem o crime.",
+        "Mantenha a ordem e proteja a cidade. Os Guardiões defendem a lei e combatem o crime.",
       strength: "Autoridade e disciplina",
       weakness: "Limitados por regras e burocracia",
       powerLabel: "Proteção",

@@ -208,7 +208,7 @@ const EmptyRankingItem = React.memo(function EmptyRankingItem({ position, type }
           </span>
 
           <span className="min-w-0 flex-1 text-sm italic text-gray-500">
-            {type === "clan" ? "Aguardando clã..." : "Aguardando jogador..."}
+            {type === "clan" ? "Aguardando divisão..." : "Aguardando jogador..."}
           </span>
         </div>
 

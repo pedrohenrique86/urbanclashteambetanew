@@ -3,6 +3,7 @@ import { useUserProfile } from '../hooks/useUserProfile';
 import { useClans } from '../hooks/useClans';
 import { apiClient } from '../lib/supabaseClient';
 import { motion } from 'framer-motion';
+import { getDisplayName } from '../utils/displayNames';
 
 const FactionColors = {
   guardas: {
@@ -44,8 +45,8 @@ const SelecaoClasPage: React.FC = () => {
       // Atualização otimista: atualiza o estado local sem recarregar tudo.
       setUserProfile({ ...userProfile, clan_id: String(clanId) });
     } catch (err) {
-      console.error("Erro ao entrar no clã:", err);
-      setJoinError("Não foi possível entrar no clã. Tente novamente.");
+      console.error("Erro ao entrar na divisão:", err);
+      setJoinError("Não foi possível entrar na divisão. Tente novamente.");
       setJoiningClanId(null);
     }
   };
@@ -53,7 +54,7 @@ const SelecaoClasPage: React.FC = () => {
   const colors = FactionColors[factionName];
 
   if (isLoadingClans) {
-    return <div className="flex items-center justify-center h-screen bg-black text-white">Carregando clãs...</div>;
+    return <div className="flex items-center justify-center h-screen bg-black text-white">Carregando divisões...</div>;
   }
 
   return (
@@ -67,9 +68,9 @@ const SelecaoClasPage: React.FC = () => {
         transition={{ duration: 0.5 }}
         className="text-center mb-8 md:mb-12"
       >
-        <h1 className="text-3xl md:text-4xl font-bold font-orbitron">ESCOLHA SEU CLÃ</h1>
+        <h1 className="text-3xl md:text-4xl font-bold font-orbitron">ESCOLHA SUA DIVISÃO</h1>
         <p className="text-gray-300 mt-2">
-          Junte-se a um clã para lutar ao lado da sua facção: <span className={`font-bold ${factionName === 'guardas' ? 'text-blue-400' : 'text-orange-400'}`}>{factionName}</span>
+          Junte-se a uma divisão para lutar ao lado da sua facção: <span className={`font-bold ${factionName === 'guardas' ? 'text-blue-400' : 'text-orange-400'}`}>{getDisplayName(factionName)}</span>
         </p>
       </motion.div>
 
@@ -80,7 +81,7 @@ const SelecaoClasPage: React.FC = () => {
         {clans && clans.map((clan, index) => {
           const isJoining = joiningClanId === clan.id;
           const isFull = clan.member_count >= clan.max_members;
-          const statusText = isFull ? 'CHEIO' : 'RECRUTANDO';
+          const statusText = isFull ? 'CHEIA' : 'RECRUTANDO';
           const statusColor = isFull ? 'bg-red-500/80' : 'bg-green-500/80';
 
           return (
@@ -108,7 +109,7 @@ const SelecaoClasPage: React.FC = () => {
                   disabled={isJoining || joiningClanId !== null || isFull}
                   className={`w-full mt-auto font-bold py-2 px-4 rounded-lg transition-all duration-300 text-white ${isFull ? 'bg-gray-600 cursor-not-allowed' : colors.button} disabled:opacity-50 disabled:cursor-wait`}
                 >
-                  {isJoining ? 'ENTRANDO...' : (isFull ? 'CLÃ CHEIO' : 'JUNTAR-SE')}
+                  {isJoining ? 'ENTRANDO...' : (isFull ? 'DIVISÃO CHEIA' : 'JUNTAR-SE')}
                 </button>
               </div>
             </motion.div>

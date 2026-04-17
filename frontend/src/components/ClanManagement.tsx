@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { apiClient } from "../lib/supabaseClient";
 import { motion } from "framer-motion";
+import { getDisplayName } from "../utils/displayNames";
 
 interface Clan {
   id: string;
@@ -30,13 +31,13 @@ export default function ClanManagement() {
       const data = await apiClient.getClans();
 
       if (!data) {
-        setError("Erro ao carregar clãs");
+        setError("Erro ao carregar divisões");
         return;
       }
 
       setClans(data || []);
     } catch (error) {
-      setError("Erro ao carregar clãs");
+      setError("Erro ao carregar divisões");
     } finally {
       setLoading(false);
     }
@@ -60,7 +61,7 @@ export default function ClanManagement() {
   if (error) {
     return (
       <div className="bg-red-900/20 border border-red-500 rounded-lg p-4 text-red-400">
-        <h3 className="font-bold mb-2">Erro ao carregar clãs</h3>
+        <h3 className="font-bold mb-2">Erro ao carregar divisões</h3>
         <p>{error}</p>
         <button
           onClick={fetchClans}
@@ -78,27 +79,27 @@ export default function ClanManagement() {
       <div className="bg-gray-800 rounded-lg p-6">
         <h2 className="text-2xl font-orbitron font-bold mb-4 text-center">
           <span className="text-transparent bg-gradient-to-r from-orange-400 to-blue-400 bg-clip-text">
-            Gerenciamento de Clãs
+            Gerenciamento de Divisões
           </span>
         </h2>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
           <div className="bg-orange-900/20 border border-orange-500 rounded-lg p-4 text-center">
-            <h3 className="text-orange-400 font-bold text-lg">Gangsters</h3>
+            <h3 className="text-orange-400 font-bold text-lg">{getDisplayName("gangsters")}</h3>
             <p className="text-2xl font-bold">{gangsterClans.length}</p>
-            <p className="text-sm text-gray-400">clãs ativos</p>
+            <p className="text-sm text-gray-400">divisões ativas</p>
           </div>
 
           <div className="bg-blue-900/20 border border-blue-500 rounded-lg p-4 text-center">
-            <h3 className="text-blue-400 font-bold text-lg">Guardas</h3>
+            <h3 className="text-blue-400 font-bold text-lg">{getDisplayName("guardas")}</h3>
             <p className="text-2xl font-bold">{guardClans.length}</p>
-            <p className="text-sm text-gray-400">clãs ativos</p>
+            <p className="text-sm text-gray-400">divisões ativas</p>
           </div>
 
           <div className="bg-gray-700 rounded-lg p-4 text-center">
             <h3 className="text-gray-300 font-bold text-lg">Total</h3>
             <p className="text-2xl font-bold">{clans.length}</p>
-            <p className="text-sm text-gray-400">clãs no sistema</p>
+            <p className="text-sm text-gray-400">divisões no sistema</p>
           </div>
         </div>
 
@@ -120,15 +121,13 @@ export default function ClanManagement() {
             >
               {faction === "all"
                 ? "Todos"
-                : faction === "gangsters"
-                  ? "Gangsters"
-                  : "Guardas"}
+                : getDisplayName(faction)}
             </button>
           ))}
         </div>
       </div>
 
-      {/* Lista de clãs */}
+      {/* Lista de divisões */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {filteredClans.map((clan, index) => (
           <motion.div
@@ -151,7 +150,7 @@ export default function ClanManagement() {
                     : "bg-blue-900/50 text-blue-400"
                 }`}
               >
-                {clan.faction === "gangsters" ? "Gangster" : "Guarda"}
+                {getDisplayName(clan.faction)}
               </span>
             </div>
 
@@ -204,7 +203,7 @@ export default function ClanManagement() {
       {filteredClans.length === 0 && (
         <div className="text-center py-12 text-gray-400">
           <p className="text-lg">
-            Nenhum clã encontrado para o filtro selecionado.
+            Nenhuma divisão encontrada para o filtro selecionado.
           </p>
         </div>
       )}
@@ -212,23 +211,23 @@ export default function ClanManagement() {
       {/* Informações sobre regras */}
       <div className="bg-gray-800 rounded-lg p-6">
         <h3 className="text-xl font-bold mb-4 text-center text-gray-300">
-          Regras dos Clãs
+          Regras das Divisões
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm">
           <div className="space-y-2">
             <h4 className="font-bold text-orange-400">Capacidade</h4>
             <ul className="space-y-1 text-gray-300">
-              <li>• Cada clã suporta até 40 jogadores</li>
+              <li>• Cada divisão suporta até 40 jogadores</li>
               <li>• Vagas são preenchidas por ordem de entrada</li>
             </ul>
           </div>
 
           <div className="space-y-2">
-            <h4 className="font-bold text-blue-400">Mudanças de Clã</h4>
+            <h4 className="font-bold text-blue-400">Mudanças de Divisão</h4>
             <ul className="space-y-1 text-gray-300">
               <li>• Permanência mínima: 24 horas</li>
               <li>• Cooldown após sair: 6 horas</li>
-              <li>• Apenas clãs da mesma facção</li>
+              <li>• Apenas divisões da mesma facção</li>
             </ul>
           </div>
         </div>

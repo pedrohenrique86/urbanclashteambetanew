@@ -12,7 +12,7 @@ const timelineData = [
     section: "Facções",
     title: "Escolha Sua Facção",
     description:
-      "Gangsters, Guardas ou Clãs - cada um com suas características",
+      "Renegados, Guardiões ou Divisões - cada um com suas características",
     icon: "⚔️",
     color: "from-blue-500 to-cyan-500",
     id: "factions",

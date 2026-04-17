@@ -29,19 +29,19 @@ export function FactionsSection() {
   const factions = [
     {
       image: cardGangsters,
-      alt: "Card da facção Gangsters",
+      alt: "Card da facção Renegados",
       style: factionStyles.gangsters,
       delay: 0.3,
     },
     {
       image: cardGuardas,
-      alt: "Card da facção Guardas",
+      alt: "Card da facção Guardiões",
       style: factionStyles.guardas,
       delay: 0.4,
     },
     {
       image: cardClans,
-      alt: "Card sobre os Clãs",
+      alt: "Card sobre as Divisões",
       style: factionStyles.clans,
       delay: 0.5,
     },

@@ -61,9 +61,9 @@ const ActivitySection: React.FC<ActivitySectionProps> = ({ recentActivities, cla
         )}
       </div>
 
-      {/* Clan Activities */}
+      {/* Division Activities */}
       <div className={`${themeClasses.cardBg} p-4 rounded-lg ${themeClasses.shadow} transition-colors duration-300`}>
-        <h2 className={`${themeClasses.text} text-xl font-bold mb-4`}>Atividades do Clã</h2>
+        <h2 className={`${themeClasses.text} text-xl font-bold mb-4`}>Atividades da Divisão</h2>
         {clanActivities.length > 0 ? (
           <ul className="space-y-3">
             {clanActivities.map((activity) => (
@@ -78,7 +78,7 @@ const ActivitySection: React.FC<ActivitySectionProps> = ({ recentActivities, cla
                 <div className="flex flex-col items-end">
                   <span className={`${themeClasses.textSecondary} text-xs`}>{activity.time}</span>
                   <span className={`text-xs mt-1 ${activity.type === 'win' ? 'text-green-500' : activity.type === 'loss' ? 'text-red-500' : 'text-purple-500'}`}>
-                    {activity.type === 'win' ? 'Vitória' : activity.type === 'loss' ? 'Derrota' : 'Clã'}
+                    {activity.type === 'win' ? 'Vitória' : activity.type === 'loss' ? 'Derrota' : 'Divisão'}
                   </span>
                 </div>
               </li>
@@ -89,8 +89,8 @@ const ActivitySection: React.FC<ActivitySectionProps> = ({ recentActivities, cla
             <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 text-gray-400 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
             </svg>
-            <p className={`${themeClasses.textSecondary} text-center`}>Nenhuma atividade do clã</p>
-            <p className={`${themeClasses.textSecondary} text-center text-sm mt-1`}>Junte-se a um clã para ver atividades</p>
+            <p className={`${themeClasses.textSecondary} text-center`}>Nenhuma atividade da divisão</p>
+            <p className={`${themeClasses.textSecondary} text-center text-sm mt-1`}>Junte-se a uma divisão para ver atividades</p>
           </div>
         )}
       </div>

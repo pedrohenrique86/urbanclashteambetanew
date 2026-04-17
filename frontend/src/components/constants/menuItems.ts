@@ -22,7 +22,7 @@ const activitiesMenuItems: MenuItem[] = [
 ];
 
 const socialMenuItems: MenuItem[] = [
-  { icon: "🏴", label: "Clã", path: "/clan" },
+  { icon: "🏴", label: "Divisão", path: "/clan" },
   { icon: "🏆", label: "Ranking", path: "/ranking" },
   { icon: "🏛️", label: "Praça", path: "/square" },
   { icon: "💪", label: "Academia", path: "/gym" },

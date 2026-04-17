@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { apiClient } from "../lib/supabaseClient";
 import { HUDCache } from "../hooks/useHUDCache";
+import { getDisplayName } from "../utils/displayNames";
 
 interface ClanIdentityModalProps {
   clanId: string;
@@ -115,7 +116,7 @@ const ClanIdentityModal = React.memo(
         <div className="fixed inset-0 z-[9000] flex items-center justify-center p-4 md:left-48">
           <motion.button
             type="button"
-            aria-label="Fechar painel do clã"
+            aria-label="Fechar painel da divisão"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -135,7 +136,7 @@ const ClanIdentityModal = React.memo(
               <div className="flex flex-col items-center gap-4 rounded-2xl border border-white/10 bg-stone-900/80 p-12 text-white backdrop-blur-xl">
                 <div className="h-12 w-12 animate-spin rounded-full border-b-2 border-purple-500" />
                 <p className="animate-pulse font-orbitron text-[10px] text-purple-400">
-                  ESCANEANDO REDE DE CLÃS...
+                  ESCANEANDO REDE DE DIVISÕES...
                 </p>
               </div>
             ) : clan ? (
@@ -167,7 +168,7 @@ const ClanIdentityModal = React.memo(
                 <div className="flex flex-col gap-6">
                   <div>
                     <h2 className="font-orbitron text-3xl font-extrabold uppercase italic tracking-tighter">
-                      {clan.name || "Clã"}
+                      {clan.name || "Divisão"}
                     </h2>
                     <p className="mt-2 text-sm text-gray-400">
                       {clan.description || "Sem descrição disponível."}
@@ -207,7 +208,7 @@ const ClanIdentityModal = React.memo(
                     <p className="text-xs text-gray-500">
                       Este clã pertence à facção{" "}
                       <span className="font-bold uppercase text-white">
-                        {clan.faction || "desconhecida"}
+                        {getDisplayName(clan.faction || "desconhecida")}
                       </span>
                     </p>
                   </div>
@@ -216,7 +217,7 @@ const ClanIdentityModal = React.memo(
             ) : (
               <div className="rounded-2xl border border-red-500/50 bg-stone-900/90 p-8 text-center text-white">
                 <p className="text-red-400">
-                  Clã não localizado na Digital Link.
+                  Divisão não localizada na Digital Link.
                 </p>
                 <button
                   type="button"
