@@ -9,7 +9,7 @@ export default function SupplyExtractionPage() {
       className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-8"
     >
       <div className="text-center">
-        <h2 className="text-2xl font-bold text-gray-300 mb-4">Extração de Suprimentos</h2>
+        <h2 className="text-2xl font-bold text-gray-300 mb-4">Estação de Suprimentos</h2>
         <p className="text-gray-400">Esta página está em desenvolvimento.</p>
       </div>
     </motion.div>
