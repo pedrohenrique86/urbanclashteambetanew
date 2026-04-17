@@ -18,6 +18,9 @@ import recoveryBaseBg from "../assets/recovery-base.webp";
 import supplyGangsterBg from "../assets/stretching station-gangsters.webp";
 import supplyGuardBg from "../assets/stretching station-guardas.webp";
 import isolationBg from "../assets/isolation.webp";
+import contractGuardiaoBg from "../assets/contract-guardiao.webp";
+import contractRenegadosBg from "../assets/contract-renegados.webp";
+import darkZonesBg from "../assets/dark-zones.webp";
 
 export interface BackgroundConfig {
   src: string;
@@ -91,6 +94,20 @@ export const PAGE_BACKGROUNDS: BackgroundMap = {
   "/isolation": {
     src: isolationBg,
     overlay: "bg-black/60",
+    position: "bg-center",
+  },
+  "/contracts": (profile: any) => {
+    const faction = typeof profile?.faction === "string" ? profile.faction : profile?.faction?.name;
+    const isGuard = faction?.toLowerCase() === "guardas";
+    return {
+      src: isGuard ? contractGuardiaoBg : contractRenegadosBg,
+      overlay: "bg-black/50",
+      position: "bg-center",
+    };
+  },
+  "/dark-zones": {
+    src: darkZonesBg,
+    overlay: "bg-black/70",
     position: "bg-center",
   },
   // Future pages can be registered here easily
