@@ -17,6 +17,7 @@ import squadWarBg from "../assets/squad-war.webp";
 import recoveryBaseBg from "../assets/recovery-base.webp";
 import supplyGangsterBg from "../assets/stretching station-gangsters.webp";
 import supplyGuardBg from "../assets/stretching station-guardas.webp";
+import isolationBg from "../assets/isolation.webp";
 
 export interface BackgroundConfig {
   src: string;
@@ -84,6 +85,11 @@ export const PAGE_BACKGROUNDS: BackgroundMap = {
   },
   "/recovery-base": {
     src: recoveryBaseBg,
+    overlay: "bg-black/60",
+    position: "bg-center",
+  },
+  "/isolation": {
+    src: isolationBg,
     overlay: "bg-black/60",
     position: "bg-center",
   },
