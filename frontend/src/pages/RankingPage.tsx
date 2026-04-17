@@ -5,11 +5,11 @@ import { useRankingCache } from "../hooks/useRankingCache";
 import { useHUD } from "../contexts/HUDContext";
 
 // Componente para item do ranking de jogadores
-const PlayerRankingItem = React.memo(({ player, gradient, onSelect }: {
+const PlayerRankingItem = React.memo(function PlayerRankingItem({ player, gradient, onSelect }: {
   player: Player;
   gradient: string;
   onSelect: (id: string) => void;
-}) => {
+}) {
   const getCountryFlag = (countryCode?: string) => {
     if (!countryCode) {
       return null;
@@ -90,11 +90,11 @@ const PlayerRankingItem = React.memo(({ player, gradient, onSelect }: {
 });
 
 // Componente para item do ranking de clãs
-const ClanRankingItem = React.memo(({ clan, gradient, onSelect }: {
+const ClanRankingItem = React.memo(function ClanRankingItem({ clan, gradient, onSelect }: {
   clan: Clan;
   gradient: string;
   onSelect: (id: string) => void;
-}) => {
+}) {
   const getClanIcon = (faction: string) => {
     return faction === "gangsters" ? "🔫" : "🛡️";
   };
@@ -162,10 +162,10 @@ const ClanRankingItem = React.memo(({ clan, gradient, onSelect }: {
 });
 
 // Componente para placeholder de posição vazia
-const EmptyRankingItem = React.memo(({ position, type }: {
+const EmptyRankingItem = React.memo(function EmptyRankingItem({ position, type }: {
   position: number;
   type: "player" | "clan";
-}) => {
+}) {
   const getPositionColor = (position: number) => {
     switch (position) {
       case 1:
@@ -222,12 +222,12 @@ const EmptyRankingItem = React.memo(({ position, type }: {
   );
 });
 
-const RankingColumn = React.memo(({ config, isLoading, onSelectPlayer, onSelectClan }: {
+const RankingColumn = React.memo(function RankingColumn({ config, isLoading, onSelectPlayer, onSelectClan }: {
   config: any;
   isLoading: boolean;
   onSelectPlayer: (id: string) => void;
   onSelectClan: (id: string) => void;
-}) => {
+}) {
   const dataMap = useMemo(() => {
     const map = new Map();
     if (config?.data) {

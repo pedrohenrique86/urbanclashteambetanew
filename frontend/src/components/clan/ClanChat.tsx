@@ -11,7 +11,7 @@ interface ClanChatProps {
   members?: ClanMember[];
 }
 
-const MessageList = React.memo(({ messages, userProfile, chatContainerRef, messagesEndRef }: any) => {
+const MessageList = React.memo(function MessageList({ messages, userProfile, chatContainerRef, messagesEndRef }: any) {
   const renderMessageText = (text: string) => {
     const parts = text.split(/(@[a-zA-Z0-9_\u00C0-\u017F]+)/g);
     return parts.map((part, i) => {
