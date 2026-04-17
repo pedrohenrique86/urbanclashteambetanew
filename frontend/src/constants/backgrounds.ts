@@ -14,6 +14,8 @@ import homeMobileBg from "../assets/home-mobile.webp";
 import acertoContasBg from "../assets/acerto-contas.webp";
 import cardClansBg from "../assets/cardclans-home.webp";
 import squadWarBg from "../assets/squad-war.webp";
+import supplyGangsterBg from "../assets/stretching station-gangsters.webp";
+import supplyGuardBg from "../assets/stretching station-guardas.webp";
 
 export interface BackgroundConfig {
   src: string;
@@ -70,6 +72,14 @@ export const PAGE_BACKGROUNDS: BackgroundMap = {
     src: squadWarBg,
     overlay: "bg-black/50",
     position: "bg-center",
+  },
+  "/supply-extraction": (profile: any) => {
+    const faction = typeof profile?.faction === "string" ? profile.faction : profile?.faction?.name;
+    return {
+      src: faction === "guardas" ? supplyGuardBg : supplyGangsterBg,
+      overlay: "bg-black/60",
+      position: "bg-center",
+    };
   },
   // Future pages can be registered here easily
 };
