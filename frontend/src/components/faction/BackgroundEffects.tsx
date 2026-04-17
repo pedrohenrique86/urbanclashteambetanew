@@ -6,7 +6,7 @@ interface BackgroundEffectsProps {
 
 export default function BackgroundEffects({ selectedFaction }: BackgroundEffectsProps) {
   return (
-    <div className="absolute inset-0 overflow-hidden">
+    <div className="fixed inset-0 overflow-hidden">
       <div className="absolute inset-0 bg-gradient-to-br from-gray-900 to-black opacity-90"></div>
 
       {/* Elementos de fundo temáticos baseados na facção selecionada */}
