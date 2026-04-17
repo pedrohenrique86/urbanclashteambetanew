@@ -322,24 +322,24 @@ export default function RankingPage() {
 
   const rankingConfigs = useMemo(() => [
     {
-      title: "🔫 TOP 26 GANGSTERS",
-      shortTitle: "GANGSTERS",
+      title: "🔫 TOP 26 RENEGADOS",
+      shortTitle: "RENEGADOS",
       gradient: "from-orange-600 to-red-500",
       borderColor: "border-orange-500/30",
       data: gangsters,
       type: "player" as const,
     },
     {
-      title: "🛡️ TOP 26 GUARDAS",
-      shortTitle: "GUARDAS",
+      title: "🛡️ TOP 26 GUARDIÕES",
+      shortTitle: "GUARDIÕES",
       gradient: "from-blue-600 to-cyan-500",
       borderColor: "border-blue-500/30",
       data: guardas,
       type: "player" as const,
     },
     {
-      title: "👥 TOP 26 CLÃS",
-      shortTitle: "CLÃS",
+      title: "👥 TOP 26 DIVISÕES",
+      shortTitle: "DIVISÕES",
       gradient: "from-purple-600 to-pink-500",
       borderColor: "border-purple-500/30",
       data: clans,
