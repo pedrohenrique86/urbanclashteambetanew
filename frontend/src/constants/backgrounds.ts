@@ -13,7 +13,6 @@ import homeBg from "../assets/home.webp";
 import homeMobileBg from "../assets/home-mobile.webp";
 import acertoContasBg from "../assets/acerto-contas.webp";
 import cardClansBg from "../assets/cardclans-home.webp";
-import becoBg from "../assets/beco1.png";
 
 export interface BackgroundConfig {
   src: string;
@@ -65,11 +64,6 @@ export const PAGE_BACKGROUNDS: BackgroundMap = {
     src: cardClansBg,
     overlay: "bg-black/60",
     blur: true,
-  },
-  "/training": {
-    src: becoBg,
-    overlay: "bg-black/50",
-    position: "bg-center",
   },
   // Future pages can be registered here easily
 };
