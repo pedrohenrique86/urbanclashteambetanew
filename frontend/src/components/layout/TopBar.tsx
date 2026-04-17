@@ -22,8 +22,12 @@ const TopBar: React.FC<TopBarProps> = ({
     return null;
   }
   
+  const userFaction = typeof userProfile?.faction === 'string' 
+    ? userProfile.faction 
+    : (userProfile?.faction as any)?.name;
+
   const usernameGradient =
-    userProfile?.faction === "gangsters"
+    userFaction === "gangsters"
       ? "from-orange-300 to-orange-600"
       : "from-blue-300 to-blue-600";
 

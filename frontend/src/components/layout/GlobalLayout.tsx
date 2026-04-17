@@ -162,7 +162,7 @@ const GlobalLayout: React.FC<GlobalLayoutProps> = ({ children }) => {
           <DashboardSidebar
             username={userProfile?.username}
             faction={
-              userProfile?.faction?.name as
+              (userProfile?.faction?.name || userProfile?.faction) as
               | "gangsters"
               | "guardas"
               | undefined

@@ -44,9 +44,18 @@ const MessageList = React.memo(function MessageList({ messages, userProfile, cha
         const isMe = msg.userId === userProfile?.id;
         const displayUsername = msg.username || (isMe ? userProfile?.username : 'Membro');
         
+        // Determinar a cor baseada na facção (para o próprio usuário)
+        const userFaction = typeof userProfile?.faction === 'string' 
+          ? userProfile.faction 
+          : userProfile?.faction?.name;
+        
+        const nameColorClass = isMe 
+          ? (userFaction === 'gangsters' ? 'text-orange-400' : 'text-blue-400')
+          : 'text-green-400';
+          
         return (
           <div key={index} className="text-sm break-words leading-relaxed">
-            <span className={`font-bold ${isMe ? "text-blue-400" : "text-green-400"}`}>
+            <span className={`font-bold ${nameColorClass}`}>
               {displayUsername}
             </span>
             <span className="text-gray-500 text-xs mx-1">

@@ -58,6 +58,11 @@ const StatsCards: React.FC<StatsCardsProps> = ({
     xpRequiredForLevel > 0
       ? Math.round((currentLevelXP / xpRequiredForLevel) * 100)
       : 0;
+
+  const userFaction = typeof userProfile?.faction === 'string' 
+    ? userProfile.faction 
+    : (userProfile?.faction as any)?.name;
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
       {/* Level Card */}
@@ -168,16 +173,16 @@ const StatsCards: React.FC<StatsCardsProps> = ({
         </h2>
         <div className="flex justify-between items-center">
           <p
-            className={`text-2xl font-bold ${userProfile?.faction === "gangsters" ? "text-orange-500" : "text-blue-500"}`}
+            className={`text-2xl font-bold ${userFaction === "gangsters" ? "text-orange-500" : "text-blue-500"}`}
           >
-            {userProfile?.faction === "gangsters" ? "GANGSTERS" : "GUARDAS"}
+            {userFaction === "gangsters" ? "GANGSTERS" : "GUARDAS"}
           </p>
           <div
-            className={`rounded-full p-3 ${userProfile?.faction === "gangsters" ? "bg-orange-100 dark:bg-orange-900" : "bg-blue-100 dark:bg-blue-900"}`}
+            className={`rounded-full p-3 ${userFaction === "gangsters" ? "bg-orange-100 dark:bg-orange-900" : "bg-blue-100 dark:bg-blue-900"}`}
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
-              className={`h-6 w-6 ${userProfile?.faction === "gangsters" ? "text-orange-500" : "text-blue-500"}`}
+              className={`h-6 w-6 ${userFaction === "gangsters" ? "text-orange-500" : "text-blue-500"}`}
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -192,7 +197,7 @@ const StatsCards: React.FC<StatsCardsProps> = ({
           </div>
         </div>
         <div className="mt-4 space-y-2">
-          {userProfile?.faction === "gangsters" ? (
+          {userFaction === "gangsters" ? (
             <>
               <div className="flex justify-between items-center">
                 <span className={`${themeClasses.textSecondary} text-sm`}>

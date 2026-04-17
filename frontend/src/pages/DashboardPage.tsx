@@ -171,18 +171,24 @@ const ResourcesPanel = React.memo(({ user }: { user: any }) => (
 ));
 
 // --- Painel de Facção ---
-const FactionPanel = React.memo(({ user }: { user: any }) => (
-  <DashboardPanel
-    title="FACÇÃO"
-    icon={<ShieldCheckIcon className="w-6 h-6 text-orange-400" />}
-  >
-    <div className="h-full flex flex-col justify-center items-center text-center text-slate-300">
-      <h3
-        className="text-2xl font-orbitron text-orange-400 uppercase"
-        style={{ textShadow: "0 0 5px #f97316" }}
+const FactionPanel = React.memo(({ user }: { user: any }) => {
+  const factionName = typeof user?.faction === 'string' 
+    ? user.faction 
+    : (user?.faction as any)?.name ?? "GANGSTERS";
+  const isGangster = factionName.toLowerCase().includes("gangster");
+    
+    return (
+      <DashboardPanel
+        title="FACÇÃO"
+        icon={<ShieldCheckIcon className={`w-6 h-6 ${isGangster ? "text-orange-400" : "text-blue-400"}`} />}
       >
-        {user.faction?.name ?? "GANGSTERS"}
-      </h3>
+        <div className="h-full flex flex-col justify-center items-center text-center text-slate-300">
+          <h3
+            className={`text-2xl font-orbitron uppercase ${isGangster ? "text-orange-400" : "text-blue-400"}`}
+            style={{ textShadow: `0 0 5px ${isGangster ? "#f97316" : "#3b82f6"}` }}
+          >
+            {factionName.toUpperCase()}
+          </h3>
       <p className="text-sm mt-2">
         Habilidade Especial:{" "}
         <span className="font-bold text-white">Intimidação</span>
@@ -191,9 +197,10 @@ const FactionPanel = React.memo(({ user }: { user: any }) => (
         Valor: <span className="font-bold text-white">35.0%</span>
       </p>
       <p className="text-xs">Reduz a defesa do oponente</p>
-    </div>
-  </DashboardPanel>
-));
+      </div>
+    </DashboardPanel>
+    );
+});
 
 // --- Painel de Estatísticas ---
 const OrangeLineChart: React.FC = () => (
