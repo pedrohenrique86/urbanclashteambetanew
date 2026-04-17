@@ -7,13 +7,13 @@
  */
 
 import dashbgangster from "../assets/dashbgangster.webp";
-import dashguardas from "../../assets/dashguardas.webp";
-import rankingBg from "../../assets/ranking.webp";
-import homeBg from "../../assets/home.webp";
-import homeMobileBg from "../../assets/home-mobile.webp";
-import acertoContasBg from "../../assets/acerto-contas.webp";
-import cardClansBg from "../../assets/cardclans-home.webp";
-import becoBg from "../../assets/beco1.png";
+import dashguardas from "../assets/dashguardas.webp";
+import rankingBg from "../assets/ranking.webp";
+import homeBg from "../assets/home.webp";
+import homeMobileBg from "../assets/home-mobile.webp";
+import acertoContasBg from "../assets/acerto-contas.webp";
+import cardClansBg from "../assets/cardclans-home.webp";
+import becoBg from "../assets/beco1.png";
 
 export interface BackgroundConfig {
   src: string;
