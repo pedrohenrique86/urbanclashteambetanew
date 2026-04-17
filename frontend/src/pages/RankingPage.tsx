@@ -1,15 +1,15 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
 import { Player, Clan } from "../types/ranking";
 import { useRankingCache } from "../hooks/useRankingCache";
 import { useHUD } from "../contexts/HUDContext";
 
 // Componente para item do ranking de jogadores
-const PlayerRankingItem: React.FC<{
+const PlayerRankingItem = React.memo(({ player, gradient, onSelect }: {
   player: Player;
   gradient: string;
   onSelect: (id: string) => void;
-}> = ({ player, gradient, onSelect }) => {
+}) => {
   const getCountryFlag = (countryCode?: string) => {
     if (!countryCode) {
       return null;
@@ -87,14 +87,14 @@ const PlayerRankingItem: React.FC<{
       </div>
     </motion.div>
   );
-};
+});
 
 // Componente para item do ranking de clãs
-const ClanRankingItem: React.FC<{
+const ClanRankingItem = React.memo(({ clan, gradient, onSelect }: {
   clan: Clan;
   gradient: string;
   onSelect: (id: string) => void;
-}> = ({ clan, gradient, onSelect }) => {
+}) => {
   const getClanIcon = (faction: string) => {
     return faction === "gangsters" ? "🔫" : "🛡️";
   };
@@ -159,13 +159,13 @@ const ClanRankingItem: React.FC<{
       </div>
     </motion.div>
   );
-};
+});
 
 // Componente para placeholder de posição vazia
-const EmptyRankingItem: React.FC<{
+const EmptyRankingItem = React.memo(({ position, type }: {
   position: number;
   type: "player" | "clan";
-}> = ({ position, type }) => {
+}) => {
   const getPositionColor = (position: number) => {
     switch (position) {
       case 1:
@@ -220,14 +220,25 @@ const EmptyRankingItem: React.FC<{
       </div>
     </div>
   );
-};
+});
 
-const RankingColumn: React.FC<{
+const RankingColumn = React.memo(({ config, isLoading, onSelectPlayer, onSelectClan }: {
   config: any;
   isLoading: boolean;
   onSelectPlayer: (id: string) => void;
   onSelectClan: (id: string) => void;
-}> = ({ config, isLoading, onSelectPlayer, onSelectClan }) => (
+}) => {
+  const dataMap = useMemo(() => {
+    const map = new Map();
+    if (config?.data) {
+      config.data.forEach((d: any) => {
+        if (d.position !== undefined) map.set(d.position, d);
+      });
+    }
+    return map;
+  }, [config?.data]);
+
+  return (
   <motion.div
     initial={{ opacity: 0, y: 50 }}
     animate={{ opacity: 1, y: 0 }}
@@ -255,7 +266,7 @@ const RankingColumn: React.FC<{
         ))
         : Array.from({ length: 26 }, (_, idx) => {
           const position = idx + 1;
-          const item = config.data.find((d: any) => d.position === position);
+          const item = dataMap.get(position);
           const gradient = config.gradient;
 
           if (item) {
@@ -286,7 +297,8 @@ const RankingColumn: React.FC<{
         })}
     </div>
   </motion.div>
-);
+  );
+});
 
 export default function RankingPage() {
   const { openUserPanel, openClanPanel } = useHUD();
@@ -308,7 +320,7 @@ export default function RankingPage() {
     clans: [],
   };
 
-  const rankingConfigs = [
+  const rankingConfigs = useMemo(() => [
     {
       title: "🔫 TOP 26 GANGSTERS",
       shortTitle: "GANGSTERS",
@@ -333,7 +345,7 @@ export default function RankingPage() {
       data: clans,
       type: "clan" as const,
     },
-  ];
+  ], [gangsters, guardas, clans]);
 
   const currentConfig = rankingConfigs[selectedRanking];
 
