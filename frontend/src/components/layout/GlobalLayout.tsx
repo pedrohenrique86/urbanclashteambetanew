@@ -13,6 +13,7 @@ import ScrollToTopButton from "./ScrollToTopButton";
 import DigitalIdentityModal from "../DigitalIdentityModal";
 import ClanIdentityModal from "../ClanIdentityModal";
 import { DynamicBackground } from "./DynamicBackground";
+import { PAGE_BACKGROUNDS } from "../../constants/backgrounds";
 
 /**
  * Micro-componente isolado que consome o GameClockContext.
@@ -143,9 +144,11 @@ const GlobalLayout: React.FC<GlobalLayoutProps> = ({ children }) => {
 
   const isDashboard = location.pathname === "/dashboard";
 
+  const hasDynamicBackground = !!PAGE_BACKGROUNDS[location.pathname];
+
   return (
     <div
-      className={`h-screen font-exo text-white ${isDashboard ? "" : themeClasses.bg} overflow-hidden flex flex-col`}
+      className={`h-screen font-exo text-white ${hasDynamicBackground ? "" : themeClasses.bg} overflow-hidden flex flex-col`}
       onTouchStart={onTouchStartObj}
       onTouchMove={onTouchMoveObj}
       onTouchEnd={onTouchEndObj}
