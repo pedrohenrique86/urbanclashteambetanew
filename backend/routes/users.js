@@ -187,58 +187,43 @@ function getFactionStats(faction) {
 // =========================
 router.get("/profile", authenticateToken, async (req, res) => {
   try {
-    const profileResult = await query(
-      `
-      SELECT 
-        p.*,
-        u.is_admin
-      FROM user_profiles p
-      JOIN users u ON p.user_id = u.id
-      WHERE p.user_id = $1
-      `,
-      [req.user.id],
-    );
+    const playerStateService = require("../services/playerStateService");
+    const profile = await playerStateService.getPlayerState(req.user.id);
 
-    if (profileResult.rows.length === 0) {
+    if (!profile) {
       return res.status(200).json(null);
     }
 
-    const clanResult = await query(
-      `SELECT clan_id FROM clan_members WHERE user_id = $1`,
-      [req.user.id],
-    );
-
-    const profile = profileResult.rows[0];
-    const clanMembership = clanResult.rows[0];
-
+    // Se o profile veio do Redis, os campos numéricos podem estar como strings.
+    // Garantimos a conversão para manter a compatibilidade com o frontend.
     const convertedProfile = {
       ...profile,
+      id: profile.user_id || profile.id, // Normalização de ID
       username: profile.username || profile.display_name,
-      is_admin: profile.is_admin,
-      clan_id: clanMembership ? clanMembership.clan_id : null,
-      attack: Number(profile.attack),
-      defense: Number(profile.defense),
-      focus: Number(profile.focus),
-      critical_damage: Number(profile.critical_damage),
-      critical_chance: Number(profile.critical_chance),
-      intimidation: Number(profile.intimidation),
-      discipline: Number(profile.discipline),
-      level: Number(profile.level),
-      energy: Number(profile.energy),
-      current_xp: Number(profile.current_xp),
-      xp_required: Number(profile.xp_required),
-      action_points: Number(profile.action_points),
-      money: Number(profile.money),
-      money_daily_gain: Number(profile.money_daily_gain || 0),
-      victories: Number(profile.victories),
-      defeats: Number(profile.defeats),
-      winning_streak: Number(profile.winning_streak),
+      is_admin: profile.is_admin === "1" || profile.is_admin === true || profile.is_admin === "true",
+      attack: parseFloat(profile.attack) || 0,
+      defense: parseFloat(profile.defense) || 0,
+      focus: parseFloat(profile.focus) || 0,
+      critical_damage: parseFloat(profile.critical_damage) || 0,
+      critical_chance: parseFloat(profile.critical_chance) || 0,
+      intimidation: parseFloat(profile.intimidation) || 0,
+      discipline: parseFloat(profile.discipline) || 0,
+      level: parseInt(profile.level, 10) || 1,
+      energy: parseInt(profile.energy, 10) || 0,
+      current_xp: parseInt(profile.experience_points || profile.current_xp, 10) || 0,
+      xp_required: parseInt(profile.xp_required, 10) || 0,
+      action_points: parseInt(profile.action_points, 10) || 0,
+      money: parseInt(profile.money, 10) || 0,
+      money_daily_gain: parseInt(profile.money_daily_gain || 0, 10),
+      victories: parseInt(profile.victories, 10) || 0,
+      defeats: parseInt(profile.defeats, 10) || 0,
+      winning_streak: parseInt(profile.winning_streak, 10) || 0,
     };
 
     const gameState = await getGameState();
     res.json({ ...convertedProfile, gameState });
   } catch (error) {
-    console.error("❌ Erro ao buscar perfil do usuário:", error.message);
+    console.error("❌ Erro ao buscar perfil do usuário (Redis):", error.message);
     res.status(500).json({ error: "Erro interno do servidor" });
   }
 });

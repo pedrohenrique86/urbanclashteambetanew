@@ -40,9 +40,12 @@ export interface UserProfile {
   wins?: number;
   losses?: number;
   streak?: number;
+  winning_streak?: number;
   attack?: number;
   defense?: number;
   focus?: number;
+  intimidation?: number;
+  discipline?: number;
   max_energy?: number;
   xp_required?: number;
   action_points?: number;
@@ -98,6 +101,8 @@ export const UserProfileProvider = ({ children }: { children: ReactNode }) => {
         attack: Number(profileData.attack) || 0,
         defense: Number(profileData.defense) || 0,
         focus: Number(profileData.focus) || 0,
+        intimidation: Number(profileData.intimidation) || 0,
+        discipline: Number(profileData.discipline) || 0,
         max_energy: Number(profileData.max_energy) || 100,
         xp_required: Number(profileData.xp_required) || 0,
         action_points: Number(profileData.action_points) || 0,

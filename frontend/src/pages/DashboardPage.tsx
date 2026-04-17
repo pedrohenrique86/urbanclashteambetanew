@@ -186,28 +186,44 @@ const FactionPanel = React.memo(({ user }: { user: any }) => {
     : (user?.faction as any)?.name ?? "GANGSTERS";
   const isGangster = factionName.toLowerCase().includes("gangster");
     
+  const factionData = isGangster
+    ? {
+        skill: "Intimidação",
+        value: user.intimidation || 0,
+        description: "Reduz a defesa do oponente",
+        theme: "text-orange-400",
+        shadow: "#f97316"
+      }
+    : {
+        skill: "Disciplina",
+        value: user.discipline || 0,
+        description: "Reduz o dano crítico recebido",
+        theme: "text-blue-400",
+        shadow: "#3b82f6"
+      };
+    
     return (
       <DashboardPanel
         title="FACÇÃO"
-        icon={<ShieldCheckIcon className={`w-6 h-6 ${isGangster ? "text-orange-400" : "text-blue-400"}`} />}
+        icon={<ShieldCheckIcon className={`w-6 h-6 ${factionData.theme}`} />}
       >
         <div className="h-full flex flex-col justify-center items-center text-center text-slate-300">
           <h3
-            className={`text-2xl font-orbitron uppercase ${isGangster ? "text-orange-400" : "text-blue-400"}`}
-            style={{ textShadow: `0 0 5px ${isGangster ? "#f97316" : "#3b82f6"}` }}
+            className={`text-2xl font-orbitron uppercase ${factionData.theme}`}
+            style={{ textShadow: `0 0 5px ${factionData.shadow}` }}
           >
             {factionName.toUpperCase()}
           </h3>
-      <p className="text-sm mt-2">
-        Habilidade Especial:{" "}
-        <span className="font-bold text-white">Intimidação</span>
-      </p>
-      <p className="text-xs">
-        Valor: <span className="font-bold text-white">35.0%</span>
-      </p>
-      <p className="text-xs">Reduz a defesa do oponente</p>
-      </div>
-    </DashboardPanel>
+          <p className="text-sm mt-2">
+            Habilidade Especial:{" "}
+            <span className="font-bold text-white">{factionData.skill}</span>
+          </p>
+          <p className="text-xs">
+            Valor: <span className="font-bold text-white">{factionData.value.toFixed(1)}%</span>
+          </p>
+          <p className="text-xs">{factionData.description}</p>
+        </div>
+      </DashboardPanel>
     );
 });
 
