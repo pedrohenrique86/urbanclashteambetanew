@@ -21,6 +21,8 @@ import isolationBg from "../assets/isolation.webp";
 import contractGuardiaoBg from "../assets/contract-guardiao.webp";
 import contractRenegadosBg from "../assets/contract-renegados.webp";
 import darkZonesBg from "../assets/dark-zones.webp";
+import parallelNetworkBg from "../assets/parallel-network.webp";
+import safeBg from "../assets/safe.webp";
 
 export interface BackgroundConfig {
   src: string;
@@ -108,6 +110,16 @@ export const PAGE_BACKGROUNDS: BackgroundMap = {
   "/dark-zones": {
     src: darkZonesBg,
     overlay: "bg-black/70",
+    position: "bg-center",
+  },
+  "/parallel-network": {
+    src: parallelNetworkBg,
+    overlay: "bg-black/60",
+    position: "bg-center",
+  },
+  "/safe": {
+    src: safeBg,
+    overlay: "bg-black/60",
     position: "bg-center",
   },
   // Future pages can be registered here easily
