@@ -11,6 +11,64 @@ interface ClanChatProps {
   members?: ClanMember[];
 }
 
+const MessageList = React.memo(({ messages, userProfile, chatContainerRef, messagesEndRef }: any) => {
+  const renderMessageText = (text: string) => {
+    const parts = text.split(/(@[a-zA-Z0-9_\u00C0-\u017F]+)/g);
+    return parts.map((part, i) => {
+      if (part.startsWith("@")) {
+        const isMentioningMe =
+          userProfile && part.toLowerCase() === `@${userProfile.username.toLowerCase()}`;
+        return (
+          <span
+            key={i}
+            className={`font-bold ${
+              isMentioningMe
+                ? "text-yellow-400 bg-yellow-400/20 px-1 rounded"
+                : "text-yellow-300"
+            }`}
+          >
+            {part}
+          </span>
+        );
+      }
+      return part;
+    });
+  };
+
+  return (
+    <div 
+      ref={chatContainerRef}
+      className="flex-1 p-3 overflow-y-auto bg-gray-900/50 rounded-md m-3 space-y-1 custom-scrollbar scroll-smooth"
+    >
+      {messages.map((msg: any, index: number) => {
+        const isMe = msg.userId === userProfile?.id;
+        const displayUsername = msg.username || (isMe ? userProfile?.username : 'Membro');
+        
+        return (
+          <div key={index} className="text-sm break-words leading-relaxed">
+            <span className={`font-bold ${isMe ? "text-blue-400" : "text-green-400"}`}>
+              {displayUsername}
+            </span>
+            <span className="text-gray-500 text-xs mx-1">
+              {new Date(msg.timestamp).toLocaleString([], {
+                day: "2-digit",
+                month: "2-digit",
+                year: "2-digit",
+                hour: "2-digit",
+                minute: "2-digit",
+              })}
+            </span>
+            <span className="text-gray-300">
+              : {renderMessageText(msg.text)}
+            </span>
+          </div>
+        );
+      })}
+      <div ref={messagesEndRef} />
+    </div>
+  );
+});
+
 export const ClanChat: React.FC<ClanChatProps> = ({ members = [] }) => {
   const { messages, sendMessage, isConnected } = useClanChat();
   const { userProfile } = useUserProfile();
@@ -105,28 +163,6 @@ export const ClanChat: React.FC<ClanChatProps> = ({ members = [] }) => {
     }
   };
 
-  const renderMessageText = (text: string) => {
-    const parts = text.split(/(@[a-zA-Z0-9_\u00C0-\u017F]+)/g);
-    return parts.map((part, i) => {
-      if (part.startsWith("@")) {
-        const isMentioningMe =
-          userProfile && part.toLowerCase() === `@${userProfile.username.toLowerCase()}`;
-        return (
-          <span
-            key={i}
-            className={`font-bold ${
-              isMentioningMe
-                ? "text-yellow-400 bg-yellow-400/20 px-1 rounded"
-                : "text-yellow-300"
-            }`}
-          >
-            {part}
-          </span>
-        );
-      }
-      return part;
-    });
-  };
 
   if (!isConnected) {
     return (
@@ -150,36 +186,12 @@ export const ClanChat: React.FC<ClanChatProps> = ({ members = [] }) => {
         </h3>
       </div>
 
-      <div 
-        ref={chatContainerRef}
-        className="flex-1 p-3 overflow-y-auto bg-gray-900/50 rounded-md m-3 space-y-1 custom-scrollbar scroll-smooth"
-      >
-        {messages.map((msg, index) => {
-          const isMe = msg.userId === userProfile?.id;
-          const displayUsername = msg.username || (isMe ? userProfile?.username : 'Membro');
-          
-          return (
-            <div key={index} className="text-sm break-words leading-relaxed">
-              <span className={`font-bold ${isMe ? "text-blue-400" : "text-green-400"}`}>
-                {displayUsername}
-              </span>
-              <span className="text-gray-500 text-xs mx-1">
-                {new Date(msg.timestamp).toLocaleString([], {
-                  day: "2-digit",
-                  month: "2-digit",
-                  year: "2-digit",
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })}
-              </span>
-              <span className="text-gray-300">
-                : {renderMessageText(msg.text)}
-              </span>
-            </div>
-          );
-        })}
-        <div ref={messagesEndRef} />
-      </div>
+      <MessageList
+        messages={messages}
+        userProfile={userProfile}
+        chatContainerRef={chatContainerRef}
+        messagesEndRef={messagesEndRef}
+      />
 
       {/* Formulário de Envio, Menções e Contador */}
       <div className="p-3 border-t border-gray-700 relative">
