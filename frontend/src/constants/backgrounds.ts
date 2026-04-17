@@ -23,6 +23,7 @@ import contractRenegadosBg from "../assets/contract-renegados.webp";
 import darkZonesBg from "../assets/dark-zones.webp";
 import parallelNetworkBg from "../assets/parallel-network.webp";
 import safeBg from "../assets/safe.webp";
+import corporationsBg from "../assets/corporations.webp";
 
 export interface BackgroundConfig {
   src: string;
@@ -119,6 +120,11 @@ export const PAGE_BACKGROUNDS: BackgroundMap = {
   },
   "/safe": {
     src: safeBg,
+    overlay: "bg-black/60",
+    position: "bg-center",
+  },
+  "/corporations": {
+    src: corporationsBg,
     overlay: "bg-black/60",
     position: "bg-center",
   },
