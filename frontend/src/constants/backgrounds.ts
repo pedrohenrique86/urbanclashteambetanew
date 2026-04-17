@@ -27,6 +27,8 @@ import corporationsBg from "../assets/corporations.webp";
 import qgChatGuardioes from "../assets/qg-chat-guardioes.webp";
 import qgChatRenegados from "../assets/qg-chat-renegados.webp";
 import zonaSocialBg from "../assets/zona-social.webp";
+import trainingGuardioes from "../assets/training-guardioes.webp";
+import trainingRenegados from "../assets/training-renegados.webp";
 
 export interface BackgroundConfig {
   src: string;
@@ -148,6 +150,15 @@ export const PAGE_BACKGROUNDS: BackgroundMap = {
     src: zonaSocialBg,
     overlay: "bg-black/40",
     position: "bg-center",
+  },
+  "/training": (profile: any) => {
+    const faction = typeof profile?.faction === "string" ? profile.faction : profile?.faction?.name;
+    const isGuard = faction?.toLowerCase() === "guardas";
+    return {
+      src: isGuard ? trainingGuardioes : trainingRenegados,
+      overlay: "bg-black/60",
+      position: "bg-center",
+    };
   },
   // Future pages can be registered here easily
 };
