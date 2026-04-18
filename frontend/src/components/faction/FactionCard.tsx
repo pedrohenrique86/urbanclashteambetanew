@@ -1,4 +1,4 @@
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import renegadosImg from "../../assets/card-select-faction-renegados.webp";
 import guardioesImg from "../../assets/card-select-faction-guardioes.webp";
 
@@ -35,8 +35,28 @@ export default function FactionCard({
       whileHover={{ y: -5 }}
       whileTap={{ scale: 0.98 }}
       onClick={() => onSelect(faction)}
-      className="relative w-full flex justify-center cursor-pointer transition-all duration-300"
+      className="relative w-full flex flex-col items-center cursor-pointer transition-all duration-300"
     >
+      {/* Protocol Active Status Label */}
+      <div className="h-8 mb-2 flex items-center justify-center">
+        <AnimatePresence>
+          {isSelected && (
+            <motion.div
+              initial={{ opacity: 0, y: 10, scale: 0.9 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 10, scale: 0.9 }}
+              className={`px-3 py-1 rounded-t-sm border-t-2 border-x-2 bg-gradient-to-b from-black/60 to-transparent backdrop-blur-sm ${
+                faction === "gangsters" ? "border-orange-500 text-orange-400" : "border-blue-500 text-blue-400"
+              }`}
+            >
+              <span className="text-[9px] font-black tracking-[0.3em] uppercase whitespace-nowrap">
+                Protocolo {faction === "gangsters" ? "Renegado" : "Guardião"} Ativo
+              </span>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+
       <div className={`relative transition-all duration-300 rounded-2xl border-4 ${c.borderClass} overflow-hidden`}>
         <img
           src={c.image}

@@ -97,23 +97,33 @@ export default function FactionSelectionPage() {
         >
           <FactionHeader />
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-10">
-            <FactionCard
-              faction="gangsters"
-              selectedFaction={selectedFaction}
-              onSelect={setSelectedFaction}
-            />
-            <FactionCard
-              faction="guardas"
-              selectedFaction={selectedFaction}
-              onSelect={setSelectedFaction}
-            />
-          </div>
+          <div className="flex flex-col md:flex-row items-center gap-4 md:gap-0 mb-10 relative">
+            {/* Lado Esquerdo - Renegados */}
+            <div className="w-full md:flex-1">
+              <FactionCard
+                faction="gangsters"
+                selectedFaction={selectedFaction}
+                onSelect={setSelectedFaction}
+              />
+            </div>
 
-          <ConfirmButton
-            selectedFaction={selectedFaction}
-            onConfirm={handleFactionSelect}
-          />
+            {/* Centro - Botão de Confirmação */}
+            <div className="z-30 md:mx-[-20px]">
+              <ConfirmButton
+                selectedFaction={selectedFaction}
+                onConfirm={handleFactionSelect}
+              />
+            </div>
+
+            {/* Lado Direito - Guardiões */}
+            <div className="w-full md:flex-1">
+              <FactionCard
+                faction="guardas"
+                selectedFaction={selectedFaction}
+                onSelect={setSelectedFaction}
+              />
+            </div>
+          </div>
         </motion.div>
       </AnimatePresence>
     </div>
