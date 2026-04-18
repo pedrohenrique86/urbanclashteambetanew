@@ -239,6 +239,7 @@ export const MobileAppDrawer: React.FC = () => {
   const handleDrawerTouchEnd = useCallback(() => {
     if (drawerTouchStartY.current === null) return;
 
+    // Se houve drag real
     if (drawerIsDragging.current) {
       if (!isOpen && drawerDragY < -SNAP_OPEN_PX) {
         setIsOpen(true);
@@ -246,17 +247,22 @@ export const MobileAppDrawer: React.FC = () => {
         setIsOpen(false);
         setIsEditMode(false);
       }
-    } else {
-      setIsOpen((prev) => {
-        if (prev) setIsEditMode(false);
-        return !prev;
-      });
     }
 
     setDrawerDragY(0);
     drawerTouchStartY.current = null;
     drawerIsDragging.current = false;
   }, [isOpen, drawerDragY]);
+
+  const toggleDrawer = useCallback(() => {
+    // Se estava arrastando não interagir (prevent ghost click)
+    if (drawerIsDragging.current) return;
+    
+    setIsOpen((prev) => {
+      if (prev) setIsEditMode(false);
+      return !prev;
+    });
+  }, []);
 
   const handleItemPointerDown = useCallback(
     (id: string) => {
@@ -354,9 +360,9 @@ export const MobileAppDrawer: React.FC = () => {
       )}
 
       <div
-        className="fixed bottom-0 left-0 right-0 z-[9990] md:hidden"
+        className="fixed bottom-0 left-0 right-0 z-[9990] md:hidden transition-transform duration-300 ease-out"
         style={{
-          transform: `translateY(${isOpen ? drawerTranslateY : 0}px)`,
+          transform: `translateY(${isOpen ? Math.max(0, drawerDragY) : "0"})`,
           willChange: "transform",
           paddingBottom: "env(safe-area-inset-bottom, 0px)",
           touchAction: isEditMode ? "none" : "pan-y",
@@ -397,15 +403,8 @@ export const MobileAppDrawer: React.FC = () => {
             onTouchStart={handleDrawerTouchStart}
             onTouchMove={handleDrawerTouchMove}
             onTouchEnd={handleDrawerTouchEnd}
-            onClick={() => {
-              if (!drawerIsDragging.current) {
-                setIsOpen((prev) => {
-                  if (prev) setIsEditMode(false);
-                  return !prev;
-                });
-              }
-            }}
-            className="flex flex-col items-center cursor-pointer select-none pt-1.5"
+            onClick={toggleDrawer}
+            className="flex flex-col items-center cursor-pointer select-none pt-1.5 w-full active:bg-white/5 transition-colors"
           >
             {/* Drag pill — sempre visível */}
             <div
