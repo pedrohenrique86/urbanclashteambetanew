@@ -621,7 +621,7 @@ export const MobileAppDrawer: React.FC = () => {
             </div>
 
             {/* Cabeçalho EDITAR Navegação Restourado */}
-            <div className="flex items-center justify-between px-5 pb-2 flex-shrink-0">
+            <div className="flex items-center justify-between pl-5 pr-2 pb-2 flex-shrink-0">
               <div className="flex items-center gap-2">
                 <div className="flex items-center gap-2 text-[10px] font-bold tracking-[0.15em] uppercase">
                   <span className="text-purple-400/70">Navegação</span>
@@ -634,7 +634,7 @@ export const MobileAppDrawer: React.FC = () => {
                 </div>
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex items-center">
                 {isEditMode ? (
                   <button
                     type="button"
@@ -657,14 +657,6 @@ export const MobileAppDrawer: React.FC = () => {
                     <PencilSquareIcon className="w-3.5 h-3.5" /> Editar
                   </button>
                 )}
-
-                <button
-                  type="button"
-                  onClick={() => setIsOpen(false)}
-                  className="p-1.5 rounded-lg text-slate-500 hover:text-white hover:bg-white/5 transition-all active:scale-95"
-                >
-                  <XMarkIcon className="w-4 h-4" />
-                </button>
               </div>
             </div>
 
