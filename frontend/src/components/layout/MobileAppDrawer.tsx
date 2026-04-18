@@ -33,7 +33,40 @@ import {
 } from "@heroicons/react/24/outline";
 import { useDrawerOrder } from "../../hooks/useDrawerOrder";
 import { useGameClock } from "../../hooks/useGameClock";
-import GameClockDisplay from "./GameClockDisplay";
+
+// Formatadores locais — mesma lógica do GameClockDisplay, sem importar o componente
+const fmtTimer = (s: number): string => {
+  if (s <= 0) return "0d 00h 00m 00s";
+  const d = Math.floor(s / 86400);
+  const h = Math.floor((s % 86400) / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  const sec = Math.floor(s % 60);
+  return `${d}d ${String(h).padStart(2, "0")}h ${String(m).padStart(2, "0")}m ${String(sec).padStart(2, "0")}s`;
+};
+
+const fmtSrvTime = (date: Date | null): string => {
+  if (!date) return "--:--:-- BRT | --:--:-- UTC";
+  const opts: Intl.DateTimeFormatOptions = { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false };
+  const brt = date.toLocaleString("en-GB", { ...opts, timeZone: "America/Sao_Paulo" });
+  const utc = date.toLocaleString("en-GB", { ...opts, timeZone: "UTC" });
+  return `${brt} BRT | ${utc} UTC`;
+};
+
+const STATUS_COLOR: Record<string, string> = {
+  running: "text-lime-400",
+  paused: "text-orange-400",
+  finished: "text-gray-400",
+  stopped: "text-red-500",
+  scheduled: "text-cyan-400",
+};
+
+const STATUS_LABEL: Record<string, string> = {
+  running: "Em Andamento",
+  paused: "Pausado",
+  finished: "Finalizado",
+  stopped: "Parado",
+  scheduled: "Aguardando",
+};
 
 interface DrawerPage {
   id: string;
@@ -67,8 +100,8 @@ const ALL_PAGES: DrawerPage[] = [
 const DEFAULT_ORDER = ALL_PAGES.map((p) => p.id);
 const PAGE_MAP = new Map(ALL_PAGES.map((p) => [p.id, p]));
 
-const HANDLE_HEIGHT = 48;
-const COLLAPSED_PB = 16;
+const HANDLE_HEIGHT = 40;
+const COLLAPSED_PB = 0;
 const SNAP_OPEN_PX = 80;
 const SNAP_CLOSE_PX = 60;
 const LONG_PRESS_MS = 180;
@@ -91,13 +124,11 @@ const DrawerItem = memo(function DrawerItem({
   return (
     <button
       type="button"
-      onPointerDown={(e) => e.stopPropagation()}
       onClick={onPress}
       role="menuitem"
       aria-label={`Navegar para ${page.name}`}
       className={[
-        "relative flex flex-col items-center gap-1.5 rounded-xl px-2 py-2.5 transition-all duration-150 select-none",
-        "min-w-[68px] flex-shrink-0",
+        "relative flex flex-col items-center gap-1.5 rounded-xl px-1.5 py-2.5 transition-all duration-150 select-none w-full",
         isActive
           ? "bg-purple-500/20 text-purple-300 shadow-[0_0_12px_rgba(168,85,247,0.35)]"
           : "text-slate-300 hover:text-white hover:bg-white/5",
@@ -374,23 +405,40 @@ export const MobileAppDrawer: React.FC = () => {
                 });
               }
             }}
-            className="relative flex flex-col items-center justify-center cursor-pointer select-none"
-            style={{ height: HANDLE_HEIGHT, paddingBottom: isOpen ? 0 : COLLAPSED_PB }}
+            className="flex flex-col items-center cursor-pointer select-none pt-1.5"
           >
+            {/* Drag pill — sempre visível */}
             <div
               className={[
-                "w-10 h-1.5 rounded-full transition-all duration-300",
-                isOpen ? "bg-purple-400/70 w-14" : "bg-white/25",
+                "h-1 rounded-full transition-all duration-300 mb-1.5",
+                isOpen ? "bg-purple-400/60 w-10" : "bg-white/20 w-8",
               ].join(" ")}
             />
 
-            <ChevronUpIcon
-              className={[
-                "absolute w-4 h-4 text-white/40 transition-transform duration-300",
-                isOpen ? "rotate-180 opacity-60" : "opacity-30",
-              ].join(" ")}
-              style={{ bottom: 6 }}
-            />
+            {/* Quando fechado: linha compacta com página ativa + chevron */}
+            {!isOpen && (
+              <div className="flex items-center justify-between w-full px-4 pb-1.5">
+                <div className="flex items-center gap-1.5 min-w-0">
+                  {(() => {
+                    const activePage = orderedPages.find((p) => location.pathname === p.path);
+                    if (!activePage) return <span className="text-[11px] text-white/30">Menu</span>;
+                    return (
+                      <>
+                        <span className="text-purple-300/70 scale-75 flex-shrink-0 origin-left">{activePage.icon}</span>
+                        <span className="text-[11px] font-semibold text-purple-200/80 tracking-wide truncate">{activePage.name}</span>
+                        <span className="w-1 h-1 rounded-full bg-purple-400/80 shadow-[0_0_4px_rgba(168,85,247,0.8)] flex-shrink-0 ml-0.5" />
+                      </>
+                    );
+                  })()}
+                </div>
+                <ChevronUpIcon className="w-3.5 h-3.5 text-white/25 flex-shrink-0 ml-2" />
+              </div>
+            )}
+
+            {/* Quando aberto: só o chevron invertido */}
+            {isOpen && (
+              <ChevronUpIcon className="w-4 h-4 text-white/30 rotate-180 mb-1" />
+            )}
           </div>
 
           <div
@@ -400,14 +448,17 @@ export const MobileAppDrawer: React.FC = () => {
               opacity: isOpen ? 1 : 0,
             }}
           >
-            {/* Relógio do servidor — reaproveitando GameClockDisplay existente, sem isMobileMode */}
-            <div className="px-5 pb-2 pt-1 border-b border-white/5 mb-2">
-              <GameClockDisplay
-                remainingTime={remainingTime}
-                status={status}
-                serverTime={serverTime}
-                isCollapsed={false}
-              />
+            {/* Relógio — 1 linha: status · cronômetro | hora servidor */}
+            <div className="flex items-center justify-between px-5 py-1.5 border-b border-white/5 mb-2 gap-2">
+              <div className={`flex items-center gap-1.5 font-mono text-[10px] font-bold flex-shrink-0 ${STATUS_COLOR[status] ?? "text-gray-500"}`}>
+                <span className="w-1.5 h-1.5 rounded-full bg-current" />
+                <span>{STATUS_LABEL[status] ?? "..."}</span>
+                <span className="text-white/20">·</span>
+                <span>{fmtTimer(remainingTime)}</span>
+              </div>
+              <span className="font-mono text-[9px] text-gray-400 whitespace-nowrap truncate">
+                {fmtSrvTime(serverTime)}
+              </span>
             </div>
 
             <div className="flex items-center justify-between px-5 pb-2">
@@ -467,7 +518,7 @@ export const MobileAppDrawer: React.FC = () => {
             <div
               ref={gridRef}
               role="menu"
-              className="flex flex-wrap px-3 pb-4 gap-y-2 gap-x-1 overflow-y-auto"
+              className="grid grid-cols-4 px-3 pb-4 gap-2 overflow-y-auto"
               style={{ maxHeight: "52vh" }}
             >
               {orderedPages.map((page) => {
@@ -510,29 +561,7 @@ export const MobileAppDrawer: React.FC = () => {
             </div>
           </div>
 
-          {!isOpen && (
-            <div
-              className="flex items-center justify-center gap-2 pb-3 px-4"
-              aria-hidden="true"
-            >
-              {(() => {
-                const activePage = orderedPages.find((p) => location.pathname === p.path);
-                if (!activePage) return null;
 
-                return (
-                  <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-purple-500/15 border border-purple-500/25">
-                    <span className="text-purple-300 opacity-80 scale-75">
-                      {activePage.icon}
-                    </span>
-                    <span className="text-[10px] font-semibold text-purple-300 tracking-wide">
-                      {activePage.name}
-                    </span>
-                    <span className="w-1 h-1 rounded-full bg-purple-400 shadow-[0_0_4px_rgba(168,85,247,0.9)]" />
-                  </div>
-                );
-              })()}
-            </div>
-          )}
         </div>
       </div>
     </>
