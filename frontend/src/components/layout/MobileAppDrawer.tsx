@@ -601,15 +601,15 @@ export const MobileAppDrawer: React.FC = () => {
           <div className="overflow-hidden transition-all duration-350 ease-in-out flex flex-col relative z-20" style={{ maxHeight: isOpen ? "85vh" : "0px", opacity: isOpen ? 1 : 0 }}>
             <div className="px-3 py-2 border-b border-white/[0.03] bg-white/[0.01] mb-2 flex-shrink-0">
               <div className="flex justify-center">
-                <div className="flex items-center flex-nowrap gap-2.5 px-3 py-1.5 rounded-xl bg-black/40 border border-white/10 shadow-[0_4px_12px_rgba(0,0,0,0.4)] tabular-nums font-mono antialiased">
+                <div className="flex items-center flex-nowrap gap-2 px-3 py-1.5 rounded-xl bg-black/40 border border-white/10 shadow-[0_4px_12px_rgba(0,0,0,0.4)] tabular-nums font-mono antialiased">
                   {/* Lado Esquerdo: Status e Cronômetro */}
                   <div className={`flex items-center gap-1.5 ${STATUS_COLOR[status] ?? "text-gray-500"} shrink-0`}>
                     <div className="relative flex h-1 w-1">
                       <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-current opacity-75"></span>
                       <span className="relative inline-flex rounded-full h-1 w-1 bg-current"></span>
                     </div>
-                    <span className="text-[9px] font-bold uppercase tracking-tight whitespace-nowrap">{STATUS_LABEL[status]}</span>
-                    <span className="text-[9px] font-bold text-white bg-white/5 px-1.5 py-0.5 rounded border border-white/5 shrink-0 whitespace-nowrap">
+                    <span className="text-[8.5px] font-bold uppercase tracking-tight whitespace-nowrap">{STATUS_LABEL[status]}</span>
+                    <span className="text-[8.5px] font-bold text-white bg-white/5 px-1 py-0.5 rounded border border-white/5 shrink-0 whitespace-nowrap w-[84px] text-center">
                       {fmtTimer(remainingTime)}
                     </span>
                   </div>
@@ -620,7 +620,7 @@ export const MobileAppDrawer: React.FC = () => {
                   {/* Lado Direito: Hora do Servidor */}
                   <div className="flex items-center gap-1.5 text-white font-bold shrink-0">
                     <GlobeAltIcon className="w-3 h-3 text-purple-400 flex-shrink-0" />
-                    <span className="text-[8.5px] uppercase tracking-tighter whitespace-nowrap opacity-90">{fmtSrvTime(serverTime)}</span>
+                    <span className="text-[8.5px] uppercase tracking-tighter whitespace-nowrap w-[144px] text-left">{fmtSrvTime(serverTime)}</span>
                   </div>
                 </div>
               </div>
