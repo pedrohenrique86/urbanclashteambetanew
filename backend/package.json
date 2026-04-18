@@ -18,7 +18,8 @@
     "migrate:up:prod": "node scripts/run-migrate.js prod up",
     "migrate:down:prod": "node scripts/run-migrate.js prod down",
     "migrate:up:all": "npm run migrate:up:dev && npm run migrate:up:prod",
-    "migrate:down:all": "npm run migrate:down:prod && npm run migrate:down:dev"
+    "migrate:down:all": "npm run migrate:down:prod && npm run migrate:down:dev",
+	"migrate:create:random": "node scripts/create-migration-random.js"
   },
   "dependencies": {
     "@upstash/redis": "^1.37.0",

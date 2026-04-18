@@ -26,6 +26,8 @@ Descer última migration PROD
 npm run migrate:down:prod --prefix backend
 🔁 EXECUTAR EM AMBOS (CUIDADO)
 npm run migrate:up:all --prefix backend
+PARA CRIAR MIGRATIONS CERTAS COM NOME ALEATÓRIO (MUITO BOM)
+npm run migrate:create:random --prefix backend
 
 ⚠️ NÃO recomendado sem testar antes.
 
