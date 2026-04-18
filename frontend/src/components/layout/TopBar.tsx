@@ -7,13 +7,11 @@ import { calculateCombatStats } from "../../utils/combat";
 interface TopBarProps {
   userProfile: UserProfile | null;
   handleLogout: () => void;
-  onMenuToggle?: () => void;
 }
 
 const TopBar: React.FC<TopBarProps> = ({
   userProfile,
   handleLogout,
-  onMenuToggle,
 }) => {
   const { themeClasses } = useTheme();
 
@@ -117,30 +115,6 @@ const TopBar: React.FC<TopBarProps> = ({
   return (
     <>
       <div className="absolute top-[12px] md:top-[6px] z-50 w-full flex justify-center items-start md:items-center mb-6 h-auto">
-        {/* Mobile Menu Toggle - Positioned to the left */}
-        <div className="absolute left-2 top-1/2 -translate-y-1/2 md:hidden">
-          <button
-            onClick={onMenuToggle}
-            className="md:hidden text-slate-400 hover:text-white transition-colors p-1"
-            title="Menu"
-          >
-            <svg
-              className="w-6 h-6"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2"
-                d="M4 6h16M4 12h16M4 18h16"
-              ></path>
-            </svg>
-          </button>
-        </div>
-
         {/* The compact, centered metrics card */}
         <div
           className="relative bg-black/20 backdrop-blur-xl border border-slate-700/50 rounded-2xl px-4 sm:px-6 py-2 shadow-lg w-[90%] md:w-auto"

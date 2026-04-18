@@ -54,9 +54,6 @@ const GlobalLayout: React.FC<GlobalLayoutProps> = ({ children }) => {
   const { userProfile, handleLogout } = useUserProfileContext();
   const { currentPanel, closePanel, clearPanels, hasOpenPanel } = useHUD();
 
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [touchStart, setTouchStart] = useState<number | null>(null);
-  const [touchEnd, setTouchEnd] = useState<number | null>(null);
   const scrollableContainerRef = useRef<HTMLDivElement>(null);
 
   const minSwipeDistance = 50;
@@ -124,34 +121,7 @@ const GlobalLayout: React.FC<GlobalLayoutProps> = ({ children }) => {
 
 
 
-  const onTouchStartObj = (e: React.TouchEvent) => {
-    setTouchEnd(null);
-    setTouchStart(e.targetTouches[0].clientX);
-  };
 
-  const onTouchMoveObj = (e: React.TouchEvent) => {
-    setTouchEnd(e.targetTouches[0].clientX);
-  };
-
-  const onTouchEndObj = () => {
-    if (!touchStart || !touchEnd) return;
-
-    const distance = touchStart - touchEnd;
-    const isLeftSwipe = distance > minSwipeDistance;
-    const isRightSwipe = distance < -minSwipeDistance;
-
-    if (
-      isLeftSwipe &&
-      !isMobileMenuOpen &&
-      touchStart > window.innerWidth - 60
-    ) {
-      setIsMobileMenuOpen(true);
-    }
-
-    if (isRightSwipe && isMobileMenuOpen) {
-      setIsMobileMenuOpen(false);
-    }
-  };
 
   if (!shouldShowNav) {
     const hasDynamicBg = !!PAGE_BACKGROUNDS[location.pathname];
@@ -172,9 +142,6 @@ const GlobalLayout: React.FC<GlobalLayoutProps> = ({ children }) => {
   return (
     <div
       className={`h-screen font-exo text-white ${hasDynamicBackground ? "" : themeClasses.bg} overflow-hidden flex flex-col`}
-      onTouchStart={onTouchStartObj}
-      onTouchMove={onTouchMoveObj}
-      onTouchEnd={onTouchEndObj}
     >
       <DynamicBackground />
       <div
@@ -203,7 +170,6 @@ const GlobalLayout: React.FC<GlobalLayoutProps> = ({ children }) => {
             <TopBar
               userProfile={userProfile as any}
               handleLogout={handleLogout}
-              onMenuToggle={() => setIsMobileMenuOpen(true)}
             />
 
             <main className="focus:outline-none pt-[115px] md:pt-[70px] px-4 md:px-6 pb-[60px] md:pb-6 relative z-10 w-full">
