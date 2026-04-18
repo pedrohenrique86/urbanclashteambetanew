@@ -4,12 +4,6 @@ import TopBar from "./TopBar";
 import DashboardSidebar from "./DashboardSidebar";
 import { FloatingMenuButton } from "./FloatingMenuButton";
 import { MobileAppDrawer } from "./MobileAppDrawer";
-
-// ─── FLAG DE FEATURE ───────────────────────────────────────────────────────────
-// true  → exibe o novo menu experimental (MobileAppDrawer)
-// false → exibe o menu flutuante original (FloatingMenuButton)
-// Mude aqui para alternar entre os dois. Nenhum dos dois é removido.
-const USE_EXPERIMENTAL_DRAWER = false;
 import { useTheme } from "../../contexts/ThemeContext";
 import { useUserProfileContext } from "../../contexts/UserProfileContext";
 import { useHUD } from "../../contexts/HUDContext";
@@ -21,6 +15,12 @@ import DigitalIdentityModal from "../DigitalIdentityModal";
 import ClanIdentityModal from "../ClanIdentityModal";
 import { DynamicBackground } from "./DynamicBackground";
 import { PAGE_BACKGROUNDS } from "../../constants/backgrounds";
+
+// ─── FLAG DE FEATURE ───────────────────────────────────────────────────────────
+// true  → exibe o novo menu experimental (MobileAppDrawer)
+// false → exibe o menu flutuante original (FloatingMenuButton)
+// Mude aqui para alternar entre os dois. Nenhum dos dois é removido.
+const USE_EXPERIMENTAL_DRAWER = true;
 
 /**
  * Micro-componente isolado que consome o GameClockContext.
