@@ -175,7 +175,24 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
   isAdmin,
 }) => {
   const { remainingTime, status, serverTime } = useGameClock();
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(() => {
+    try {
+      const saved = localStorage.getItem("sidebar_collapsed");
+      return saved ? JSON.parse(saved) : false;
+    } catch (error) {
+      console.warn("Erro ao ler estado do sidebar do localStorage", error);
+      return false;
+    }
+  });
+
+  const toggleSidebar = () => {
+    setIsCollapsed((prev: boolean) => {
+      const newState = !prev;
+      localStorage.setItem("sidebar_collapsed", JSON.stringify(newState));
+      return newState;
+    });
+  };
+
   const [openMenu, setOpenMenu] = useState<string | null>(null);
   const [isAdminMenuOpen, setIsAdminMenuOpen] = useState(false);
   const location = useLocation();
@@ -260,7 +277,7 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
       </div>
 
       <div
-        className={`w-full flex ${isCollapsed ? "flex-col space-y-2 mb-0" : "justify-center gap-4 px-4 mb-1"} items-center relative`}
+        className={`w-full flex ${isCollapsed ? "flex-col space-y-0 mb-0" : "justify-center gap-1.5 px-4 mb-2"} items-center relative`}
       >
         <Link
           to="/dashboard"
@@ -269,58 +286,62 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
             setIsAdminMenuOpen(false); 
             if (onMobileClose) onMobileClose(); 
           }}
-          className={`flex justify-center items-center p-2 transition-colors ${isCollapsed ? "rounded-none" : "rounded-lg"} ${location.pathname === "/dashboard"
-            ? "text-purple-400 bg-purple-500/10"
-            : "text-slate-400 hover:text-white hover:bg-purple-500/10"
-            }`}
+          className={`group flex items-center justify-center w-9 h-9 transition-all duration-300 active:scale-95 ${
+            isCollapsed ? "rounded-none" : "rounded-xl"
+          } ${
+            location.pathname === "/dashboard"
+              ? "bg-purple-600/20 text-purple-400 border border-purple-500/60 shadow-[0_0_15px_rgba(168,85,247,0.25)]"
+              : "bg-white/5 text-slate-400 border border-white/10 hover:border-purple-500/40 hover:text-purple-300 hover:bg-purple-500/10"
+          }`}
           data-tooltip-id="sidebar-tooltip"
-          data-tooltip-content="Home"
+          data-tooltip-content="Início"
         >
-          <HomeIcon className="w-5 h-5" />
+          <svg className="w-5 h-5 transition-transform duration-300 group-hover:scale-110" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M12 3.5L3.5 10.3M12 3.5L20.5 10.3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+            <path d="M5.5 11.5V18C5.5 19.3807 6.61929 20.5 8 20.5H16C17.3807 20.5 18.5 19.3807 18.5 18V11.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+            <path d="M9.5 14.5C9.5 14.5 10.5 13.5 12 13.5C13.5 13.5 14.5 14.5 14.5 14.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+          </svg>
         </Link>
+
         <button
-          onClick={() => {
-            setIsCollapsed(!isCollapsed);
-          }}
-          className={`hidden md:flex justify-center items-center p-2 text-slate-400 hover:text-white hover:bg-purple-500/10 transition-colors ${isCollapsed ? "rounded-none" : "rounded-lg"}`}
+          onClick={toggleSidebar}
+          className={`hidden md:flex group items-center justify-center w-9 h-9 bg-white/5 text-slate-400 border border-white/10 transition-all duration-300 hover:border-purple-500/40 hover:text-purple-300 hover:bg-purple-500/10 active:scale-95 ${isCollapsed ? "rounded-none" : "rounded-xl"}`}
           data-tooltip-id="sidebar-tooltip"
           data-tooltip-content={isCollapsed ? "Expandir" : "Encolher"}
         >
-          <Bars3Icon className="w-5 h-5" />
+          <svg className="w-5 h-5 transition-transform duration-300 group-hover:scale-110" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M4 8H20M4 12H13M4 16H20" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+          </svg>
         </button>
+
         <button
           onClick={handleLogout}
-          className={`hidden md:flex justify-center items-center p-2 text-slate-400 hover:text-white hover:bg-purple-500/10 transition-colors ${isCollapsed ? "rounded-none" : "rounded-lg"}`}
+          className={`hidden md:flex group items-center justify-center w-9 h-9 bg-white/5 text-slate-400 border border-white/10 transition-all duration-300 hover:border-red-500/40 hover:text-red-400 hover:bg-red-500/10 active:scale-95 ${isCollapsed ? "rounded-none" : "rounded-xl"}`}
           data-tooltip-id="sidebar-tooltip"
-          data-tooltip-content="Sair"
+          data-tooltip-content="Desconectar"
         >
-          <ArrowLeftOnRectangleIcon className="w-5 h-5" />
+          <svg className="w-5 h-5 transition-transform duration-300 group-hover:scale-110" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M12 20C7.58172 20 4 16.4183 4 12C4 7.58172 7.58172 4 12 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+            <path d="M10 12H20M20 12L17 9M20 12L17 15" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+          </svg>
         </button>
         {/* Botão de fechar apenas no mobile */}
         {onMobileClose && (
           <button
             onClick={onMobileClose}
-            className="md:hidden absolute right-4 flex justify-center items-center p-2 text-slate-400 hover:text-white hover:bg-slate-700/50 rounded-lg transition-colors"
+            className="md:hidden flex justify-center items-center p-2 text-slate-400 hover:text-white"
           >
-            <svg
-              className="w-6 h-6"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2"
-                d="M6 18L18 6M6 6l12 12"
-              />
+            <svg className="w-6 h-6 rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
         )}
       </div>
-      <nav className="flex flex-col gap-0.5 w-full flex-1 pb-2 min-h-0 overflow-y-auto overflow-x-hidden custom-scrollbar">
-        {/* Linha decorativa acima do menu Operações */}
-        <div className="border-b border-gray-700 mx-4 mb-2"></div>
+
+      {/* Divisor Tático entre Controles e Menu */}
+      <div className="w-full border-b border-white/10 mb-1 opacity-50"></div>
+
+      <nav className="flex flex-col gap-0 w-full flex-1 min-h-0 overflow-y-auto overflow-x-hidden custom-scrollbar">
         {navItems.map((item) => {
           const isSubMenuActive = item.subItems?.some((sub) =>
             location.pathname.startsWith(sub.path),
@@ -337,14 +358,38 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
                   onClick={() => handleMenuToggle(item.name)}
                   className={`w-full flex items-center transition-all duration-200 
                     ${isCollapsed 
-                      ? `border-l-0 justify-center px-0 py-1.5 ${isMenuOpen ? "text-purple-400 bg-purple-500/10" : "text-slate-400 hover:text-purple-400 hover:bg-purple-500/10"}` 
+                      ? `border justify-center w-9 h-9 mx-auto ${isMenuOpen ? "text-purple-400 bg-purple-500/10 border-purple-500/60 shadow-[0_0_10px_rgba(168,85,247,0.2)]" : "text-slate-400 hover:text-white hover:bg-purple-500/5 border-white/10 hover:border-purple-500/40"}` 
                       : `py-1.5 border-l-4 ${isMenuOpen ? "border-purple-500 text-purple-400 bg-purple-500/10" : "border-transparent text-slate-400"} justify-between px-8 hover:text-white hover:bg-purple-500/10`
                     }`}
                   data-tooltip-id="sidebar-tooltip"
                   data-tooltip-content={isCollapsed ? item.name : undefined}
                 >
-                  <div className="flex items-center">
-                    {item.icon}
+                  <div className="flex items-center justify-center">
+                    {isCollapsed ? (
+                      item.name === "Operações" ? (
+                        <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                          <path d="M3 10H21V19C21 20.1046 20.1046 21 19 21H5C3.89543 21 3 20.1046 3 19V10Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                          <path d="M9 10V6C9 4.34315 10.3431 3 12 3C13.6569 3 15 4.34315 15 6V10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                          <path d="M10 15H14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                        </svg>
+                      ) : item.name === "Economia" ? (
+                        <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                          <path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                          <path d="M2.5 9H21.5M2.5 15H21.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                          <path d="M11 2.5C11 2.5 9 5 9 12C9 19 11 21.5 11 21.5M13 2.5C13 2.5 15 5 15 12C15 19 13 21.5 13 21.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                        </svg>
+                      ) : item.name === "Rede" ? (
+                        <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                          <path d="M12 12C14.2091 12 16 10.2091 16 8C16 5.79086 14.2091 4 12 4C9.79086 4 8 5.79086 8 8C8 10.2091 9.79086 12 12 12Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                          <path d="M4 20C4 17 8 15 12 15M20 20C20 17 16 15 12 15" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                        </svg>
+                      ) : item.name === "Elite" ? (
+                        <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                          <path d="M12 17L5 21L6.5 13.5L1 8.5L8.5 8L12 1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                          <path d="M15.5 8L23 8.5L17.5 13.5L19 21L12 17" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                        </svg>
+                      ) : item.icon
+                    ) : item.icon}
                     <AnimatePresence>
                       {!isCollapsed && (
                         <motion.span
