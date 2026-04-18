@@ -167,6 +167,26 @@ interface DashboardSidebarProps {
   isAdmin?: boolean;
 }
 
+const sidebarVariants = {
+  expanded: { width: "12rem" }, // 192px
+  collapsed: { width: "2.5rem" }, // 40px
+};
+
+const subMenuVariants = {
+  hidden: { opacity: 0, x: -10, height: 0 },
+  visible: {
+    opacity: 1,
+    x: 0,
+    height: "auto",
+    transition: { staggerChildren: 0.05, when: "beforeChildren" },
+  },
+};
+
+const subMenuItemVariants = {
+  hidden: { opacity: 0, x: -10 },
+  visible: { opacity: 1, x: 0 },
+};
+
 const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
   onMobileClose,
   username,
@@ -174,7 +194,6 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
   handleLogout,
   isAdmin,
 }) => {
-  const { remainingTime, status, serverTime } = useGameClock();
   const [isCollapsed, setIsCollapsed] = useState(() => {
     try {
       const saved = localStorage.getItem("sidebar_collapsed");
@@ -214,26 +233,6 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
 
   const handleMenuToggle = (name: string) => {
     setOpenMenu(openMenu === name ? null : name);
-  };
-
-  const sidebarVariants = {
-    expanded: { width: "12rem" }, // 192px
-    collapsed: { width: "2.5rem" }, // 40px
-  };
-
-  const subMenuVariants = {
-    hidden: { opacity: 0, x: -10, height: 0 },
-    visible: {
-      opacity: 1,
-      x: 0,
-      height: "auto",
-      transition: { staggerChildren: 0.05, when: "beforeChildren" },
-    },
-  };
-
-  const subMenuItemVariants = {
-    hidden: { opacity: 0, x: -10 },
-    visible: { opacity: 1, x: 0 },
   };
 
   return (
@@ -526,9 +525,6 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
       {/* Game Clock Display (Desktop Only) */}
       <div className="hidden md:block absolute bottom-0 left-0 right-0 w-full px-2 pb-0 pt-1">
         <GameClockDisplay
-          remainingTime={remainingTime}
-          status={status}
-          serverTime={serverTime}
           isCollapsed={isCollapsed}
         />
       </div>

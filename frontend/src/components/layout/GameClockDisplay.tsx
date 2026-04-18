@@ -10,10 +10,9 @@ import {
 } from "react-icons/fa";
 import { IoMdTime } from "react-icons/io";
 
+import { useGameClock } from "../../hooks/useGameClock";
+
 interface GameClockDisplayProps {
-  remainingTime: number;
-  status: string;
-  serverTime: Date | null;
   isCollapsed: boolean;
   isMobileMode?: boolean;
 }
@@ -61,12 +60,10 @@ const formatServerTime = (date: Date | null): string => {
 };
 
 const GameClockDisplay: React.FC<GameClockDisplayProps> = ({
-  remainingTime,
-  status,
-  serverTime,
   isCollapsed,
   isMobileMode = false,
 }) => {
+  const { remainingTime, status, serverTime } = useGameClock();
   const remainingTimeStr = formatRemainingTime(remainingTime);
   const serverTimeStr = formatServerTime(serverTime);
 

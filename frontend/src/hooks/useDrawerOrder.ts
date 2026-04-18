@@ -92,6 +92,7 @@ export function useDrawerOrder(
     (updater: DrawerData | ((prev: DrawerData) => DrawerData)) => {
       setDataState((prev) => {
         const nextRaw = typeof updater === "function" ? updater(prev) : updater;
+        // Só normalizar se algo mudou estruturalmente
         return normalizeData(nextRaw, defaultOrder);
       });
     },
