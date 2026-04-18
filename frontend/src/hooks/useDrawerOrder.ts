@@ -1,33 +1,70 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 
-const STORAGE_KEY = "mobile_drawer_order_v1";
+const STORAGE_KEY = "mobile_drawer_data_v1";
 const DEBOUNCE_MS = 600;
 
-function normalizeOrder(saved: unknown, defaultOrder: string[]): string[] {
-  if (!Array.isArray(saved)) return defaultOrder;
+export interface DrawerFolder {
+  id: string;
+  name: string;
+  items: string[];
+}
 
-  const savedStrings = saved.filter((item): item is string => typeof item === "string");
+export interface DrawerData {
+  order: string[];
+  folders: Record<string, DrawerFolder>;
+}
 
-  const preserved = savedStrings.filter((item) => defaultOrder.includes(item));
-  const missing = defaultOrder.filter((item) => !preserved.includes(item));
+function normalizeData(saved: unknown, defaultOrder: string[]): DrawerData {
+  const base: DrawerData = { order: [...defaultOrder], folders: {} };
+  
+  if (!saved || typeof saved !== "object") return base;
+  
+  const savedData = saved as Partial<DrawerData>;
+  const order = Array.isArray(savedData.order) ? savedData.order.filter(i => typeof i === "string") : [];
+  const folders = savedData.folders && typeof savedData.folders === "object" ? savedData.folders : {};
 
-  return [...preserved, ...missing];
+  // Validar folders guardando IDs
+  const validFolders: Record<string, DrawerFolder> = {};
+  for (const [key, value] of Object.entries(folders)) {
+    if (value && typeof value === 'object' && typeof (value as any).name === 'string' && Array.isArray((value as any).items)) {
+      validFolders[key] = {
+        id: key,
+        name: (value as any).name,
+        items: (value as any).items.filter((i: any) => typeof i === "string")
+      };
+    }
+  }
+
+  // Filtrar ordem para itens que existem no defaultOrder OU nas pastas válidas
+  const preservedItems = order.filter(item => defaultOrder.includes(item) || validFolders[item]);
+  
+  // Pegar todos os itens que já estão dentro de pastas
+  const itemsInFolders = new Set<string>();
+  Object.values(validFolders).forEach(f => f.items.forEach(i => itemsInFolders.add(i)));
+
+  // Encontrar itens que estão faltando (não estão na ordem principal nem em pastas)
+  const missingItems = defaultOrder.filter(item => !preservedItems.includes(item) && !itemsInFolders.has(item));
+
+  return {
+    order: [...preservedItems, ...missingItems],
+    folders: validFolders
+  };
 }
 
 export function useDrawerOrder(
   defaultOrder: string[]
-): [string[], (newOrder: string[] | ((prev: string[]) => string[])) => void] {
-  const [order, setOrderState] = useState<string[]>(() => {
-    if (typeof window === "undefined") return defaultOrder;
+): [DrawerData, (updater: DrawerData | ((prev: DrawerData) => DrawerData)) => void] {
+  const [data, setDataState] = useState<DrawerData>(() => {
+    if (typeof window === "undefined") return { order: defaultOrder, folders: {} };
 
     try {
       const raw = window.localStorage.getItem(STORAGE_KEY);
-      if (!raw) return defaultOrder;
+      if (!raw) return { order: defaultOrder, folders: {} };
 
       const parsed = JSON.parse(raw);
-      return normalizeOrder(parsed, defaultOrder);
+      return normalizeData(parsed, defaultOrder);
     } catch {
-      return defaultOrder;
+      return { order: defaultOrder, folders: {} };
     }
   });
 
@@ -39,20 +76,18 @@ export function useDrawerOrder(
     };
   }, []);
 
-  const setOrder = useCallback(
-    (updater: string[] | ((prev: string[]) => string[])) => {
-      setOrderState((prev) => {
+  const setData = useCallback(
+    (updater: DrawerData | ((prev: DrawerData) => DrawerData)) => {
+      setDataState((prev) => {
         const nextRaw = typeof updater === "function" ? updater(prev) : updater;
-        const next = normalizeOrder(nextRaw, defaultOrder);
+        const next = normalizeData(nextRaw, defaultOrder);
 
         if (debounceTimer.current) clearTimeout(debounceTimer.current);
 
         debounceTimer.current = setTimeout(() => {
           try {
             window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-          } catch {
-            // localStorage pode estar cheio ou bloqueado (modo incógnito) — falha silenciosa intencional
-          }
+          } catch {}
         }, DEBOUNCE_MS);
 
         return next;
@@ -61,5 +96,5 @@ export function useDrawerOrder(
     [defaultOrder]
   );
 
-  return [order, setOrder];
+  return [data, setData];
 }

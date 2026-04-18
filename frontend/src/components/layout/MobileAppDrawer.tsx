@@ -30,11 +30,13 @@ import {
   XMarkIcon,
   PencilSquareIcon,
   CheckIcon,
+  FolderOpenIcon,
+  TrashIcon,
 } from "@heroicons/react/24/outline";
-import { useDrawerOrder } from "../../hooks/useDrawerOrder";
+import { motion, AnimatePresence } from "framer-motion";
+import { useDrawerOrder, DrawerFolder } from "../../hooks/useDrawerOrder";
 import { useGameClock } from "../../hooks/useGameClock";
 
-// Formatadores locais — mesma lógica do GameClockDisplay, sem importar o componente
 const fmtTimer = (s: number): string => {
   if (s <= 0) return "0d 00h 00m 00s";
   const d = Math.floor(s / 86400);
@@ -100,8 +102,6 @@ const ALL_PAGES: DrawerPage[] = [
 const DEFAULT_ORDER = ALL_PAGES.map((p) => p.id);
 const PAGE_MAP = new Map(ALL_PAGES.map((p) => [p.id, p]));
 
-const HANDLE_HEIGHT = 40;
-const COLLAPSED_PB = 0;
 const SNAP_OPEN_PX = 80;
 const SNAP_CLOSE_PX = 60;
 const LONG_PRESS_MS = 180;
@@ -114,49 +114,62 @@ interface DrawerItemProps {
   onPress: () => void;
 }
 
-const DrawerItem = memo(function DrawerItem({
-  page,
-  isActive,
-  isEditMode,
-  isDragging,
-  onPress,
-}: DrawerItemProps) {
+const DrawerItem = memo(function DrawerItem({ page, isActive, isEditMode, isDragging, onPress }: DrawerItemProps) {
   return (
     <button
       type="button"
       onClick={onPress}
-      role="menuitem"
-      aria-label={`Navegar para ${page.name}`}
       className={[
-        "relative flex flex-col items-center gap-1.5 rounded-xl px-1.5 py-2.5 transition-all duration-150 select-none w-full",
-        isActive
-          ? "bg-purple-500/20 text-purple-300 shadow-[0_0_12px_rgba(168,85,247,0.35)]"
-          : "text-slate-300 hover:text-white hover:bg-white/5",
-        isEditMode && !isDragging
-          ? "animate-[drawer-wiggle_0.45s_ease-in-out_infinite]"
-          : "",
-        isDragging ? "opacity-50 scale-95 z-50" : "",
+        "relative flex flex-col items-center gap-1.5 rounded-xl px-1.5 py-2.5 transition-all duration-300 select-none w-full outline-none",
+        isActive ? "bg-purple-500/20 text-purple-300 shadow-[0_0_12px_rgba(168,85,247,0.35)]" : "text-slate-300 hover:text-white hover:bg-white/5",
+        isEditMode && !isDragging ? "animate-[drawer-wiggle_0.45s_ease-in-out_infinite]" : "",
       ].join(" ")}
     >
       <div
         className={[
-          "w-11 h-11 rounded-2xl flex items-center justify-center",
-          "border transition-all duration-150",
-          isActive
-            ? "border-purple-500/60 bg-purple-600/25 shadow-[inset_0_1px_0_rgba(255,255,255,0.1)]"
-            : "border-white/10 bg-white/5",
+          "w-10 h-10 rounded-2xl flex items-center justify-center border transition-all duration-300 pointer-events-none",
+          isActive ? "border-purple-500/60 bg-purple-600/25 shadow-[inset_0_1px_0_rgba(255,255,255,0.1)]" : "border-white/10 bg-white/5",
         ].join(" ")}
       >
         {page.icon}
       </div>
-
-      <span className="text-[10px] font-medium leading-tight text-center max-w-[68px] line-clamp-2">
+      <span className="text-[9px] font-medium leading-tight text-center max-w-[68px] line-clamp-2 pointer-events-none w-[110%]">
         {page.name}
       </span>
+      {isActive && <span className="absolute bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-purple-400 shadow-[0_0_4px_rgba(168,85,247,0.8)] pointer-events-none" />}
+    </button>
+  );
+});
 
-      {isActive && (
-        <span className="absolute bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-purple-400 shadow-[0_0_4px_rgba(168,85,247,0.8)]" />
-      )}
+const DrawerFolderItem = memo(function DrawerFolderItem({
+  folder, isActive, isEditMode, isDragging, onPress,
+}: {
+  folder: DrawerFolder; isActive: boolean; isEditMode: boolean; isDragging: boolean; onPress: () => void;
+}) {
+  const previewPages = folder.items.slice(0, 4).map(id => PAGE_MAP.get(id)).filter(Boolean) as DrawerPage[];
+  
+  return (
+    <button
+      type="button"
+      onClick={onPress}
+      className={[
+        "relative flex flex-col items-center gap-1.5 rounded-xl px-1.5 py-2.5 transition-all duration-300 select-none w-full outline-none",
+        isActive ? "bg-emerald-500/10 text-emerald-300 shadow-[0_0_12px_rgba(16,185,129,0.25)]" : "text-slate-300 hover:text-white hover:bg-white/5",
+        isEditMode && !isDragging ? "animate-[drawer-wiggle_0.45s_ease-in-out_infinite]" : "",
+      ].join(" ")}
+    >
+      <div className="w-10 h-10 rounded-2xl flex flex-col items-center justify-center border border-emerald-500/30 bg-emerald-500/10 p-[3px] gap-[2px] pointer-events-none">
+        <div className="grid grid-cols-2 gap-[2px] w-full h-full place-items-center">
+          {previewPages.slice(0, 4).map((p, i) => (
+            <div key={i} className="flex items-center justify-center w-full h-full bg-white/10 rounded-md scale-95 text-emerald-200/90 overflow-hidden">
+              {React.cloneElement(p.icon as React.ReactElement, { className: 'w-3 h-3' })}
+            </div>
+          ))}
+        </div>
+      </div>
+      <span className="text-[9px] font-bold text-emerald-400 leading-tight text-center max-w-[68px] line-clamp-1 pointer-events-none w-[110%]">
+        {folder.name}
+      </span>
     </button>
   );
 });
@@ -170,31 +183,48 @@ export const MobileAppDrawer: React.FC = () => {
 
   const [drawerDragY, setDrawerDragY] = useState(0);
   const drawerTouchStartY = useRef<number | null>(null);
-  const drawerIsDragging = useRef(false);
+  const pointerStartPos = useRef<{x: number, y: number} | null>(null);
 
+  // DRAGGING STATE 
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [dragOverId, setDragOverId] = useState<string | null>(null);
+  const [dragAction, setDragAction] = useState<"group" | "reorder" | null>(null);
+  const [liveOrder, setLiveOrder] = useState<string[] | null>(null);
+  
+  // FOLDER MODAL STATE
+  const [currentFolder, setCurrentFolder] = useState<string | null>(null);
+  const [folderDragId, setFolderDragId] = useState<string | null>(null);
+  const [isFolderTrashHover, setIsFolderTrashHover] = useState(false);
+
+  // CONTEXT MENU OPEARATION
+  const [contextMenuTarget, setContextMenuTarget] = useState<{ id: string, x: number, y: number } | null>(null);
 
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const didReorderRef = useRef(false);
-
   const gridRef = useRef<HTMLDivElement>(null);
 
-  const [order, setOrder] = useDrawerOrder(DEFAULT_ORDER);
-
-  // Reutiliza o hook existente — sem polling, sem chamada de rede
+  const [drawerData, setDrawerData] = useDrawerOrder(DEFAULT_ORDER);
   const { remainingTime, status, serverTime } = useGameClock();
 
-  const orderedPages = useMemo(
-    () => order.map((id) => PAGE_MAP.get(id)).filter((p): p is DrawerPage => !!p),
-    [order]
-  );
+  // Highlight active
+  const activePagePath = location.pathname;
+  const activePageId = ALL_PAGES.find(p => p.path === activePagePath)?.id;
+  const folderContainingActivePage = Object.values(drawerData.folders || {}).find(f => activePageId && f.items.includes(activePageId))?.id;
+
+  const currentViewItems = useMemo(() => {
+    if (draggingId && dragAction === "reorder" && liveOrder) return liveOrder;
+    return drawerData?.order || DEFAULT_ORDER;
+  }, [drawerData, draggingId, dragAction, liveOrder]);
 
   useEffect(() => {
     setIsOpen(false);
     setIsEditMode(false);
     setDraggingId(null);
     setDragOverId(null);
+    setDragAction(null);
+    setLiveOrder(null);
+    setCurrentFolder(null);
+    setContextMenuTarget(null);
     didReorderRef.current = false;
   }, [location.pathname]);
 
@@ -206,175 +236,278 @@ export const MobileAppDrawer: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    return () => {
-      clearLongPressTimer();
-    };
-  }, [clearLongPressTimer]);
+     const handleGlobalPointerUp = () => {
+        if (draggingId || folderDragId) {
+             setDraggingId(null);
+             setLiveOrder(null);
+             setDragOverId(null);
+             setDragAction(null);
+             setIsFolderTrashHover(false);
+             setFolderDragId(null);
+         }
+         clearLongPressTimer();
+     };
+     window.addEventListener('pointerup', handleGlobalPointerUp);
+     return () => window.removeEventListener('pointerup', handleGlobalPointerUp);
+  }, [draggingId, folderDragId, clearLongPressTimer]);
 
-  const handleDrawerTouchStart = useCallback(
-    (e: React.TouchEvent) => {
-      if (isEditMode) return;
-      drawerTouchStartY.current = e.touches[0].clientY;
-      drawerIsDragging.current = false;
-    },
-    [isEditMode]
-  );
 
-  const handleDrawerTouchMove = useCallback(
-    (e: React.TouchEvent) => {
-      if (drawerTouchStartY.current === null || isEditMode) return;
+  // OPEN / CLOSE DRAW TOUCH LOGIC
+  const handleDrawerTouchStart = useCallback((e: React.TouchEvent) => {
+    if (isEditMode) return;
+    drawerTouchStartY.current = e.touches[0].clientY;
+  }, [isEditMode]);
 
-      const dy = e.touches[0].clientY - drawerTouchStartY.current;
-      drawerIsDragging.current = Math.abs(dy) > 8;
-
-      if (!isOpen && dy < 0) {
-        setDrawerDragY(Math.max(dy, -200));
-      } else if (isOpen && dy > 0) {
-        setDrawerDragY(Math.min(dy, 150));
-      }
-    },
-    [isOpen, isEditMode]
-  );
+  const handleDrawerTouchMove = useCallback((e: React.TouchEvent) => {
+    if (drawerTouchStartY.current === null || isEditMode) return;
+    const dy = e.touches[0].clientY - drawerTouchStartY.current;
+    if (!isOpen && dy < 0) setDrawerDragY(Math.max(dy, -200));
+    else if (isOpen && dy > 0) setDrawerDragY(Math.min(dy, 150));
+  }, [isOpen, isEditMode]);
 
   const handleDrawerTouchEnd = useCallback(() => {
     if (drawerTouchStartY.current === null) return;
-
-    // Se houve drag real
-    if (drawerIsDragging.current) {
-      if (!isOpen && drawerDragY < -SNAP_OPEN_PX) {
-        setIsOpen(true);
-      } else if (isOpen && drawerDragY > SNAP_CLOSE_PX) {
-        setIsOpen(false);
-        setIsEditMode(false);
-      }
+    if (!isOpen && drawerDragY < -SNAP_OPEN_PX) setIsOpen(true);
+    else if (isOpen && drawerDragY > SNAP_CLOSE_PX) {
+       setIsOpen(false);
+       setIsEditMode(false);
+       setCurrentFolder(null);
     }
-
     setDrawerDragY(0);
     drawerTouchStartY.current = null;
-    drawerIsDragging.current = false;
   }, [isOpen, drawerDragY]);
 
-  const toggleDrawer = useCallback(() => {
-    // Se estava arrastando não interagir (prevent ghost click)
-    if (drawerIsDragging.current) return;
-    
+  const toggleDrawer = () => {
+    if (drawerTouchStartY.current !== null) return;
     setIsOpen((prev) => {
-      if (prev) setIsEditMode(false);
+      if (prev) {
+        setIsEditMode(false); 
+        setCurrentFolder(null);
+      }
       return !prev;
     });
-  }, []);
+  };
 
-  const handleItemPointerDown = useCallback(
-    (id: string) => {
-      if (!isEditMode) return;
-
-      didReorderRef.current = false;
-      clearLongPressTimer();
-
-      longPressTimer.current = setTimeout(() => {
-        setDraggingId(id);
-      }, LONG_PRESS_MS);
-    },
-    [isEditMode, clearLongPressTimer]
-  );
-
-  const handleItemPointerMove = useCallback(
-    (e: React.PointerEvent) => {
-      if (!draggingId || !gridRef.current) return;
-
-      e.preventDefault();
-
-      const el = document.elementFromPoint(e.clientX, e.clientY);
-      const btn = el?.closest("[data-drawer-id]");
-      const overId = btn?.getAttribute("data-drawer-id") ?? null;
-
-      if (overId && overId !== draggingId) {
-        setDragOverId(overId);
-      }
-    },
-    [draggingId]
-  );
-
-  const handleItemPointerUp = useCallback(() => {
+  // ROOT GRID DRAG N DROP
+  const handleItemPointerDown = useCallback((e: React.PointerEvent, id: string) => {
+    if (!isEditMode) return; 
+    e.preventDefault(); 
+    
+    didReorderRef.current = false;
+    pointerStartPos.current = { x: e.clientX, y: e.clientY };
+    setContextMenuTarget(null);
     clearLongPressTimer();
 
-    if (draggingId && dragOverId && draggingId !== dragOverId) {
-      setOrder((prev) => {
-        const arr = [...prev];
-        const fromIdx = arr.indexOf(draggingId);
-        const toIdx = arr.indexOf(dragOverId);
+    longPressTimer.current = setTimeout(() => {
+      if (navigator.vibrate) navigator.vibrate(50);
+      setDraggingId(id);
+      setLiveOrder([...drawerData.order]);
+      setDragAction("reorder");
+    }, LONG_PRESS_MS);
+  }, [isEditMode, drawerData, clearLongPressTimer]);
 
-        if (fromIdx < 0 || toIdx < 0) return prev;
+  const handleItemPointerMove = useCallback((e: React.PointerEvent) => {
+    if (!draggingId || !gridRef.current) return;
+    e.preventDefault(); 
 
-        arr.splice(fromIdx, 1);
-        arr.splice(toIdx, 0, draggingId);
-        return arr;
+    const el = document.elementFromPoint(e.clientX, e.clientY);
+    const btn = el?.closest("[data-drawer-id]");
+    const overId = btn?.getAttribute("data-drawer-id") ?? null;
+
+    if (btn && overId && overId !== draggingId) {
+      const rect = btn.getBoundingClientRect();
+      const relativeX = (e.clientX - rect.left) / rect.width;
+      const relativeY = (e.clientY - rect.top) / rect.height;
+
+      const isCenterHover = relativeX > 0.30 && relativeX < 0.70 && relativeY > 0.30 && relativeY < 0.70;
+
+      // Se passou num item Pasta, aceitamos? Nao, evitamos pasta em pasta.
+      if (isCenterHover && !drawerData.folders[overId]) {
+        setDragAction("group");
+        setDragOverId(overId);
+      } else {
+        setDragAction("reorder");
+        setDragOverId(null); 
+        // Shift live
+        setLiveOrder((currentLive) => {
+           if (!currentLive) return null;
+           const newLive = [...currentLive];
+           const fromIdx = newLive.indexOf(draggingId);
+           const toIdx = newLive.indexOf(overId);
+           if (fromIdx >= 0 && toIdx >= 0) {
+             newLive.splice(fromIdx, 1);
+             newLive.splice(toIdx, 0, draggingId);
+           }
+           return newLive; 
+        });
+      }
+    } else {
+      setDragOverId(null);
+      setDragAction("reorder");
+    }
+  }, [draggingId, drawerData]);
+
+  const executeGroup = (fromId: string, toId: string) => {
+    const isToFolder = !!drawerData?.folders[toId];
+
+    if (isToFolder) {
+      setDrawerData(prev => {
+        const next = { ...prev, order: [...prev.order], folders: { ...prev.folders } };
+        next.order = next.order.filter(id => id !== fromId);
+        next.folders[toId] = {
+           ...next.folders[toId],
+           items: [...next.folders[toId].items, fromId]
+        };
+        return next;
       });
+    } else {
+      const folderName = "Nova Pasta";
+      const newFolderId = `folder_${Date.now()}`;
+      setDrawerData(prev => {
+        const next = { ...prev, order: [...prev.order], folders: { ...prev.folders } };
+        const toIdx = next.order.indexOf(toId);
+        next.order = next.order.filter(id => id !== fromId && id !== toId);
+        if (toIdx >= 0) next.order.splice(toIdx, 0, newFolderId);
+        else next.order.push(newFolderId);
+        next.folders[newFolderId] = { id: newFolderId, name: folderName, items: [toId, fromId] };
+        return next;
+      });
+    }
+  };
 
-      didReorderRef.current = true;
+  const handleItemPointerUp = useCallback((e: React.PointerEvent, id: string) => {
+    clearLongPressTimer();
+
+    if (draggingId) {
+       // Executa drops
+       if (dragAction === "group" && dragOverId) executeGroup(draggingId, dragOverId);
+       else if (dragAction === "reorder" && liveOrder) {
+          setDrawerData(prev => ({ ...prev, order: liveOrder }));
+       }
+       
+       didReorderRef.current = true;
+       setDraggingId(null);
+       setDragOverId(null);
+       setDragAction(null);
+       setLiveOrder(null);
+       setTimeout(() => didReorderRef.current = false, 100);
+    } else {
+       // Se soltou e NUNCA originou drag mas É PASTA no modo edit
+       // Ou seja "Bateu na Pasta" em vez de arrastar (o clique sintonizou e desligou logo antes dos 180ms ou n se moveu)
+       if (isEditMode && drawerData.folders[id]) {
+           const dx = Math.abs(e.clientX - (pointerStartPos.current?.x || e.clientX));
+           const dy = Math.abs(e.clientY - (pointerStartPos.current?.y || e.clientY));
+           if (dx < 10 && dy < 10 && !didReorderRef.current) {
+               // ABRE CONTEXT MENU DAS PASTAS!
+               const el = e.currentTarget as HTMLElement;
+               const r = el.getBoundingClientRect();
+               setContextMenuTarget({ id, x: r.left + r.width/2, y: r.top });
+           }
+       }
+    }
+  }, [draggingId, dragOverId, dragAction, liveOrder, isEditMode, drawerData, clearLongPressTimer]);
+
+
+  const handleItemPress = (e: React.MouseEvent, id: string, path?: string) => {
+    if (draggingId || didReorderRef.current) return;
+    
+    if (isEditMode) {
+      // Bloqueado cliques. Modificaçoes só via arrasto ou Context Menu.
+      return; 
     }
 
-    setDraggingId(null);
-    setDragOverId(null);
-
-    requestAnimationFrame(() => {
-      didReorderRef.current = false;
-    });
-  }, [draggingId, dragOverId, setOrder, clearLongPressTimer]);
-
-  const handleNavigate = useCallback(
-    (path: string) => {
-      if (isEditMode || draggingId || didReorderRef.current) return;
+    if (drawerData?.folders && drawerData.folders[id]) {
+      setCurrentFolder(id); // Entra na Pasta visual Modal Fluida
+    } else if (path) {
       navigate(path);
       setIsOpen(false);
-    },
-    [navigate, isEditMode, draggingId]
-  );
+    }
+  };
 
-  const drawerTranslateY = isOpen
-    ? Math.max(0, drawerDragY)
-    : -Math.min(-drawerDragY, 200);
+  // DRAG INTERNO PASTAS EM MODAIS
+  const handleFolderItemPointerDown = useCallback((e: React.PointerEvent, itemId: string) => {
+     pointerStartPos.current = { x: e.clientX, y: e.clientY };
+     clearLongPressTimer();
+     longPressTimer.current = setTimeout(() => {
+        if (navigator.vibrate) navigator.vibrate(50);
+        setFolderDragId(itemId);
+     }, LONG_PRESS_MS);
+  }, [clearLongPressTimer]);
+
+  const handleFolderItemPointerMove = useCallback((e: React.PointerEvent) => {
+     if (folderDragId) {
+        if (e.clientY < 140) setIsFolderTrashHover(true);
+        else setIsFolderTrashHover(false);
+     }
+  }, [folderDragId]);
+
+  const handleFolderItemPointerUp = useCallback((e: React.PointerEvent, itemId: string) => {
+     clearLongPressTimer();
+     if (folderDragId) {
+         if (isFolderTrashHover && currentFolder) {
+             setDrawerData(prev => {
+                const next = { ...prev, order: [...prev.order], folders: { ...prev.folders } };
+                next.folders[currentFolder].items = next.folders[currentFolder].items.filter(i => i !== folderDragId);
+                next.order.push(folderDragId);
+                return next;
+             });
+             if (navigator.vibrate) navigator.vibrate(50);
+         }
+         didReorderRef.current = true;
+         setFolderDragId(null);
+         setIsFolderTrashHover(false);
+         setTimeout(() => didReorderRef.current = false, 100);
+     }
+  }, [folderDragId, isFolderTrashHover, currentFolder, clearLongPressTimer, setDrawerData]);
+  
+  const handleFolderItemClick = (e: React.MouseEvent, itemId: string) => {
+    if (folderDragId || didReorderRef.current) return;
+    const page = PAGE_MAP.get(itemId);
+    if (page) {
+       navigate(page.path);
+       setCurrentFolder(null);
+       setIsOpen(false);
+    }
+  };
+
 
   return (
     <>
       <style>{`
         @keyframes drawer-wiggle {
-          0%, 100% { transform: rotate(-1.5deg) scale(1.02); }
-          50% { transform: rotate(1.5deg) scale(1.02); }
+          0%, 100% { transform: rotate(-1.5deg) scale(1.01); }
+          50% { transform: rotate(1.5deg) scale(1.01); }
         }
       `}</style>
 
-      {isOpen && (
+      {/* OVERLAY BG FUNDO ESCURO */}
+      {isOpen && !currentFolder && (
         <div
           onClick={() => {
             setIsOpen(false);
             setIsEditMode(false);
-            setDraggingId(null);
-            setDragOverId(null);
-            clearLongPressTimer();
+            setContextMenuTarget(null);
           }}
-          className="fixed inset-0 z-[9989] md:hidden"
+          className="fixed inset-0 z-[9989] md:hidden transition-opacity duration-300"
           style={{ background: "rgba(0,0,0,0.55)", backdropFilter: "blur(2px)" }}
-          aria-hidden="true"
         />
       )}
 
+      {/* DRAWER PRINCIPAL */}
       <div
-        className="fixed bottom-0 left-0 right-0 z-[9990] md:hidden transition-transform duration-300 ease-out"
+        className="fixed bottom-0 left-0 right-0 z-[9990] md:hidden transition-transform duration-300 ease-out flex flex-col justify-end"
         style={{
           transform: `translateY(${isOpen ? Math.max(0, drawerDragY) : "0"})`,
           willChange: "transform",
           paddingBottom: "env(safe-area-inset-bottom, 0px)",
-          touchAction: isEditMode ? "none" : "pan-y",
+          top: isOpen ? "0" : "auto", 
+          pointerEvents: isOpen && isEditMode && draggingId ? "auto" : "none", 
         }}
         onPointerMove={isEditMode ? handleItemPointerMove : undefined}
-        onPointerUp={isEditMode ? handleItemPointerUp : undefined}
-        onPointerLeave={isEditMode ? handleItemPointerUp : undefined}
-        onPointerCancel={isEditMode ? handleItemPointerUp : undefined}
       >
         <div
           className={[
-            "relative w-full rounded-t-3xl overflow-hidden",
+            "relative w-full rounded-t-3xl overflow-hidden pointer-events-auto",
             "border border-b-0 border-white/10",
             "bg-gradient-to-b from-gray-900/95 to-black/98",
           ].join(" ")}
@@ -387,39 +520,35 @@ export const MobileAppDrawer: React.FC = () => {
             backdropFilter: "blur(24px) saturate(1.5)",
           }}
         >
+          {/* Fundo Glow Original que o usuário ama */}
           <div
             aria-hidden="true"
             className="pointer-events-none absolute inset-0 opacity-5"
             style={{
-              backgroundImage:
-                "linear-gradient(rgba(168,85,247,1) 1px, transparent 1px), linear-gradient(90deg, rgba(168,85,247,1) 1px, transparent 1px)",
+              backgroundImage: "linear-gradient(rgba(168,85,247,1) 1px, transparent 1px), linear-gradient(90deg, rgba(168,85,247,1) 1px, transparent 1px)",
               backgroundSize: "32px 32px",
             }}
           />
 
           <div
             role="button"
-            aria-label={isOpen ? "Fechar menu" : "Abrir menu"}
             onTouchStart={handleDrawerTouchStart}
             onTouchMove={handleDrawerTouchMove}
             onTouchEnd={handleDrawerTouchEnd}
             onClick={toggleDrawer}
-            className="flex flex-col items-center cursor-pointer select-none pt-1.5 w-full active:bg-white/5 transition-colors"
+            className="flex flex-col items-center cursor-pointer select-none pt-1.5 w-full active:bg-white/5 transition-colors relative z-10"
           >
-            {/* Drag pill — sempre visível */}
             <div
               className={[
                 "h-1 rounded-full transition-all duration-300 mb-1.5",
                 isOpen ? "bg-purple-400/60 w-10" : "bg-white/20 w-8",
               ].join(" ")}
             />
-
-            {/* Quando fechado: linha compacta com página ativa + chevron */}
             {!isOpen && (
               <div className="flex items-center justify-between w-full px-4 pb-1.5">
                 <div className="flex items-center gap-1.5 min-w-0">
                   {(() => {
-                    const activePage = orderedPages.find((p) => location.pathname === p.path);
+                    const activePage = ALL_PAGES.find((p) => location.pathname === p.path);
                     if (!activePage) return <span className="text-[11px] text-white/30">Menu</span>;
                     return (
                       <>
@@ -433,37 +562,28 @@ export const MobileAppDrawer: React.FC = () => {
                 <ChevronUpIcon className="w-3.5 h-3.5 text-white/25 flex-shrink-0 ml-2" />
               </div>
             )}
-
-            {/* Quando aberto: só o chevron invertido */}
-            {isOpen && (
-              <ChevronUpIcon className="w-4 h-4 text-white/30 rotate-180 mb-1" />
-            )}
+            {isOpen && <ChevronUpIcon className="w-4 h-4 text-white/30 rotate-180 mb-1" />}
           </div>
 
-          <div
-            className="overflow-hidden transition-all duration-350 ease-in-out"
-            style={{
-              maxHeight: isOpen ? "70vh" : "0px",
-              opacity: isOpen ? 1 : 0,
-            }}
-          >
-            {/* Relógio — 1 linha: status · cronômetro | hora servidor */}
-            <div className="flex items-center justify-between px-5 py-1.5 border-b border-white/5 mb-2 gap-2">
+          <div className="overflow-hidden transition-all duration-350 ease-in-out flex flex-col relative z-20" style={{ maxHeight: isOpen ? "85vh" : "0px", opacity: isOpen ? 1 : 0 }}>
+            {/* Relógio Minimalista Original */}
+            <div className="flex items-center justify-between px-5 py-1.5 border-b border-white/5 mb-2 flex-shrink-0">
               <div className={`flex items-center gap-1.5 font-mono text-[10px] font-bold flex-shrink-0 ${STATUS_COLOR[status] ?? "text-gray-500"}`}>
                 <span className="w-1.5 h-1.5 rounded-full bg-current" />
                 <span>{STATUS_LABEL[status] ?? "..."}</span>
                 <span className="text-white/20">·</span>
                 <span>{fmtTimer(remainingTime)}</span>
               </div>
-              <span className="font-mono text-[9px] text-gray-400 whitespace-nowrap truncate">
-                {fmtSrvTime(serverTime)}
-              </span>
+              <span className="font-mono text-[9px] text-gray-400 whitespace-nowrap truncate">{fmtSrvTime(serverTime)}</span>
             </div>
 
-            <div className="flex items-center justify-between px-5 pb-2">
-              <span className="text-[10px] font-semibold tracking-widest text-purple-400/70 uppercase">
-                Navegação
-              </span>
+            {/* Cabeçalho EDITAR Navegação Restourado */}
+            <div className="flex items-center justify-between px-5 pb-2 flex-shrink-0">
+              <div className="flex items-center gap-2">
+                <span className="text-[11px] font-semibold tracking-widest text-purple-400/70 uppercase truncate max-w-[140px]">
+                  Navegação
+                </span>
+              </div>
 
               <div className="flex items-center gap-2">
                 {isEditMode ? (
@@ -472,35 +592,26 @@ export const MobileAppDrawer: React.FC = () => {
                     onClick={() => {
                       setIsEditMode(false);
                       setDraggingId(null);
-                      setDragOverId(null);
-                      clearLongPressTimer();
+                      setDragAction(null);
+                      setContextMenuTarget(null);
                     }}
                     className="flex items-center gap-1 rounded-lg px-2.5 py-1 text-[11px] font-semibold text-emerald-400 border border-emerald-500/30 bg-emerald-500/10 active:scale-95 transition-all"
                   >
-                    <CheckIcon className="w-3.5 h-3.5" />
-                    Pronto
+                    <CheckIcon className="w-3.5 h-3.5" /> Pronto
                   </button>
                 ) : (
                   <button
                     type="button"
                     onClick={() => setIsEditMode(true)}
-                    className="flex items-center gap-1 rounded-lg px-2.5 py-1 text-[11px] font-medium text-slate-400 border border-white/10 bg-white/5 active:scale-95 transition-all"
+                    className="flex items-center gap-1 rounded-lg px-2.5 py-1 text-[11px] font-medium text-slate-400 border border-white/10 bg-white/5 active:scale-95 transition-all hover:text-white"
                   >
-                    <PencilSquareIcon className="w-3.5 h-3.5" />
-                    Editar
+                    <PencilSquareIcon className="w-3.5 h-3.5" /> Editar
                   </button>
                 )}
 
                 <button
                   type="button"
-                  onClick={() => {
-                    setIsOpen(false);
-                    setIsEditMode(false);
-                    setDraggingId(null);
-                    setDragOverId(null);
-                    clearLongPressTimer();
-                  }}
-                  aria-label="Fechar menu"
+                  onClick={() => setIsOpen(false)}
                   className="p-1.5 rounded-lg text-slate-500 hover:text-white hover:bg-white/5 transition-all active:scale-95"
                 >
                   <XMarkIcon className="w-4 h-4" />
@@ -509,60 +620,173 @@ export const MobileAppDrawer: React.FC = () => {
             </div>
 
             {isEditMode && (
-              <p className="px-5 pb-2 text-[10px] text-purple-300/60 leading-snug">
-                Segure e arraste os ícones para reorganizar. A ordem é salva automaticamente.
+              <p className="px-5 pb-2 text-[10px] text-purple-300/60 leading-snug flex-shrink-0 animate-[fade-in_0.3s]">
+                Modo Editar. Segure para arrastar ícones. Solte um em cima de outro para criar uma Pasta. Toque numa Pasta rápido para renomear/remover.
               </p>
             )}
 
-            <div
-              ref={gridRef}
-              role="menu"
-              className="grid grid-cols-4 px-3 pb-4 gap-2 overflow-y-auto"
-              style={{ maxHeight: "52vh" }}
-            >
-              {orderedPages.map((page) => {
-                const isActive = location.pathname === page.path;
-                const isDragging = draggingId === page.id;
-                const isDragOver = dragOverId === page.id;
+            <div ref={gridRef} className="px-[12px] pt-1 pb-6 overflow-y-auto overflow-x-hidden min-h-[40vh]" 
+                 style={{ WebkitOverflowScrolling: "touch", touchAction: isEditMode ? "none" : "auto" }}>
+              <div className="grid grid-cols-4 gap-2 w-full">
+                  <AnimatePresence>
+                     {currentViewItems.map((id) => {
+                       const folder = drawerData.folders ? drawerData.folders[id] : undefined;
+                       const page = PAGE_MAP.get(id);
+                       if (!folder && !page) return null;
 
-                return (
-                  <div
-                    key={page.id}
-                    data-drawer-id={page.id}
-                    onPointerDown={() => handleItemPointerDown(page.id)}
-                    onPointerCancel={handleItemPointerUp}
-                    className={[
-                      "relative transition-all duration-150",
-                      isDragOver && draggingId !== page.id
-                        ? "scale-105 ring-1 ring-purple-400/60 rounded-xl"
-                        : "",
-                    ].join(" ")}
-                    style={{ touchAction: isEditMode ? "none" : "auto" }}
-                  >
-                    <DrawerItem
-                      page={page}
-                      isActive={isActive}
-                      isEditMode={isEditMode}
-                      isDragging={isDragging}
-                      onPress={() => handleNavigate(page.path)}
-                    />
-                  </div>
-                );
-              })}
-            </div>
+                       const isActive = folder ? folderContainingActivePage === id : location.pathname === page?.path;
+                       const isDragging = draggingId === id;
+                       const isDragOverAsGroup = dragOverId === id && dragAction === "group";
 
-            <div className="px-5 pb-3 flex items-center gap-2">
-              <div className="flex-1 h-px bg-white/5" />
-              <span className="text-[9px] text-white/20 tracking-widest uppercase">
-                {orderedPages.find((p) => location.pathname === p.path)?.category ?? ""}
-              </span>
-              <div className="flex-1 h-px bg-white/5" />
+                       return (
+                           <motion.div
+                             layoutId={`v1-item-${id}`}
+                             layout="position"
+                             key={id}
+                             data-drawer-id={id}
+                             onPointerDown={(e: any) => handleItemPointerDown(e, id)}
+                             onPointerUp={(e: any) => { e.preventDefault(); handleItemPointerUp(e, id); }}
+                             onPointerCancel={(e: any) => { e.preventDefault(); handleItemPointerUp(e, id); }}
+                             onClick={(e: any) => handleItemPress(e, id, page?.path)}
+                             className={[
+                               "relative w-full select-none cursor-pointer flex justify-center",
+                               isDragOverAsGroup ? "ring-2 ring-emerald-400/80 rounded-xl bg-emerald-400/20 z-[60] scale-105" : "z-0",
+                             ].join(" ")}
+                             initial={false}
+                             animate={{ scale: isDragging ? 0.9 : 1, zIndex: isDragging ? 99 : 0, opacity: isDragging ? 0.5 : 1 }}
+                             transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                           >
+                             <div className="w-full">
+                               {folder ? (
+                                 <DrawerFolderItem folder={folder} isActive={isActive} isEditMode={isEditMode} isDragging={false} onPress={() => {}} />
+                               ) : (
+                                 <DrawerItem page={page!} isActive={isActive} isEditMode={isEditMode} isDragging={false} onPress={() => {}} />
+                               )}
+                             </div>
+                           </motion.div>
+                       );
+                     })}
+                  </AnimatePresence>
+              </div>
             </div>
           </div>
-
-
         </div>
       </div>
+      
+      {/* MENU CONTEXTUAL PARA PASTAS (Renomear/Excluir) via Clicar Longo ou Clicar da Pasta no Modo Edit */}
+      <AnimatePresence>
+         {contextMenuTarget && drawerData.folders[contextMenuTarget.id] && (
+           <motion.div 
+             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+             className="fixed inset-0 z-[9999] bg-black/40"
+             onClick={() => setContextMenuTarget(null)}
+           >
+              <motion.div 
+                 initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.8 }}
+                 className="absolute bg-gray-900 border border-purple-500/30 rounded-2xl shadow-2xl overflow-hidden flex flex-col min-w-[170px]"
+                 style={{ 
+                    top: `clamp(20px, ${contextMenuTarget.y - 120}px, 80vh)`, 
+                    left: `clamp(20px, ${contextMenuTarget.x - 85}px, calc(100vw - 190px))` 
+                 }}
+                 onClick={e => e.stopPropagation()}
+              >
+                  <div className="px-4 py-2 border-b border-white/5 text-[10px] text-emerald-400/70 font-bold tracking-widest text-center uppercase bg-emerald-500/5">
+                      {drawerData.folders[contextMenuTarget.id].name}
+                  </div>
+                  <button 
+                     className="px-4 py-3 text-sm font-semibold text-white hover:bg-white/5 active:bg-white/10 transition-colors border-b border-white/5"
+                     onClick={() => {
+                        const newName = window.prompt("Digite o novo nome da pasta:", drawerData.folders[contextMenuTarget.id].name);
+                        if(newName) setDrawerData(prev => ({ ...prev, folders: { ...prev.folders, [contextMenuTarget.id]: { ...prev.folders[contextMenuTarget.id], name: newName } } }));
+                        setContextMenuTarget(null);
+                     }}
+                  >
+                     Renomear Pastinha
+                  </button>
+                  <button 
+                     className="px-4 py-3 text-sm font-semibold text-red-400 hover:bg-red-400/10 active:bg-red-400/20 transition-colors"
+                     onClick={() => {
+                        setDrawerData(prev => {
+                          const next = { ...prev, order: [...prev.order], folders: { ...prev.folders } };
+                          const targetItems = next.folders[contextMenuTarget.id].items;
+                          next.order = next.order.filter(i => i !== contextMenuTarget.id).concat(targetItems);
+                          delete next.folders[contextMenuTarget.id];
+                          return next;
+                        });
+                        setContextMenuTarget(null);
+                     }}
+                  >
+                     Remover Pasta
+                  </button>
+              </motion.div>
+           </motion.div>
+         )}
+      </AnimatePresence>
+
+
+      {/* PASTA MODAL SEM MOLDURA MANTIDA DA EXPERIÊNCIA ANDROID QUE FUNCIONA BEM */}
+      <AnimatePresence>
+        {currentFolder && drawerData.folders[currentFolder] && isOpen && (
+           <motion.div
+             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}
+             className="fixed inset-0 z-[9995] flex items-center justify-center bg-black/70 backdrop-blur-xl touch-none"
+             onPointerMove={handleFolderItemPointerMove} 
+             onClick={(e) => {
+                 if(e.target === e.currentTarget && !folderDragId) setCurrentFolder(null); 
+             }}
+           >
+              <AnimatePresence>
+                 {folderDragId && (
+                     <motion.div 
+                        initial={{ opacity: 0, y: -30 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -30 }}
+                        className={["fixed top-[8vh] left-1/2 -translate-x-1/2 px-5 py-2.5 rounded-full flex items-center gap-2 transition-all duration-300", 
+                           isFolderTrashHover ? "bg-red-500/90 text-white scale-110 shadow-[0_0_20px_rgba(239,68,68,0.6)]" : "bg-black/60 border border-white/20 text-white/70"
+                        ].join(" ")}
+                     >
+                         <TrashIcon className="w-5 h-5" />
+                         <span className="text-xs font-semibold uppercase tracking-widest">{isFolderTrashHover ? "Soltar aqui" : "Remover do Grupo"}</span>
+                     </motion.div>
+                 )}
+              </AnimatePresence>
+
+              <motion.div 
+                 initial={{ y: 50, scale: 0.95 }} animate={{ y: 0, scale: 1 }} exit={{ y: 20, scale: 0.95 }} transition={{ type: "spring", damping: 25, stiffness: 350 }}
+                 className="w-full px-6 flex flex-col items-center justify-center pointer-events-auto"
+                 onClick={(e) => { if(!folderDragId) e.stopPropagation(); }}
+              >
+                  <div className="w-full flex justify-center mb-8 relative z-10 pointer-events-none">
+                     <span className="text-white font-bold text-xl text-center">
+                        {drawerData.folders[currentFolder].name}
+                     </span>
+                  </div>
+
+                  <div className="w-full grid grid-cols-4 gap-y-8 gap-x-3 relative z-10">
+                      {drawerData.folders[currentFolder].items.map(itemId => {
+                          const page = PAGE_MAP.get(itemId);
+                          if (!page) return null;
+                          const isDragging = folderDragId === itemId;
+
+                          return (
+                              <motion.div 
+                                 key={itemId}
+                                 className="flex flex-col items-center w-full select-none touch-none"
+                                 onPointerDown={(e: any) => handleFolderItemPointerDown(e, itemId)}
+                                 onPointerUp={(e: any) => { e.preventDefault(); handleFolderItemPointerUp(e, itemId); }}
+                                 onClick={(e: any) => handleFolderItemClick(e, itemId)}
+                                 animate={{ scale: isDragging ? 0.8 : 1, opacity: isDragging ? 0.3 : 1 }}
+                              >
+                                  <div className="w-14 h-14 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center shadow-lg pointer-events-none mb-1.5 text-slate-300">
+                                      {React.cloneElement(page.icon as React.ReactElement, { className: "w-7 h-7" })}
+                                  </div>
+                                  <span className="text-[10px] font-medium text-slate-300 text-center leading-tight line-clamp-1 pointer-events-none">{page.name}</span>
+                              </motion.div>
+                          )
+                      })}
+                  </div>
+              </motion.div>
+           </motion.div>
+        )}
+      </AnimatePresence>
     </>
   );
 };
