@@ -200,6 +200,7 @@ export const MobileAppDrawer: React.FC = () => {
   const [contextMenuTarget, setContextMenuTarget] = useState<{ id: string, x: number, y: number } | null>(null);
 
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const reorderDelayTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const didReorderRef = useRef(false);
   const gridRef = useRef<HTMLDivElement>(null);
 
@@ -244,6 +245,11 @@ export const MobileAppDrawer: React.FC = () => {
              setDragAction(null);
              setIsFolderTrashHover(false);
              setFolderDragId(null);
+         }
+         
+         if (reorderDelayTimer.current) {
+             clearTimeout(reorderDelayTimer.current);
+             reorderDelayTimer.current = null;
          }
          clearLongPressTimer();
      };
@@ -319,31 +325,46 @@ export const MobileAppDrawer: React.FC = () => {
       const relativeX = (e.clientX - rect.left) / rect.width;
       const relativeY = (e.clientY - rect.top) / rect.height;
 
-      const isCenterHover = relativeX > 0.30 && relativeX < 0.70 && relativeY > 0.30 && relativeY < 0.70;
+      // Hitbox de Agrupamento aumentada pra 25% - 75% -> Mais facil criar a pasta!
+      const isCenterHover = relativeX > 0.25 && relativeX < 0.75 && relativeY > 0.25 && relativeY < 0.75;
 
-      // Se passou num item Pasta, aceitamos? Nao, evitamos pasta em pasta.
       if (isCenterHover && !drawerData.folders[overId]) {
+        // Group Intent => Interrompe qualquer plano de mover ele do lugar.
+        if (reorderDelayTimer.current) {
+           clearTimeout(reorderDelayTimer.current);
+           reorderDelayTimer.current = null;
+        }
         setDragAction("group");
         setDragOverId(overId);
       } else {
         setDragAction("reorder");
         setDragOverId(null); 
-        // Shift live
-        setLiveOrder((currentLive) => {
-           if (!currentLive) return null;
-           const newLive = [...currentLive];
-           const fromIdx = newLive.indexOf(draggingId);
-           const toIdx = newLive.indexOf(overId);
-           if (fromIdx >= 0 && toIdx >= 0) {
-             newLive.splice(fromIdx, 1);
-             newLive.splice(toIdx, 0, draggingId);
-           }
-           return newLive; 
-        });
+        
+        // Timer Inteligente: Aguarda 250ms antes de mover os grids para confirmar se o usuário não ia parar em cima dele.
+        if (!reorderDelayTimer.current) {
+            reorderDelayTimer.current = setTimeout(() => {
+                setLiveOrder((currentLive) => {
+                   if (!currentLive) return null;
+                   const newLive = [...currentLive];
+                   const fromIdx = newLive.indexOf(draggingId);
+                   const toIdx = newLive.indexOf(overId);
+                   if (fromIdx >= 0 && toIdx >= 0) {
+                     newLive.splice(fromIdx, 1);
+                     newLive.splice(toIdx, 0, draggingId);
+                   }
+                   return newLive; 
+                });
+                reorderDelayTimer.current = null;
+            }, 300);
+        }
       }
     } else {
       setDragOverId(null);
       setDragAction("reorder");
+      if (reorderDelayTimer.current) {
+          clearTimeout(reorderDelayTimer.current);
+          reorderDelayTimer.current = null;
+      }
     }
   }, [draggingId, drawerData]);
 
@@ -390,6 +411,10 @@ export const MobileAppDrawer: React.FC = () => {
        setDragOverId(null);
        setDragAction(null);
        setLiveOrder(null);
+       if (reorderDelayTimer.current) {
+           clearTimeout(reorderDelayTimer.current);
+           reorderDelayTimer.current = null;
+       }
        setTimeout(() => didReorderRef.current = false, 100);
     } else {
        // Se soltou e NUNCA originou drag mas É PASTA no modo edit
