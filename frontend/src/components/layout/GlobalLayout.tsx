@@ -3,6 +3,13 @@ import { useLocation } from "react-router-dom";
 import TopBar from "./TopBar";
 import DashboardSidebar from "./DashboardSidebar";
 import { FloatingMenuButton } from "./FloatingMenuButton";
+import { MobileAppDrawer } from "./MobileAppDrawer";
+
+// ─── FLAG DE FEATURE ───────────────────────────────────────────────────────────
+// true  → exibe o novo menu experimental (MobileAppDrawer)
+// false → exibe o menu flutuante original (FloatingMenuButton)
+// Mude aqui para alternar entre os dois. Nenhum dos dois é removido.
+const USE_EXPERIMENTAL_DRAWER = false;
 import { useTheme } from "../../contexts/ThemeContext";
 import { useUserProfileContext } from "../../contexts/UserProfileContext";
 import { useHUD } from "../../contexts/HUDContext";
@@ -236,7 +243,7 @@ const GlobalLayout: React.FC<GlobalLayoutProps> = ({ children }) => {
         className="!bg-slate-700 !bg-opacity-80 !backdrop-blur-sm !text-white !rounded-lg !px-3 !py-1 !text-[8px] !font-sans"
       />
 
-      <FloatingMenuButton />
+      {USE_EXPERIMENTAL_DRAWER ? <MobileAppDrawer /> : <FloatingMenuButton />}
       <ScrollToTopButton scrollableRef={scrollableContainerRef} />
     </div>
   );
