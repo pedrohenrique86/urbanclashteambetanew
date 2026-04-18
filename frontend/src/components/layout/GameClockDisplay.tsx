@@ -162,32 +162,26 @@ const GameClockDisplay: React.FC<GameClockDisplayProps> = ({
         <AnimatePresence>
           {shouldBeVisible && (
             <motion.div
-              initial={{ y: "100%" }}
-              animate={{ y: "0%" }}
-              exit={{ y: "100%" }}
-              transition={{ type: "tween", ease: "easeInOut", duration: 0.4 }}
-              className="flex flex-row items-center justify-between w-full px-3 py-1.5 bg-black/20 backdrop-blur-xl shadow-[0_-5px_25px_rgba(0,0,0,0.5)] z-[60] fixed bottom-0 left-0 right-0 md:hidden"
+              initial={{ y: 20, opacity: 0, x: "-50%" }}
+              animate={{ y: 0, opacity: 1, x: "-50%" }}
+              exit={{ y: 20, opacity: 0, x: "-50%" }}
+              transition={{ type: "spring", stiffness: 400, damping: 30 }}
+              className="fixed bottom-24 left-1/2 z-[60] flex items-center gap-4 px-5 py-2 bg-black/60 backdrop-blur-xl border border-white/10 rounded-full shadow-[0_8px_32px_rgba(0,0,0,0.8)] md:hidden whitespace-nowrap"
             >
               {/* Status e Cronômetro */}
-              <div className={`flex items-center gap-2 ${statusColor}`}>
-                <span className="text-sm sm:text-base" data-tooltip-id="status-tooltip" data-tooltip-content={statusText}>
-                  {statusIcon}
-                </span>
-                <span className="font-mono font-bold text-xs sm:text-sm">
-                  {remainingTimeStr}
-                </span>
+              <div className={`flex items-center gap-2 text-[10px] font-black uppercase tracking-wider ${statusColor}`}>
+                <span className="scale-90">{statusIcon}</span>
+                <span>{statusText.split(':')[0]}</span>
+                <span className="font-mono text-white bg-white/5 px-2 py-0.5 rounded border border-white/5">{remainingTimeStr}</span>
               </div>
 
+              {/* Divisor */}
+              <div className="w-px h-3 bg-white/20" />
+
               {/* Hora do Servidor */}
-              <div
-                data-tooltip-id="server-time-tooltip"
-                data-tooltip-content="Horário Padrão"
-                className="flex items-center gap-1.5 text-gray-400"
-              >
-                <IoMdTime className="text-sm sm:text-base" />
-                <span className="font-mono font-bold text-xs sm:text-sm whitespace-nowrap">
-                  {serverTimeStr}
-                </span>
+              <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-wider text-white/80">
+                <IoMdTime className="scale-110 text-purple-400" />
+                <span className="font-mono">{serverTimeStr}</span>
               </div>
             </motion.div>
           )}
