@@ -599,27 +599,29 @@ export const MobileAppDrawer: React.FC = () => {
           </div>
 
           <div className="overflow-hidden transition-all duration-350 ease-in-out flex flex-col relative z-20" style={{ maxHeight: isOpen ? "85vh" : "0px", opacity: isOpen ? 1 : 0 }}>
-            <div className="px-4 py-2 border-b border-white/[0.03] bg-white/[0.01] mb-2 flex-shrink-0">
-              <div className="flex items-center justify-center gap-4 px-3 py-1.5 rounded-xl bg-black/40 border border-white/10 shadow-[0_4px_12px_rgba(0,0,0,0.4)] w-full">
-                {/* Lado Esquerdo: Status e Cronômetro */}
-                <div className={`flex items-center gap-2 ${STATUS_COLOR[status] ?? "text-gray-500"} flex-shrink-0`}>
-                  <div className="relative flex h-1.5 w-1.5">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-current opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-current"></span>
+            <div className="px-3 py-2 border-b border-white/[0.03] bg-white/[0.01] mb-2 flex-shrink-0">
+              <div className="flex justify-center">
+                <div className="flex items-center flex-nowrap gap-2.5 px-3 py-1.5 rounded-xl bg-black/40 border border-white/10 shadow-[0_4px_12px_rgba(0,0,0,0.4)] tabular-nums font-mono antialiased">
+                  {/* Lado Esquerdo: Status e Cronômetro */}
+                  <div className={`flex items-center gap-1.5 ${STATUS_COLOR[status] ?? "text-gray-500"} shrink-0`}>
+                    <div className="relative flex h-1 w-1">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-current opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-1 w-1 bg-current"></span>
+                    </div>
+                    <span className="text-[9px] font-bold uppercase tracking-tight whitespace-nowrap">{STATUS_LABEL[status]}</span>
+                    <span className="text-[9px] font-bold text-white bg-white/5 px-1.5 py-0.5 rounded border border-white/5 shrink-0 whitespace-nowrap">
+                      {fmtTimer(remainingTime)}
+                    </span>
                   </div>
-                  <span className="text-[10px] font-bold uppercase tracking-widest leading-none">{STATUS_LABEL[status]}</span>
-                  <span className="text-[10px] font-mono font-bold text-white bg-white/5 px-2 py-0.5 rounded border border-white/5 tabular-nums leading-none">
-                    {fmtTimer(remainingTime)}
-                  </span>
-                </div>
 
-                {/* Divisor */}
-                <div className="w-px h-3.5 bg-white/20 flex-shrink-0" />
+                  {/* Divisor */}
+                  <div className="w-px h-3 bg-white/20 shrink-0" />
 
-                {/* Lado Direito: Hora do Servidor */}
-                <div className="flex items-center gap-2 text-white font-mono text-[10px] font-bold flex-shrink-0">
-                  <GlobeAltIcon className="w-3.5 h-3.5 text-purple-400 opacity-80 flex-shrink-0" />
-                  <span className="uppercase tracking-tighter leading-none">{fmtSrvTime(serverTime)}</span>
+                  {/* Lado Direito: Hora do Servidor */}
+                  <div className="flex items-center gap-1.5 text-white font-bold shrink-0">
+                    <GlobeAltIcon className="w-3 h-3 text-purple-400 flex-shrink-0" />
+                    <span className="text-[8.5px] uppercase tracking-tighter whitespace-nowrap opacity-90">{fmtSrvTime(serverTime)}</span>
+                  </div>
                 </div>
               </div>
             </div>
