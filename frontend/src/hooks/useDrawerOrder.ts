@@ -7,6 +7,7 @@ export interface DrawerFolder {
   id: string;
   name: string;
   items: string[];
+  color?: string;
 }
 
 export interface DrawerData {
@@ -30,6 +31,7 @@ function normalizeData(saved: unknown, defaultOrder: string[]): DrawerData {
       validFolders[key] = {
         id: key,
         name: (value as any).name,
+        color: (value as any).color,
         items: (value as any).items.filter((i: any) => typeof i === "string")
       };
     }
@@ -71,28 +73,26 @@ export function useDrawerOrder(
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
+    if (debounceTimer.current) clearTimeout(debounceTimer.current);
+    
+    debounceTimer.current = setTimeout(() => {
+      try {
+        window.localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+      } catch {
+        // ignore errors
+      }
+    }, DEBOUNCE_MS);
+
     return () => {
       if (debounceTimer.current) clearTimeout(debounceTimer.current);
     };
-  }, []);
+  }, [data]);
 
   const setData = useCallback(
     (updater: DrawerData | ((prev: DrawerData) => DrawerData)) => {
       setDataState((prev) => {
         const nextRaw = typeof updater === "function" ? updater(prev) : updater;
-        const next = normalizeData(nextRaw, defaultOrder);
-
-        if (debounceTimer.current) clearTimeout(debounceTimer.current);
-
-        debounceTimer.current = setTimeout(() => {
-          try {
-            window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-          } catch {
-            // ignore localStorage quota or access errors
-          }
-        }, DEBOUNCE_MS);
-
-        return next;
+        return normalizeData(nextRaw, defaultOrder);
       });
     },
     [defaultOrder]

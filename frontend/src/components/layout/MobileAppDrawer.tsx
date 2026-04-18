@@ -70,6 +70,14 @@ const STATUS_LABEL: Record<string, string> = {
   scheduled: "Aguardando",
 };
 
+const FOLDER_COLORS: Record<string, { bg: string, text: string, border: string, icon: string, solid: string }> = {
+  emerald: { bg: "bg-emerald-500/10", text: "text-emerald-400", border: "border-emerald-500/30", icon: "text-emerald-200/90", solid: "bg-emerald-500" },
+  blue: { bg: "bg-blue-500/10", text: "text-blue-400", border: "border-blue-500/30", icon: "text-blue-200/90", solid: "bg-blue-500" },
+  purple: { bg: "bg-purple-500/10", text: "text-purple-400", border: "border-purple-500/30", icon: "text-purple-200/90", solid: "bg-purple-500" },
+  amber: { bg: "bg-amber-500/10", text: "text-amber-400", border: "border-amber-500/30", icon: "text-amber-200/90", solid: "bg-amber-500" },
+  rose: { bg: "bg-rose-500/10", text: "text-rose-400", border: "border-rose-500/30", icon: "text-rose-200/90", solid: "bg-rose-500" },
+};
+
 interface DrawerPage {
   id: string;
   name: string;
@@ -147,6 +155,7 @@ const DrawerFolderItem = memo(function DrawerFolderItem({
   folder: DrawerFolder; isActive: boolean; isEditMode: boolean; isDragging: boolean; onPress: () => void;
 }) {
   const previewPages = folder.items.slice(0, 4).map(id => PAGE_MAP.get(id)).filter(Boolean) as DrawerPage[];
+  const colors = FOLDER_COLORS[folder.color || 'emerald'] || FOLDER_COLORS.emerald;
 
   return (
     <button
@@ -154,20 +163,23 @@ const DrawerFolderItem = memo(function DrawerFolderItem({
       onClick={onPress}
       className={[
         "relative flex flex-col items-center gap-1.5 rounded-xl px-1.5 py-2.5 transition-all duration-300 select-none w-full outline-none",
-        isActive ? "bg-emerald-500/10 text-emerald-300 shadow-[0_0_12px_rgba(16,185,129,0.25)]" : "text-slate-300 hover:text-white hover:bg-white/5",
+        isActive ? "bg-white/10 text-white shadow-[0_0_12px_rgba(255,255,255,0.1)]" : "text-slate-300 hover:text-white hover:bg-white/5",
         isEditMode && !isDragging ? "animate-[drawer-wiggle_0.45s_ease-in-out_infinite]" : "",
       ].join(" ")}
     >
-      <div className="w-10 h-10 rounded-2xl flex flex-col items-center justify-center border border-emerald-500/30 bg-emerald-500/10 p-[3px] gap-[2px] pointer-events-none">
+      <div className={[
+        "w-10 h-10 rounded-2xl flex flex-col items-center justify-center border p-[3px] gap-[2px] pointer-events-none transition-colors duration-500",
+        colors.border, colors.bg
+      ].join(" ")}>
         <div className="grid grid-cols-2 gap-[2px] w-full h-full place-items-center">
           {previewPages.slice(0, 4).map((p, i) => (
-            <div key={i} className="flex items-center justify-center w-full h-full bg-white/10 rounded-md scale-95 text-emerald-200/90 overflow-hidden">
-              {React.cloneElement(p.icon as React.ReactElement, { className: 'w-3 h-3' })}
+            <div key={i} className="flex items-center justify-center w-full h-full bg-white/10 rounded-md scale-95 overflow-hidden">
+              {React.cloneElement(p.icon as React.ReactElement, { className: ['w-3 h-3', colors.icon].join(" ") })}
             </div>
           ))}
         </div>
       </div>
-      <span className="text-[9px] font-bold text-emerald-400 leading-tight text-center max-w-[68px] line-clamp-1 pointer-events-none w-[110%]">
+      <span className={["text-[9px] font-bold leading-tight text-center max-w-[68px] line-clamp-1 pointer-events-none w-[110%] transition-colors duration-500", colors.text].join(" ")}>
         {folder.name}
       </span>
     </button>
@@ -832,7 +844,7 @@ export const MobileAppDrawer: React.FC = () => {
               <div className="absolute -top-20 -right-20 w-40 h-40 bg-purple-500/10 blur-[50px] rounded-full pointer-events-none" />
               <div className="absolute -bottom-20 -left-20 w-40 h-40 bg-emerald-500/10 blur-[50px] rounded-full pointer-events-none" />
 
-              <div className="w-full flex flex-col items-center mb-10 relative z-10">
+              <div className="w-full flex flex-col items-center mb-8 relative z-10">
                 <div className="flex items-center gap-3 mb-3">
                   <span className="text-white font-bold text-2xl text-center tracking-tight drop-shadow-lg">
                     {drawerData.folders[currentFolder].name}
@@ -843,29 +855,66 @@ export const MobileAppDrawer: React.FC = () => {
                       const newName = window.prompt("Novo nome da pasta:", drawerData.folders[currentFolder!].name);
                       if (newName) setDrawerData(prev => ({ ...prev, folders: { ...prev.folders, [currentFolder!]: { ...prev.folders[currentFolder!], name: newName } } }));
                     }}
-                    className="p-2 rounded-2xl bg-white/10 border border-white/10 text-emerald-300 active:scale-90 transition-all hover:bg-white/20"
+                    className={["p-2 rounded-2xl bg-white/10 border border-white/10 active:scale-90 transition-all hover:bg-white/20", FOLDER_COLORS[drawerData.folders[currentFolder].color || 'emerald']?.text || 'text-emerald-300'].join(" ")}
                   >
                     <PencilSquareIcon className="w-5 h-5" />
                   </button>
                 </div>
 
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    const folderId = currentFolder!;
-                    setDrawerData(prev => {
-                      const next = { ...prev, order: [...prev.order], folders: { ...prev.folders } };
-                      const targetItems = next.folders[folderId].items;
-                      next.order = next.order.filter(i => i !== folderId).concat(targetItems);
-                      delete next.folders[folderId];
-                      return next;
-                    });
-                    setCurrentFolder(null);
-                  }}
-                  className="flex items-center gap-2 px-5 py-2 rounded-full bg-white/5 border border-white/10 text-red-400/90 text-[10px] font-bold uppercase tracking-[0.2em] active:scale-95 transition-all hover:bg-red-500/10 hover:border-red-500/30 shadow-sm"
-                >
-                  <TrashIcon className="w-4 h-4" /> Desagrupar
-                </button>
+                <div className="flex flex-col items-center gap-4">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      const folderId = currentFolder!;
+                      setDrawerData(prev => {
+                        const next = { ...prev, order: [...prev.order], folders: { ...prev.folders } };
+                        const targetItems = next.folders[folderId].items;
+                        next.order = next.order.filter(id => id !== folderId).concat(targetItems);
+                        delete next.folders[folderId];
+                        return next;
+                      });
+                      setCurrentFolder(null);
+                    }}
+                    className="flex items-center gap-2 px-5 py-2 rounded-full bg-white/5 border border-white/10 text-red-400/90 text-[10px] font-bold uppercase tracking-[0.2em] active:scale-95 transition-all hover:bg-red-500/10 hover:border-red-500/30 shadow-sm"
+                  >
+                    <TrashIcon className="w-4 h-4" /> Desagrupar
+                  </button>
+
+                  <div className="flex flex-col items-center gap-2 mt-2">
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-white/30">Personalizar Cor</span>
+                    <div className="flex items-center gap-2.5">
+                      {Object.keys(FOLDER_COLORS).map(colorK => {
+                        const isSel = (drawerData.folders[currentFolder!].color || 'emerald') === colorK;
+                        const c = FOLDER_COLORS[colorK];
+                        return (
+                          <button
+                            key={colorK}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setDrawerData(prev => ({
+                                ...prev,
+                                folders: {
+                                  ...prev.folders,
+                                  [currentFolder!]: { ...prev.folders[currentFolder!], color: colorK }
+                                }
+                              }));
+                              if (navigator.vibrate) navigator.vibrate(40);
+                            }}
+                            className={[
+                              "w-7 h-7 rounded-full border-2 transition-all duration-300 relative",
+                              c.solid,
+                              isSel ? "border-white scale-110 shadow-[0_0_15px_rgba(255,255,255,0.4)]" : "border-white/10 hover:border-white/20"
+                            ].join(" ")}
+                          >
+                            {isSel && (
+                              <div className="absolute -inset-[4px] border border-white/20 rounded-full animate-pulse" />
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
               </div>
 
               <div className="w-full grid grid-cols-4 gap-y-10 gap-x-4 relative z-10">
