@@ -83,7 +83,7 @@ export default function FactionSelectionPage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-start md:justify-center p-4 py-12 md:py-4 overflow-y-auto relative custom-scrollbar">
+    <div className="min-h-screen flex flex-col items-center justify-start md:justify-center p-8 py-12 md:py-8 overflow-y-auto relative custom-scrollbar">
       <BackgroundEffects selectedFaction={selectedFaction} />
 
       <AnimatePresence>
