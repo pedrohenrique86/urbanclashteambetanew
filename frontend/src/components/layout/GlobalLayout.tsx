@@ -1,48 +1,17 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useRef, useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import TopBar from "./TopBar";
 import DashboardSidebar from "./DashboardSidebar";
-import { FloatingMenuButton } from "./FloatingMenuButton";
 import { MobileAppDrawer } from "./MobileAppDrawer";
 import { useTheme } from "../../contexts/ThemeContext";
 import { useUserProfileContext } from "../../contexts/UserProfileContext";
 import { useHUD } from "../../contexts/HUDContext";
 import { Tooltip } from "react-tooltip";
-import { useGameClock } from "../../hooks/useGameClock";
-import GameClockDisplay from "./GameClockDisplay";
 import ScrollToTopButton from "./ScrollToTopButton";
 import DigitalIdentityModal from "../DigitalIdentityModal";
 import ClanIdentityModal from "../ClanIdentityModal";
 import { DynamicBackground } from "./DynamicBackground";
 import { PAGE_BACKGROUNDS } from "../../constants/backgrounds";
-
-// ─── FLAG DE FEATURE ───────────────────────────────────────────────────────────
-// true  → exibe o novo menu experimental (MobileAppDrawer)
-// false → exibe o menu flutuante original (FloatingMenuButton)
-// Mude aqui para alternar entre os dois. Nenhum dos dois é removido.
-const USE_EXPERIMENTAL_DRAWER = true;
-
-/**
- * Micro-componente isolado que consome o GameClockContext.
- * Ao isolar o useGameClock() aqui, o GlobalLayout deixa de ser
- * re-renderizado a cada tick do cronômetro (1s), eliminando o
- * gargalo de performance identificado na auditoria.
- *
- * Re-renders do contexto ficam contidos apenas neste widget,
- * sem propagar para a árvore principal da aplicação.
- */
-const GameClockWidget: React.FC = () => {
-  const { remainingTime, status, serverTime } = useGameClock();
-  return (
-    <GameClockDisplay
-      remainingTime={remainingTime}
-      status={status}
-      serverTime={serverTime}
-      isCollapsed={false}
-      isMobileMode={true}
-    />
-  );
-};
 
 interface GlobalLayoutProps {
   children: React.ReactNode;
@@ -55,8 +24,6 @@ const GlobalLayout: React.FC<GlobalLayoutProps> = ({ children }) => {
   const { currentPanel, closePanel, clearPanels, hasOpenPanel } = useHUD();
 
   const scrollableContainerRef = useRef<HTMLDivElement>(null);
-
-  const minSwipeDistance = 50;
 
   const pagesWithoutNav = [
     "/",
@@ -83,8 +50,6 @@ const GlobalLayout: React.FC<GlobalLayoutProps> = ({ children }) => {
     return () => window.removeEventListener("keydown", handler);
   }, [closePanel, hasOpenPanel]);
 
-  // Bloqueio de scroll no body durante o jogo para evitar double scrollbars
-  // e garantir que o reset de rotas funcione no container correto.
   useEffect(() => {
     const originalStyle = window.getComputedStyle(document.body).overflow;
     
@@ -101,7 +66,6 @@ const GlobalLayout: React.FC<GlobalLayoutProps> = ({ children }) => {
 
   useEffect(() => {
     clearPanels();
-    // Reseta o scroll para o topo ao mudar de rota (Container interno + Viewport)
     if (scrollableContainerRef.current) {
       scrollableContainerRef.current.scrollTop = 0;
     }
@@ -119,10 +83,6 @@ const GlobalLayout: React.FC<GlobalLayoutProps> = ({ children }) => {
     };
   }, [hasOpenPanel]);
 
-
-
-
-
   if (!shouldShowNav) {
     const hasDynamicBg = !!PAGE_BACKGROUNDS[location.pathname];
     return (
@@ -136,7 +96,6 @@ const GlobalLayout: React.FC<GlobalLayoutProps> = ({ children }) => {
   }
 
   const isDashboard = location.pathname === "/dashboard";
-
   const hasDynamicBackground = !!PAGE_BACKGROUNDS[location.pathname];
 
   return (
@@ -193,9 +152,6 @@ const GlobalLayout: React.FC<GlobalLayoutProps> = ({ children }) => {
         </div>
       </div>
 
-      {/* Widget isolado do cronômetro — suprimido no mobile quando o drawer experimental estiver ativo */}
-      {!USE_EXPERIMENTAL_DRAWER && <GameClockWidget />}
-
       <Tooltip
         id="server-time-tooltip"
         place="top-end"
@@ -209,7 +165,7 @@ const GlobalLayout: React.FC<GlobalLayoutProps> = ({ children }) => {
         className="!bg-slate-700 !bg-opacity-80 !backdrop-blur-sm !text-white !rounded-lg !px-3 !py-1 !text-[8px] !font-sans"
       />
 
-      {USE_EXPERIMENTAL_DRAWER ? <MobileAppDrawer /> : <FloatingMenuButton />}
+      <MobileAppDrawer />
       <ScrollToTopButton scrollableRef={scrollableContainerRef} />
     </div>
   );
