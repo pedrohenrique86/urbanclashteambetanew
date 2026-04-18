@@ -32,6 +32,8 @@ import {
   CheckIcon,
 } from "@heroicons/react/24/outline";
 import { useDrawerOrder } from "../../hooks/useDrawerOrder";
+import { useGameClock } from "../../hooks/useGameClock";
+import GameClockDisplay from "./GameClockDisplay";
 
 interface DrawerPage {
   id: string;
@@ -148,6 +150,9 @@ export const MobileAppDrawer: React.FC = () => {
   const gridRef = useRef<HTMLDivElement>(null);
 
   const [order, setOrder] = useDrawerOrder(DEFAULT_ORDER);
+
+  // Reutiliza o hook existente — sem polling, sem chamada de rede
+  const { remainingTime, status, serverTime } = useGameClock();
 
   const orderedPages = useMemo(
     () => order.map((id) => PAGE_MAP.get(id)).filter((p): p is DrawerPage => !!p),
@@ -395,6 +400,16 @@ export const MobileAppDrawer: React.FC = () => {
               opacity: isOpen ? 1 : 0,
             }}
           >
+            {/* Relógio do servidor — reaproveitando GameClockDisplay existente, sem isMobileMode */}
+            <div className="px-5 pb-2 pt-1 border-b border-white/5 mb-2">
+              <GameClockDisplay
+                remainingTime={remainingTime}
+                status={status}
+                serverTime={serverTime}
+                isCollapsed={false}
+              />
+            </div>
+
             <div className="flex items-center justify-between px-5 pb-2">
               <span className="text-[10px] font-semibold tracking-widest text-purple-400/70 uppercase">
                 Navegação

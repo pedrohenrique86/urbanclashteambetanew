@@ -227,8 +227,8 @@ const GlobalLayout: React.FC<GlobalLayoutProps> = ({ children }) => {
         </div>
       </div>
 
-      {/* Widget isolado do cronômetro — o único assinante do GameClockContext aqui */}
-      <GameClockWidget />
+      {/* Widget isolado do cronômetro — suprimido no mobile quando o drawer experimental estiver ativo */}
+      {!USE_EXPERIMENTAL_DRAWER && <GameClockWidget />}
 
       <Tooltip
         id="server-time-tooltip"
