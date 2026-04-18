@@ -328,7 +328,7 @@ export const MobileAppDrawer: React.FC = () => {
       // Hitbox de Agrupamento aumentada pra 25% - 75% -> Mais facil criar a pasta!
       const isCenterHover = relativeX > 0.25 && relativeX < 0.75 && relativeY > 0.25 && relativeY < 0.75;
 
-      if (isCenterHover && !drawerData.folders[overId]) {
+      if (isCenterHover && !drawerData.folders[draggingId]) {
         // Group Intent => Interrompe qualquer plano de mover ele do lugar.
         if (reorderDelayTimer.current) {
            clearTimeout(reorderDelayTimer.current);
