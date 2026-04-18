@@ -830,20 +830,32 @@ export const MobileAppDrawer: React.FC = () => {
                   const page = PAGE_MAP.get(itemId);
                   if (!page) return null;
                   const isDragging = folderDragId === itemId;
+                  const isActive = location.pathname === page.path;
 
                   return (
                     <motion.div
                       key={itemId}
-                      className="flex flex-col items-center w-full select-none touch-none"
+                      className={[
+                        "relative flex flex-col items-center gap-1.5 rounded-xl px-1.5 py-2.5 transition-all duration-300 select-none w-full outline-none active:scale-95",
+                        isActive ? "bg-purple-500/20 text-purple-300 shadow-[0_0_12px_rgba(168,85,247,0.35)]" : "text-slate-300 hover:bg-white/5",
+                        isEditMode && !isDragging ? "animate-[drawer-wiggle_0.45s_ease-in-out_infinite]" : "",
+                      ].join(" ")}
                       onPointerDown={(e: any) => handleFolderItemPointerDown(e, itemId)}
                       onPointerUp={(e: any) => { e.preventDefault(); handleFolderItemPointerUp(e, itemId); }}
                       onClick={(e: any) => handleFolderItemClick(e, itemId)}
                       animate={{ scale: isDragging ? 0.8 : 1, opacity: isDragging ? 0.3 : 1 }}
                     >
-                      <div className="w-16 h-16 rounded-[1.25rem] bg-white/5 border border-white/10 flex items-center justify-center shadow-2xl pointer-events-none mb-2 text-white/90 active:scale-95 transition-all">
-                        {React.cloneElement(page.icon as React.ReactElement, { className: "w-8 h-8" })}
+                      <div className={[
+                        "w-10 h-10 rounded-2xl flex items-center justify-center border transition-all duration-300 pointer-events-none relative",
+                        isActive ? "border-purple-500/60 bg-purple-600/25 shadow-[inset_0_1px_0_rgba(255,255,255,0.1)]" : "border-white/10 bg-white/5",
+                      ].join(" ")}>
+                        {React.cloneElement(page.icon as React.ReactElement, { className: "w-5 h-5" })}
+                        {isActive && <span className="absolute bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-purple-400 shadow-[0_0_4px_rgba(168,85,247,0.8)]" />}
                       </div>
-                      <span className="text-[10px] font-semibold text-white/60 text-center leading-tight line-clamp-2 px-1">{page.name}</span>
+                      <span className={[
+                        "text-[9px] font-medium leading-tight text-center max-w-[68px] line-clamp-2 transition-colors",
+                        isActive ? "text-purple-300" : "text-slate-300"
+                      ].join(" ")}>{page.name}</span>
                     </motion.div>
                   )
                 })}
