@@ -32,10 +32,12 @@ import {
   CheckIcon,
   FolderOpenIcon,
   TrashIcon,
+  ArrowLeftOnRectangleIcon,
 } from "@heroicons/react/24/outline";
 import { motion, AnimatePresence } from "framer-motion";
 import { useDrawerOrder, DrawerFolder } from "../../hooks/useDrawerOrder";
 import { useGameClock } from "../../hooks/useGameClock";
+import { useAuth } from "../../contexts/AuthContext";
 
 const fmtTimer = (s: number): string => {
   if (s <= 0) return "0d 00h 00m 00s";
@@ -189,6 +191,7 @@ const DrawerFolderItem = memo(function DrawerFolderItem({
 export const MobileAppDrawer: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { logout } = useAuth();
 
   const [isOpen, setIsOpen] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
@@ -652,7 +655,18 @@ export const MobileAppDrawer: React.FC = () => {
                 </div>
               </div>
 
-              <div className="flex items-center">
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    logout();
+                    setIsOpen(false);
+                  }}
+                  className="flex items-center gap-1 rounded-lg px-2.5 py-1 text-[11px] font-medium text-red-400/90 border border-red-500/20 bg-red-500/10 active:scale-95 transition-all hover:bg-red-500/20"
+                >
+                  <ArrowLeftOnRectangleIcon className="w-3.5 h-3.5" /> Sair
+                </button>
+
                 {isEditMode ? (
                   <button
                     type="button"
