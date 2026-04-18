@@ -188,37 +188,6 @@ const DrawerFolderItem = memo(function DrawerFolderItem({
   );
 });
 
-const MobileGameClock = memo(function MobileGameClock() {
-  const { remainingTime, status, serverTime } = useGameClock();
-  
-  return (
-    <div className="flex justify-center">
-      <div className="flex items-center flex-nowrap gap-2 px-3 py-1.5 rounded-xl bg-black/40 border border-white/10 shadow-[0_4px_12px_rgba(0,0,0,0.4)] tabular-nums font-mono antialiased">
-        {/* Lado Esquerdo: Status e Cronômetro */}
-        <div className={`flex items-center gap-1.5 ${STATUS_COLOR[status] ?? "text-gray-500"} shrink-0`}>
-          <div className="relative flex h-1 w-1">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-current opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-1 w-1 bg-current"></span>
-          </div>
-          <span className="text-[8.5px] font-bold uppercase tracking-tight whitespace-nowrap">{STATUS_LABEL[status]}</span>
-          <span className="text-[8.5px] font-bold text-white bg-white/5 px-1 py-0.5 rounded border border-white/5 shrink-0 whitespace-nowrap w-[84px] text-center">
-            {fmtTimer(remainingTime)}
-          </span>
-        </div>
-
-        {/* Divisor */}
-        <div className="w-px h-3 bg-white/20 shrink-0" />
-
-        {/* Lado Direito: Hora do Servidor */}
-        <div className="flex items-center gap-1.5 text-white font-bold shrink-0">
-          <GlobeAltIcon className="w-3 h-3 text-purple-400 flex-shrink-0" />
-          <span className="text-[8.5px] uppercase tracking-tighter whitespace-nowrap w-[144px] text-left">{fmtSrvTime(serverTime)}</span>
-        </div>
-      </div>
-    </div>
-  );
-});
-
 export const MobileAppDrawer: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -249,9 +218,9 @@ export const MobileAppDrawer: React.FC = () => {
   const reorderDelayTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const didReorderRef = useRef(false);
   const gridRef = useRef<HTMLDivElement>(null);
-  const lastMoveTime = useRef<number>(0);
 
   const [drawerData, setDrawerData] = useDrawerOrder(DEFAULT_ORDER);
+  const { remainingTime, status, serverTime } = useGameClock();
 
   // Highlight active
   const activePagePath = location.pathname;
@@ -362,11 +331,6 @@ export const MobileAppDrawer: React.FC = () => {
   const handleItemPointerMove = useCallback((e: React.PointerEvent) => {
     if (!draggingId || !gridRef.current) return;
     e.preventDefault();
-
-    // Throttle de performance: ~60fps (16ms) para evitar sobrecarga de CPU no mobile
-    const now = Date.now();
-    if (now - lastMoveTime.current < 16) return;
-    lastMoveTime.current = now;
 
     const el = document.elementFromPoint(e.clientX, e.clientY);
     const btn = el?.closest("[data-drawer-id]");
@@ -663,7 +627,30 @@ export const MobileAppDrawer: React.FC = () => {
             className="overflow-hidden flex flex-col relative z-20"
           >
             <div className="px-3 py-2 border-b border-white/[0.03] bg-white/[0.01] mb-2 flex-shrink-0">
-              <MobileGameClock />
+              <div className="flex justify-center">
+                <div className="flex items-center flex-nowrap gap-2 px-3 py-1.5 rounded-xl bg-black/40 border border-white/10 shadow-[0_4px_12px_rgba(0,0,0,0.4)] tabular-nums font-mono antialiased">
+                  {/* Lado Esquerdo: Status e Cronômetro */}
+                  <div className={`flex items-center gap-1.5 ${STATUS_COLOR[status] ?? "text-gray-500"} shrink-0`}>
+                    <div className="relative flex h-1 w-1">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-current opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-1 w-1 bg-current"></span>
+                    </div>
+                    <span className="text-[8.5px] font-bold uppercase tracking-tight whitespace-nowrap">{STATUS_LABEL[status]}</span>
+                    <span className="text-[8.5px] font-bold text-white bg-white/5 px-1 py-0.5 rounded border border-white/5 shrink-0 whitespace-nowrap w-[84px] text-center">
+                      {fmtTimer(remainingTime)}
+                    </span>
+                  </div>
+
+                  {/* Divisor */}
+                  <div className="w-px h-3 bg-white/20 shrink-0" />
+
+                  {/* Lado Direito: Hora do Servidor */}
+                  <div className="flex items-center gap-1.5 text-white font-bold shrink-0">
+                    <GlobeAltIcon className="w-3 h-3 text-purple-400 flex-shrink-0" />
+                    <span className="text-[8.5px] uppercase tracking-tighter whitespace-nowrap w-[144px] text-left">{fmtSrvTime(serverTime)}</span>
+                  </div>
+                </div>
+              </div>
             </div>
 
             {/* Cabeçalho EDITAR Navegação Restourado */}
@@ -927,10 +914,8 @@ export const MobileAppDrawer: React.FC = () => {
                         return (
                           <button
                             key={colorK}
-                            type="button"
                             onClick={(e) => {
                               e.stopPropagation();
-                              if (isSel) return;
                               setDrawerData(prev => ({
                                 ...prev,
                                 folders: {
