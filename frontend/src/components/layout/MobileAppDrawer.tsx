@@ -422,7 +422,7 @@ export const MobileAppDrawer: React.FC = () => {
        if (isEditMode && drawerData.folders[id]) {
            const dx = Math.abs(e.clientX - (pointerStartPos.current?.x || e.clientX));
            const dy = Math.abs(e.clientY - (pointerStartPos.current?.y || e.clientY));
-           if (dx < 10 && dy < 10 && !didReorderRef.current) {
+           if (dx < 20 && dy < 20 && !didReorderRef.current) {
                // ABRE CONTEXT MENU DAS PASTAS!
                const el = e.currentTarget as HTMLElement;
                const r = el.getBoundingClientRect();
@@ -779,10 +779,39 @@ export const MobileAppDrawer: React.FC = () => {
                  className="w-full px-6 flex flex-col items-center justify-center pointer-events-auto"
                  onClick={(e) => { if(!folderDragId) e.stopPropagation(); }}
               >
-                  <div className="w-full flex justify-center mb-8 relative z-10 pointer-events-none">
-                     <span className="text-white font-bold text-xl text-center">
-                        {drawerData.folders[currentFolder].name}
-                     </span>
+                  <div className="w-full flex flex-col items-center mb-10 relative z-10">
+                     <div className="flex items-center gap-3 mb-2">
+                        <span className="text-white font-bold text-2xl text-center tracking-tight">
+                           {drawerData.folders[currentFolder].name}
+                        </span>
+                        <button 
+                           onClick={(e) => {
+                             e.stopPropagation();
+                             const newName = window.prompt("Novo nome da pasta:", drawerData.folders[currentFolder!].name);
+                             if (newName) setDrawerData(prev => ({ ...prev, folders: { ...prev.folders, [currentFolder!]: { ...prev.folders[currentFolder!], name: newName } } }));
+                           }}
+                           className="p-2.5 rounded-xl bg-white/5 border border-white/10 text-emerald-400 active:scale-90 transition-all shadow-lg"
+                        >
+                           <PencilSquareIcon className="w-5 h-5" />
+                        </button>
+                     </div>
+                     <button 
+                        onClick={(e) => {
+                           e.stopPropagation();
+                           const folderId = currentFolder!;
+                           setDrawerData(prev => {
+                             const next = { ...prev, order: [...prev.order], folders: { ...prev.folders } };
+                             const targetItems = next.folders[folderId].items;
+                             next.order = next.order.filter(i => i !== folderId).concat(targetItems);
+                             delete next.folders[folderId];
+                             return next;
+                           });
+                           setCurrentFolder(null);
+                        }}
+                        className="flex items-center gap-1.5 px-5 py-2 rounded-full bg-red-500/10 border border-red-500/20 text-red-400 text-[10px] font-bold uppercase tracking-widest active:scale-95 transition-all"
+                     >
+                        <TrashIcon className="w-4 h-4" /> Desagrupar Pasta
+                     </button>
                   </div>
 
                   <div className="w-full grid grid-cols-4 gap-y-8 gap-x-3 relative z-10">
