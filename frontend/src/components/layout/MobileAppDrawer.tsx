@@ -209,7 +209,8 @@ export const MobileAppDrawer: React.FC = () => {
 
   // Highlight active
   const activePagePath = location.pathname;
-  const activePageId = ALL_PAGES.find(p => p.path === activePagePath)?.id;
+  const activePage = ALL_PAGES.find(p => p.path === activePagePath);
+  const activePageId = activePage?.id;
   const folderContainingActivePage = Object.values(drawerData.folders || {}).find(f => activePageId && f.items.includes(activePageId))?.id;
 
   const currentViewItems = useMemo(() => {
@@ -605,9 +606,15 @@ export const MobileAppDrawer: React.FC = () => {
             {/* Cabeçalho EDITAR Navegação Restourado */}
             <div className="flex items-center justify-between px-5 pb-2 flex-shrink-0">
               <div className="flex items-center gap-2">
-                <span className="text-[11px] font-semibold tracking-widest text-purple-400/70 uppercase truncate max-w-[140px]">
-                  Navegação
-                </span>
+                <div className="flex items-center gap-2 text-[10px] font-bold tracking-[0.15em] uppercase">
+                  <span className="text-purple-400/70">Navegação</span>
+                  {activePage && (
+                    <>
+                      <span className="text-white/10 select-none">/</span>
+                      <span className="text-white/40 truncate max-w-[160px] font-semibold">{activePage.name}</span>
+                    </>
+                  )}
+                </div>
               </div>
 
               <div className="flex items-center gap-2">
