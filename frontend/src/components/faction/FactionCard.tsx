@@ -6,12 +6,14 @@ interface FactionCardProps {
   faction: "gangsters" | "guardas";
   selectedFaction: "gangsters" | "guardas" | null;
   onSelect: (faction: "gangsters" | "guardas") => void;
+  onConfirm: () => void;
 }
 
 export default function FactionCard({
   faction,
   selectedFaction,
   onSelect,
+  onConfirm,
 }: FactionCardProps) {
   const isSelected = selectedFaction === faction;
 
@@ -19,12 +21,14 @@ export default function FactionCard({
     gangsters: {
       image: renegadosImg,
       color: "orange",
-      borderClass: isSelected ? "border-orange-500 shadow-[0_0_20px_rgba(249,115,22,0.5)]" : "border-transparent",
+      borderClass: isSelected ? "border-orange-500 shadow-[0_0_30px_rgba(249,115,22,0.4)]" : "border-transparent",
+      confirmBg: "bg-orange-600 hover:bg-orange-500 shadow-[0_0_20px_rgba(249,115,22,0.5)]",
     },
     guardas: {
       image: guardioesImg,
       color: "blue",
-      borderClass: isSelected ? "border-blue-500 shadow-[0_0_20px_rgba(37,99,235,0.5)]" : "border-transparent",
+      borderClass: isSelected ? "border-blue-500 shadow-[0_0_30px_rgba(37,99,235,0.4)]" : "border-transparent",
+      confirmBg: "bg-blue-600 hover:bg-blue-500 shadow-[0_0_20px_rgba(37,99,235,0.5)]",
     },
   };
 
@@ -32,10 +36,8 @@ export default function FactionCard({
 
   return (
     <motion.div
-      whileHover={{ y: -5 }}
-      whileTap={{ scale: 0.98 }}
-      onClick={() => onSelect(faction)}
-      className="relative w-full flex flex-col items-center cursor-pointer transition-all duration-300"
+      whileHover={!isSelected ? { y: -5 } : {}}
+      className="relative w-full flex flex-col items-center transition-all duration-300"
     >
       {/* Protocol Active Status Label */}
       <div className="h-8 mb-2 flex items-center justify-center">
@@ -57,16 +59,76 @@ export default function FactionCard({
         </AnimatePresence>
       </div>
 
-      <div className={`relative transition-all duration-300 rounded-2xl border-4 ${c.borderClass} overflow-hidden`}>
+      <div 
+        onClick={() => !isSelected && onSelect(faction)}
+        className={`relative transition-all duration-500 rounded-2xl border-4 ${c.borderClass} overflow-hidden ${!isSelected ? "cursor-pointer" : ""}`}
+      >
         <img
           src={c.image}
           alt={faction}
-          className={`h-[450px] md:h-[500px] w-auto object-contain transition-all duration-500 ${
-            isSelected ? "scale-105" : "grayscale-[0.4] opacity-80"
+          className={`h-[450px] md:h-[550px] w-auto object-contain transition-all duration-700 ${
+            isSelected ? "scale-105" : "grayscale-[0.5] opacity-70 hover:grayscale-0 hover:opacity-100"
           }`}
         />
-        
-        {/* No indicator line here as per request */}
+
+        {/* Confirmation Overlay */}
+        <AnimatePresence>
+          {isSelected && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 z-30 bg-black/40 backdrop-blur-[2px] flex flex-col items-center justify-center p-6 text-center"
+            >
+              <motion.div
+                initial={{ y: 20, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                className="space-y-6"
+              >
+                <div className="space-y-2">
+                  <h3 className="text-white font-orbitron font-black text-xl tracking-wider">
+                    CONFIRMAR ESCOLHA?
+                  </h3>
+                  <p className="text-gray-300 text-[10px] uppercase tracking-[0.2em]">
+                    Clique abaixo para iniciar seu alistamento
+                  </p>
+                </div>
+
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onConfirm();
+                  }}
+                  className={`
+                    group relative px-8 py-4 rounded-xl 
+                    font-orbitron font-black text-sm tracking-[0.2em] text-white
+                    transition-all duration-300 uppercase
+                    ${c.confirmBg}
+                  `}
+                >
+                  <span className="relative z-10 flex items-center gap-3">
+                    ALISTAR-SE AGORA
+                    <motion.span
+                      animate={{ x: [0, 5, 0] }}
+                      transition={{ duration: 1.5, repeat: Infinity }}
+                    >
+                      →
+                    </motion.span>
+                  </span>
+                  
+                  {/* Button Shine Effect */}
+                  <div className="absolute inset-0 rounded-xl overflow-hidden">
+                    <motion.div 
+                      animate={{ x: ["-100%", "200%"] }}
+                      transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                      className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent skew-x-12"
+                    />
+                  </div>
+                </button>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </motion.div>
   );
