@@ -87,7 +87,9 @@ export function useDrawerOrder(
         debounceTimer.current = setTimeout(() => {
           try {
             window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-          } catch {}
+          } catch {
+            // ignore localStorage quota or access errors
+          }
         }, DEBOUNCE_MS);
 
         return next;

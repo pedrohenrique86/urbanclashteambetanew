@@ -368,7 +368,7 @@ export const MobileAppDrawer: React.FC = () => {
     }
   }, [draggingId, drawerData]);
 
-  const executeGroup = (fromId: string, toId: string) => {
+  const executeGroup = useCallback((fromId: string, toId: string) => {
     const isToFolder = !!drawerData?.folders[toId];
 
     if (isToFolder) {
@@ -394,7 +394,7 @@ export const MobileAppDrawer: React.FC = () => {
         return next;
       });
     }
-  };
+  }, [drawerData, setDrawerData]);
 
   const handleItemPointerUp = useCallback((e: React.PointerEvent, id: string) => {
     clearLongPressTimer();
@@ -430,7 +430,7 @@ export const MobileAppDrawer: React.FC = () => {
            }
        }
     }
-  }, [draggingId, dragOverId, dragAction, liveOrder, isEditMode, drawerData, clearLongPressTimer]);
+  }, [draggingId, dragOverId, dragAction, liveOrder, isEditMode, drawerData, clearLongPressTimer, executeGroup, setDrawerData]);
 
 
   const handleItemPress = (e: React.MouseEvent, id: string, path?: string) => {
