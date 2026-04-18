@@ -549,7 +549,7 @@ export const MobileAppDrawer: React.FC = () => {
           {/* Fundo Glow Original que o usuário ama */}
           <div
             aria-hidden="true"
-            className="pointer-events-none absolute inset-0 opacity-5"
+            className="pointer-events-none absolute inset-0 opacity-[0.02]"
             style={{
               backgroundImage: "linear-gradient(rgba(168,85,247,1) 1px, transparent 1px), linear-gradient(90deg, rgba(168,85,247,1) 1px, transparent 1px)",
               backgroundSize: "32px 32px",
@@ -571,36 +571,53 @@ export const MobileAppDrawer: React.FC = () => {
               ].join(" ")}
             />
             {!isOpen && (
-              <div className="flex items-center justify-between w-full px-4 pb-1.5">
-                <div className="flex items-center gap-1.5 min-w-0">
+              <div className="flex items-center w-full px-4 pb-2">
+                <div className="flex items-center gap-1.5 min-w-0 flex-1">
                   {(() => {
                     const activePage = ALL_PAGES.find((p) => location.pathname === p.path);
-                    if (!activePage) return <span className="text-[11px] text-white/30">Menu</span>;
+                    if (!activePage) return <span className="text-[12px] text-white/40 uppercase font-black tracking-widest">Menu</span>;
                     return (
                       <>
-                        <span className="text-purple-300/70 scale-75 flex-shrink-0 origin-left">{activePage.icon}</span>
-                        <span className="text-[11px] font-semibold text-purple-200/80 tracking-wide truncate">{activePage.name}</span>
-                        <span className="w-1 h-1 rounded-full bg-purple-400/80 shadow-[0_0_4px_rgba(168,85,247,0.8)] flex-shrink-0 ml-0.5" />
+                        <span className="text-purple-300/80 scale-75 flex-shrink-0 origin-left">{activePage.icon}</span>
+                        <span className="text-[8px] font-black text-purple-100 tracking-tighter uppercase drop-shadow-md whitespace-nowrap">{activePage.name}</span>
+                        <span className="w-1 h-1 rounded-full bg-purple-400 shadow-[0_0_8px_rgba(168,85,247,0.8)] flex-shrink-0 ml-0.5" />
                       </>
                     );
                   })()}
                 </div>
-                <ChevronUpIcon className="w-3.5 h-3.5 text-white/25 flex-shrink-0 ml-2" />
+
+                <div className="flex-shrink-0 px-4">
+                  <span className="text-[12px] font-black text-white/60 uppercase tracking-[0.2em] animate-pulse drop-shadow-lg">Expandir</span>
+                </div>
+
+                <div className="flex-1 flex justify-end">
+                  <ChevronUpIcon className="w-3.5 h-3.5 text-white/25 flex-shrink-0" />
+                </div>
               </div>
             )}
             {isOpen && <ChevronUpIcon className="w-4 h-4 text-white/30 rotate-180 mb-1" />}
           </div>
 
           <div className="overflow-hidden transition-all duration-350 ease-in-out flex flex-col relative z-20" style={{ maxHeight: isOpen ? "85vh" : "0px", opacity: isOpen ? 1 : 0 }}>
-            {/* Relógio Minimalista Original */}
-            <div className="flex items-center justify-between px-5 py-1.5 border-b border-white/5 mb-2 flex-shrink-0">
-              <div className={`flex items-center gap-1.5 font-mono text-[10px] font-bold flex-shrink-0 ${STATUS_COLOR[status] ?? "text-gray-500"}`}>
-                <span className="w-1.5 h-1.5 rounded-full bg-current" />
-                <span>{STATUS_LABEL[status] ?? "..."}</span>
-                <span className="text-white/20">·</span>
-                <span>{fmtTimer(remainingTime)}</span>
+            <div className="flex items-center justify-between px-4 py-2 border-b border-white/[0.03] bg-white/[0.01] mb-2 flex-shrink-0 gap-3">
+              <div className="flex items-center flex-shrink-0">
+                <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-black/60 border border-white/10 transition-all ${STATUS_COLOR[status] ?? "text-gray-500"}`}>
+                  <span className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-current opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-current shadow-[0_0_10px_rgba(255,255,255,0.5)]"></span>
+                  </span>
+                  <span className="text-[10px] font-black tracking-tight uppercase whitespace-nowrap">{STATUS_LABEL[status] ?? "..."}</span>
+                  <span className="text-white/10 mx-1 select-none">|</span>
+                  <span className="text-[11px] font-mono font-bold text-white/95 drop-shadow-sm tabular-nums">{fmtTimer(remainingTime)}</span>
+                </div>
               </div>
-              <span className="font-mono text-[9px] text-gray-400 whitespace-nowrap truncate">{fmtSrvTime(serverTime)}</span>
+
+              <div className="flex items-center gap-2 px-2.5 py-1 rounded-lg bg-white/[0.03] border border-white/5 flex-shrink-1 min-w-0">
+                <GlobeAltIcon className="w-3.5 h-3.5 text-purple-400/50 flex-shrink-0" />
+                <span className="text-[10px] font-mono font-bold text-white/40 truncate whitespace-nowrap tabular-nums uppercase tracking-tighter">
+                  {fmtSrvTime(serverTime)}
+                </span>
+              </div>
             </div>
 
             {/* Cabeçalho EDITAR Navegação Restourado */}
@@ -700,6 +717,27 @@ export const MobileAppDrawer: React.FC = () => {
                   })}
                 </AnimatePresence>
               </div>
+            </div>
+
+            {/* Gatilho de Fechamento Inferior - UX Mobile Premium */}
+            <div
+              className="w-full flex flex-col items-center cursor-pointer select-none pb-[env(safe-area-inset-bottom,1.5rem)] pt-3 active:bg-white/5 transition-colors relative z-10 border-t border-white/[0.03] bg-transparent backdrop-blur-sm mt-auto"
+              onClick={(e) => { e.stopPropagation(); toggleDrawer(); }}
+            >
+              <div className="flex items-center justify-between w-full px-5 mb-3">
+                <div className="flex-1" />
+
+                <div className="flex-shrink-0">
+                  <span className="text-[12px] font-black text-white/80 uppercase tracking-[0.2em] animate-pulse drop-shadow-lg">Recolher</span>
+                </div>
+
+                <div className="flex-1 flex justify-end">
+                  <ChevronUpIcon className="w-3.5 h-3.5 text-white/50 flex-shrink-0 rotate-180" />
+                </div>
+              </div>
+
+              {/* Handle Mirroring Top */}
+              <div className="h-1 bg-purple-400/60 w-10 rounded-full" />
             </div>
           </div>
         </div>
