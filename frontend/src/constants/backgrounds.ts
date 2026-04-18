@@ -11,6 +11,7 @@ import dashguardas from "../assets/dashguardas.webp";
 import rankingBg from "../assets/ranking.webp";
 import homeBg from "../assets/home.webp";
 import homeMobileBg from "../assets/home-mobile.webp";
+import factionSelectionBg from "../assets/faction-selection.webp";
 import idBg from "../assets/id.webp";
 import acertoContasBg from "../assets/acerto-contas.webp";
 import cardClansBg from "../assets/cardclans-home.webp";
@@ -70,9 +71,19 @@ export const PAGE_BACKGROUNDS: BackgroundMap = {
     position: "bg-top",
   },
   "/faction-selection": {
-    src: homeBg,
-    overlay: "bg-black/70",
-    blur: true,
+    src: factionSelectionBg,
+    overlay: "bg-black/40",
+    position: "bg-center",
+  },
+  "/confirm-email": {
+    src: factionSelectionBg,
+    overlay: "bg-black/40",
+    position: "bg-center",
+  },
+  "/reset-password": {
+    src: factionSelectionBg,
+    overlay: "bg-black/40",
+    position: "bg-center",
   },
   "/clan": (profile: any) => {
     const faction = typeof profile?.faction === "string" ? profile.faction : profile?.faction?.name;

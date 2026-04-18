@@ -147,7 +147,15 @@ const GlobalLayout: React.FC<GlobalLayoutProps> = ({ children }) => {
   };
 
   if (!shouldShowNav) {
-    return <>{children}</>;
+    const hasDynamicBg = !!PAGE_BACKGROUNDS[location.pathname];
+    return (
+      <div className={`min-h-screen font-exo text-white ${hasDynamicBg ? "" : themeClasses.bg} flex flex-col relative`}>
+        <DynamicBackground />
+        <main className="flex-1 relative z-10 overflow-y-auto">
+          {children}
+        </main>
+      </div>
+    );
   }
 
   const isDashboard = location.pathname === "/dashboard";

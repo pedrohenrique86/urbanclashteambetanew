@@ -113,8 +113,8 @@ export default function ResetPasswordPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-900 flex items-center justify-center p-4">
-      <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl w-full max-w-md p-6 relative border border-gray-700 shadow-2xl">
+    <div className="min-h-screen flex items-center justify-center">
+      <div className="bg-gradient-to-br from-gray-800/80 to-gray-900/90 backdrop-blur-xl rounded-2xl w-full max-w-md p-6 relative border border-gray-700/50 shadow-2xl">
         {/* Title */}
         <div className="text-center mb-6">
           <h2 className="text-2xl font-orbitron mb-1 flex items-center justify-center">

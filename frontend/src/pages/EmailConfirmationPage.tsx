@@ -65,7 +65,7 @@ const EmailConfirmationPage = () => {
   }, [hasProcessed, searchParams, navigate, showToast, login, refreshProfile]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-900">
+    <div className="min-h-screen flex items-center justify-center">
       {isLoading && (
         <div className="bg-gray-800 p-8 rounded-lg shadow-lg max-w-md w-full text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-orange-500 mx-auto mb-4"></div>
