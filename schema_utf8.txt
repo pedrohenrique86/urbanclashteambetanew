@@ -1,0 +1,172 @@
+
+
+[TABLE: items]
+id: uuid (null: NO) [def: uuid_generate_v4()]
+name: character varying (null: NO) [def: null]
+description: text (null: YES) [def: null]
+type: character varying (null: NO) [def: null]
+rarity: character varying (null: NO) [def: null]
+icon_url: text (null: YES) [def: null]
+base_attack_bonus: numeric (null: NO) [def: 0]
+base_defense_bonus: numeric (null: NO) [def: 0]
+base_focus_bonus: numeric (null: NO) [def: 0]
+base_energy_bonus: integer (null: NO) [def: 0]
+base_price: integer (null: NO) [def: 0]
+is_tradeable: boolean (null: NO) [def: true]
+is_lootable: boolean (null: NO) [def: true]
+created_at: timestamp with time zone (null: NO) [def: CURRENT_TIMESTAMP]
+Constraints:
+PRIMARY KEY on id -> items.id
+
+
+[TABLE: shop_items]
+id: uuid (null: NO) [def: uuid_generate_v4()]
+item_id: uuid (null: NO) [def: null]
+season_id: integer (null: YES) [def: null]
+current_price: integer (null: NO) [def: null]
+base_price: integer (null: NO) [def: null]
+price_modifier: numeric (null: NO) [def: 1]
+currency_type: character varying (null: NO) [def: null]
+stock: integer (null: YES) [def: null]
+is_active: boolean (null: NO) [def: true]
+updated_at: timestamp with time zone (null: NO) [def: CURRENT_TIMESTAMP]
+Constraints:
+PRIMARY KEY on id -> shop_items.id
+FOREIGN KEY on item_id -> items.id
+FOREIGN KEY on season_id -> seasons.id
+UNIQUE on item_id -> shop_items.currency_type
+UNIQUE on season_id -> shop_items.currency_type
+UNIQUE on currency_type -> shop_items.currency_type
+UNIQUE on item_id -> shop_items.item_id
+UNIQUE on season_id -> shop_items.item_id
+UNIQUE on currency_type -> shop_items.item_id
+UNIQUE on item_id -> shop_items.season_id
+UNIQUE on season_id -> shop_items.season_id
+UNIQUE on currency_type -> shop_items.season_id
+
+
+[TABLE: player_inventory]
+id: uuid (null: NO) [def: uuid_generate_v4()]
+user_id: uuid (null: NO) [def: null]
+item_id: uuid (null: NO) [def: null]
+quantity: integer (null: NO) [def: 1]
+is_equipped: boolean (null: NO) [def: false]
+slot: character varying (null: YES) [def: null]
+durability: integer (null: YES) [def: null]
+acquired_at: timestamp with time zone (null: NO) [def: CURRENT_TIMESTAMP]
+acquired_via: character varying (null: YES) [def: null]
+source_ref_id: uuid (null: YES) [def: null]
+Constraints:
+PRIMARY KEY on id -> player_inventory.id
+FOREIGN KEY on user_id -> users.id
+FOREIGN KEY on item_id -> items.id
+
+
+[TABLE: badges]
+id: uuid (null: NO) [def: uuid_generate_v4()]
+name: character varying (null: NO) [def: null]
+description: text (null: YES) [def: null]
+icon_url: text (null: YES) [def: null]
+type: character varying (null: NO) [def: null]
+condition_value: integer (null: YES) [def: null]
+is_seasonal: boolean (null: NO) [def: false]
+created_at: timestamp with time zone (null: NO) [def: CURRENT_TIMESTAMP]
+Constraints:
+PRIMARY KEY on id -> badges.id
+UNIQUE on name -> badges.name
+
+
+[TABLE: daily_card_pools]
+id: uuid (null: NO) [def: uuid_generate_v4()]
+season_id: integer (null: YES) [def: null]
+item_id: uuid (null: YES) [def: null]
+reward_type: character varying (null: NO) [def: null]
+reward_value: integer (null: YES) [def: null]
+weight: integer (null: NO) [def: 100]
+rarity: character varying (null: NO) [def: null]
+is_active: boolean (null: NO) [def: true]
+Constraints:
+PRIMARY KEY on id -> daily_card_pools.id
+FOREIGN KEY on season_id -> seasons.id
+FOREIGN KEY on item_id -> items.id
+
+
+[TABLE: card_rewards]
+id: uuid (null: NO) [def: uuid_generate_v4()]
+daily_card_id: uuid (null: NO) [def: null]
+user_id: uuid (null: NO) [def: null]
+reward_type: character varying (null: NO) [def: null]
+item_id: uuid (null: YES) [def: null]
+reward_value: integer (null: YES) [def: null]
+rarity: character varying (null: NO) [def: null]
+delivered: boolean (null: NO) [def: false]
+delivered_at: timestamp with time zone (null: YES) [def: null]
+created_at: timestamp with time zone (null: NO) [def: CURRENT_TIMESTAMP]
+Constraints:
+PRIMARY KEY on id -> card_rewards.id
+FOREIGN KEY on daily_card_id -> player_daily_cards.id
+FOREIGN KEY on user_id -> users.id
+FOREIGN KEY on item_id -> items.id
+UNIQUE on daily_card_id -> card_rewards.daily_card_id
+
+
+[TABLE: raffles]
+id: uuid (null: NO) [def: uuid_generate_v4()]
+name: character varying (null: NO) [def: null]
+description: text (null: YES) [def: null]
+ticket_cost: integer (null: NO) [def: null]
+prize_pool: jsonb (null: YES) [def: null]
+max_tickets_per_user: integer (null: YES) [def: null]
+total_tickets_sold: integer (null: NO) [def: 0]
+starts_at: timestamp with time zone (null: NO) [def: null]
+ends_at: timestamp with time zone (null: NO) [def: null]
+is_active: boolean (null: NO) [def: true]
+created_at: timestamp with time zone (null: NO) [def: CURRENT_TIMESTAMP]
+Constraints:
+PRIMARY KEY on id -> raffles.id
+
+
+[TABLE: game_events]
+id: uuid (null: NO) [def: uuid_generate_v4()]
+name: character varying (null: NO) [def: null]
+description: text (null: YES) [def: null]
+type: character varying (null: NO) [def: null]
+effect_config: jsonb (null: YES) [def: null]
+duration_hours: integer (null: YES) [def: null]
+is_active: boolean (null: NO) [def: true]
+Constraints:
+PRIMARY KEY on id -> game_events.id
+UNIQUE on name -> game_events.name
+
+
+[TABLE: active_events]
+id: uuid (null: NO) [def: uuid_generate_v4()]
+event_id: uuid (null: NO) [def: null]
+season_id: integer (null: YES) [def: null]
+started_at: timestamp with time zone (null: NO) [def: CURRENT_TIMESTAMP]
+ends_at: timestamp with time zone (null: NO) [def: null]
+faction_id: integer (null: YES) [def: null]
+triggered_by: character varying (null: YES) [def: null]
+is_resolved: boolean (null: NO) [def: false]
+Constraints:
+PRIMARY KEY on id -> active_events.id
+FOREIGN KEY on event_id -> game_events.id
+FOREIGN KEY on season_id -> seasons.id
+FOREIGN KEY on faction_id -> factions.id
+
+
+[TABLE: wallet_transactions]
+id: bigint (null: NO) [def: nextval('wallet_transactions_id_seq'::regclass)]
+user_id: uuid (null: NO) [def: null]
+currency_type: character varying (null: NO) [def: null]
+amount: integer (null: NO) [def: null]
+balance_before: integer (null: NO) [def: null]
+balance_after: integer (null: NO) [def: null]
+operation_type: character varying (null: NO) [def: null]
+ref_entity_type: character varying (null: YES) [def: null]
+ref_entity_id: text (null: YES) [def: null]
+description: character varying (null: YES) [def: null]
+created_at: timestamp with time zone (null: NO) [def: CURRENT_TIMESTAMP]
+Constraints:
+PRIMARY KEY on id -> wallet_transactions.id
+FOREIGN KEY on user_id -> users.id

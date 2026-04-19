@@ -45,13 +45,12 @@ Se já rodou → é ignorada
 ⚠️ ERROS COMUNS
 ❌ "relation already exists"
 
-Causa:
+SEEDS
 
-tabela criada manualmente
-migration tentando recriar
+Como usar
 
-Solução:
+Dentro da raiz do projeto:
 
-usar banco limpo
-OU
-alinhar migrations com schema atual
+npm run seed:dev --prefix backend
+npm run seed:prod --prefix backend
+npm run seed:all --prefix backend
