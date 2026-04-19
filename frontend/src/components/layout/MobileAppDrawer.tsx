@@ -529,7 +529,7 @@ export const MobileAppDrawer: React.FC = () => {
           open: { y: drawerDragY > 0 ? drawerDragY : 0 },
           closed: { y: "calc(100% - 52px)" } // Menor área visível
         }}
-        transition={{ type: "spring", damping: 26, stiffness: 290, mass: 0.8 }}
+        transition={{ type: "spring", damping: 30, stiffness: 450, mass: 0.5 }}
         className="fixed bottom-0 left-0 right-0 z-[9990] md:hidden flex flex-col justify-end"
         style={{ 
           willChange: "transform",
@@ -624,14 +624,12 @@ export const MobileAppDrawer: React.FC = () => {
 
           <motion.div 
             initial={false}
-            animate={{ 
-              opacity: isOpen ? 1 : 0,
-              y: isOpen ? 0 : 10
-            }}
-            transition={{ duration: 0.25, ease: "easeOut" }}
+            animate={{ opacity: isOpen ? 1 : 0 }}
+            transition={{ duration: 0.15, ease: "linear" }}
             className="flex-1 flex flex-col relative z-20 min-h-0 w-full overflow-hidden"
             style={{ 
               pointerEvents: isOpen ? "auto" : "none",
+              willChange: "opacity"
             }}
           >
             <div className="px-3 py-2 border-b border-white/[0.03] bg-white/[0.01] mb-2 flex-shrink-0">
