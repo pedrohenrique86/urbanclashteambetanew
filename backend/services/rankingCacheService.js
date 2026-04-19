@@ -2,6 +2,7 @@ const redisClient = require("../config/redisClient");
 const { query } = require("../config/database");
 const crypto = require("crypto");
 const sseService = require("./sseService");
+const { FACTION_ALIAS_MAP } = require("../utils/faction");
 
 const RANKINGS_TTL_SECONDS = 700; // Redis TTL ~11.7 min
 const STALE_THRESHOLD_SECONDS = 600; // Stale após 10 min
@@ -31,8 +32,9 @@ async function fetchUsersFromDB(faction) {
   let limitPlaceholder = "$1";
 
   if (faction) {
+    const canonical = FACTION_ALIAS_MAP[String(faction).toLowerCase().trim()] || faction;
     whereClause += " AND p.faction = $1";
-    queryParams.push(faction);
+    queryParams.push(canonical);
     limitPlaceholder = "$2";
   }
 

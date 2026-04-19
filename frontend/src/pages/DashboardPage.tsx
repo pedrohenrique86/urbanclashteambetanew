@@ -7,6 +7,7 @@ import {
   ShieldCheckIcon,
   ChartBarIcon,
 } from "@heroicons/react/24/outline";
+import { FACTION_ALIAS_MAP_FRONTEND } from "../utils/faction";
 
 // --- Componente de Painel Genérico ---
 const DashboardPanel: React.FC<{
@@ -94,10 +95,11 @@ const CircularProgressBar: React.FC<{ progress: number; isGangster: boolean }> =
 
 const LevelPanel = React.memo(({ user }: { user: any }) => {
   const progress = user.xp_needed ? (user.xp / user.xp_needed) * 100 : 0;
-  const factionName = typeof user?.faction === 'string' 
+  const factionNameStr = typeof user?.faction === 'string' 
     ? user.faction 
     : (user?.faction as any)?.name ?? "GANGSTERS";
-  const isGangster = factionName.toLowerCase().includes("gangster");
+  const canonicalFaction = FACTION_ALIAS_MAP_FRONTEND[factionNameStr.toLowerCase().trim()] || "gangsters";
+  const isGangster = canonicalFaction === "gangsters";
 
   return (
     <DashboardPanel
@@ -182,10 +184,11 @@ const ResourcesPanel = React.memo(({ user }: { user: any }) => (
 
 // --- Painel de Facção ---
 const FactionPanel = React.memo(({ user }: { user: any }) => {
-  const factionName = typeof user?.faction === 'string' 
+  const factionNameStr = typeof user?.faction === 'string' 
     ? user.faction 
     : (user?.faction as any)?.name ?? "GANGSTERS";
-  const isGangster = factionName.toLowerCase().includes("gangster");
+  const canonicalFaction = FACTION_ALIAS_MAP_FRONTEND[factionNameStr.toLowerCase().trim()] || "gangsters";
+  const isGangster = canonicalFaction === "gangsters";
     
   const factionData = isGangster
     ? {
@@ -213,7 +216,7 @@ const FactionPanel = React.memo(({ user }: { user: any }) => {
             className={`text-2xl font-orbitron uppercase ${factionData.theme}`}
             style={{ textShadow: `0 0 5px ${factionData.shadow}` }}
           >
-            {getDisplayName(factionName).toUpperCase()}
+            {getDisplayName(factionNameStr).toUpperCase()}
           </h3>
           <p className="text-sm mt-2">
             Habilidade Especial:{" "}

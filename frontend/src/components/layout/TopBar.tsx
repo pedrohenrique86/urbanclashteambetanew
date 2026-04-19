@@ -3,6 +3,7 @@ import { useTheme } from "../../contexts/ThemeContext";
 import { UserProfile } from "../../types";
 import { Tooltip } from "react-tooltip";
 import { calculateCombatStats } from "../../utils/combat";
+import { FACTION_ALIAS_MAP_FRONTEND } from "../../utils/faction";
 
 interface TopBarProps {
   userProfile: UserProfile | null;
@@ -13,9 +14,10 @@ const TopBar: React.FC<TopBarProps> = ({ userProfile }) => {
 
   const userFaction = useMemo(() => {
     if (!userProfile) return null;
-    return typeof userProfile.faction === 'string' 
+    const rawF = typeof userProfile.faction === 'string' 
       ? userProfile.faction 
       : (userProfile.faction as any)?.name;
+    return FACTION_ALIAS_MAP_FRONTEND[String(rawF).toLowerCase().trim()] || "gangsters";
   }, [userProfile]);
 
   const usernameGradient = useMemo(() => 

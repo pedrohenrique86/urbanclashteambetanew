@@ -37,6 +37,7 @@ import { useGameClock } from "../../hooks/useGameClock";
 import GameClockDisplay from "./GameClockDisplay";
 import AdminMenu from "../admin/AdminMenu";
 import { Tooltip } from "react-tooltip";
+import { FACTION_ALIAS_MAP_FRONTEND } from "../../utils/faction";
 
 // Tipagem para os itens de menu e sub-menu
 interface SubMenuItem {
@@ -234,7 +235,10 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
   };
 
   const factionGradient = useMemo(
-    () => faction === "gangsters" ? "from-orange-300 to-orange-600" : "from-blue-300 to-blue-600",
+    () => {
+      const canonical = FACTION_ALIAS_MAP_FRONTEND[String(faction).toLowerCase().trim()] || "gangsters";
+      return canonical === "gangsters" ? "from-orange-300 to-orange-600" : "from-blue-300 to-blue-600";
+    },
     [faction]
   );
 

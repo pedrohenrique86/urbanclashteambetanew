@@ -6,6 +6,7 @@ import { useHUD } from "../contexts/HUDContext";
 import { useTheme } from "../contexts/ThemeContext";
 import { apiClient } from "../lib/supabaseClient";
 import { ClanChat } from "../components/clan/ClanChat";
+import { FACTION_ALIAS_MAP_FRONTEND } from "../utils/faction";
 
 type Player = {
   id?: string;
@@ -49,7 +50,8 @@ export default function ClanPage() {
   };
 
   const factionColor = useMemo(() => {
-    const f = clan?.faction || userProfile?.faction?.name;
+    const rawF = clan?.faction || (userProfile?.faction as any)?.name || userProfile?.faction;
+    const f = FACTION_ALIAS_MAP_FRONTEND[String(rawF).toLowerCase().trim()] || "gangsters";
 
     return f === "gangsters"
       ? {

@@ -13,6 +13,8 @@ export function getDisplayName(term: string): string {
     // Plural
     "guardas": "Guardiões",
     "gangsters": "Renegados",
+    "guardioes": "Guardiões",
+    "renegados": "Renegados",
     "clãs": "Divisões",
     "clans": "Divisões",
   };

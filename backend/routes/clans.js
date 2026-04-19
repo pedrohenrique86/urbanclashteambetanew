@@ -4,6 +4,7 @@ const { query, transaction } = require("../config/database");
 const { authenticateToken } = require("../middleware/auth");
 const redisClient = require("../config/redisClient");
 const { getGameState } = require("../services/gameStateService");
+const { FACTION_ALIAS_MAP, resolveFaction } = require("../utils/faction");
 
 const router = express.Router();
 
@@ -71,8 +72,8 @@ const createClanValidation = [
     .isLength({ max: 500 })
     .withMessage("Descrição deve ter no máximo 500 caracteres"),
   body("faction")
-    .isIn(["gangsters", "guardas"])
-    .withMessage("Facção deve ser: gangsters ou guardas"),
+    .isIn(Object.keys(FACTION_ALIAS_MAP))
+    .withMessage("Facção inválida"),
   body("max_members")
     .optional()
     .isInt({ min: 5, max: 100 })
@@ -135,8 +136,9 @@ router.get("/", async (req, res) => {
     let paramCount = 1;
 
     if (faction) {
+      const canonicalFaction = FACTION_ALIAS_MAP[String(faction).toLowerCase().trim()] || faction;
       whereClause += ` AND c.faction = $${paramCount++}`;
-      queryParams.push(faction);
+      queryParams.push(canonicalFaction);
     }
 
     if (search) {
@@ -221,10 +223,12 @@ router.get("/by-faction/:faction", async (req, res) => {
   try {
     const { faction } = req.params;
 
-    if (!["gangsters", "guardas"].includes(faction)) {
+    const canonicalParamsFaction = FACTION_ALIAS_MAP[String(faction).toLowerCase().trim()];
+
+    if (!canonicalParamsFaction) {
       return res
         .status(400)
-        .json({ error: "Facção inválida. Use: gangsters ou guardas" });
+        .json({ error: "Facção inválida. Use: renegados ou guardioes" });
     }
 
     const clansResult = await query(
@@ -247,7 +251,7 @@ router.get("/by-faction/:faction", async (req, res) => {
       WHERE c.faction = $1
       ORDER BY c.name ASC
       `,
-      [faction],
+      [canonicalParamsFaction],
     );
 
     res.json({
@@ -402,7 +406,10 @@ router.post("/", authenticateToken, createClanValidation, async (req, res) => {
     }
 
     const userFaction = userProfileResult.rows[0].faction;
-    if (userFaction !== faction) {
+    const { canonicalName: userCanonical } = await resolveFaction(userFaction);
+    const { canonicalName: reqCanonical, factionId: reqFactionId } = await resolveFaction(faction);
+
+    if (userCanonical !== reqCanonical) {
       return res
         .status(400)
         .json({ error: "Você só pode entrar em clãs da sua facção" });
@@ -419,11 +426,11 @@ router.post("/", authenticateToken, createClanValidation, async (req, res) => {
     const result = await transaction(async (client) => {
       const clanResult = await client.query(
         `
-        INSERT INTO clans (name, description, faction, max_members)
-        VALUES ($1, $2, $3, $4)
+        INSERT INTO clans (name, description, faction, faction_id, max_members)
+        VALUES ($1, $2, $3, $4, $5)
         RETURNING id
         `,
-        [name, description, faction, max_members],
+        [name, description, reqCanonical, reqFactionId, max_members],
       );
 
       const clanId = clanResult.rows[0].id;

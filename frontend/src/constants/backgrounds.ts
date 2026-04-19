@@ -33,6 +33,7 @@ import zonaSocialBg from "../assets/zona-social.webp";
 import trainingGuardioes from "../assets/training-guardioes.webp";
 import trainingRenegados from "../assets/training-renegados.webp";
 import vipAccessBg from "../assets/vip-access.webp";
+import { FACTION_ALIAS_MAP_FRONTEND } from "../utils/faction";
 
 export interface BackgroundConfig {
   src: string;
@@ -47,6 +48,11 @@ export const DEFAULT_PLACEHOLDER = "linear-gradient(135deg, #0f172a 0%, #1e293b 
 
 export type BackgroundMap = Record<string, BackgroundConfig | ((data: any) => BackgroundConfig)>;
 
+const isGuardFaction = (profile: any) => {
+  const faction = typeof profile?.faction === "string" ? profile.faction : profile?.faction?.name;
+  return FACTION_ALIAS_MAP_FRONTEND[String(faction).toLowerCase().trim()] === "guardas";
+};
+
 export const PAGE_BACKGROUNDS: BackgroundMap = {
   "/": {
     src: homeBg,
@@ -54,9 +60,8 @@ export const PAGE_BACKGROUNDS: BackgroundMap = {
     overlay: "bg-black/30",
   },
   "/dashboard": (profile: any) => {
-    const faction = typeof profile?.faction === "string" ? profile.faction : profile?.faction?.name;
     return {
-      src: faction === "guardas" ? dashguardas : dashbgangster,
+      src: isGuardFaction(profile) ? dashguardas : dashbgangster,
       overlay: "bg-black/20",
     };
   },
@@ -86,19 +91,15 @@ export const PAGE_BACKGROUNDS: BackgroundMap = {
     position: "bg-center",
   },
   "/clan": (profile: any) => {
-    const faction = typeof profile?.faction === "string" ? profile.faction : profile?.faction?.name;
-    const isGuard = faction?.toLowerCase() === "guardas";
     return {
-      src: isGuard ? qgChatGuardioes : qgChatRenegados,
+      src: isGuardFaction(profile) ? qgChatGuardioes : qgChatRenegados,
       overlay: "bg-black/40",
       position: "bg-center",
     };
   },
   "/qg": (profile: any) => {
-    const faction = typeof profile?.faction === "string" ? profile.faction : profile?.faction?.name;
-    const isGuard = faction?.toLowerCase() === "guardas";
     return {
-      src: isGuard ? qgChatGuardioes : qgChatRenegados,
+      src: isGuardFaction(profile) ? qgChatGuardioes : qgChatRenegados,
       overlay: "bg-black/40",
       position: "bg-center",
     };
@@ -114,10 +115,8 @@ export const PAGE_BACKGROUNDS: BackgroundMap = {
     position: "bg-center",
   },
   "/supply-station": (profile: any) => {
-    const faction = typeof profile?.faction === "string" ? profile.faction : profile?.faction?.name;
-    const isGuard = faction?.toLowerCase() === "guardas";
     return {
-      src: isGuard ? supplyStationGuardioes : supplyStationRenegados,
+      src: isGuardFaction(profile) ? supplyStationGuardioes : supplyStationRenegados,
       overlay: "bg-black/60",
       position: "bg-center",
     };
@@ -133,10 +132,8 @@ export const PAGE_BACKGROUNDS: BackgroundMap = {
     position: "bg-center",
   },
   "/contracts": (profile: any) => {
-    const faction = typeof profile?.faction === "string" ? profile.faction : profile?.faction?.name;
-    const isGuard = faction?.toLowerCase() === "guardas";
     return {
-      src: isGuard ? contractGuardiaoBg : contractRenegadosBg,
+      src: isGuardFaction(profile) ? contractGuardiaoBg : contractRenegadosBg,
       overlay: "bg-black/50",
       position: "bg-center",
     };
@@ -167,10 +164,8 @@ export const PAGE_BACKGROUNDS: BackgroundMap = {
     position: "bg-center",
   },
   "/training": (profile: any) => {
-    const faction = typeof profile?.faction === "string" ? profile.faction : profile?.faction?.name;
-    const isGuard = faction?.toLowerCase() === "guardas";
     return {
-      src: isGuard ? trainingGuardioes : trainingRenegados,
+      src: isGuardFaction(profile) ? trainingGuardioes : trainingRenegados,
       overlay: "bg-black/60",
       position: "bg-center",
     };

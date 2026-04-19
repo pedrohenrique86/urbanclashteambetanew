@@ -4,6 +4,7 @@ import { useClans } from '../hooks/useClans';
 import { apiClient } from '../lib/supabaseClient';
 import { motion } from 'framer-motion';
 import { getDisplayName } from '../utils/displayNames';
+import { FACTION_ALIAS_MAP_FRONTEND } from '../utils/faction';
 
 const FactionColors = {
   guardas: {
@@ -30,7 +31,7 @@ const SelecaoClasPage: React.FC = () => {
   // Extracting the faction name defensively (supports both string and object)
   const rawFaction = userProfile?.faction as any;
   const rawFactionName = typeof rawFaction === 'string' ? rawFaction : (rawFaction?.name || '');
-  const factionName: FactionName = rawFactionName.toLowerCase() === 'guardas' ? 'guardas' : 'gangsters';
+  const factionName: FactionName = FACTION_ALIAS_MAP_FRONTEND[rawFactionName.toLowerCase().trim()] || 'gangsters';
 
   const { clans, isLoading: isLoadingClans, error: errorClans } = useClans(factionName);
   const [joiningClanId, setJoiningClanId] = useState<number | null>(null);

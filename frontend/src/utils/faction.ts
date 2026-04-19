@@ -1,5 +1,19 @@
-import { apiClient } from '../lib/supabaseClient';
 import { UserProfile } from '../types';
+
+// Mapa de compatibilidade para aceitar renegados/guardioes vindos do backend
+// e normalizar para o frontend que espera gangsters/guardas.
+export const FACTION_ALIAS_MAP_FRONTEND: Record<string, 'gangsters' | 'guardas'> = {
+  gangsters: 'gangsters',
+  gangster: 'gangsters',
+  renegados: 'gangsters',
+  renegado: 'gangsters',
+  guardas: 'guardas',
+  guarda: 'guardas',
+  guardioes: 'guardas',
+  guardiao: 'guardas',
+  'guardiões': 'guardas',
+  'guardião': 'guardas',
+};
 
 // Função para verificar se uma data é mais antiga que 24 horas
 export const isMoreThan24HoursAgo = (date: Date): boolean => {
@@ -47,12 +61,14 @@ export const getDefaultStatsByFaction = (faction: string) => {
 
   };
 
-  if (faction === 'gangsters') {
+  const canonicalFaction = FACTION_ALIAS_MAP_FRONTEND[faction?.toLowerCase().trim()] || faction;
+
+  if (canonicalFaction === 'gangsters') {
     return {
       level: 1,
       ...factionDefaults.gangsters
     };
-  } else if (faction === 'guardas') {
+  } else if (canonicalFaction === 'guardas') {
     return {
       level: 1,
       current_xp: 0,
