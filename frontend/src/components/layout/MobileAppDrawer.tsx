@@ -535,36 +535,30 @@ export const MobileAppDrawer: React.FC = () => {
       )}
 
       {/* DRAWER PRINCIPAL */}
-      <motion.div
-        initial={false}
-        animate={isOpen ? "open" : "closed"}
-        variants={{
-          open: { y: drawerDragY > 0 ? drawerDragY : 0 },
-          closed: { y: "calc(100% - 68px)" } // Mantém o handle visível
-        }}
-        transition={{ type: "spring", damping: 25, stiffness: 300 }}
-        className="fixed bottom-0 left-0 right-0 z-[9990] md:hidden flex flex-col justify-end"
-        style={{ 
+      <div
+        className="fixed bottom-0 left-0 right-0 z-[9990] md:hidden transition-transform duration-300 ease-out flex flex-col justify-end"
+        style={{
+          transform: `translateY(${isOpen ? Math.max(0, drawerDragY) : "0"})`,
           willChange: "transform",
-          height: "92vh",
-          pointerEvents: isOpen ? "auto" : "none" // Permite clicar no jogo quando fechado
+          paddingBottom: "env(safe-area-inset-bottom, 0px)",
+          top: isOpen ? "0" : "auto",
+          pointerEvents: isOpen && isEditMode && draggingId ? "auto" : "none",
         }}
         onPointerMove={isEditMode ? handleItemPointerMove : undefined}
       >
         <div
           className={[
-            "relative w-full h-full rounded-t-3xl overflow-hidden pointer-events-auto",
+            "relative w-full rounded-t-3xl overflow-hidden pointer-events-auto",
             "border border-b-0 border-white/10",
             "bg-gradient-to-b from-gray-900/95 to-black/98",
           ].join(" ")}
           style={{
-            height: "92vh",
             boxShadow: [
               "0 -1px 0 rgba(255,255,255,0.06)",
               "0 -8px 32px rgba(0,0,0,0.8)",
               "0 -2px 12px rgba(168,85,247,0.12)",
             ].join(", "),
-            backdropFilter: "blur(16px) saturate(1.2)",
+            backdropFilter: "blur(24px) saturate(1.5)",
           }}
         >
           {/* Fundo Glow Original que o usuário ama */}
@@ -616,16 +610,10 @@ export const MobileAppDrawer: React.FC = () => {
                 </div>
               </div>
             )}
-          <motion.div 
-            initial={false}
-            animate={{ 
-              height: isOpen ? "auto" : "auto", 
-              maxHeight: isOpen ? "85vh" : "0px",
-              opacity: isOpen ? 1 : 0 
-            }}
-            transition={{ type: "spring", damping: 30, stiffness: 300 }}
-            className="overflow-hidden flex flex-col relative z-20"
-          >
+            {isOpen && <ChevronUpIcon className="w-4 h-4 text-white/30 rotate-180 mb-1" />}
+          </div>
+
+          <div className="overflow-hidden transition-all duration-350 ease-in-out flex flex-col relative z-20" style={{ maxHeight: isOpen ? "85vh" : "0px", opacity: isOpen ? 1 : 0 }}>
             <div className="px-3 py-2 border-b border-white/[0.03] bg-white/[0.01] mb-2 flex-shrink-0">
               <div className="flex justify-center">
                 <div className="flex items-center flex-nowrap gap-2 px-3 py-1.5 rounded-xl bg-black/40 border border-white/10 shadow-[0_4px_12px_rgba(0,0,0,0.4)] tabular-nums font-mono antialiased">
@@ -655,18 +643,19 @@ export const MobileAppDrawer: React.FC = () => {
 
             {/* Cabeçalho EDITAR Navegação Restourado */}
             <div className="flex items-center justify-between pl-5 pr-2 pb-2 flex-shrink-0">
-              <div className="flex items-center min-w-0 mr-2">
-                {activePage && (
-                  <div className="flex items-center gap-2 px-2.5 py-1 rounded-lg bg-white/[0.03] border border-white/10 shadow-[0_0_15px_rgba(0,0,0,0.5)]">
-                    <div className="w-1.5 h-1.5 rounded-full bg-purple-400 shadow-[0_0_8px_rgba(168,85,247,0.8)] animate-pulse flex-shrink-0" />
-                    <span className="text-[11px] font-black uppercase tracking-widest text-white truncate leading-none">
-                      {activePage.name}
-                    </span>
-                  </div>
-                )}
+              <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 text-[10px] font-bold tracking-[0.15em] uppercase">
+                  <span className="text-purple-400/70">Navegação</span>
+                  {activePage && (
+                    <>
+                      <span className="text-white/10 select-none">/</span>
+                      <span className="text-white/40 truncate max-w-[160px] font-semibold">{activePage.name}</span>
+                    </>
+                  )}
+                </div>
               </div>
 
-              <div className="flex items-center gap-1.5 flex-shrink-0">
+              <div className="flex items-center gap-2">
                 <button
                   type="button"
                   onClick={() => {
@@ -772,11 +761,11 @@ export const MobileAppDrawer: React.FC = () => {
               </div>
 
               {/* Handle Mirroring Top */}
+              <div className="h-1 bg-purple-400/60 w-10 rounded-full" />
             </div>
-          </motion.div>
+          </div>
         </div>
       </div>
-    </motion.div>
 
       {/* MENU CONTEXTUAL PARA PASTAS (Renomear/Excluir) via Clicar Longo ou Clicar da Pasta no Modo Edit */}
       <AnimatePresence>
