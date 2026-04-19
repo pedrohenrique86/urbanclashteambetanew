@@ -642,7 +642,7 @@ export const MobileAppDrawer: React.FC = () => {
                       <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-current"></span>
                     </div>
                     <span className="text-[12px] font-black uppercase tracking-tight whitespace-nowrap">{STATUS_LABEL[status]}</span>
-                    <span className="text-[13px] font-black text-white bg-white/5 px-2 py-0.5 rounded-md border border-white/15 shrink-0 whitespace-nowrap w-[90px] text-center">
+                    <span className="text-[13px] font-black text-white bg-white/5 px-2.5 py-0.5 rounded-md border border-white/15 shrink-0 whitespace-nowrap min-w-max text-center">
                       {fmtTimer(remainingTime)}
                     </span>
                   </div>
