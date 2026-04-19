@@ -53,11 +53,47 @@ async function invalidatePlayerCache(userId) {
 async function refreshUserRankingCaches() {
   try {
     await Promise.allSettled([
+      rankingCacheService.triggerRefresh("users", "renegados"),
+      rankingCacheService.triggerRefresh("users", "guardioes"),
       rankingCacheService.triggerRefresh("users", "gangsters"),
       rankingCacheService.triggerRefresh("users", "guardas"),
       rankingCacheService.triggerRefresh("users", "all"),
     ]);
   } catch (_) { }
+}
+
+/**
+ * Converte qualquer valor de facção (legado ou novo) para o nome canônico
+ * e retorna { canonicalName, factionId } consultando a tabela factions.
+ * Suporta: gangsters, guardas (legado) e renegados, guardioes (novo).
+ */
+const FACTION_ALIAS_MAP = {
+  gangsters:  "renegados",
+  gangster:   "renegados",
+  renegados:  "renegados",
+  renegado:   "renegados",
+  guardas:    "guardioes",
+  guarda:     "guardioes",
+  guardioes:  "guardioes",
+  guardiao:   "guardioes",
+  "guardiões": "guardioes",
+  "guardião":  "guardioes",
+};
+
+async function resolveFaction(factionInput, clientOrQuery) {
+  const canonical = FACTION_ALIAS_MAP[String(factionInput).toLowerCase().trim()];
+  if (!canonical) {
+    throw new Error(`Facção inválida: "${factionInput}". Use: renegados ou guardioes.`);
+  }
+
+  const fn = clientOrQuery?.query ? (sql, p) => clientOrQuery.query(sql, p) : query;
+  const result = await fn("SELECT id FROM factions WHERE name = $1", [canonical]);
+
+  if (result.rows.length === 0) {
+    throw new Error(`Facção "${canonical}" não encontrada na tabela factions. Execute a Migration A.`);
+  }
+
+  return { canonicalName: canonical, factionId: result.rows[0].id };
 }
 
 // =========================
@@ -102,8 +138,8 @@ const updateProfileValidation = [
     .withMessage("Bio deve ter no máximo 100 caracteres"),
   body("faction")
     .optional()
-    .isIn(["gangsters", "guardas"])
-    .withMessage("Facção deve ser: gangsters ou guardas"),
+    .isIn(["gangsters", "guardas", "renegados", "guardioes", "gangster", "guarda", "renegado", "guardiao"])
+    .withMessage("Facção deve ser: renegados ou guardioes"),
   body("avatar_url")
     .optional({ checkFalsy: true })
     .isString()
@@ -140,7 +176,10 @@ function getFactionStats(faction) {
     winning_streak: 0,
   };
 
-  if (faction === "gangsters") {
+  // Aceita tanto os valores legados (gangsters/guardas) quanto os novos (renegados/guardioes)
+  const canonical = FACTION_ALIAS_MAP[String(faction).toLowerCase().trim()];
+
+  if (canonical === "renegados") {
     const focus = 5;
     const attack = 8;
     return {
@@ -155,7 +194,7 @@ function getFactionStats(faction) {
     };
   }
 
-  if (faction === "guardas") {
+  if (canonical === "guardioes") {
     const focus = 6;
     const attack = 5;
     return {
@@ -235,10 +274,10 @@ router.post("/profile", authenticateToken, async (req, res) => {
   try {
     const { faction } = req.body;
 
-    if (faction !== "gangsters" && faction !== "guardas") {
+    if (!faction || !FACTION_ALIAS_MAP[String(faction).toLowerCase().trim()]) {
       return res
         .status(400)
-        .json({ error: "Facção deve ser: gangsters ou guardas" });
+        .json({ error: "Facção deve ser: renegados ou guardioes (ou gangsters/guardas)" });
     }
 
     const existingProfile = await query(
@@ -262,13 +301,15 @@ router.post("/profile", authenticateToken, async (req, res) => {
         .json({ error: "Usuário não encontrado para criação de perfil" });
     }
 
+    // Resolve o faction_id obrigatório via tabela factions
+    const { canonicalName, factionId } = await resolveFaction(faction);
+    const factionStats = getFactionStats(canonicalName);
+
     const usernameToInsert = buildSafeUsername({
       requestedUsername: null,
       userId: user.id,
       userFromDb: user,
     });
-
-    const factionStats = getFactionStats(faction);
 
     const result = await query(
       `
@@ -277,6 +318,7 @@ router.post("/profile", authenticateToken, async (req, res) => {
         username,
         display_name,
         faction,
+        faction_id,
         level,
         experience_points,
         energy,
@@ -300,7 +342,7 @@ router.post("/profile", authenticateToken, async (req, res) => {
       VALUES (
         $1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
         $11, $12, $13, $14, $15, $16, $17, $18,
-        $19, $20, $21, $22, CURRENT_TIMESTAMP
+        $19, $20, $21, $22, $23, CURRENT_TIMESTAMP
       )
       RETURNING *
       `,
@@ -308,7 +350,8 @@ router.post("/profile", authenticateToken, async (req, res) => {
         user.id,
         usernameToInsert,
         usernameToInsert,
-        faction,
+        canonicalName,        // faction VARCHAR — valor canônico
+        factionId,            // faction_id FK — obrigatório
         factionStats.level,
         factionStats.current_xp,
         factionStats.energy,
@@ -568,27 +611,10 @@ router.put(
             userFromDb: user,
           });
 
-          const finalFaction = faction || "gangsters";
-          const stats =
-            finalFaction === "guardas"
-              ? {
-                attack: 5,
-                defense: 6,
-                focus: 6,
-                critical_damage: 8.0,
-                critical_chance: 12,
-                intimidation: 0.0,
-                discipline: 40.0,
-              }
-              : {
-                attack: 8,
-                defense: 3,
-                focus: 5,
-                critical_damage: 10.5,
-                critical_chance: 10,
-                intimidation: 35.0,
-                discipline: 0.0,
-              };
+          const rawFaction = faction || "renegados";
+          const { canonicalName: insertCanonical, factionId: insertFactionId } =
+            await resolveFaction(rawFaction, client);
+          const stats = getFactionStats(insertCanonical);
 
           const insertResult = await client.query(
             `
@@ -598,6 +624,7 @@ router.put(
               display_name,
               bio,
               faction,
+              faction_id,
               avatar_url,
               attack,
               defense,
@@ -608,7 +635,7 @@ router.put(
               discipline
             )
             VALUES (
-              $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13
+              $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14
             )
             RETURNING *
             `,
@@ -617,7 +644,8 @@ router.put(
               usernameToInsert,
               usernameToInsert,
               bio || "",
-              finalFaction,
+              insertCanonical,    // faction VARCHAR canônico
+              insertFactionId,    // faction_id FK obrigatória
               avatar_url || "",
               stats.attack,
               stats.defense,
@@ -654,8 +682,13 @@ router.put(
         }
 
         if (faction !== undefined) {
+          // Resolve faction_id e normaliza o VARCHAR simultaneamente
+          const { canonicalName: updCanonical, factionId: updFactionId } =
+            await resolveFaction(faction, client);
           updateFields.push(`faction = $${paramCount++}`);
-          updateValues.push(faction);
+          updateValues.push(updCanonical);
+          updateFields.push(`faction_id = $${paramCount++}`);
+          updateValues.push(updFactionId);
         }
 
         if (updateFields.length === 0 && birth_date !== undefined) {
