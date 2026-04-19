@@ -529,7 +529,7 @@ export const MobileAppDrawer: React.FC = () => {
           open: { y: drawerDragY > 0 ? drawerDragY : 0 },
           closed: { y: "calc(100% - 52px)" } // Menor área visível
         }}
-        transition={{ type: "spring", damping: 30, stiffness: 450, mass: 0.5 }}
+        transition={{ type: "tween", ease: [0.25, 1, 0.5, 1], duration: 0.25 }}
         className="fixed bottom-0 left-0 right-0 z-[9990] md:hidden flex flex-col justify-end"
         style={{ 
           willChange: "transform",
