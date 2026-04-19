@@ -594,23 +594,22 @@ export const MobileAppDrawer: React.FC = () => {
             />
             {!isOpen && (
               <div className="flex items-center w-full px-4 pb-2">
-                <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                <div className="flex items-center gap-1 min-w-0 flex-1">
                   {(() => {
                     const activePage = ALL_PAGES.find((p) => location.pathname === p.path);
                     if (!activePage) return <span className="text-[12px] text-white/40 uppercase font-black tracking-widest">Menu</span>;
                     return (
                       <>
                         <span className="text-purple-300/80 scale-75 flex-shrink-0 origin-left">{activePage.icon}</span>
-                        <span className="text-[8px] font-black text-purple-100 tracking-tighter uppercase drop-shadow-md whitespace-nowrap">{activePage.name}</span>
-                        <span className="w-1 h-1 rounded-full bg-purple-400 shadow-[0_0_8px_rgba(168,85,247,0.8)] flex-shrink-0 ml-0.5" />
+                        <span className="text-[10px] font-black text-purple-100 tracking-tighter uppercase drop-shadow-md whitespace-nowrap">{activePage.name}</span>
                       </>
                     );
                   })()}
                 </div>
 
-                <div className="flex-shrink-0 px-4 flex items-center gap-1.5 opacity-60">
-                  <ChevronUpIcon className="w-3 h-3 text-purple-400" />
-                  <span className="text-[10px] font-black text-white/70 uppercase tracking-[0.15em] animate-pulse">Expandir Menu</span>
+                <div className="flex-shrink-0 px-4 flex items-center gap-1 opacity-60">
+                  <ChevronUpIcon className="w-3 h-3 text-white/70" />
+                  <span className="text-[12px] font-black text-white/70 uppercase tracking-[0.1em] animate-pulse">Expandir Menu</span>
                 </div>
 
                 <div className="flex-1" />
@@ -660,12 +659,9 @@ export const MobileAppDrawer: React.FC = () => {
             <div className="flex items-center justify-between pl-5 pr-2 pb-2 flex-shrink-0">
               <div className="flex items-center gap-2">
                 {activePage && (
-                  <div className="flex items-center gap-1.5">
-                    <span className="w-1.5 h-1.5 rounded-full bg-purple-400 shadow-[0_0_8px_rgba(168,85,247,0.8)] flex-shrink-0 animate-pulse" />
-                    <span className="text-[11px] font-black text-white uppercase tracking-widest drop-shadow-[0_0_8px_rgba(168,85,247,0.4)] truncate max-w-[150px]">
-                      {activePage.name}
-                    </span>
-                  </div>
+                  <span className="text-[11px] font-black text-white uppercase tracking-widest drop-shadow-[0_0_8px_rgba(168,85,247,0.4)] truncate max-w-[150px]">
+                    {activePage.name}
+                  </span>
                 )}
               </div>
 
@@ -750,14 +746,13 @@ export const MobileAppDrawer: React.FC = () => {
 
             {/* Gatilho de Fechamento Inferior - UX Mobile Premium */}
             <div
-              className="w-full flex flex-col items-center cursor-pointer select-none pb-[env(safe-area-inset-bottom,0.8rem)] pt-1.5 active:bg-white/5 transition-colors relative z-10 border-t border-white/[0.03] bg-transparent backdrop-blur-sm mt-auto"
+              className="w-full flex flex-col items-center cursor-pointer select-none pb-[env(safe-area-inset-bottom,1rem)] pt-2 active:bg-white/5 transition-colors relative z-10 border-t border-white/[0.03] bg-transparent backdrop-blur-sm mt-auto h-[52px] justify-center"
               onClick={(e) => { e.stopPropagation(); toggleDrawer(); }}
             >
-              <div className="flex items-center justify-center w-full px-5 mb-3 gap-1.5 opacity-60">
-                <ChevronUpIcon className="w-3 h-3 text-purple-400 rotate-180" />
-                <span className="text-[10px] font-black text-white/70 uppercase tracking-[0.15em] animate-pulse">Recolher Menu</span>
+              <div className="flex items-center justify-center w-full px-5 mb-1.5 gap-1 opacity-60">
+                <ChevronUpIcon className="w-3 h-3 text-white/70 rotate-180" />
+                <span className="text-[12px] font-black text-white/70 uppercase tracking-[0.1em] animate-pulse">Recolher Menu</span>
               </div>
-              <div className="h-1 bg-white/20 w-8 rounded-full mb-2" />
 
               {/* Handle Mirroring Top */}
             </div>
