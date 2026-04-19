@@ -540,20 +540,20 @@ export const MobileAppDrawer: React.FC = () => {
         animate={isOpen ? "open" : "closed"}
         variants={{
           open: { y: drawerDragY > 0 ? drawerDragY : 0 },
-          closed: { y: "calc(100% - 68px)" } // Handle visível
+          closed: { y: "calc(100% - 52px)" } // Menor área visível
         }}
         transition={{ type: "spring", damping: 28, stiffness: 260 }}
         className="fixed bottom-0 left-0 right-0 z-[9990] md:hidden flex flex-col justify-end"
         style={{ 
           willChange: "transform",
           height: "92vh",
-          pointerEvents: "auto" // Sempre auto, controlamos click nos itens internamente
+          pointerEvents: "auto",
         }}
         onPointerMove={isEditMode ? handleItemPointerMove : undefined}
       >
         <div
           className={[
-            "relative w-full h-full rounded-t-3xl overflow-hidden",
+            "relative w-full h-full rounded-t-3xl overflow-hidden flex flex-col",
             "border border-b-0 border-white/[0.08]",
           ].join(" ")}
           style={{
@@ -566,7 +566,7 @@ export const MobileAppDrawer: React.FC = () => {
               "0 -2px 16px rgba(168,85,247,0.15)",
               "inset 0 1px 0 rgba(255,255,255,0.05)",
             ].join(", "),
-            paddingBottom: "env(safe-area-inset-bottom, 20px)",
+            paddingBottom: "env(safe-area-inset-bottom, 12px)",
           }}
         >
           {/* Fundo Glow Original que o usuário ama */}
@@ -611,7 +611,7 @@ export const MobileAppDrawer: React.FC = () => {
 
                 <div className="flex-shrink-0 px-4 flex items-center gap-1.5 opacity-60">
                   <ChevronUpIcon className="w-3 h-3 text-purple-400" />
-                  <span className="text-[10px] font-black text-white/70 uppercase tracking-[0.15em]">Expandir Menu</span>
+                  <span className="text-[10px] font-black text-white/70 uppercase tracking-[0.15em] animate-pulse">Expandir Menu</span>
                 </div>
 
                 <div className="flex-1" />
@@ -623,11 +623,15 @@ export const MobileAppDrawer: React.FC = () => {
           <motion.div 
             initial={false}
             animate={{ 
-              maxHeight: isOpen ? "85vh" : "0px",
-              opacity: isOpen ? 1 : 0 
+              opacity: isOpen ? 1 : 0,
+              y: isOpen ? 0 : 10
             }}
-            transition={{ type: "spring", damping: 30, stiffness: 300 }}
-            className="overflow-hidden flex flex-col relative z-20"
+            transition={{ duration: 0.25, ease: "easeOut" }}
+            className="flex-1 flex flex-col relative z-20 min-h-0 w-full overflow-hidden"
+            style={{ 
+              pointerEvents: isOpen ? "auto" : "none",
+              visibility: isOpen ? "visible" : "hidden"
+            }}
           >
             <div className="px-3 py-2 border-b border-white/[0.03] bg-white/[0.01] mb-2 flex-shrink-0">
               <div className="flex justify-center">
@@ -713,7 +717,7 @@ export const MobileAppDrawer: React.FC = () => {
               </p>
             )}
 
-            <div ref={gridRef} className="px-[12px] pt-1 pb-6 overflow-y-auto overflow-x-hidden min-h-[40vh]"
+            <div ref={gridRef} className="px-[12px] pt-1 pb-10 overflow-y-auto overflow-x-hidden flex-1"
               style={{ WebkitOverflowScrolling: "touch", touchAction: isEditMode ? "none" : "auto" }}>
               <div className="grid grid-cols-4 gap-2 w-full">
                 <AnimatePresence>
@@ -760,12 +764,12 @@ export const MobileAppDrawer: React.FC = () => {
 
             {/* Gatilho de Fechamento Inferior - UX Mobile Premium */}
             <div
-              className="w-full flex flex-col items-center cursor-pointer select-none pb-[env(safe-area-inset-bottom,1.5rem)] pt-3 active:bg-white/5 transition-colors relative z-10 border-t border-white/[0.03] bg-transparent backdrop-blur-sm mt-auto"
+              className="w-full flex flex-col items-center cursor-pointer select-none pb-[env(safe-area-inset-bottom,0.8rem)] pt-1.5 active:bg-white/5 transition-colors relative z-10 border-t border-white/[0.03] bg-transparent backdrop-blur-sm mt-auto"
               onClick={(e) => { e.stopPropagation(); toggleDrawer(); }}
             >
               <div className="flex items-center justify-center w-full px-5 mb-3 gap-1.5 opacity-60">
                 <ChevronUpIcon className="w-3 h-3 text-purple-400 rotate-180" />
-                <span className="text-[10px] font-black text-white/70 uppercase tracking-[0.15em]">Recolher Menu</span>
+                <span className="text-[10px] font-black text-white/70 uppercase tracking-[0.15em] animate-pulse">Recolher Menu</span>
               </div>
               <div className="h-1 bg-white/20 w-8 rounded-full mb-2" />
 
@@ -855,11 +859,12 @@ export const MobileAppDrawer: React.FC = () => {
             </AnimatePresence>
 
             <motion.div
-              initial={{ opacity: 0, scale: 0.85, y: 40 }}
+              initial={{ opacity: 0, scale: 0.9, y: 30 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.85, y: 20 }}
-              transition={{ type: "spring", damping: 25, stiffness: 350 }}
-              className="w-[92%] max-w-[360px] p-8 rounded-[3rem] bg-gradient-to-br from-white/10 via-white/5 to-transparent border border-white/20 backdrop-blur-3xl shadow-[0_40px_80px_-15px_rgba(0,0,0,0.6)] flex flex-col items-center pointer-events-auto relative overflow-hidden"
+              exit={{ opacity: 0, scale: 0.9, y: 15 }}
+              transition={{ duration: 0.2, ease: [0.23, 1, 0.32, 1] }}
+              className="w-[92%] max-w-[360px] p-8 rounded-[3rem] bg-gradient-to-br from-white/12 via-white/5 to-transparent border border-white/20 backdrop-blur-2xl shadow-[0_40px_80px_-15px_rgba(0,0,0,0.6)] flex flex-col items-center pointer-events-auto relative overflow-hidden"
+              style={{ willChange: "transform, opacity" }}
               onClick={(e) => { if (!folderDragId) e.stopPropagation(); }}
             >
               {/* Decorative Glows */}
