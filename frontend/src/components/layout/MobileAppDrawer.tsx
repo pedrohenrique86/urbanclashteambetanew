@@ -8,36 +8,21 @@ import React, {
 } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import {
-  HomeIcon,
-  DocumentTextIcon,
-  ShieldExclamationIcon,
-  FireIcon,
-  BuildingStorefrontIcon,
-  HeartIcon,
-  LockClosedIcon,
-  MapIcon,
-  GlobeAltIcon,
-  BuildingLibraryIcon,
-  BuildingOffice2Icon,
-  FlagIcon,
-  ChartBarIcon,
-  ChatBubbleLeftRightIcon,
-  AcademicCapIcon,
-  UserCircleIcon,
-  StarIcon,
-  ShoppingBagIcon,
   ChevronUpIcon,
-  XMarkIcon,
-  PencilSquareIcon,
+  GlobeAltIcon,
+  ArrowLeftOnRectangleIcon,
   CheckIcon,
+  PencilSquareIcon,
   FolderOpenIcon,
   TrashIcon,
-  ArrowLeftOnRectangleIcon,
+  XMarkIcon,
 } from "@heroicons/react/24/outline";
 import { motion, AnimatePresence } from "framer-motion";
 import { useDrawerOrder, DrawerFolder } from "../../hooks/useDrawerOrder";
 import { useGameClock } from "../../hooks/useGameClock";
 import { useAuth } from "../../contexts/AuthContext";
+import { ALL_PAGES, DEFAULT_ORDER, PAGE_MAP, DrawerPage, FOLDER_COLORS, SNAP_OPEN_PX, SNAP_CLOSE_PX, LONG_PRESS_MS } from "./MobileDrawerConstants";
+import { DrawerItem, DrawerFolderItem } from "./MobileDrawerItems";
 
 const fmtTimer = (s: number): string => {
   if (s <= 0) return "0d 00h 00m 00s";
@@ -71,104 +56,6 @@ const STATUS_LABEL: Record<string, string> = {
   stopped: "Parado",
   scheduled: "Aguardando",
 };
-
-const FOLDER_COLORS: Record<string, { bg: string, text: string, border: string, icon: string, solid: string }> = {
-  emerald: { bg: "bg-emerald-500/10", text: "text-emerald-400", border: "border-emerald-500/30", icon: "text-emerald-200/90", solid: "bg-emerald-500" },
-  blue: { bg: "bg-blue-500/10", text: "text-blue-400", border: "border-blue-500/30", icon: "text-blue-200/90", solid: "bg-blue-500" },
-  purple: { bg: "bg-purple-500/10", text: "text-purple-400", border: "border-purple-500/30", icon: "text-purple-200/90", solid: "bg-purple-500" },
-  amber: { bg: "bg-amber-500/10", text: "text-amber-400", border: "border-amber-500/30", icon: "text-amber-200/90", solid: "bg-amber-500" },
-  rose: { bg: "bg-rose-500/10", text: "text-rose-400", border: "border-rose-500/30", icon: "text-rose-200/90", solid: "bg-rose-500" },
-};
-
-interface DrawerPage {
-  id: string;
-  name: string;
-  path: string;
-  icon: React.ReactNode;
-  category: string;
-}
-
-const ALL_PAGES: DrawerPage[] = [
-  { id: "dashboard", name: "Dashboard", path: "/dashboard", icon: <HomeIcon className="w-5 h-5" />, category: "Base" },
-  { id: "contracts", name: "Contratos", path: "/contracts", icon: <DocumentTextIcon className="w-5 h-5" />, category: "Operações" },
-  { id: "reckoning", name: "Acerto de Contas", path: "/reckoning", icon: <ShieldExclamationIcon className="w-5 h-5" />, category: "Operações" },
-  { id: "squad-war", name: "Guerra de Esquadrão", path: "/squad-war", icon: <FireIcon className="w-5 h-5" />, category: "Operações" },
-  { id: "supply-station", name: "Estação de Suprimentos", path: "/supply-station", icon: <BuildingStorefrontIcon className="w-5 h-5" />, category: "Operações" },
-  { id: "recovery-base", name: "Base de Recuperação", path: "/recovery-base", icon: <HeartIcon className="w-5 h-5" />, category: "Operações" },
-  { id: "isolation", name: "Isolamento", path: "/isolation", icon: <LockClosedIcon className="w-5 h-5" />, category: "Operações" },
-  { id: "dark-zones", name: "Zonas Sombrias", path: "/dark-zones", icon: <MapIcon className="w-5 h-5" />, category: "Economia" },
-  { id: "parallel-network", name: "Rede Paralela", path: "/parallel-network", icon: <GlobeAltIcon className="w-5 h-5" />, category: "Economia" },
-  { id: "safe", name: "Cofre", path: "/safe", icon: <BuildingLibraryIcon className="w-5 h-5" />, category: "Economia" },
-  { id: "corporations", name: "Corporações", path: "/corporations", icon: <BuildingOffice2Icon className="w-5 h-5" />, category: "Economia" },
-  { id: "qg", name: "QG", path: "/qg", icon: <FlagIcon className="w-5 h-5" />, category: "Rede" },
-  { id: "ranking", name: "Ranking", path: "/ranking", icon: <ChartBarIcon className="w-5 h-5" />, category: "Rede" },
-  { id: "social-zone", name: "Zona Social", path: "/social-zone", icon: <ChatBubbleLeftRightIcon className="w-5 h-5" />, category: "Rede" },
-  { id: "training", name: "Treinamento", path: "/training", icon: <AcademicCapIcon className="w-5 h-5" />, category: "Rede" },
-  { id: "digital-identity", name: "Identidade Digital", path: "/digital-identity", icon: <UserCircleIcon className="w-5 h-5" />, category: "Rede" },
-  { id: "vip-access", name: "Acesso VIP", path: "/vip-access", icon: <StarIcon className="w-5 h-5" />, category: "Elite" },
-  { id: "restricted-store", name: "Loja Restrita", path: "/restricted-store", icon: <ShoppingBagIcon className="w-5 h-5" />, category: "Elite" },
-];
-
-const DEFAULT_ORDER = ALL_PAGES.map((p) => p.id);
-const PAGE_MAP = new Map(ALL_PAGES.map((p) => [p.id, p]));
-
-const SNAP_OPEN_PX = 80;
-const SNAP_CLOSE_PX = 60;
-const LONG_PRESS_MS = 180;
-
-interface DrawerItemProps {
-  page: DrawerPage;
-  isActive: boolean;
-  isEditMode: boolean;
-  isDragging: boolean;
-  onPress: () => void;
-}
-
-const DrawerItem = memo(function DrawerItem({ page, isActive, isEditMode, isDragging, onPress }: DrawerItemProps) {
-  return (
-    <button
-      type="button"
-      onClick={onPress}
-      className={`relative flex flex-col items-center gap-1.5 rounded-xl px-1.5 py-2.5 transition-all duration-300 select-none w-full outline-none ${isActive ? "bg-purple-500/20 text-purple-300 shadow-[0_0_12px_rgba(168,85,247,0.35)]" : "text-slate-300 hover:text-white hover:bg-white/5"} ${isEditMode && !isDragging ? "animate-[drawer-wiggle_0.45s_ease-in-out_infinite]" : ""}`}
-    >
-      <div className={`w-14 h-14 rounded-2xl flex items-center justify-center border transition-all duration-300 pointer-events-none relative ${isActive ? "border-purple-500/60 bg-purple-600/25 shadow-[inset_0_1px_0_rgba(255,255,255,0.1)]" : "border-white/10 bg-white/5"}`}>
-        {React.cloneElement(page.icon as React.ReactElement, { className: "w-7 h-7" })}
-        {isActive && <span className="absolute bottom-1.5 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-purple-400 shadow-[0_0_6px_rgba(168,85,247,0.8)]" />}
-      </div>
-      <span className={`text-[11px] font-bold leading-tight text-center max-w-[72px] line-clamp-2 transition-colors ${isActive ? "text-purple-300" : "text-slate-300"}`}>{page.name}</span>
-    </button>
-  );
-});
-
-const DrawerFolderItem = memo(function DrawerFolderItem({
-  folder, isActive, isEditMode, isDragging, onPress,
-}: {
-  folder: DrawerFolder; isActive: boolean; isEditMode: boolean; isDragging: boolean; onPress: () => void;
-}) {
-  const previewPages = folder.items.slice(0, 4).map(id => PAGE_MAP.get(id)).filter(Boolean) as DrawerPage[];
-  const colors = FOLDER_COLORS[folder.color || 'emerald'] || FOLDER_COLORS.emerald;
-
-  return (
-    <button
-      type="button"
-      onClick={onPress}
-      className={`relative flex flex-col items-center gap-1.5 rounded-xl px-1.5 py-2.5 transition-all duration-300 select-none w-full outline-none ${isActive ? "bg-white/10 text-white shadow-[0_0_12px_rgba(255,255,255,0.1)]" : "text-slate-300 hover:text-white hover:bg-white/5"} ${isEditMode && !isDragging ? "animate-[drawer-wiggle_0.45s_ease-in-out_infinite]" : ""}`}
-    >
-      <div className={`w-14 h-14 rounded-2xl flex flex-col items-center justify-center border p-[4px] gap-[3px] pointer-events-none transition-colors duration-500 ${colors.border} ${colors.bg}`}>
-        <div className="grid grid-cols-2 gap-[3px] w-full h-full place-items-center">
-          {previewPages.slice(0, 4).map((p, i) => (
-            <div key={i} className="flex items-center justify-center w-full h-full bg-white/10 rounded-lg scale-90 overflow-hidden">
-              {React.cloneElement(p.icon as React.ReactElement, { className: `w-4 h-4 ${colors.icon}` })}
-            </div>
-          ))}
-        </div>
-      </div>
-      <span className={`text-[11px] font-bold leading-tight text-center max-w-[72px] line-clamp-1 pointer-events-none w-[112%] transition-colors duration-500 ${colors.text}`}>
-        {folder.name}
-      </span>
-    </button>
-  );
-});
 
 export const MobileAppDrawer: React.FC = () => {
   const navigate = useNavigate();
