@@ -5,6 +5,7 @@ import React, {
   useMemo,
   useEffect,
   memo,
+  startTransition,
 } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import {
@@ -329,8 +330,12 @@ export const MobileAppDrawer: React.FC = () => {
     if (drawerData?.folders && drawerData.folders[id]) {
       setCurrentFolder(id); // Entra na Pasta visual Modal Fluida
     } else if (path) {
-      navigate(path);
+      // Resposta instantânea na UI ("clicou abriu")
       setIsOpen(false);
+      // Delega a troca de página pesada do React Router para baixa prioridade (não trava a animação)
+      startTransition(() => {
+        navigate(path);
+      });
     }
   };
 
@@ -374,9 +379,12 @@ export const MobileAppDrawer: React.FC = () => {
     if (folderDragId || didReorderRef.current) return;
     const page = PAGE_MAP.get(itemId);
     if (page) {
-      navigate(page.path);
       setCurrentFolder(null);
       setIsOpen(false);
+      
+      startTransition(() => {
+        navigate(page.path);
+      });
     }
   };
 
