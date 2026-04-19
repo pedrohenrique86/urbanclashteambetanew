@@ -556,7 +556,7 @@ export const MobileAppDrawer: React.FC = () => {
             "border border-b-0 border-white/[0.08]",
           ].join(" ")}
           style={{
-            background: "linear-gradient(180deg, rgba(15,15,25,0.85) 0%, rgba(5,5,10,0.95) 100%)",
+            background: "transparent",
             backdropFilter: "blur(24px) saturate(1.8) brightness(0.85)",
             WebkitBackdropFilter: "blur(24px) saturate(1.8) brightness(0.85)",
             boxShadow: [
@@ -608,14 +608,16 @@ export const MobileAppDrawer: React.FC = () => {
             />
             {!isOpen && (
               <div className="flex items-center w-full px-4 pb-2">
-                <div className="flex items-center gap-0.5 min-w-0 flex-1">
+                <div className="flex items-center gap-1 min-w-0 flex-1 overflow-hidden">
                   {(() => {
                     const activePage = ALL_PAGES.find((p) => location.pathname === p.path);
                     if (!activePage) return <span className="text-[12px] text-white/40 uppercase font-black tracking-widest">Menu</span>;
                     return (
                       <>
                         <span className="text-purple-300/80 scale-75 flex-shrink-0 origin-left">{activePage.icon}</span>
-                        <span className="text-[10px] font-black text-purple-100 tracking-tighter uppercase drop-shadow-md whitespace-nowrap">{activePage.name}</span>
+                        <span className="text-[9px] font-black text-purple-100 tracking-tighter uppercase drop-shadow-md line-clamp-2 max-w-[85px] leading-[0.9] text-left">
+                          {activePage.name}
+                        </span>
                       </>
                     );
                   })()}
