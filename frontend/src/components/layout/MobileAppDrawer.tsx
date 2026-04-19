@@ -633,24 +633,24 @@ export const MobileAppDrawer: React.FC = () => {
             }}
           >
             <div className="px-3 py-2 border-b border-white/[0.03] bg-white/[0.01] mb-2 flex-shrink-0">
-              <div className="flex justify-center">
-                <div className="flex items-center flex-nowrap gap-6 px-4 py-2 rounded-2xl bg-black/45 border border-white/10 shadow-[0_4px_16px_rgba(0,0,0,0.5)] tabular-nums font-mono antialiased">
-                  {/* Lado Esquerdo: Status e Cronômetro */}
-                  <div className={`flex items-center gap-1 ${STATUS_COLOR[status] ?? "text-gray-500"} shrink-0`}>
+              <div className="flex justify-center w-full px-2">
+                <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1.5 px-3 py-1.5 rounded-xl bg-black/40 border border-white/10 shadow-[0_4px_16px_rgba(0,0,0,0.5)] tabular-nums font-mono antialiased w-max max-w-full">
+                  {/* Status e Cronômetro */}
+                  <div className={`flex items-center justify-center gap-1.5 ${STATUS_COLOR[status] ?? "text-gray-500"} shrink-0`}>
                     <div className="relative flex h-1.5 w-1.5">
                       <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-current opacity-75"></span>
                       <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-current"></span>
                     </div>
-                    <span className="text-[12px] font-black uppercase tracking-tight whitespace-nowrap">{STATUS_LABEL[status]}</span>
-                    <span className="text-[13px] font-black text-white bg-white/5 px-2.5 py-0.5 rounded-md border border-white/15 shrink-0 whitespace-nowrap min-w-max text-center">
+                    <span className="text-[10px] font-black uppercase tracking-widest">{STATUS_LABEL[status]}</span>
+                    <div className="text-[11px] font-black text-white bg-white/5 px-2 py-0.5 rounded border border-white/10 shrink-0 tracking-wider">
                       {fmtTimer(remainingTime)}
-                    </span>
+                    </div>
                   </div>
 
-                  {/* Lado Direito: Hora do Servidor */}
-                  <div className="flex items-center gap-0.5 pl-2.5 text-white font-bold shrink-0">
-                    <GlobeAltIcon className="w-4 h-4 text-purple-400 flex-shrink-0" />
-                    <span className="text-[12px] uppercase tracking-tighter whitespace-nowrap">{fmtSrvTime(serverTime)}</span>
+                  {/* Hora do Servidor */}
+                  <div className="flex items-center justify-center gap-1 text-white/90 font-bold shrink-0">
+                    <GlobeAltIcon className="w-3.5 h-3.5 text-purple-400 opacity-80" />
+                    <span className="text-[10px] uppercase tracking-wider">{fmtSrvTime(serverTime)}</span>
                   </div>
                 </div>
               </div>
