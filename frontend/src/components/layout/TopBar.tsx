@@ -11,19 +11,18 @@ interface TopBarProps {
 const TopBar: React.FC<TopBarProps> = ({ userProfile }) => {
   const { themeClasses } = useTheme();
 
-  // Se o perfil do usuário ainda não foi carregado, não renderiza nada.
-  if (!userProfile) {
-    return null;
-  }
-  
-  const userFaction = typeof userProfile?.faction === 'string' 
-    ? userProfile.faction 
-    : (userProfile?.faction as any)?.name;
+  const userFaction = useMemo(() => {
+    if (!userProfile) return null;
+    return typeof userProfile.faction === 'string' 
+      ? userProfile.faction 
+      : (userProfile.faction as any)?.name;
+  }, [userProfile]);
 
-  const usernameGradient =
+  const usernameGradient = useMemo(() => 
     userFaction === "gangsters"
       ? "from-orange-300 to-orange-600"
-      : "from-blue-300 to-blue-600";
+      : "from-blue-300 to-blue-600"
+  , [userFaction]);
 
   const xpRequired = userProfile?.xp_required ?? 0;
   const xpCurrent = userProfile?.current_xp ?? 0;
@@ -47,6 +46,11 @@ const TopBar: React.FC<TopBarProps> = ({ userProfile }) => {
     { label: "CRIT%", value: `${combat.criticalChance?.toFixed?.(0) ?? 0}%`, className: "text-yellow-400", glowColor: "#eab308", tooltip: "Chance Crítico" },
     { label: "Cash", value: `$${(userProfile?.money ?? 0).toLocaleString("pt-BR")}`, className: "text-lime-400", glowColor: "#84cc16", tooltip: "Dinheiro" },
   ], [userProfile, xpText, energyText, combat]);
+
+  // Se o perfil do usuário ainda não foi carregado, não renderiza nada no JSX.
+  if (!userProfile) {
+    return null;
+  }
 
   return (
     <>
