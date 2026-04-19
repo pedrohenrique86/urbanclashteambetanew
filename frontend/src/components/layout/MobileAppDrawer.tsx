@@ -568,13 +568,27 @@ export const MobileAppDrawer: React.FC = () => {
             paddingBottom: "env(safe-area-inset-bottom, 12px)",
           }}
         >
-          {/* Fundo Glow Original que o usuário ama */}
+          {/* Fundo Tático Piso de Casa Azul - Quadrados Grandes */}
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-0 opacity-[0.03]"
+            style={{
+              backgroundImage: `
+                linear-gradient(45deg, rgba(59,130,246,0.2) 25%, transparent 25%), 
+                linear-gradient(-45deg, rgba(59,130,246,0.2) 25%, transparent 25%), 
+                linear-gradient(45deg, transparent 75%, rgba(59,130,246,0.2) 75%), 
+                linear-gradient(-45deg, transparent 75%, rgba(59,130,246,0.2) 75%)
+              `,
+              backgroundSize: "100px 100px",
+              backgroundPosition: "0 0, 0 50px, 50px -50px, -50px 0px",
+            }}
+          />
           <div
             aria-hidden="true"
             className="pointer-events-none absolute inset-0 opacity-[0.02]"
             style={{
-              backgroundImage: "linear-gradient(rgba(168,85,247,1) 1px, transparent 1px), linear-gradient(90deg, rgba(168,85,247,1) 1px, transparent 1px)",
-              backgroundSize: "32px 32px",
+              backgroundImage: "linear-gradient(rgba(59,130,246,0.4) 1px, transparent 1px), linear-gradient(90deg, rgba(59,130,246,0.4) 1px, transparent 1px)",
+              backgroundSize: "50px 50px",
             }}
           />
 
@@ -594,7 +608,7 @@ export const MobileAppDrawer: React.FC = () => {
             />
             {!isOpen && (
               <div className="flex items-center w-full px-4 pb-2">
-                <div className="flex items-center gap-1 min-w-0 flex-1">
+                <div className="flex items-center gap-0.5 min-w-0 flex-1">
                   {(() => {
                     const activePage = ALL_PAGES.find((p) => location.pathname === p.path);
                     if (!activePage) return <span className="text-[12px] text-white/40 uppercase font-black tracking-widest">Menu</span>;
@@ -633,9 +647,9 @@ export const MobileAppDrawer: React.FC = () => {
           >
             <div className="px-3 py-2 border-b border-white/[0.03] bg-white/[0.01] mb-2 flex-shrink-0">
               <div className="flex justify-center">
-                <div className="flex items-center flex-nowrap gap-2.5 px-4 py-2 rounded-2xl bg-black/45 border border-white/10 shadow-[0_4px_16px_rgba(0,0,0,0.5)] tabular-nums font-mono antialiased">
+                <div className="flex items-center flex-nowrap gap-6 px-4 py-2 rounded-2xl bg-black/45 border border-white/10 shadow-[0_4px_16px_rgba(0,0,0,0.5)] tabular-nums font-mono antialiased">
                   {/* Lado Esquerdo: Status e Cronômetro */}
-                  <div className={`flex items-center gap-2 pr-2.5 border-r border-white/10 ${STATUS_COLOR[status] ?? "text-gray-500"} shrink-0`}>
+                  <div className={`flex items-center gap-1 ${STATUS_COLOR[status] ?? "text-gray-500"} shrink-0`}>
                     <div className="relative flex h-1.5 w-1.5">
                       <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-current opacity-75"></span>
                       <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-current"></span>
@@ -647,7 +661,7 @@ export const MobileAppDrawer: React.FC = () => {
                   </div>
 
                   {/* Lado Direito: Hora do Servidor */}
-                  <div className="flex items-center gap-1 pl-1 text-white font-bold shrink-0">
+                  <div className="flex items-center gap-0.5 pl-2.5 text-white font-bold shrink-0">
                     <GlobeAltIcon className="w-4 h-4 text-purple-400 flex-shrink-0" />
                     <span className="text-[12px] uppercase tracking-tighter whitespace-nowrap">{fmtSrvTime(serverTime)}</span>
                   </div>
@@ -656,39 +670,39 @@ export const MobileAppDrawer: React.FC = () => {
             </div>
 
             {/* Cabeçalho EDITAR Navegação Restourado */}
-            <div className="flex items-center justify-between pl-5 pr-2 pb-2 flex-shrink-0">
+            <div className="flex items-center justify-between pl-4 pr-6 pb-2 flex-shrink-0">
               <div className="flex items-center gap-2">
                 {activePage && (
-                  <span className="text-[11px] font-black text-white uppercase tracking-widest drop-shadow-[0_0_8px_rgba(168,85,247,0.4)] truncate max-w-[150px]">
+                  <span className="text-[11px] font-black text-white uppercase tracking-widest drop-shadow-[0_0_8px_rgba(168,85,247,0.4)] whitespace-nowrap">
                     {activePage.name}
                   </span>
                 )}
               </div>
 
-              <div className="flex items-center gap-2.5">
+              <div className="flex items-center gap-2">
                 <button
                   type="button"
                   onClick={() => {
                     logout();
                     setIsOpen(false);
                   }}
-                  className="flex items-center gap-2 rounded-2xl px-4 py-2 text-[13px] font-black uppercase tracking-wider text-red-200 border border-red-500/20 bg-red-500/10 active:scale-95 transition-all"
+                  className="flex items-center gap-1.5 rounded-2xl px-3 py-1.5 text-[11px] font-black uppercase tracking-wider text-red-200 border border-red-500/20 bg-red-500/10 active:scale-95 transition-all"
                 >
-                  <ArrowLeftOnRectangleIcon className="w-5 h-5" /> Sair
+                  <ArrowLeftOnRectangleIcon className="w-4 h-4" /> <span>Sair</span>
                 </button>
 
                 <button
                   type="button"
                   onClick={() => setIsEditMode(!isEditMode)}
                   className={[
-                    "flex items-center gap-2 rounded-2xl px-4 py-2 text-[13px] font-black uppercase tracking-wider transition-all active:scale-95",
+                    "flex items-center gap-1.5 rounded-2xl px-3 py-1.5 text-[11px] font-black uppercase tracking-wider transition-all active:scale-95",
                     isEditMode 
                       ? "text-white border-emerald-400 bg-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.4)]" 
                       : "text-white/70 border-white/10 bg-white/5"
                   ].join(" ")}
                 >
-                  {isEditMode ? <CheckIcon className="w-5 h-5" /> : <PencilSquareIcon className="w-5 h-5" />}
-                  {isEditMode ? "Pronto" : "Editar"}
+                  {isEditMode ? <CheckIcon className="w-4 h-4" /> : <PencilSquareIcon className="w-4 h-4" />}
+                  <span>{isEditMode ? "Pronto" : "Editar"}</span>
                 </button>
               </div>
             </div>
