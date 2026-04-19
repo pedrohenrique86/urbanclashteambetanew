@@ -135,18 +135,17 @@ const DrawerItem = memo(function DrawerItem({ page, isActive, isEditMode, isDrag
         isEditMode && !isDragging ? "animate-[drawer-wiggle_0.45s_ease-in-out_infinite]" : "",
       ].join(" ")}
     >
-      <div
-        className={[
-          "w-10 h-10 rounded-2xl flex items-center justify-center border transition-all duration-300 pointer-events-none",
-          isActive ? "border-purple-500/60 bg-purple-600/25 shadow-[inset_0_1px_0_rgba(255,255,255,0.1)]" : "border-white/10 bg-white/5",
-        ].join(" ")}
-      >
-        {page.icon}
+      <div className={[
+        "w-14 h-14 rounded-2xl flex items-center justify-center border transition-all duration-300 pointer-events-none relative",
+        isActive ? "border-purple-500/60 bg-purple-600/25 shadow-[inset_0_1px_0_rgba(255,255,255,0.1)]" : "border-white/10 bg-white/5",
+      ].join(" ")}>
+        {React.cloneElement(page.icon as React.ReactElement, { className: "w-7 h-7" })}
+        {isActive && <span className="absolute bottom-1.5 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-purple-400 shadow-[0_0_6px_rgba(168,85,247,0.8)]" />}
       </div>
-      <span className="text-[9px] font-medium leading-tight text-center max-w-[68px] line-clamp-2 pointer-events-none w-[110%]">
-        {page.name}
-      </span>
-      {isActive && <span className="absolute bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-purple-400 shadow-[0_0_4px_rgba(168,85,247,0.8)] pointer-events-none" />}
+      <span className={[
+        "text-[11px] font-bold leading-tight text-center max-w-[72px] line-clamp-2 transition-colors",
+        isActive ? "text-purple-300" : "text-slate-300"
+      ].join(" ")}>{page.name}</span>
     </button>
   );
 });
@@ -170,18 +169,18 @@ const DrawerFolderItem = memo(function DrawerFolderItem({
       ].join(" ")}
     >
       <div className={[
-        "w-10 h-10 rounded-2xl flex flex-col items-center justify-center border p-[3px] gap-[2px] pointer-events-none transition-colors duration-500",
+        "w-14 h-14 rounded-2xl flex flex-col items-center justify-center border p-[4px] gap-[3px] pointer-events-none transition-colors duration-500",
         colors.border, colors.bg
       ].join(" ")}>
-        <div className="grid grid-cols-2 gap-[2px] w-full h-full place-items-center">
+        <div className="grid grid-cols-2 gap-[3px] w-full h-full place-items-center">
           {previewPages.slice(0, 4).map((p, i) => (
-            <div key={i} className="flex items-center justify-center w-full h-full bg-white/10 rounded-md scale-95 overflow-hidden">
-              {React.cloneElement(p.icon as React.ReactElement, { className: ['w-3 h-3', colors.icon].join(" ") })}
+            <div key={i} className="flex items-center justify-center w-full h-full bg-white/10 rounded-lg scale-90 overflow-hidden">
+              {React.cloneElement(p.icon as React.ReactElement, { className: ['w-4 h-4', colors.icon].join(" ") })}
             </div>
           ))}
         </div>
       </div>
-      <span className={["text-[9px] font-bold leading-tight text-center max-w-[68px] line-clamp-1 pointer-events-none w-[110%] transition-colors duration-500", colors.text].join(" ")}>
+      <span className={["text-[11px] font-bold leading-tight text-center max-w-[72px] line-clamp-1 pointer-events-none w-[112%] transition-colors duration-500", colors.text].join(" ")}>
         {folder.name}
       </span>
     </button>
@@ -635,26 +634,23 @@ export const MobileAppDrawer: React.FC = () => {
           >
             <div className="px-3 py-2 border-b border-white/[0.03] bg-white/[0.01] mb-2 flex-shrink-0">
               <div className="flex justify-center">
-                <div className="flex items-center flex-nowrap gap-2 px-3 py-1.5 rounded-xl bg-black/40 border border-white/10 shadow-[0_4px_12px_rgba(0,0,0,0.4)] tabular-nums font-mono antialiased">
+                <div className="flex items-center flex-nowrap gap-2.5 px-4 py-2 rounded-2xl bg-black/45 border border-white/10 shadow-[0_4px_16px_rgba(0,0,0,0.5)] tabular-nums font-mono antialiased">
                   {/* Lado Esquerdo: Status e Cronômetro */}
-                  <div className={`flex items-center gap-1.5 ${STATUS_COLOR[status] ?? "text-gray-500"} shrink-0`}>
-                    <div className="relative flex h-1 w-1">
+                  <div className={`flex items-center gap-2 pr-2.5 border-r border-white/10 ${STATUS_COLOR[status] ?? "text-gray-500"} shrink-0`}>
+                    <div className="relative flex h-1.5 w-1.5">
                       <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-current opacity-75"></span>
-                      <span className="relative inline-flex rounded-full h-1 w-1 bg-current"></span>
+                      <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-current"></span>
                     </div>
-                    <span className="text-[8.5px] font-bold uppercase tracking-tight whitespace-nowrap">{STATUS_LABEL[status]}</span>
-                    <span className="text-[8.5px] font-bold text-white bg-white/5 px-1 py-0.5 rounded border border-white/5 shrink-0 whitespace-nowrap w-[84px] text-center">
+                    <span className="text-[12px] font-black uppercase tracking-tight whitespace-nowrap">{STATUS_LABEL[status]}</span>
+                    <span className="text-[13px] font-black text-white bg-white/5 px-2 py-0.5 rounded-md border border-white/15 shrink-0 whitespace-nowrap w-[90px] text-center">
                       {fmtTimer(remainingTime)}
                     </span>
                   </div>
 
-                  {/* Divisor */}
-                  <div className="w-px h-3 bg-white/20 shrink-0" />
-
                   {/* Lado Direito: Hora do Servidor */}
-                  <div className="flex items-center gap-1.5 text-white font-bold shrink-0">
-                    <GlobeAltIcon className="w-3 h-3 text-purple-400 flex-shrink-0" />
-                    <span className="text-[8.5px] uppercase tracking-tighter whitespace-nowrap w-[144px] text-left">{fmtSrvTime(serverTime)}</span>
+                  <div className="flex items-center gap-1 pl-1 text-white font-bold shrink-0">
+                    <GlobeAltIcon className="w-4 h-4 text-purple-400 flex-shrink-0" />
+                    <span className="text-[12px] uppercase tracking-tighter whitespace-nowrap">{fmtSrvTime(serverTime)}</span>
                   </div>
                 </div>
               </div>
@@ -663,51 +659,41 @@ export const MobileAppDrawer: React.FC = () => {
             {/* Cabeçalho EDITAR Navegação Restourado */}
             <div className="flex items-center justify-between pl-5 pr-2 pb-2 flex-shrink-0">
               <div className="flex items-center gap-2">
-                <div className="flex items-center gap-2 text-[10px] font-bold tracking-[0.15em] uppercase">
-                  <span className="text-purple-400/70">Navegação</span>
-                  {activePage && (
-                    <>
-                      <span className="text-white/10 select-none">/</span>
-                      <span className="text-white/40 truncate max-w-[160px] font-semibold">{activePage.name}</span>
-                    </>
-                  )}
-                </div>
+                {activePage && (
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-purple-400 shadow-[0_0_8px_rgba(168,85,247,0.8)] flex-shrink-0 animate-pulse" />
+                    <span className="text-[11px] font-black text-white uppercase tracking-widest drop-shadow-[0_0_8px_rgba(168,85,247,0.4)] truncate max-w-[150px]">
+                      {activePage.name}
+                    </span>
+                  </div>
+                )}
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2.5">
                 <button
                   type="button"
                   onClick={() => {
                     logout();
                     setIsOpen(false);
                   }}
-                  className="flex items-center gap-1 rounded-lg px-2.5 py-1 text-[11px] font-medium text-red-400/90 border border-red-500/20 bg-red-500/10 active:scale-95 transition-all hover:bg-red-500/20"
+                  className="flex items-center gap-2 rounded-2xl px-4 py-2 text-[13px] font-black uppercase tracking-wider text-red-200 border border-red-500/20 bg-red-500/10 active:scale-95 transition-all"
                 >
-                  <ArrowLeftOnRectangleIcon className="w-3.5 h-3.5" /> Sair
+                  <ArrowLeftOnRectangleIcon className="w-5 h-5" /> Sair
                 </button>
 
-                {isEditMode ? (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsEditMode(false);
-                      setDraggingId(null);
-                      setDragAction(null);
-                      setContextMenuTarget(null);
-                    }}
-                    className="flex items-center gap-1 rounded-lg px-2.5 py-1 text-[11px] font-semibold text-emerald-400 border border-emerald-500/30 bg-emerald-500/10 active:scale-95 transition-all"
-                  >
-                    <CheckIcon className="w-3.5 h-3.5" /> Pronto
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => setIsEditMode(true)}
-                    className="flex items-center gap-1 rounded-lg px-2.5 py-1 text-[11px] font-medium text-slate-400 border border-white/10 bg-white/5 active:scale-95 transition-all hover:text-white"
-                  >
-                    <PencilSquareIcon className="w-3.5 h-3.5" /> Editar
-                  </button>
-                )}
+                <button
+                  type="button"
+                  onClick={() => setIsEditMode(!isEditMode)}
+                  className={[
+                    "flex items-center gap-2 rounded-2xl px-4 py-2 text-[13px] font-black uppercase tracking-wider transition-all active:scale-95",
+                    isEditMode 
+                      ? "text-white border-emerald-400 bg-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.4)]" 
+                      : "text-white/70 border-white/10 bg-white/5"
+                  ].join(" ")}
+                >
+                  {isEditMode ? <CheckIcon className="w-5 h-5" /> : <PencilSquareIcon className="w-5 h-5" />}
+                  {isEditMode ? "Pronto" : "Editar"}
+                </button>
               </div>
             </div>
 
@@ -719,7 +705,7 @@ export const MobileAppDrawer: React.FC = () => {
 
             <div ref={gridRef} className="px-[12px] pt-1 pb-10 overflow-y-auto overflow-x-hidden flex-1"
               style={{ WebkitOverflowScrolling: "touch", touchAction: isEditMode ? "none" : "auto" }}>
-              <div className="grid grid-cols-4 gap-2 w-full">
+              <div className="grid grid-cols-4 gap-x-4 gap-y-7 w-full">
                 <AnimatePresence>
                   {currentViewItems.map((id) => {
                     const folder = drawerData.folders ? drawerData.folders[id] : undefined;
@@ -944,7 +930,7 @@ export const MobileAppDrawer: React.FC = () => {
                 </div>
               </div>
 
-              <div className="w-full grid grid-cols-4 gap-y-10 gap-x-4 relative z-10">
+              <div className="w-full grid grid-cols-4 gap-y-8 gap-x-5 relative z-10 px-2">
                 {drawerData.folders[currentFolder].items.map(itemId => {
                   const page = PAGE_MAP.get(itemId);
                   if (!page) return null;
@@ -965,14 +951,14 @@ export const MobileAppDrawer: React.FC = () => {
                       animate={{ scale: isDragging ? 0.8 : 1, opacity: isDragging ? 0.3 : 1 }}
                     >
                       <div className={[
-                        "w-10 h-10 rounded-2xl flex items-center justify-center border transition-all duration-300 pointer-events-none relative",
+                        "w-14 h-14 rounded-2xl flex items-center justify-center border transition-all duration-300 pointer-events-none relative",
                         isActive ? "border-purple-500/60 bg-purple-600/25 shadow-[inset_0_1px_0_rgba(255,255,255,0.1)]" : "border-white/10 bg-white/5",
                       ].join(" ")}>
-                        {React.cloneElement(page.icon as React.ReactElement, { className: "w-5 h-5" })}
-                        {isActive && <span className="absolute bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-purple-400 shadow-[0_0_4px_rgba(168,85,247,0.8)]" />}
+                        {React.cloneElement(page.icon as React.ReactElement, { className: "w-7 h-7" })}
+                        {isActive && <span className="absolute bottom-1.5 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-purple-400 shadow-[0_0_6px_rgba(168,85,247,0.8)]" />}
                       </div>
                       <span className={[
-                        "text-[9px] font-medium leading-tight text-center max-w-[68px] line-clamp-2 transition-colors",
+                        "text-[11px] font-bold leading-tight text-center max-w-[72px] line-clamp-2 transition-colors",
                         isActive ? "text-purple-300" : "text-slate-300"
                       ].join(" ")}>{page.name}</span>
                     </motion.div>
