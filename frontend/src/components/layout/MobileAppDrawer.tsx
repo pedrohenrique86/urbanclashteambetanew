@@ -503,18 +503,23 @@ export const MobileAppDrawer: React.FC = () => {
         }
       `}</style>
 
-      {/* OVERLAY BG FUNDO ESCURO */}
-      {isOpen && !currentFolder && (
-        <div
-          onClick={() => {
+      {/* OVERLAY BG FUNDO ESCURO (Otimizado: Sempre no DOM, opacidade via GPU) */}
+      <div
+        onClick={() => {
+          if (isOpen && !currentFolder) {
             setIsOpen(false);
             setIsEditMode(false);
             setContextMenuTarget(null);
-          }}
-          className="fixed inset-0 z-[9989] md:hidden transition-opacity duration-300"
-          style={{ background: "rgba(0,0,0,0.55)", backdropFilter: "blur(2px)" }}
-        />
-      )}
+          }
+        }}
+        className="fixed inset-0 z-[9989] md:hidden transition-opacity duration-300 pointer-events-none"
+        style={{ 
+          background: "rgba(0,0,0,0.55)", 
+          backdropFilter: "blur(2px)",
+          opacity: isOpen && !currentFolder ? 1 : 0,
+          pointerEvents: isOpen && !currentFolder ? "auto" : "none"
+        }}
+      />
 
       {/* DRAWER PRINCIPAL — Usa Framer Motion para deslize suave e controle de estado */}
       <motion.div
@@ -524,7 +529,7 @@ export const MobileAppDrawer: React.FC = () => {
           open: { y: drawerDragY > 0 ? drawerDragY : 0 },
           closed: { y: "calc(100% - 52px)" } // Menor área visível
         }}
-        transition={{ type: "spring", damping: 28, stiffness: 260 }}
+        transition={{ type: "spring", damping: 26, stiffness: 290, mass: 0.8 }}
         className="fixed bottom-0 left-0 right-0 z-[9990] md:hidden flex flex-col justify-end"
         style={{ 
           willChange: "transform",
@@ -627,7 +632,6 @@ export const MobileAppDrawer: React.FC = () => {
             className="flex-1 flex flex-col relative z-20 min-h-0 w-full overflow-hidden"
             style={{ 
               pointerEvents: isOpen ? "auto" : "none",
-              visibility: isOpen ? "visible" : "hidden"
             }}
           >
             <div className="px-3 py-2 border-b border-white/[0.03] bg-white/[0.01] mb-2 flex-shrink-0">
