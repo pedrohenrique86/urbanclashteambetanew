@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { useTheme } from "../../contexts/ThemeContext";
 import { UserProfile } from "../../types";
 import { Tooltip } from "react-tooltip";
@@ -6,13 +6,9 @@ import { calculateCombatStats } from "../../utils/combat";
 
 interface TopBarProps {
   userProfile: UserProfile | null;
-  handleLogout: () => void;
 }
 
-const TopBar: React.FC<TopBarProps> = ({
-  userProfile,
-  handleLogout,
-}) => {
+const TopBar: React.FC<TopBarProps> = ({ userProfile }) => {
   const { themeClasses } = useTheme();
 
   // Se o perfil do usuário ainda não foi carregado, não renderiza nada.
@@ -37,80 +33,20 @@ const TopBar: React.FC<TopBarProps> = ({
     ? `${userProfile?.energy ?? 0}/${userProfile?.max_energy}`
     : `${userProfile?.energy ?? 0}`;
 
-  const combat = calculateCombatStats(userProfile);
+  const combat = useMemo(() => calculateCombatStats(userProfile), [userProfile]);
 
-  const metrics = [
-    {
-      label: "NVL",
-      value: userProfile?.level ?? "-",
-      className: "text-green-400",
-      glowColor: "#22c55e",
-      tooltip: "Nível",
-    },
-    {
-      label: "XP",
-      value: xpText,
-      className: "text-purple-400",
-      glowColor: "#a855f7",
-      tooltip: "Experiência",
-    },
-    {
-      label: "EN",
-      value: energyText,
-      className: "text-orange-400",
-      glowColor: "#f97316",
-      tooltip: "Energia",
-    },
-    {
-      label: "PA",
-      value: userProfile?.action_points ?? "-",
-      className: "text-cyan-400",
-      glowColor: "#06b6d4",
-      tooltip: "Pontos de Ação",
-    },
-    {
-      label: "ATK",
-      value: userProfile?.attack ?? "-",
-      className: "text-red-400",
-      glowColor: "#ef4444",
-      tooltip: "Ataque",
-    },
-    {
-      label: "DEF",
-      value: userProfile?.defense ?? "-",
-      className: "text-blue-400",
-      glowColor: "#3b82f6",
-      tooltip: "Defesa",
-    },
-    {
-      label: "FOC",
-      value: userProfile?.focus ?? "-",
-      className: "text-pink-400",
-      glowColor: "#ec4899",
-      tooltip: "Foco",
-    },
-    {
-      label: "CRIT DMG",
-      value: combat.criticalDamage?.toFixed?.(1) ?? "-",
-      className: "text-rose-400",
-      glowColor: "#f43f5e",
-      tooltip: "Dano Crítico",
-    },
-    {
-      label: "CRIT%",
-      value: `${combat.criticalChance?.toFixed?.(0) ?? 0}%`,
-      className: "text-yellow-400",
-      glowColor: "#eab308",
-      tooltip: "Chance Crítico",
-    },
-    {
-      label: "Cash",
-      value: `$${(userProfile?.money ?? 0).toLocaleString("pt-BR")}`,
-      className: "text-lime-400",
-      glowColor: "#84cc16",
-      tooltip: "Dinheiro",
-    },
-  ];
+  const metrics = useMemo(() => [
+    { label: "NVL", value: userProfile?.level ?? "-", className: "text-green-400", glowColor: "#22c55e", tooltip: "Nível" },
+    { label: "XP", value: xpText, className: "text-purple-400", glowColor: "#a855f7", tooltip: "Experiência" },
+    { label: "EN", value: energyText, className: "text-orange-400", glowColor: "#f97316", tooltip: "Energia" },
+    { label: "PA", value: userProfile?.action_points ?? "-", className: "text-cyan-400", glowColor: "#06b6d4", tooltip: "Pontos de Ação" },
+    { label: "ATK", value: userProfile?.attack ?? "-", className: "text-red-400", glowColor: "#ef4444", tooltip: "Ataque" },
+    { label: "DEF", value: userProfile?.defense ?? "-", className: "text-blue-400", glowColor: "#3b82f6", tooltip: "Defesa" },
+    { label: "FOC", value: userProfile?.focus ?? "-", className: "text-pink-400", glowColor: "#ec4899", tooltip: "Foco" },
+    { label: "CRIT DMG", value: combat.criticalDamage?.toFixed?.(1) ?? "-", className: "text-rose-400", glowColor: "#f43f5e", tooltip: "Dano Crítico" },
+    { label: "CRIT%", value: `${combat.criticalChance?.toFixed?.(0) ?? 0}%`, className: "text-yellow-400", glowColor: "#eab308", tooltip: "Chance Crítico" },
+    { label: "Cash", value: `$${(userProfile?.money ?? 0).toLocaleString("pt-BR")}`, className: "text-lime-400", glowColor: "#84cc16", tooltip: "Dinheiro" },
+  ], [userProfile, xpText, energyText, combat]);
 
   return (
     <>

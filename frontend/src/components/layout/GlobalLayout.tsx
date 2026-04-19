@@ -128,7 +128,6 @@ const GlobalLayout: React.FC<GlobalLayoutProps> = ({ children }) => {
           >
             <TopBar
               userProfile={userProfile as any}
-              handleLogout={handleLogout}
             />
 
             <main className="focus:outline-none pt-[115px] md:pt-[70px] px-4 md:px-6 pb-[60px] md:pb-6 relative z-10 w-full">

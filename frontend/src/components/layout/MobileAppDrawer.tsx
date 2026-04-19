@@ -534,31 +534,39 @@ export const MobileAppDrawer: React.FC = () => {
         />
       )}
 
-      {/* DRAWER PRINCIPAL */}
-      <div
-        className="fixed bottom-0 left-0 right-0 z-[9990] md:hidden transition-transform duration-300 ease-out flex flex-col justify-end"
-        style={{
-          transform: `translateY(${isOpen ? Math.max(0, drawerDragY) : "0"})`,
+      {/* DRAWER PRINCIPAL — Usa Framer Motion para deslize suave e controle de estado */}
+      <motion.div
+        initial={false}
+        animate={isOpen ? "open" : "closed"}
+        variants={{
+          open: { y: drawerDragY > 0 ? drawerDragY : 0 },
+          closed: { y: "calc(100% - 68px)" } // Handle visível
+        }}
+        transition={{ type: "spring", damping: 28, stiffness: 260 }}
+        className="fixed bottom-0 left-0 right-0 z-[9990] md:hidden flex flex-col justify-end"
+        style={{ 
           willChange: "transform",
-          paddingBottom: "env(safe-area-inset-bottom, 0px)",
-          top: isOpen ? "0" : "auto",
-          pointerEvents: isOpen && isEditMode && draggingId ? "auto" : "none",
+          height: "92vh",
+          pointerEvents: "auto" // Sempre auto, controlamos click nos itens internamente
         }}
         onPointerMove={isEditMode ? handleItemPointerMove : undefined}
       >
         <div
           className={[
-            "relative w-full rounded-t-3xl overflow-hidden pointer-events-auto",
-            "border border-b-0 border-white/10",
-            "bg-gradient-to-b from-gray-900/95 to-black/98",
+            "relative w-full h-full rounded-t-3xl overflow-hidden",
+            "border border-b-0 border-white/[0.08]",
           ].join(" ")}
           style={{
+            background: "linear-gradient(180deg, rgba(15,15,25,0.85) 0%, rgba(5,5,10,0.95) 100%)",
+            backdropFilter: "blur(24px) saturate(1.8) brightness(0.85)",
+            WebkitBackdropFilter: "blur(24px) saturate(1.8) brightness(0.85)",
             boxShadow: [
-              "0 -1px 0 rgba(255,255,255,0.06)",
-              "0 -8px 32px rgba(0,0,0,0.8)",
-              "0 -2px 12px rgba(168,85,247,0.12)",
+              "0 -1px 0 rgba(255,255,255,0.08)",
+              "0 -12px 48px rgba(0,0,0,0.75)",
+              "0 -2px 16px rgba(168,85,247,0.15)",
+              "inset 0 1px 0 rgba(255,255,255,0.05)",
             ].join(", "),
-            backdropFilter: "blur(24px) saturate(1.5)",
+            paddingBottom: "env(safe-area-inset-bottom, 20px)",
           }}
         >
           {/* Fundo Glow Original que o usuário ama */}
@@ -601,19 +609,26 @@ export const MobileAppDrawer: React.FC = () => {
                   })()}
                 </div>
 
-                <div className="flex-shrink-0 px-4">
-                  <span className="text-[12px] font-black text-white/60 uppercase tracking-[0.2em] animate-pulse drop-shadow-lg">Expandir</span>
+                <div className="flex-shrink-0 px-4 flex items-center gap-1.5 opacity-60">
+                  <ChevronUpIcon className="w-3 h-3 text-purple-400" />
+                  <span className="text-[10px] font-black text-white/70 uppercase tracking-[0.15em]">Expandir Menu</span>
                 </div>
 
-                <div className="flex-1 flex justify-end">
-                  <ChevronUpIcon className="w-3.5 h-3.5 text-white/25 flex-shrink-0" />
-                </div>
+                <div className="flex-1" />
               </div>
             )}
             {isOpen && <ChevronUpIcon className="w-4 h-4 text-white/30 rotate-180 mb-1" />}
           </div>
 
-          <div className="overflow-hidden transition-all duration-350 ease-in-out flex flex-col relative z-20" style={{ maxHeight: isOpen ? "85vh" : "0px", opacity: isOpen ? 1 : 0 }}>
+          <motion.div 
+            initial={false}
+            animate={{ 
+              maxHeight: isOpen ? "85vh" : "0px",
+              opacity: isOpen ? 1 : 0 
+            }}
+            transition={{ type: "spring", damping: 30, stiffness: 300 }}
+            className="overflow-hidden flex flex-col relative z-20"
+          >
             <div className="px-3 py-2 border-b border-white/[0.03] bg-white/[0.01] mb-2 flex-shrink-0">
               <div className="flex justify-center">
                 <div className="flex items-center flex-nowrap gap-2 px-3 py-1.5 rounded-xl bg-black/40 border border-white/10 shadow-[0_4px_12px_rgba(0,0,0,0.4)] tabular-nums font-mono antialiased">
@@ -748,24 +763,17 @@ export const MobileAppDrawer: React.FC = () => {
               className="w-full flex flex-col items-center cursor-pointer select-none pb-[env(safe-area-inset-bottom,1.5rem)] pt-3 active:bg-white/5 transition-colors relative z-10 border-t border-white/[0.03] bg-transparent backdrop-blur-sm mt-auto"
               onClick={(e) => { e.stopPropagation(); toggleDrawer(); }}
             >
-              <div className="flex items-center justify-between w-full px-5 mb-3">
-                <div className="flex-1" />
-
-                <div className="flex-shrink-0">
-                  <span className="text-[12px] font-black text-white/80 uppercase tracking-[0.2em] animate-pulse drop-shadow-lg">Recolher</span>
-                </div>
-
-                <div className="flex-1 flex justify-end">
-                  <ChevronUpIcon className="w-3.5 h-3.5 text-white/50 flex-shrink-0 rotate-180" />
-                </div>
+              <div className="flex items-center justify-center w-full px-5 mb-3 gap-1.5 opacity-60">
+                <ChevronUpIcon className="w-3 h-3 text-purple-400 rotate-180" />
+                <span className="text-[10px] font-black text-white/70 uppercase tracking-[0.15em]">Recolher Menu</span>
               </div>
+              <div className="h-1 bg-white/20 w-8 rounded-full mb-2" />
 
               {/* Handle Mirroring Top */}
-              <div className="h-1 bg-purple-400/60 w-10 rounded-full" />
             </div>
-          </div>
+          </motion.div>
         </div>
-      </div>
+      </motion.div>
 
       {/* MENU CONTEXTUAL PARA PASTAS (Renomear/Excluir) via Clicar Longo ou Clicar da Pasta no Modo Edit */}
       <AnimatePresence>

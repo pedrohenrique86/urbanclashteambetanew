@@ -1,5 +1,5 @@
 
- import React, { useState, useRef, useEffect } from "react";
+ import React, { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -185,13 +185,13 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
     }
   });
 
-  const toggleSidebar = () => {
+  const toggleSidebar = useCallback(() => {
     setIsCollapsed((prev: boolean) => {
       const newState = !prev;
       localStorage.setItem("sidebar_collapsed", JSON.stringify(newState));
       return newState;
     });
-  };
+  }, []);
 
   const [openMenu, setOpenMenu] = useState<string | null>(null);
   const [isAdminMenuOpen, setIsAdminMenuOpen] = useState(false);
@@ -212,14 +212,9 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
     }
   }, [location.pathname]);
 
-  const handleMenuToggle = (name: string) => {
-    setOpenMenu(openMenu === name ? null : name);
-  };
-
-  const sidebarVariants = {
-    expanded: { width: "12rem" }, // 192px
-    collapsed: { width: "2.5rem" }, // 40px
-  };
+  const handleMenuToggle = useCallback((name: string) => {
+    setOpenMenu(prev => (prev === name ? null : name));
+  }, []);
 
   const subMenuVariants = {
     hidden: { opacity: 0, x: -10, height: 0 },
@@ -236,16 +231,21 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
     visible: { opacity: 1, x: 0 },
   };
 
+  const factionGradient = useMemo(
+    () => faction === "gangsters" ? "from-orange-300 to-orange-600" : "from-blue-300 to-blue-600",
+    [faction]
+  );
+
   return (
     <>
-      <motion.aside
-      ref={sidebarRef}
-      animate={isCollapsed ? "collapsed" : "expanded"}
-      variants={sidebarVariants}
-      transition={{ duration: 0.3, ease: "easeInOut" }}
-      className={`bg-black/20 backdrop-blur-xl border-slate-700/50 flex-shrink-0 flex flex-col items-center relative z-10 h-full border-l rounded-l-xl md:border-l-0 md:rounded-l-none md:border-r md:rounded-r-xl ${isCollapsed ? 'pb-[40px]' : 'pb-[60px]'} overflow-x-hidden`}
-      style={{ boxShadow: "inset -5px 0 15px -5px rgba(0,0,0,0.5)" }}
-    >
+      <aside
+        ref={sidebarRef}
+        className={[
+          "bg-black/25 backdrop-blur-xl border-slate-700/50 flex-shrink-0 flex flex-col items-center relative z-10 h-full border-r border-white/10 rounded-r-xl transition-all duration-300 ease-in-out overflow-x-hidden",
+          isCollapsed ? "w-10 pb-10" : "w-48 pb-14",
+        ].join(" ")}
+        style={{ boxShadow: "inset -4px 0 12px -4px rgba(0,0,0,0.4)" }}
+      >
       <div className="w-full px-4 pt-2 pb-2 text-center">
         <AnimatePresence>
           {!isCollapsed && (
@@ -267,7 +267,7 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
                 </span>
               </span>
               <div
-                className={`mt-1 font-orbitron font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r ${faction === "gangsters" ? "from-orange-300 to-orange-600" : "from-blue-300 to-blue-600"} text-xs whitespace-nowrap`}
+                className={`mt-1 font-orbitron font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r ${factionGradient} text-xs whitespace-nowrap`}
               >
                 {username || "Usuário"}
               </div>
@@ -539,7 +539,7 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
           <AdminMenu onClose={() => setIsAdminMenuOpen(false)} />
         )}
       </AnimatePresence>
-    </motion.aside>
+      </aside>
 
     <Tooltip 
       id="sidebar-tooltip" 
