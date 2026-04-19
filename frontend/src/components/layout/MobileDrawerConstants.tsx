@@ -18,6 +18,12 @@ import {
   UserCircleIcon,
   StarIcon,
   ShoppingBagIcon,
+  CurrencyDollarIcon,
+  RectangleStackIcon,
+  CpuChipIcon,
+  WrenchScrewdriverIcon,
+  ClipboardDocumentListIcon,
+  CalendarDaysIcon,
 } from "@heroicons/react/24/outline";
 
 export const FOLDER_COLORS: Record<string, { bg: string, text: string, border: string, icon: string, solid: string }> = {
@@ -55,6 +61,12 @@ export const ALL_PAGES: DrawerPage[] = [
   { id: "digital-identity", name: "Identidade Digital", path: "/digital-identity", icon: <UserCircleIcon className="w-5 h-5" />, category: "Rede" },
   { id: "vip-access", name: "Acesso VIP", path: "/vip-access", icon: <StarIcon className="w-5 h-5" />, category: "Elite" },
   { id: "restricted-store", name: "Loja Restrita", path: "/restricted-store", icon: <ShoppingBagIcon className="w-5 h-5" />, category: "Elite" },
+  { id: "dark-market", name: "Bolsa Sombria", path: "/dark-market", icon: <CurrencyDollarIcon className="w-5 h-5" />, category: "Economia" },
+  { id: "parallel-deck", name: "Deck Paralelo", path: "/parallel-deck", icon: <RectangleStackIcon className="w-5 h-5" />, category: "Economia" },
+  { id: "network-circuit", name: "Circuito da Rede", path: "/network-circuit", icon: <CpuChipIcon className="w-5 h-5" />, category: "Economia" },
+  { id: "tactical-arsenal", name: "Arsenal Tático", path: "/tactical-arsenal", icon: <WrenchScrewdriverIcon className="w-5 h-5" />, category: "Rede" },
+  { id: "network-logs", name: "Registros da Rede", path: "/network-logs", icon: <ClipboardDocumentListIcon className="w-5 h-5" />, category: "Rede" },
+  { id: "season", name: "Temporada", path: "/season", icon: <CalendarDaysIcon className="w-5 h-5" />, category: "Rede" },
 ];
 
 export const DEFAULT_ORDER = ALL_PAGES.map((p) => p.id);

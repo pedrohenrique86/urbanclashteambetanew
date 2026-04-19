@@ -40,6 +40,13 @@ const RestrictedStorePage = lazy(() => import("./pages/RestrictedStorePage"));
 const ClanPage = lazy(() => import("./pages/ClanPage"));
 const GoogleCallbackPage = lazy(() => import("./pages/GoogleCallbackPage"));
 
+const DarkMarketPage = lazy(() => import("./pages/DarkMarketPage"));
+const ParallelDeckPage = lazy(() => import("./pages/ParallelDeckPage"));
+const NetworkCircuitPage = lazy(() => import("./pages/NetworkCircuitPage"));
+const TacticalArsenalPage = lazy(() => import("./pages/TacticalArsenalPage"));
+const NetworkLogsPage = lazy(() => import("./pages/NetworkLogsPage"));
+const SeasonPage = lazy(() => import("./pages/SeasonPage"));
+
 import "./index.css";
 
 // Componente de fallback para o Suspense
@@ -115,6 +122,12 @@ const router = createBrowserRouter([
           { path: "ranking", element: <RankingPage /> },
           { path: "profile", element: <ProfilePage /> },
           { path: "clan", element: <ClanPage /> },
+          { path: "dark-market", element: <DarkMarketPage /> },
+          { path: "parallel-deck", element: <ParallelDeckPage /> },
+          { path: "network-circuit", element: <NetworkCircuitPage /> },
+          { path: "tactical-arsenal", element: <TacticalArsenalPage /> },
+          { path: "network-logs", element: <NetworkLogsPage /> },
+          { path: "season", element: <SeasonPage /> },
         ],
       },
     ],

@@ -31,6 +31,12 @@ import {
   ShieldCheckIcon,
   XMarkIcon,
   ArrowsRightLeftIcon,
+  CurrencyDollarIcon,
+  RectangleStackIcon,
+  CpuChipIcon,
+  WrenchScrewdriverIcon,
+  ClipboardDocumentListIcon,
+  CalendarDaysIcon,
 } from "@heroicons/react/24/outline";
 
 import { useGameClock } from "../../hooks/useGameClock";
@@ -115,6 +121,21 @@ export const navItems: NavItem[] = [
         path: "/corporations",
         icon: <BuildingOffice2Icon className="w-4 h-4" />,
       },
+      {
+        name: "Bolsa Sombria",
+        path: "/dark-market",
+        icon: <CurrencyDollarIcon className="w-4 h-4" />,
+      },
+      {
+        name: "Deck Paralelo",
+        path: "/parallel-deck",
+        icon: <RectangleStackIcon className="w-4 h-4" />,
+      },
+      {
+        name: "Circuito da Rede",
+        path: "/network-circuit",
+        icon: <CpuChipIcon className="w-4 h-4" />,
+      },
     ],
   },
   {
@@ -141,6 +162,21 @@ export const navItems: NavItem[] = [
         name: "Identidade Digital",
         path: "/digital-identity",
         icon: <UserCircleIcon className="w-4 h-4" />,
+      },
+      {
+        name: "Arsenal Tático",
+        path: "/tactical-arsenal",
+        icon: <WrenchScrewdriverIcon className="w-4 h-4" />,
+      },
+      {
+        name: "Registros da Rede",
+        path: "/network-logs",
+        icon: <ClipboardDocumentListIcon className="w-4 h-4" />,
+      },
+      {
+        name: "Temporada",
+        path: "/season",
+        icon: <CalendarDaysIcon className="w-4 h-4" />,
       },
     ],
   },
