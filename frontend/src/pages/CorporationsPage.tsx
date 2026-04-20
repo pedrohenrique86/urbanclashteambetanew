@@ -6,7 +6,7 @@ export default function CorporationsPage() {
     <UnderConstruction 
       title="CENTRO CORPORATIVO"
       icon={<BuildingOfficeIcon />}
-      description="As megacorporações estão consolidando seus ativos e expandindo sua influência tecnológica sobre os setores da cidade."
+      description="O coração financeiro da metrópole. Invista em ativos estratégicos das megacorporações para garantir fluxos de renda passiva e financiar seu crescimento no UrbanClash."
     />
   );
 }

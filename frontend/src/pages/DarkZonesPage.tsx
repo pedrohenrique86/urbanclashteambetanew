@@ -6,7 +6,7 @@ export default function DarkZonesPage() {
     <UnderConstruction 
       title="ZONAS ESCURAS"
       icon={<MoonIcon />}
-      description="Zonas de baixa vigilância e alta periculosidade estão sendo mapeadas para futuras incursões táticas e extração de recursos."
+      description="Territórios de fronteira onde a lei não alcança. Dispute o controle das Zonas Escuras com sua divisão para desbloquear benefícios econômicos e táticos durante o período de ocupação."
     />
   );
 }

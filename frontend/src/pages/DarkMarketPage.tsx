@@ -6,7 +6,7 @@ export default function DarkMarketPage() {
     <UnderConstruction 
       title="BOLSA SOMBRIA"
       icon={<CurrencyDollarIcon />}
-      description="Mercado clandestino para negociações de alto risco. O sistema de leilão dinâmico e cotações será implementado em breve."
+      description="O coração econômico do submundo. Realize compras e vendas estratégicas com preços dinâmicos integrados ao estoque global. Domine o mercado para lucrar alto."
     />
   );
 }

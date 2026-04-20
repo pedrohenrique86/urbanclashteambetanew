@@ -19,24 +19,22 @@ import squadWarBg from "../assets/squad-war.webp";
 import recoveryBaseBg from "../assets/recovery-base.webp";
 import restrictedStoreBg from "../assets/restricted-store.webp";
 import isolationBg from "../assets/isolation.webp";
-import supplyStationGuardioes from "../assets/supply-station-guardioes.webp";
-import supplyStationRenegados from "../assets/supply-station-renegados.webp";
-import contractGuardiaoBg from "../assets/contract-guardiao.webp";
-import contractRenegadosBg from "../assets/contract-renegados.webp";
+import supplyStationBg from "../assets/supply-station.webp";
+import contractsBg from "../assets/contracts.webp";
 import darkZonesBg from "../assets/dark-zones.webp";
 import parallelNetworkBg from "../assets/parallel-network.webp";
 import safeBg from "../assets/safe.webp";
 import corporationsBg from "../assets/corporations.webp";
-import qgChatGuardioes from "../assets/qg-chat-guardioes.webp";
-import qgChatRenegados from "../assets/qg-chat-renegados.webp";
+import qgBg from "../assets/qg.webp";
 import zonaSocialBg from "../assets/zona-social.webp";
-import trainingGuardioes from "../assets/training-guardioes.webp";
-import trainingRenegados from "../assets/training-renegados.webp";
+import trainingBg from "../assets/training.webp";
 import vipAccessBg from "../assets/vip-access.webp";
 import seasonBg from "../assets/season.webp";
 import arsenalBg from "../assets/arsenal.webp";
 import networkLogsBg from "../assets/network-logs.webp";
 import networkCircuitBg from "../assets/network-circuit.webp";
+import parallelDeckBg from "../assets/parallel-deck.webp";
+import darkMarketBg from "../assets/dark-market.webp";
 import { FACTION_ALIAS_MAP_FRONTEND } from "../utils/faction";
 
 export interface BackgroundConfig {
@@ -94,19 +92,15 @@ export const PAGE_BACKGROUNDS: BackgroundMap = {
     overlay: "bg-black/40",
     position: "bg-center",
   },
-  "/clan": (profile: any) => {
-    return {
-      src: isGuardFaction(profile) ? qgChatGuardioes : qgChatRenegados,
-      overlay: "bg-black/40",
-      position: "bg-center",
-    };
+  "/clan": {
+    src: qgBg,
+    overlay: "bg-black/40",
+    position: "bg-center",
   },
-  "/qg": (profile: any) => {
-    return {
-      src: isGuardFaction(profile) ? qgChatGuardioes : qgChatRenegados,
-      overlay: "bg-black/40",
-      position: "bg-center",
-    };
+  "/qg": {
+    src: qgBg,
+    overlay: "bg-black/40",
+    position: "bg-center",
   },
   "/clan-selection": {
     src: cardClansBg,
@@ -118,12 +112,10 @@ export const PAGE_BACKGROUNDS: BackgroundMap = {
     overlay: "bg-black/50",
     position: "bg-center",
   },
-  "/supply-station": (profile: any) => {
-    return {
-      src: isGuardFaction(profile) ? supplyStationGuardioes : supplyStationRenegados,
-      overlay: "bg-black/60",
-      position: "bg-center",
-    };
+  "/supply-station": {
+    src: supplyStationBg,
+    overlay: "bg-black/60",
+    position: "bg-center",
   },
   "/recovery-base": {
     src: recoveryBaseBg,
@@ -135,12 +127,10 @@ export const PAGE_BACKGROUNDS: BackgroundMap = {
     overlay: "bg-black/60",
     position: "bg-center",
   },
-  "/contracts": (profile: any) => {
-    return {
-      src: isGuardFaction(profile) ? contractGuardiaoBg : contractRenegadosBg,
-      overlay: "bg-black/50",
-      position: "bg-center",
-    };
+  "/contracts": {
+    src: contractsBg,
+    overlay: "bg-black/60",
+    position: "bg-center",
   },
   "/dark-zones": {
     src: darkZonesBg,
@@ -167,12 +157,10 @@ export const PAGE_BACKGROUNDS: BackgroundMap = {
     overlay: "bg-black/40",
     position: "bg-center",
   },
-  "/training": (profile: any) => {
-    return {
-      src: isGuardFaction(profile) ? trainingGuardioes : trainingRenegados,
-      overlay: "bg-black/60",
-      position: "bg-center",
-    };
+  "/training": {
+    src: trainingBg,
+    overlay: "bg-black/60",
+    position: "bg-center",
   },
   "/digital-identity": {
     src: idBg,
@@ -207,6 +195,16 @@ export const PAGE_BACKGROUNDS: BackgroundMap = {
   "/network-circuit": {
     src: networkCircuitBg,
     overlay: "bg-black/50",
+    position: "bg-center",
+  },
+  "/parallel-deck": {
+    src: parallelDeckBg,
+    overlay: "bg-black/40",
+    position: "bg-center",
+  },
+  "/dark-market": {
+    src: darkMarketBg,
+    overlay: "bg-black/70",
     position: "bg-center",
   },
   // Future pages can be registered here easily

@@ -6,7 +6,7 @@ export default function NetworkCircuitPage() {
     <UnderConstruction 
       title="CIRCUITO DA REDE"
       icon={<CpuChipIcon />}
-      description="Navegue pelas operações automatizadas e tarefas interconectadas da rede. A expansão mecânica está em desenvolvimento."
+      description="Participe dos sorteios automatizados e teste sua sorte nos algoritmos de recompensa da rede. Prêmios exclusivos e eventos aleatórios aguardam no circuito."
     />
   );
 }

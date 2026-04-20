@@ -6,7 +6,7 @@ export default function SquadWarPage() {
     <UnderConstruction 
       title="GUERRA DE ESQUADRÃO"
       icon={<UsersIcon />}
-      description="Coordenação estratégica e combate em larga escala entre esquadrões estão sendo simulados para garantir o domínio territorial."
+      description="A arena definitiva de elite para combates táticos 4x4. Organize seu esquadrão, domine zonas estratégicas da cidade e lute pela supremacia territorial da sua facção."
     />
   );
 }

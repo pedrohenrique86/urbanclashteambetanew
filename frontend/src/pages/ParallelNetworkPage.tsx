@@ -6,7 +6,7 @@ export default function ParallelNetworkPage() {
     <UnderConstruction 
       title="REDE PARALELA"
       icon={<GlobeAltIcon />}
-      description="A infraestrutura da rede paralela está sendo descriptografada para permitir comunicações seguras e transferências de dados criptografados."
+      description="O centro de operações táticas da rede. Execute missões diárias de infiltração e descriptografia de dados para garantir recompensas exclusivas e fortalecer sua facção."
     />
   );
 }

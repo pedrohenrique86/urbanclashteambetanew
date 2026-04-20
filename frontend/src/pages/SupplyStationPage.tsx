@@ -6,7 +6,7 @@ export default function SupplyStationPage() {
     <UnderConstruction 
       title="ESTAÇÃO DE SUPRIMENTOS"
       icon={<TruckIcon />}
-      description="Cargas de suprimentos críticos e equipamentos táticos estão sendo escoltados para os pontos de extração mais seguros da cidade."
+      description="O ponto de parada essencial para qualquer combatente. Recupere sua vitalidade com rações táticas e bebidas energéticas, revigorando sua saúde para os próximos confrontos nas ruas."
     />
   );
 }

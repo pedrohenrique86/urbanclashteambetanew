@@ -6,7 +6,7 @@ export default function ParallelDeckPage() {
     <UnderConstruction 
       title="DECK PARALELO"
       icon={<RectangleStackIcon />}
-      description="Gere e organize suas cartas táticas diárias e prêmios do sistema de sorteios. Seu deck estará disponível nas próximas atualizações."
+      description="Sua dose diária de sorte na rede. Desvende cartas secretas e aleatórias para resgatar bônus ocultos. Se a sorte estiver ao seu lado, benefícios raros e poderosos serão seus."
     />
   );
 }

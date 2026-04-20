@@ -6,7 +6,7 @@ export default function RestrictedStorePage() {
     <UnderConstruction 
       title="LOJA RESTRITA"
       icon={<ShoppingBagIcon />}
-      description="O mercado negro está organizando seus estoques de itens raros e equipamentos experimentais para os membros mais influentes."
+      description="Acesse o catálogo de elite do UrbanClash. Utilize suas moedas premium para adquirir equipamentos experimentais, vantagens táticas e benefícios exclusivos de alta influência."
     />
   );
 }
