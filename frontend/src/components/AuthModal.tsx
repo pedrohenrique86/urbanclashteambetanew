@@ -530,7 +530,7 @@ export default function AuthModal({
 
   return (
     <div
-      className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50"
+      className="fixed inset-0 bg-black/90 backdrop-blur-md flex items-center justify-center p-2 sm:p-4 pt-[120px] sm:pt-[60px] z-50 overflow-hidden"
       onClick={onClose}
     >
       {registrationSuccess ? (
@@ -613,16 +613,20 @@ export default function AuthModal({
         </div>
       ) : (
         <div
-          className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl w-full max-w-2xl p-4 sm:p-5 md:p-6 relative border border-gray-700 shadow-2xl max-h-[90vh] overflow-y-auto"
+          className="bg-zinc-950/90 backdrop-blur-xl rounded-xl w-full max-w-xl p-4 sm:p-5 pt-10 sm:pt-12 relative border border-white/10 shadow-[0_0_50px_rgba(255,100,0,0.1)] max-h-[calc(100vh-140px)] sm:max-h-[calc(100vh-80px)] overflow-y-auto custom-scrollbar"
           onClick={(e) => e.stopPropagation()}
         >
+          {/* Tech Decorative Corners */}
+          <div className="absolute top-0 left-0 w-8 h-8 border-t-2 border-l-2 border-orange-500/50 rounded-tl-xl pointer-events-none" />
+          <div className="absolute bottom-0 right-0 w-8 h-8 border-b-2 border-r-2 border-orange-500/50 rounded-br-xl pointer-events-none" />
+
           {/* Close Button */}
           <button
             onClick={onClose}
-            className="absolute top-4 right-4 text-gray-400 hover:text-white transition-colors duration-200 z-10"
+            className="absolute top-4 right-4 text-gray-500 hover:text-orange-500 transition-all duration-300 z-10 bg-white/5 hover:bg-orange-500/10 p-1.5 rounded-md"
           >
             <svg
-              className="w-6 h-6"
+              className="w-5 h-5"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -636,27 +640,7 @@ export default function AuthModal({
             </svg>
           </button>
 
-          {/* Title */}
-          <div className="text-center mb-6">
-            <h2 className="text-xl sm:text-2xl font-orbitron mb-1 flex items-center justify-center">
-              <span className="text-transparent bg-gradient-to-r from-orange-400 to-orange-600 bg-clip-text font-bold">
-                URBAN
-              </span>
-              <span className="mx-1 text-transparent bg-gradient-to-r from-blue-400 to-blue-600 bg-clip-text font-bold">
-                CLASH
-              </span>
-              <span className="text-transparent bg-gradient-to-r from-purple-400 to-purple-600 bg-clip-text font-bold">
-                TEAM
-              </span>
-            </h2>
-            <p className="text-gray-400 text-sm">
-              {activeTab === "login" && "Acesse sua conta"}
-              {activeTab === "register" && "Crie sua conta"}
-              {activeTab === "forgot-password" && "Recupere sua senha"}
-            </p>
-          </div>
-
-          <div className="flex gap-2 mb-4">
+          <div className="flex gap-1 mb-4 p-1 bg-black/50 border border-white/5 rounded-lg relative z-10 overflow-x-auto no-scrollbar">
             {tabs.map((tab) => (
               <button
                 key={tab.id}
@@ -669,11 +653,11 @@ export default function AuthModal({
                   setShowForgotPasswordOption(false);
                   setAuthMethodError(null);
                 }}
-                className={`flex-1 px-2 sm:px-3 py-1 sm:py-2 rounded-lg font-orbitron text-xs sm:text-sm transition-colors
+                className={`flex-1 min-w-[100px] px-2 sm:px-3 py-1.5 sm:py-2.5 rounded-md font-orbitron text-[9px] sm:text-[11px] font-black tracking-widest uppercase transition-all duration-300
                 ${
                   activeTab === tab.id
-                    ? "bg-orange-500 text-white shadow-lg"
-                    : "bg-gray-700 hover:bg-gray-600 text-gray-300"
+                    ? "bg-gradient-to-b from-orange-500/20 to-orange-600/5 border border-orange-500/50 text-orange-400 shadow-[inset_0_1px_10px_rgba(255,100,0,0.2)]"
+                    : "bg-transparent text-gray-500 hover:text-gray-300 hover:bg-white/5 border border-transparent"
                 }`}
               >
                 {tab.label}
@@ -843,53 +827,53 @@ export default function AuthModal({
             )}
             {/* LOGIN FORM */}
             {activeTab === "login" && (
-              <>
+              <div className="space-y-4">
                 <div>
-                  <label className="block mb-2 text-white font-exo">
-                    Email
+                  <label className="block mb-1.5 text-gray-400 font-orbitron text-[10px] tracking-widest uppercase font-bold">
+                    Email_ID
                   </label>
                   <input
                     type="email"
                     required
-                    className="w-full p-3 bg-gray-700 rounded-lg text-white border border-gray-600 focus:border-orange-500 focus:outline-none transition-colors"
+                    className="w-full p-3 bg-zinc-900/80 rounded-sm text-sm font-mono text-gray-300 border border-white/10 focus:border-orange-500/50 focus:bg-orange-500/5 focus:shadow-[0_0_15px_rgba(255,150,0,0.15)] focus:outline-none transition-all duration-300 placeholder:text-gray-700"
                     value={formData.email}
                     onChange={(e) => handleInputChange("email", e.target.value)}
-                    placeholder="seu@email.com"
+                    placeholder="user@network.com"
                   />
                 </div>
                 <div>
-                  <label className="block mb-2 text-white font-exo">
-                    Senha
+                  <label className="block mb-1.5 text-gray-400 font-orbitron text-[10px] tracking-widest uppercase font-bold">
+                    Passkey
                   </label>
                   <input
                     type="password"
                     required
-                    className="w-full p-3 bg-gray-700 rounded-lg text-white border border-gray-600 focus:border-orange-500 focus:outline-none transition-colors"
+                    className="w-full p-2.5 bg-zinc-900/80 rounded-sm text-sm font-mono text-gray-300 border border-white/10 focus:border-orange-500/50 focus:bg-orange-500/5 focus:shadow-[0_0_15px_rgba(255,150,0,0.15)] focus:outline-none transition-all duration-300 placeholder:text-gray-700"
                     value={formData.password}
                     onChange={(e) =>
                       handleInputChange("password", e.target.value)
                     }
-                    placeholder="Sua senha"
+                    placeholder="••••••••"
                   />
                 </div>
-              </>
+              </div>
             )}
 
             {/* REGISTER FORM */}
             {activeTab === "register" && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-3">
                 <div className="md:col-span-2">
-                  <label className="block mb-2 text-white font-exo">
-                    Nome de usuário *
+                  <label className="block mb-1.5 text-gray-400 font-orbitron text-[10px] tracking-widest uppercase font-bold">
+                    Nome de Agente *
                   </label>
                   <input
                     type="text"
                     required
-                    className={`w-full p-3 bg-gray-700 rounded-lg text-white border transition-colors ${
+                    className={`w-full p-2.5 bg-zinc-900/80 rounded-sm text-sm font-mono text-gray-300 border transition-all duration-300 ${
                       errors.username
-                        ? "border-red-500"
-                        : "border-gray-600 focus:border-orange-500"
-                    } focus:outline-none`}
+                        ? "border-red-500/50 shadow-[0_0_10px_rgba(239,68,68,0.2)]"
+                        : "border-white/10 focus:border-orange-500/50 focus:bg-orange-500/5 focus:shadow-[0_0_15px_rgba(255,150,0,0.15)]"
+                    } focus:outline-none placeholder:text-gray-700`}
                     value={formData.username}
                     onChange={(e) =>
                       handleInputChange("username", e.target.value)
@@ -899,121 +883,121 @@ export default function AuthModal({
                     maxLength={10}
                   />
                   {errors.username && (
-                    <p className="text-red-400 text-sm mt-1">
+                    <p className="text-red-400 text-xs font-mono mt-1">
                       {errors.username}
                     </p>
                   )}
                 </div>
 
                 <div>
-                  <label className="block mb-2 text-white font-exo">
-                    Email *
+                  <label className="block mb-1.5 text-gray-400 font-orbitron text-[10px] tracking-widest uppercase font-bold">
+                    Email_ID *
                   </label>
                   <input
                     type="email"
                     required
-                    className={`w-full p-3 bg-gray-700 rounded-lg text-white border transition-colors ${
+                    className={`w-full p-2.5 bg-zinc-900/80 rounded-sm text-sm font-mono text-gray-300 border transition-all duration-300 ${
                       errors.email
-                        ? "border-red-500"
-                        : "border-gray-600 focus:border-orange-500"
-                    } focus:outline-none`}
+                        ? "border-red-500/50 shadow-[0_0_10px_rgba(239,68,68,0.2)]"
+                        : "border-white/10 focus:border-orange-500/50 focus:bg-orange-500/5 focus:shadow-[0_0_15px_rgba(255,150,0,0.15)]"
+                    } focus:outline-none placeholder:text-gray-700`}
                     value={formData.email}
                     onChange={(e) => handleInputChange("email", e.target.value)}
-                    placeholder="seu@email.com"
+                    placeholder="user@network.com"
                   />
                   {errors.email && (
-                    <p className="text-red-400 text-sm mt-1">{errors.email}</p>
+                    <p className="text-red-400 text-xs font-mono mt-1">{errors.email}</p>
                   )}
                 </div>
 
                 <div>
-                  <label className="block mb-2 text-white font-exo">
+                  <label className="block mb-1.5 text-gray-400 font-orbitron text-[10px] tracking-widest uppercase font-bold">
                     Confirmar Email *
                   </label>
                   <input
                     type="email"
                     required
-                    className={`w-full p-3 bg-gray-700 rounded-lg text-white border transition-colors ${
+                    className={`w-full p-2.5 bg-zinc-900/80 rounded-sm text-sm font-mono text-gray-300 border transition-all duration-300 ${
                       errors.confirmEmail
-                        ? "border-red-500"
-                        : "border-gray-600 focus:border-orange-500"
-                    } focus:outline-none`}
+                        ? "border-red-500/50 shadow-[0_0_10px_rgba(239,68,68,0.2)]"
+                        : "border-white/10 focus:border-orange-500/50 focus:bg-orange-500/5 focus:shadow-[0_0_15px_rgba(255,150,0,0.15)]"
+                    } focus:outline-none placeholder:text-gray-700`}
                     value={formData.confirmEmail}
                     onChange={(e) =>
                       handleInputChange("confirmEmail", e.target.value)
                     }
-                    placeholder="Confirme seu email"
+                    placeholder="Confirmar identificação"
                   />
                   {errors.confirmEmail && (
-                    <p className="text-red-400 text-sm mt-1">
+                    <p className="text-red-400 text-xs font-mono mt-1">
                       {errors.confirmEmail}
                     </p>
                   )}
                 </div>
 
                 <div>
-                  <label className="block mb-2 text-white font-exo">
-                    Senha *
+                  <label className="block mb-1.5 text-gray-400 font-orbitron text-[10px] tracking-widest uppercase font-bold">
+                    Nova Passkey *
                   </label>
                   <input
                     type="password"
                     required
-                    className={`w-full p-3 bg-gray-700 rounded-lg text-white border transition-colors ${
+                    className={`w-full p-2.5 bg-zinc-900/80 rounded-sm text-sm font-mono text-gray-300 border transition-all duration-300 ${
                       errors.password
-                        ? "border-red-500"
-                        : "border-gray-600 focus:border-orange-500"
-                    } focus:outline-none`}
+                        ? "border-red-500/50 shadow-[0_0_10px_rgba(239,68,68,0.2)]"
+                        : "border-white/10 focus:border-orange-500/50 focus:bg-orange-500/5 focus:shadow-[0_0_15px_rgba(255,150,0,0.15)]"
+                    } focus:outline-none placeholder:text-gray-700`}
                     value={formData.password}
                     onChange={(e) =>
                       handleInputChange("password", e.target.value)
                     }
-                    placeholder="8-12 chars, maiúsculas+minúsculas+números"
+                    placeholder="Min 8 chars, alfanumérico"
                     minLength={8}
                     maxLength={12}
                   />
                   {errors.password && (
-                    <p className="text-red-400 text-sm mt-1">
+                    <p className="text-red-400 text-xs font-mono mt-1">
                       {errors.password}
                     </p>
                   )}
                 </div>
 
                 <div>
-                  <label className="block mb-2 text-white font-exo">
-                    Confirmar Senha *
+                  <label className="block mb-1.5 text-gray-400 font-orbitron text-[10px] tracking-widest uppercase font-bold">
+                    Confirmar Passkey *
                   </label>
                   <input
                     type="password"
                     required
-                    className={`w-full p-3 bg-gray-700 rounded-lg text-white border transition-colors ${
+                    className={`w-full p-2.5 bg-zinc-900/80 rounded-sm text-sm font-mono text-gray-300 border transition-all duration-300 ${
                       errors.confirmPassword
-                        ? "border-red-500"
-                        : "border-gray-600 focus:border-orange-500"
-                    } focus:outline-none`}
+                        ? "border-red-500/50 shadow-[0_0_10px_rgba(239,68,68,0.2)]"
+                        : "border-white/10 focus:border-orange-500/50 focus:bg-orange-500/5 focus:shadow-[0_0_15px_rgba(255,150,0,0.15)]"
+                    } focus:outline-none placeholder:text-gray-700`}
                     value={formData.confirmPassword}
                     onChange={(e) =>
                       handleInputChange("confirmPassword", e.target.value)
                     }
-                    placeholder="Confirme sua senha"
+                    placeholder="Repita a senha"
                   />
                   {errors.confirmPassword && (
-                    <p className="text-red-400 text-sm mt-1">
+                    <p className="text-red-400 text-xs font-mono mt-1">
                       {errors.confirmPassword}
                     </p>
                   )}
                 </div>
 
                 <div>
-                  <label className="block mb-2 text-white font-exo">
-                    Data de Nascimento *
+                  <label className="block mb-1.5 text-gray-400 font-orbitron text-[10px] tracking-widest uppercase font-bold">
+                    Data Operacional *
                   </label>
                   <input
                     type="date"
                     required
-                    className={`w-full p-3 bg-gray-700 rounded-lg text-white border transition-colors ${
+                    className={`w-full p-2.5 bg-zinc-900/80 rounded-sm text-sm font-mono text-gray-400 border transition-all duration-300 ${
                       errors.birthDate
-                        ? "border-red-500"
-                        : "border-gray-600 focus:border-orange-500"
+                        ? "border-red-500/50 shadow-[0_0_10px_rgba(239,68,68,0.2)]"
+                        : "border-white/10 focus:border-orange-500/50 focus:bg-orange-500/5 focus:shadow-[0_0_15px_rgba(255,150,0,0.15)]"
                     } focus:outline-none`}
                     value={formData.birthDate}
                     onChange={(e) =>
@@ -1028,22 +1012,22 @@ export default function AuthModal({
                     }
                   />
                   {errors.birthDate && (
-                    <p className="text-red-400 text-sm mt-1">
+                    <p className="text-red-400 text-xs font-mono mt-1">
                       {errors.birthDate}
                     </p>
                   )}
                 </div>
 
                 <div>
-                  <label className="block mb-2 text-white font-exo">
-                    País *
+                  <label className="block mb-1.5 text-gray-400 font-orbitron text-[10px] tracking-widest uppercase font-bold">
+                    Região *
                   </label>
                   <div className="relative" ref={countryDropdownRef}>
                     <div
-                      className={`w-full p-3 bg-gray-700 rounded-lg text-white border transition-colors ${
+                      className={`w-full p-2.5 bg-zinc-900/80 rounded-sm text-sm font-mono text-gray-400 border transition-all duration-300 ${
                         errors.country
-                          ? "border-red-500"
-                          : "border-gray-600 focus:border-orange-500"
+                          ? "border-red-500/50 shadow-[0_0_10px_rgba(239,68,68,0.2)]"
+                          : "border-white/10 focus:border-orange-500/50 focus:bg-orange-500/5 focus:shadow-[0_0_15px_rgba(255,150,0,0.15)]"
                       } focus:outline-none flex items-center cursor-pointer`}
                       onClick={() =>
                         setIsCountryDropdownOpen(!isCountryDropdownOpen)
@@ -1060,16 +1044,17 @@ export default function AuthModal({
                               countries.find((c) => c.code === formData.country)
                                 ?.name || ""
                             }
-                            className="mr-2"
+                            className="mr-3 filter brightness-90 grayscale-[0.2]"
                           />
-                          {countries.find((c) => c.code === formData.country)
-                            ?.name || "Selecione seu país"}
+                          <span className="text-gray-300">
+                            {countries.find((c) => c.code === formData.country)?.name}
+                          </span>
                         </>
                       ) : (
-                        "Selecione seu país"
+                        "SELECIONAR REGIÃO"
                       )}
                       <svg
-                        className="w-4 h-4 ml-auto"
+                        className="w-4 h-4 ml-auto text-gray-500"
                         fill="none"
                         stroke="currentColor"
                         viewBox="0 0 24 24"
@@ -1088,11 +1073,11 @@ export default function AuthModal({
                     </div>
 
                     {isCountryDropdownOpen && (
-                      <div className="absolute z-10 w-full bottom-full mb-1 bg-gray-800 border border-gray-700 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                      <div className="absolute z-10 w-full bottom-full mb-1 bg-zinc-950 border border-white/10 rounded-sm shadow-2xl max-h-60 overflow-y-auto custom-scrollbar">
                         {countries.map((country) => (
                           <div
                             key={country.code}
-                            className="flex items-center p-3 hover:bg-gray-700 cursor-pointer"
+                            className="flex items-center p-3 hover:bg-orange-500/10 cursor-pointer font-mono text-sm text-gray-400 hover:text-white transition-colors"
                             onClick={() => {
                               handleInputChange("country", country.code);
                               setIsCountryDropdownOpen(false);
@@ -1104,16 +1089,16 @@ export default function AuthModal({
                               width="24"
                               height="18"
                               alt={country.name}
-                              className="mr-2"
+                              className="mr-3 filter brightness-90 grayscale-[0.2]"
                             />
-                            {country.name}
+                            {country.name.toUpperCase()}
                           </div>
                         ))}
                       </div>
                     )}
                   </div>
                   {errors.country && (
-                    <p className="text-red-400 text-sm mt-1">
+                    <p className="text-red-400 text-xs font-mono mt-1">
                       {errors.country}
                     </p>
                   )}
@@ -1123,113 +1108,65 @@ export default function AuthModal({
 
             {/* FORGOT PASSWORD FORM */}
             {activeTab === "forgot-password" && (
-              <div>
-                <label className="block mb-2 text-white font-exo">Email</label>
-                <input
-                  type="email"
-                  required
-                  className="w-full p-3 bg-gray-700 rounded-lg text-white border border-gray-600 focus:border-orange-500 focus:outline-none transition-colors"
-                  value={formData.email}
-                  onChange={(e) => handleInputChange("email", e.target.value)}
-                  placeholder="seu@email.com"
-                />
+              <div className="space-y-4">
+                <div>
+                  <label className="block mb-1.5 text-gray-400 font-orbitron text-[10px] tracking-widest uppercase font-bold">Email_ID</label>
+                  <input
+                    type="email"
+                    required
+                    className="w-full p-3 bg-zinc-900/80 rounded-sm text-sm font-mono text-gray-300 border border-white/10 focus:border-orange-500/50 focus:bg-orange-500/5 focus:shadow-[0_0_15px_rgba(255,150,0,0.15)] focus:outline-none transition-all duration-300 placeholder:text-gray-700"
+                    value={formData.email}
+                    onChange={(e) => handleInputChange("email", e.target.value)}
+                    placeholder="user@network.com"
+                  />
+                </div>
               </div>
             )}
 
             <button
               type="submit"
               disabled={isValidating || isProcessing}
-              className="w-full md:col-span-2 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white font-orbitron py-3 rounded-lg transition-all hover:scale-105 shadow-lg disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center mt-4"
+              className="w-full md:col-span-2 group relative overflow-hidden bg-orange-600/20 border border-orange-500/50 hover:bg-orange-500 hover:border-orange-400 text-orange-500 hover:text-black font-orbitron font-black tracking-widest uppercase py-3 sm:py-3.5 mt-4 rounded-sm transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-orange-600/20 disabled:hover:text-orange-500 flex items-center justify-center shadow-[inset_0_0_15px_rgba(255,100,0,0.2)] hover:shadow-[0_0_20px_rgba(255,100,0,0.4)]"
             >
-              {isValidating ? (
-                <span className="flex items-center justify-center">
-                  <svg
-                    className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                  >
-                    <circle
-                      className="opacity-25"
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                    ></circle>
-                    <path
-                      className="opacity-75"
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                    ></path>
-                  </svg>
-                  Validando...
-                </span>
-              ) : isProcessing ? (
-                <span className="flex items-center justify-center">
-                  <svg
-                    className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                  >
-                    <circle
-                      className="opacity-25"
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                    ></circle>
-                    <path
-                      className="opacity-75"
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                    ></path>
-                  </svg>
-                  Processando...
+              {/* Scanline effect on button */}
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]" />
+
+              {isValidating || isProcessing ? (
+                <span className="flex items-center justify-center gap-3 relative z-10">
+                  <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                  {isValidating ? "VERIFICANDO..." : "PROCESSANDO..."}
                 </span>
               ) : (
-                <>
-                  {activeTab === "login" && "Entrar"}
-                  {activeTab === "register" && "Registrar"}
-                  {activeTab === "forgot-password" && "Recuperar Senha"}
-                </>
+                <span className="relative z-10 flex items-center gap-2">
+                  <div className="w-1.5 h-1.5 bg-current rotate-45 group-hover:animate-ping" />
+                  {activeTab === "login" && "INICIAR SESSÃO"}
+                  {activeTab === "register" && "ESTABELECER CONEXÃO"}
+                  {activeTab === "forgot-password" && "RESTAURAR ACESSO"}
+                  <div className="w-1.5 h-1.5 bg-current rotate-45 group-hover:animate-ping" />
+                </span>
               )}
             </button>
 
             {activeTab === "login" && googleEnabled && (
-              <div className="mt-3">
+              <div className="mt-4">
                 <button
                   type="button"
                   onClick={() => handleGoogleLogin("login")}
-                  className="w-full bg-white text-black font-orbitron py-3 rounded-lg transition-all hover:scale-[1.01] shadow border border-gray-300 flex items-center justify-center gap-2"
+                  className="w-full bg-white/5 border border-white/10 text-gray-300 hover:text-white hover:bg-white/10 hover:border-white/30 font-orbitron text-xs font-bold tracking-widest uppercase py-2.5 sm:py-3 rounded-sm transition-all duration-300 flex items-center justify-center gap-3 relative overflow-hidden group"
                 >
                   <svg
                     version="1.1"
                     xmlns="http://www.w3.org/2000/svg"
                     viewBox="0 0 48 48"
-                    className="w-5 h-5"
+                    className="w-5 h-5 transition-transform group-hover:scale-110"
                   >
-                    <path
-                      fill="#EA4335"
-                      d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"
-                    ></path>
-                    <path
-                      fill="#4285F4"
-                      d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"
-                    ></path>
-                    <path
-                      fill="#FBBC05"
-                      d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"
-                    ></path>
-                    <path
-                      fill="#34A853"
-                      d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"
-                    ></path>
-                    <path fill="none" d="M0 0h48v48H0z"></path>
+                    <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z" />
+                    <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z" />
+                    <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z" />
+                    <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z" />
+                    <path fill="none" d="M0 0h48v48H0z" />
                   </svg>
-                  <span>Login/Registro Google</span>
+                  <span>AUTENTICAÇÃO GOOGLE</span>
                 </button>
               </div>
             )}
