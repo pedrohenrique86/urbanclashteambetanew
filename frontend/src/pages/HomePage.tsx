@@ -14,7 +14,7 @@ import {
 } from "../components/home";
 import { useGameClock } from "../hooks/useGameClock";
 import NavbarCountdown from "../components/layout/NavbarCountdown";
-import ScrollToTopButton from "../components/layout/ScrollToTopButton";
+
 
 import { useAuth } from "../contexts/AuthContext";
 import { Navigate } from "react-router-dom";
@@ -168,7 +168,7 @@ export default function HomePage() {
         onGoToStart={() => window.scrollTo({ top: 0, behavior: "smooth" })} 
       />
 
-      <ScrollToTopButton />
+
     </div>
   );
 }

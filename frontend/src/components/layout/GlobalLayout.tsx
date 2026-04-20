@@ -91,6 +91,7 @@ const GlobalLayout: React.FC<GlobalLayoutProps> = ({ children }) => {
         <main className="flex-1 relative z-10 overflow-y-auto">
           {children}
         </main>
+        <ScrollToTopButton />
       </div>
     );
   }
