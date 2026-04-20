@@ -34,6 +34,9 @@ import trainingGuardioes from "../assets/training-guardioes.webp";
 import trainingRenegados from "../assets/training-renegados.webp";
 import vipAccessBg from "../assets/vip-access.webp";
 import seasonBg from "../assets/season.webp";
+import arsenalBg from "../assets/arsenal.webp";
+import networkLogsBg from "../assets/network-logs.webp";
+import networkCircuitBg from "../assets/network-circuit.webp";
 import { FACTION_ALIAS_MAP_FRONTEND } from "../utils/faction";
 
 export interface BackgroundConfig {
@@ -188,6 +191,21 @@ export const PAGE_BACKGROUNDS: BackgroundMap = {
   },
   "/season": {
     src: seasonBg,
+    overlay: "bg-black/50",
+    position: "bg-center",
+  },
+  "/tactical-arsenal": {
+    src: arsenalBg,
+    overlay: "bg-black/40",
+    position: "bg-center",
+  },
+  "/network-logs": {
+    src: networkLogsBg,
+    overlay: "bg-black/60",
+    position: "bg-center",
+  },
+  "/network-circuit": {
+    src: networkCircuitBg,
     overlay: "bg-black/50",
     position: "bg-center",
   },
