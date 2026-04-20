@@ -1,56 +1,105 @@
-# 🚀 MIGRATIONS - UrbanClash
+🚀 UrbanClash — Migrations & Seeds
 
-Sistema de migrations usando `node-pg-migrate` com suporte a:
+Sistema de gerenciamento de banco de dados utilizando:
 
-- Ambiente de desenvolvimento (DEV)
-- Ambiente de produção (PROD)
+Migrations → Estrutura do banco
+Seeds → Dados iniciais e conteúdo do jogo
 
----
+Suporte completo para:
 
-# 📌 CONFIGURAÇÃO
+🧪 Ambiente de Desenvolvimento (DEV)
+🌐 Ambiente de Produção (PROD)
+⚙️ Configuração
 
-No arquivo `.env`:
+Defina as variáveis no arquivo .env:
 
-```env
 DATABASE_URL_DEV=postgresql://USER:PASS@HOST-DEV/DB?sslmode=require
 DATABASE_URL_PROD=postgresql://USER:PASS@HOST-PROD/DB?sslmode=require
+🧱 Migrations
 
-🧪 COMANDOS
-Subir migrations em DEV
+Gerenciadas via node-pg-migrate
+
+📌 Comandos principais
+▶️ Subir migrations
 npm run migrate:up:dev --prefix backend
-Subir migrations em PROD
 npm run migrate:up:prod --prefix backend
-Descer última migration DEV
+⬇️ Descer migrations
 npm run migrate:down:dev --prefix backend
-Descer última migration PROD
 npm run migrate:down:prod --prefix backend
-🔁 EXECUTAR EM AMBOS (CUIDADO)
+🔁 Executar em ambos ambientes
 npm run migrate:up:all --prefix backend
 
-🔁PARA CRIAR MIGRATIONS CERTAS COM NOME ALEATÓRIO (MUITO BOM)
+⚠️ Use com cuidado — sempre teste em DEV antes
+
+🛠️ Criar nova migration
+npm run migrate:create --prefix backend nome_da_migration
+Exemplo:
+npm run migrate:create --prefix backend add_new_column
+🎲 Criar migration com nome aleatório
 npm run migrate:create:random --prefix backend
 
-⚠️ NÃO recomendado sem testar antes.
+✔ Ideal para evitar conflitos de nome
 
-🛠️ CRIAR NOVA MIGRATION
-npm run migrate:create --prefix backend nome_da_migration
+🧠 Como funciona
+Utiliza a tabela interna pgmigrations
+Cada migration roda apenas uma vez
+Se já executada → é ignorada automaticamente
+⚠️ Erros comuns
+❌ relation already exists
 
-Exemplo:
+Causa:
 
-npm run migrate:create --prefix backend add_new_column
-🧠 COMO FUNCIONA
-O sistema usa a tabela pgmigrations
-Cada migration roda apenas UMA vez
-Se já rodou → é ignorada
-⚠️ ERROS COMUNS
-❌ "relation already exists"
+Migration duplicada
+Ou tentativa de criar algo já existente
 
-SEEDS
+Solução:
 
-Como usar
+Verificar migrations anteriores
+Usar IF NOT EXISTS quando aplicável
 
-Dentro da raiz do projeto:
+🌱 Seeds
 
+Responsáveis por popular o banco com:
+
+Itens
+Loja (shop_items)
+Badges
+Eventos
+Cartas diárias
+📌 Comandos
+▶️ Rodar seed em DEV
 npm run seed:dev --prefix backend
+▶️ Rodar seed em PROD
 npm run seed:prod --prefix backend
+🔁 Rodar em ambos
 npm run seed:all --prefix backend
+🧠 Como funciona
+Seed é idempotente
+Pode rodar múltiplas vezes sem duplicar dados
+Usa:
+SELECT antes de inserir
+ON CONFLICT
+validações de existência
+⚠️ Boas práticas
+Sempre rodar primeiro em DEV
+Validar logs antes de rodar em PROD
+Nunca usar seed para alterar estrutura (isso é migration)
+📌 Regra de Ouro
+
+🧱 Migration altera o banco
+🌱 Seed popula o banco
+
+🧠 Fluxo recomendado
+# 1. Atualizar estrutura
+npm run migrate:up:all --prefix backend
+
+# 2. Popular dados
+npm run seed:all --prefix backend
+🏁 Resultado
+
+Com esse setup você tem:
+
+✔ Controle total de ambientes
+✔ Execução segura e previsível
+✔ Estrutura limpa e escalável
+✔ Padrão profissional de backend
