@@ -530,7 +530,7 @@ export default function AuthModal({
 
   return (
     <div
-      className="fixed inset-0 bg-black/90 backdrop-blur-md flex items-start justify-center p-2 sm:p-4 pt-[170px] sm:items-center sm:pt-0 z-[90] overflow-hidden"
+      className="fixed inset-0 bg-black/90 backdrop-blur-md flex items-start justify-center p-2 sm:p-4 pt-[170px] sm:pt-[60px] z-[90] overflow-y-auto custom-scrollbar"
       onClick={onClose}
     >
       {registrationSuccess ? (
@@ -613,7 +613,7 @@ export default function AuthModal({
         </div>
       ) : (
           <div
-            className="bg-gradient-to-b from-zinc-900/95 via-[#050505]/95 to-orange-950/20 backdrop-blur-2xl rounded-xl w-full max-w-xl p-4 sm:p-5 pt-10 sm:pt-12 relative border border-orange-500/20 shadow-[0_0_60px_rgba(255,100,0,0.15)] max-h-[calc(100vh-200px)] sm:max-h-[calc(100vh-80px)] overflow-y-auto custom-scrollbar"
+            className="bg-gradient-to-b from-zinc-900/95 via-[#050505]/95 to-orange-950/20 backdrop-blur-2xl rounded-xl w-full max-w-xl p-4 sm:p-5 pt-10 sm:pt-12 relative border border-orange-500/20 shadow-[0_0_60px_rgba(255,100,0,0.15)] sm:min-h-[600px] mb-8"
             onClick={(e) => e.stopPropagation()}
           >
           {/* Tech Decorative Corners */}
