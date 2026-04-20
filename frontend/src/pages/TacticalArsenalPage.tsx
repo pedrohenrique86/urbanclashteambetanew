@@ -6,7 +6,7 @@ export default function TacticalArsenalPage() {
     <UnderConstruction 
       title="ARSENAL TÁTICO"
       icon={<WrenchScrewdriverIcon />}
-      description="Gerencie seus armamentos, equipamentos e escudos do inventário player. Em breve todas as atualizações de combate estarão no ar."
+      description="Gerencie seus armamentos, equipamentos e escudos do seu inventário. Em breve todas as atualizações de combate estarão no ar."
     />
   );
 }
