@@ -2,108 +2,150 @@ import React from "react";
 import { motion } from "framer-motion";
 
 // Importar as imagens dos cards
-import cardGuardas from "../../assets/cardguardas-home.webp";
-import cardGangsters from "../../assets/cardgangsters-home.webp";
-import cardClans from "../../assets/cardclans-home.webp";
+import cardRenegado from "../../assets/card-renegado.webp";
+import cardGuardiao from "../../assets/card-guardiao.webp";
+import cardDivisoes from "../../assets/card-divisoes.webp";
 
 export function FactionsSection() {
-  // Definindo as cores e sombras para reutilização
-  const factionStyles = {
-    gangsters: {
-      shadow: "[--shadow-color:rgba(249,115,22,0.5)]",
-      hoverShadow: "[--shadow-color:rgba(249,115,22,0.8)]",
-      beam: "from-transparent via-orange-500 to-transparent",
-    },
-    guardas: {
-      shadow: "[--shadow-color:rgba(59,130,246,0.5)]",
-      hoverShadow: "[--shadow-color:rgba(59,130,246,0.8)]",
-      beam: "from-transparent via-blue-500 to-transparent",
-    },
-    clans: {
-      shadow: "[--shadow-color:rgba(168,85,247,0.5)]",
-      hoverShadow: "[--shadow-color:rgba(168,85,247,0.8)]",
-      beam: "from-transparent via-purple-500 to-transparent",
-    },
-  };
-
   const factions = [
     {
-      image: cardGangsters,
-      alt: "Card da facção Renegados",
-      style: factionStyles.gangsters,
-      delay: 0.3,
+      id: "001",
+      name: "RENEGADOS",
+      tag: "OUTLAW_CELL",
+      desc: "Os donos da noite. Movidos pelo caos e pela liberdade das ruas cercadas por neon.",
+      image: cardRenegado,
+      color: "text-orange-500",
+      glow: "bg-orange-500",
+      hover: "group-hover:text-orange-400",
     },
     {
-      image: cardGuardas,
-      alt: "Card da facção Guardiões",
-      style: factionStyles.guardas,
-      delay: 0.4,
+      id: "002",
+      name: "GUARDIÕES",
+      tag: "ENFORCER_UNIT",
+      desc: "Defensores da ordem corporativa. Equipados com tecnologia de ponta para manter a paz.",
+      image: cardGuardiao,
+      color: "text-blue-500",
+      glow: "bg-blue-500",
+      hover: "group-hover:text-blue-400",
     },
     {
-      image: cardClans,
-      alt: "Card sobre as Divisões",
-      style: factionStyles.clans,
-      delay: 0.5,
+      id: "003",
+      name: "DIVISÕES",
+      tag: "TECH_CORP",
+      desc: "Divisões técnicas e estratégicas. Eles controlam os dados e a energia da cidade.",
+      image: cardDivisoes,
+      color: "text-purple-500",
+      glow: "bg-purple-500",
+      hover: "group-hover:text-purple-400",
     },
   ];
 
   return (
-    <motion.section
+    <section
       id="factions"
-      initial={{ opacity: 0, y: 50 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.8 }}
-      viewport={{ once: true }}
-      className="py-20 px-4 bg-gradient-to-b from-gray-900 to-gray-800 scroll-mt-24"
+      className="py-24 px-4 bg-black relative overflow-hidden flex flex-col items-center"
     >
-      <div className="max-w-7xl mx-auto">
-        <motion.h2
-          initial={{ opacity: 0, y: 30 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2, duration: 0.6 }}
-          viewport={{ once: true }}
-          className="text-4xl md:text-5xl font-orbitron text-center mb-16 bg-gradient-to-r from-orange-400 to-red-500 bg-clip-text text-transparent"
-        >
-          ESCOLHA SEU DESTINO
-        </motion.h2>
-        <div className="grid md:grid-cols-3 gap-10">
-          {factions.map((faction, idx) => (
+      {/* Scanline Effect Global */}
+      <div className="absolute inset-0 z-0 pointer-events-none opacity-[0.03] bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%),linear-gradient(90deg,rgba(255,0,0,0.06),rgba(0,255,0,0.02),rgba(0,0,255,0.06))] bg-[length:100%_2px,3px_100%]" />
+
+      <div className="max-w-5xl w-full relative z-10">
+        <div className="flex flex-col items-center mb-16 overflow-hidden text-center">
+          <motion.h2
+            initial={{ opacity: 0, y: -10 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="text-xs md:text-sm font-orbitron font-bold tracking-[0.5em] text-white flex items-center justify-center gap-4"
+          >
+            <span className="text-gray-500">[</span> ESCOLHA SEU LADO <span className="text-gray-500">]</span>
+          </motion.h2>
+          <motion.div
+            initial={{ width: 0 }}
+            whileInView={{ width: "100px" }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.3 }}
+            className="h-[1px] bg-gray-800 mt-4"
+          />
+        </div>
+
+        <div className="grid md:grid-cols-3 gap-6 lg:gap-8">
+          {factions.map((f, i) => (
             <motion.div
-              key={idx}
-              initial={{ opacity: 0, y: 50 }}
+              key={f.id}
+              initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
-              transition={{ delay: faction.delay, duration: 0.6 }}
+              transition={{ delay: i * 0.1 }}
               viewport={{ once: true }}
-              // Adicionado 'group' para que o hover funcione nos spans
-              // e 'relative' para posicionar os spans de animação
-              className="group relative overflow-hidden rounded-lg"
+              className="relative group cursor-pointer"
             >
-              <img
-                src={faction.image}
-                alt={faction.alt}
-                // A sombra estática e a transição de intensidade no hover continuam aqui
-                className={`w-full h-full object-cover transition-all duration-300 ${faction.style.shadow} group-hover:${faction.style.hoverShadow}`}
-                style={{
-                  filter: `drop-shadow(0 0 8px var(--shadow-color))`,
-                }}
-              />
-              {/* Feixe de luz animado no hover */}
-              <span
-                className={`absolute top-0 left-0 w-full h-1 bg-gradient-to-r ${faction.style.beam} -translate-x-full group-hover:translate-x-0 transition-transform duration-500 ease-in-out`}
-              ></span>
-              <span
-                className={`absolute top-0 right-0 w-1 h-full bg-gradient-to-b ${faction.style.beam} -translate-y-full group-hover:translate-y-0 transition-transform duration-500 ease-in-out delay-100`}
-              ></span>
-              <span
-                className={`absolute bottom-0 right-0 w-full h-1 bg-gradient-to-l ${faction.style.beam} translate-x-full group-hover:translate-x-0 transition-transform duration-500 ease-in-out delay-200`}
-              ></span>
-              <span
-                className={`absolute top-0 left-0 w-1 h-full bg-gradient-to-t ${faction.style.beam} translate-y-full group-hover:translate-y-0 transition-transform duration-500 ease-in-out delay-300`}
-              ></span>
+              <div
+                className="relative aspect-[3/4] overflow-hidden transition-all duration-500 
+                border border-white/10 group-hover:border-white/30 rounded-lg"
+              >
+                {/* Image Treatment */}
+                <div className="absolute inset-0 bg-gray-900 group-hover:bg-transparent transition-colors">
+                  <img
+                    src={f.image}
+                    alt={f.name}
+                    className="absolute inset-0 w-full h-full object-cover 
+                    brightness-[0.4] group-hover:brightness-[0.7] saturate-0 group-hover:saturate-100 transition-all duration-700
+                    group-hover:animate-flicker"
+                  />
+                </div>
+
+                {/* Overlays */}
+                <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black via-black/80 to-transparent z-[6]" />
+                
+                {/* Technical HUD elements */}
+                <div className="absolute top-4 left-4 flex flex-col font-orbitron z-[7]">
+                  <span className={`text-[9px] font-bold tracking-[0.2em] ${f.color}`}>ID_{f.id}</span>
+                </div>
+
+                {/* Main Content */}
+                <div className="absolute bottom-6 left-6 right-6 z-[10]">
+                  <motion.div className="flex flex-col gap-2">
+                    <span className={`text-[10px] font-bold tracking-[0.3em] uppercase ${f.color}`}>{f.tag}</span>
+                    
+                    <h3 className={`text-2xl font-black font-orbitron tracking-tighter text-white transition-colors duration-300 ${f.hover}`}>
+                      {f.name}
+                    </h3>
+                    
+                    <div className="h-0 group-hover:h-auto overflow-hidden transition-all duration-500 ease-out">
+                      <p className="text-[10px] text-gray-400 leading-relaxed font-exo tracking-wide opacity-0 group-hover:opacity-100 transition-opacity duration-500 delay-100">
+                        {f.desc}
+                      </p>
+                    </div>
+                  </motion.div>
+                </div>
+
+                {/* Vertical Scanner Line */}
+                <div className="absolute inset-y-0 w-px bg-white/20 left-0 group-hover:animate-scanner-h pointer-events-none z-20" />
+              </div>
+              
+              {/* Subtle outer glow dynamic */}
+              <div className={`absolute inset-0 opacity-0 group-hover:opacity-10 transition-opacity duration-700 blur-[40px] pointer-events-none ${f.glow}`} />
             </motion.div>
           ))}
         </div>
       </div>
-    </motion.section>
+      
+      <style>{`
+        @keyframes scanner-h {
+          0% { left: 0% }
+          100% { left: 100% }
+        }
+        @keyframes flicker {
+          0% { filter: brightness(0.7) contrast(1); }
+          5% { filter: brightness(1.1) contrast(1.1) saturate(1.2); }
+          10% { filter: brightness(0.7) contrast(1); }
+          100% { filter: brightness(0.7) contrast(1); }
+        }
+        .animate-scanner-h {
+          animation: scanner-h 3s linear infinite;
+        }
+        .animate-flicker {
+          animation: flicker 5s steps(1) infinite;
+        }
+      `}</style>
+    </section>
   );
 }

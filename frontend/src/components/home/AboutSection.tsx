@@ -2,94 +2,91 @@ import React from "react";
 import { motion } from "framer-motion";
 
 export function AboutSection() {
+  const features = [
+    {
+      icon: "⚔️",
+      title: "COMBATE ESTRATÉGICO",
+      desc: "Planeje suas batalhas, forme alianças e domine territórios em combates táticos intensos.",
+      color: "border-orange-500/30",
+      text: "text-orange-400",
+    },
+    {
+      icon: "🏆",
+      title: "RANKING COMPETITIVO",
+      desc: "Suba no ranking, prove sua superioridade e ganhe prêmios em dinheiro real.",
+      color: "border-blue-500/30",
+      text: "text-blue-400",
+    },
+    {
+      icon: "👥",
+      title: "COMUNIDADE ATIVA",
+      desc: "Junte-se a milhares de jogadores, forme uma divisão poderosa e participe de eventos exclusivos.",
+      color: "border-purple-500/30",
+      text: "text-purple-400",
+    },
+  ];
+
   return (
     <motion.section
       id="about"
-      initial={{ opacity: 0, y: 50 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.8 }}
+      initial={{ opacity: 0 }}
+      whileInView={{ opacity: 1 }}
+      transition={{ duration: 1 }}
       viewport={{ once: true }}
-      className="py-20 px-4 bg-gradient-to-b from-gray-900 to-gray-800 scroll-mt-24"
+      className="py-32 px-4 bg-black relative overflow-hidden"
     >
-      <div className="max-w-6xl mx-auto">
-        <motion.h2
-          initial={{ opacity: 0, y: 30 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2, duration: 0.6 }}
-          viewport={{ once: true }}
-          className="text-4xl md:text-5xl font-orbitron text-center mb-16 bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent"
-        >
-          SOBRE O JOGO
-        </motion.h2>
-
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4, duration: 0.8 }}
-          viewport={{ once: true }}
-          className="text-center mb-12"
-        >
-          <p className="text-xl text-gray-300 leading-relaxed max-w-4xl mx-auto">
-            Urban Clash Team é um jogo de estratégia e ação onde você escolhe
-            seu lado na guerra urbana. Seja um renegado implacável, um guardião
-            corajoso e entre numa divisão mais poderosa da cidade. Cada escolha
-            determina seu destino neste mundo de conflitos e alianças.
-          </p>
-        </motion.div>
-
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-          <motion.div
-            initial={{ opacity: 0, x: -50 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.6, duration: 0.6 }}
-            viewport={{ once: true }}
-            className="bg-gradient-to-br from-gray-800/50 to-gray-900/50 backdrop-blur-sm rounded-2xl p-6 border border-gray-700/50 hover:border-orange-500/50 transition-all duration-300"
-          >
-            <div className="text-4xl mb-4">⚔️</div>
-            <h3 className="text-xl font-orbitron font-bold mb-3 text-orange-400">
-              COMBATE ESTRATÉGICO
-            </h3>
-            <p className="text-gray-300">
-              Planeje suas batalhas, forme alianças e domine territórios em
-              combates táticos intensos.
-            </p>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, y: 50 }}
+      {/* Decorative background elements */}
+      <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-gray-800 to-transparent" />
+      
+      <div className="max-w-6xl mx-auto relative z-10">
+        <div className="text-center mb-24">
+          <motion.h2
+            initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.7, duration: 0.6 }}
+            transition={{ delay: 0.2 }}
             viewport={{ once: true }}
-            className="bg-gradient-to-br from-gray-800/50 to-gray-900/50 backdrop-blur-sm rounded-2xl p-6 border border-gray-700/50 hover:border-blue-500/50 transition-all duration-300"
+            className="text-4xl md:text-6xl font-orbitron font-black tracking-tighter mb-8"
           >
-            <div className="text-4xl mb-4">🏆</div>
-            <h3 className="text-xl font-orbitron font-bold mb-3 text-blue-400">
-              RANKING COMPETITIVO
-            </h3>
-            <p className="text-gray-300">
-              Suba no ranking, prove sua superioridade e ganhe prêmios em
-              dinheiro real.
-            </p>
-          </motion.div>
+            A NOVA ERA DO <span className="text-orange-500">COMBATE URBANO</span>
+          </motion.h2>
+          
+          <motion.p
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+            viewport={{ once: true }}
+            className="text-lg md:text-xl text-gray-400 leading-relaxed max-w-3xl mx-auto font-exo"
+          >
+            Urban Clash Team é um simulador de guerra urbana onde a estratégia e a 
+            lealdade definem o sobrevivente. Escolha sua facção e domine a cidade.
+          </motion.p>
+        </div>
 
-          <motion.div
-            initial={{ opacity: 0, x: 50 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.8, duration: 0.6 }}
-            viewport={{ once: true }}
-            className="bg-gradient-to-br from-gray-800/50 to-gray-900/50 backdrop-blur-sm rounded-2xl p-6 border border-gray-700/50 hover:border-purple-500/50 transition-all duration-300 md:col-span-2 lg:col-span-1"
-          >
-            <div className="text-4xl mb-4">👥</div>
-            <h3 className="text-xl font-orbitron font-bold mb-3 text-purple-400">
-              COMUNIDADE ATIVA
-            </h3>
-            <p className="text-gray-300">
-              Junte-se a milhares de jogadores, forme uma divisão poderosa e participe
-              de eventos exclusivos.
-            </p>
-          </motion.div>
+        <div className="grid md:grid-cols-3 gap-8">
+          {features.map((f, i) => (
+            <motion.div
+              key={i}
+              initial={{ opacity: 0, scale: 0.9 }}
+              whileInView={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.4 + i * 0.1 }}
+              viewport={{ once: true }}
+              whileHover={{ y: -5 }}
+              className={`bg-gray-950/50 backdrop-blur-xl rounded-2xl p-8 border ${f.color} hover:bg-gray-900/50 transition-all duration-300 group shadow-2xl`}
+            >
+              <div className="text-5xl mb-6 transform group-hover:scale-110 transition-transform duration-300 inline-block">
+                {f.icon}
+              </div>
+              <h3 className={`text-xl font-orbitron font-black mb-4 tracking-tight ${f.text}`}>
+                {f.title}
+              </h3>
+              <p className="text-gray-400 leading-relaxed font-exo">
+                {f.desc}
+              </p>
+            </motion.div>
+          ))}
         </div>
       </div>
     </motion.section>
   );
 }
+

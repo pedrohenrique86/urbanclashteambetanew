@@ -14,7 +14,7 @@ import homeMobileBg from "../assets/home-mobile.webp";
 import factionSelectionBg from "../assets/faction-selection.webp";
 import idBg from "../assets/id.webp";
 import acertoContasBg from "../assets/acerto-contas.webp";
-import cardClansBg from "../assets/cardclans-home.webp";
+import cardDivisoesBg from "../assets/card-divisoes.webp";
 import squadWarBg from "../assets/squad-war.webp";
 import recoveryBaseBg from "../assets/recovery-base.webp";
 import restrictedStoreBg from "../assets/restricted-store.webp";
@@ -48,7 +48,7 @@ export interface BackgroundConfig {
 // Default glassmorphism placeholder for pages without a defined background
 export const DEFAULT_PLACEHOLDER = "linear-gradient(135deg, #0f172a 0%, #1e293b 100%)";
 
-export type BackgroundMap = Record<string, BackgroundConfig | ((data: any) => BackgroundConfig)>;
+export type BackgroundMap = Record<string, BackgroundConfig | ((data: any) => BackgroundConfig) | null>;
 
 const isGuardFaction = (profile: any) => {
   const faction = typeof profile?.faction === "string" ? profile.faction : profile?.faction?.name;
@@ -99,7 +99,7 @@ export const PAGE_BACKGROUNDS: BackgroundMap = {
     position: "bg-center",
   },
   "/clan-selection": {
-    src: cardClansBg,
+    src: cardDivisoesBg,
     overlay: "bg-black/60",
     blur: true,
   },
