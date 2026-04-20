@@ -5,73 +5,23 @@ import homeMobilePngUrl from "../../assets/home-mobile.webp";
 
 export function HeroSection() {
   return (
-    <section id="hero" className="relative w-full h-screen overflow-hidden">
-      {/* Imagem de fundo para mobile */}
-      <img
-        src={homeMobilePngUrl}
-        alt="Urban Clash Team background"
-        className="absolute top-0 left-0 w-full h-full object-cover object-top z-0 md:hidden"
-      />
-      {/* Imagem de fundo para desktop */}
-      <img
-        src={homePngUrl}
-        alt="Urban Clash Team background"
-        className="absolute top-0 left-0 w-full h-full object-cover object-center z-0 hidden md:block"
-      />
-
-      {/* Conteúdo sobre a imagem (se houver) deve ter z-index > 0 */}
-      <div className="relative z-10 h-full flex flex-col items-center justify-end pb-24">
-        {/* Espaço para texto ou outros elementos sobre a imagem */}
+    <section id="hero" className="relative w-full h-screen overflow-hidden bg-gray-900 flex items-center justify-center pt-20">
+      {/* Imagem de fundo local - AAA Treatment */}
+      <div className="absolute inset-0 z-0">
+        <img
+          src={homePngUrl}
+          className="w-full h-full object-cover object-center saturate-[1.15] contrast-[1.05]"
+          alt="Home Background"
+        />
+        <div className="absolute inset-0 bg-black/30 bg-vignette" />
       </div>
 
-      {/* Indicador de Rolagem */}
-      <div className="absolute bottom-8 left-[48%] transform -translate-x-1/2 z-20">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 1.5, duration: 0.8 }}
-        >
-          <motion.div
-            animate={{ y: [0, -8, 0] }}
-            transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-            className="flex flex-col items-center space-y-2"
-          >
-            <div
-              className="text-cyan-300 font-bold text-sm font-orbitron tracking-wider"
-              style={{
-                textShadow:
-                  "-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000, 0 0 8px rgba(34, 211, 238, 0.9)",
-              }}
-            >
-              Role para baixo
-            </div>
-            <motion.div
-              animate={{ opacity: [0.5, 1, 0.5] }}
-              transition={{
-                duration: 1.5,
-                repeat: Infinity,
-                ease: "easeInOut",
-              }}
-              className="w-6 h-10 border-2 border-cyan-300 rounded-full flex justify-center"
-              style={{
-                filter:
-                  "drop-shadow(-1px -1px 0 #000) drop-shadow(1px -1px 0 #000) drop-shadow(-1px 1px 0 #000) drop-shadow(1px 1px 0 #000) drop-shadow(0 0 5px rgba(34, 211, 238, 0.7))",
-              }}
-            >
-              <motion.div
-                animate={{ y: [0, 12, 0] }}
-                transition={{
-                  duration: 1.5,
-                  repeat: Infinity,
-                  ease: "easeInOut",
-                }}
-                className="w-1 h-3 bg-white rounded-full mt-2"
-                style={{ filter: "drop-shadow(0 0 4px white)" }}
-              />
-            </motion.div>
-          </motion.div>
-        </motion.div>
-      </div>
+      {/* AAA Cyber Noise Overlay */}
+      <div className="absolute inset-0 z-[1] pointer-events-none bg-noise" />
+
+      {/* Hero Content Wrapper removido a pedido do usuário */}
+
+
     </section>
   );
 }

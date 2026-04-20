@@ -49,6 +49,35 @@ const Timeline: React.FC<TimelineProps> = ({
   onGoToStart,
 }) => {
   const [activeSection, setActiveSection] = useState(0);
+  const [isAtTop, setIsAtTop] = useState(true);
+  const [isIdle, setIsIdle] = useState(false);
+  const idleTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  const resetIdleTimer = () => {
+    if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
+    setIsIdle(false);
+    
+    // Inicia timer de 1s para esconder apenas se NÃO estiver no topo
+    idleTimerRef.current = setTimeout(() => {
+      setIsIdle(true);
+    }, 1000);
+  };
+
+  useEffect(() => {
+    const handleMouseMove = () => {
+      resetIdleTimer();
+    };
+
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("scroll", handleMouseMove);
+    resetIdleTimer();
+
+    return () => {
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("scroll", handleMouseMove);
+      if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
+    };
+  }, []);
 
   // Efeito para atualizar a seção ativa durante a rolagem
   useEffect(() => {
@@ -57,6 +86,8 @@ const Timeline: React.FC<TimelineProps> = ({
         document.getElementById(item.id),
       );
       const scrollPosition = window.scrollY + window.innerHeight / 2;
+      
+      setIsAtTop(window.scrollY < 400);
 
       // Update active section
       for (let i = sections.length - 1; i >= 0; i--) {
@@ -87,40 +118,46 @@ const Timeline: React.FC<TimelineProps> = ({
         {isVisible && (
           <motion.div
             initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
+            animate={{ 
+              opacity: (isIdle && !isAtTop) ? 0 : 0.85, 
+              x: (isIdle && !isAtTop) ? 40 : 0 
+            }}
+            whileHover={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: 20 }}
-            transition={{ duration: 0.5, ease: "easeInOut" }}
-            className={`mr-4 md:mr-6 lg:mr-8 hidden sm:block pointer-events-auto ${className}`}
+            transition={{ duration: 0.4, ease: "easeOut" }}
+            className={`pointer-events-auto mr-1 hidden lg:block ${className}`}
           >
             <div className="bg-gradient-to-br from-gray-900/90 to-black/90 backdrop-blur-md border border-gray-500/30 rounded-2xl p-3 sm:p-3 md:p-4 shadow-2xl shadow-purple-500/20">
               <div className="space-y-3 sm:space-y-3 md:space-y-4">
-                {/* Botão para voltar ao início */}
-                <motion.div
-                  initial={{ opacity: 0, x: 20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0, duration: 0.3 }}
-                  className="relative cursor-pointer group flex items-center"
-                  onClick={onGoToStart}
-                  title="Voltar ao Início"
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                >
+                {/* Botão para voltar ao início - Oculto quando já está no topo */}
+                {!isAtTop && (
                   <motion.div
-                    className={`w-8 h-8 sm:w-8 sm:h-8 md:w-9 md:h-9 lg:w-10 lg:h-10 rounded-full flex items-center justify-center text-base sm:text-base md:text-lg lg:text-lg transition-all duration-500 relative bg-gradient-to-r from-gray-700 to-gray-600 text-gray-300 hover:from-gray-600 hover:to-gray-500`}
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0, duration: 0.3 }}
+                    className="relative cursor-pointer group flex items-center"
+                    onClick={onGoToStart}
+                    title="Voltar ao Início"
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
                   >
-                    {"🏠"}
+                    <motion.div
+                      className={`w-8 h-8 sm:w-8 sm:h-8 md:w-9 md:h-9 lg:w-10 lg:h-10 rounded-full flex items-center justify-center text-base sm:text-base md:text-lg lg:text-lg transition-all duration-500 relative bg-gradient-to-r from-gray-700 to-gray-600 text-gray-300 hover:from-gray-600 hover:to-gray-500`}
+                    >
+                      {"🏠"}
+                    </motion.div>
+                    <motion.div
+                      className={`ml-2 sm:ml-2 md:ml-3 text-xs sm:text-xs md:text-sm font-medium transition-all duration-300 opacity-100 whitespace-nowrap text-purple-300`}
+                      initial={{ x: -10 }}
+                      whileHover={{ x: 0 }}
+                    >
+                      {"Início"}
+                    </motion.div>
+                    <div
+                      className={`absolute left-5 top-10 w-0.5 h-4 transform -translate-x-1/2 transition-all duration-500 bg-gradient-to-b from-gray-600 to-gray-700`}
+                    ></div>
                   </motion.div>
-                  <motion.div
-                    className={`ml-2 sm:ml-2 md:ml-3 text-xs sm:text-xs md:text-sm font-medium transition-all duration-300 opacity-100 whitespace-nowrap text-purple-300`}
-                    initial={{ x: -10 }}
-                    whileHover={{ x: 0 }}
-                  >
-                    {"Início"}
-                  </motion.div>
-                  <div
-                    className={`absolute left-5 top-10 w-0.5 h-4 transform -translate-x-1/2 transition-all duration-500 bg-gradient-to-b from-gray-600 to-gray-700`}
-                  ></div>
-                </motion.div>
+                )}
 
                 {timelineData.map((event, index) => (
                   <motion.div

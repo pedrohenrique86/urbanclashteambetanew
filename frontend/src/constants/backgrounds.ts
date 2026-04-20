@@ -56,11 +56,7 @@ const isGuardFaction = (profile: any) => {
 };
 
 export const PAGE_BACKGROUNDS: BackgroundMap = {
-  "/": {
-    src: homeBg,
-    mobileSrc: homeMobileBg,
-    overlay: "bg-black/30",
-  },
+  "/": null,
   "/dashboard": (profile: any) => {
     return {
       src: isGuardFaction(profile) ? dashguardas : dashbgangster,

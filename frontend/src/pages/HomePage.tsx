@@ -4,6 +4,7 @@ import { FcGoogle } from "react-icons/fc";
 import AuthModal from "../components/AuthModal";
 import { startGoogleLoginFlow } from "../services/authService";
 import RankingSection from "../components/RankingSection";
+import Timeline from "../components/Timeline";
 import {
   HeroSection,
   FactionsSection,
@@ -55,7 +56,7 @@ export default function HomePage() {
   return (
     <div className="min-h-screen bg-gray-900 text-white font-exo relative overflow-x-hidden">
       {/* Navigation */}
-      <nav className="fixed top-0 w-full bg-gray-900/75 backdrop-blur-sm z-50 border-b border-gray-700">
+      <nav className="fixed top-0 w-full bg-gray-900/10 backdrop-blur-md z-50 border-b border-white/10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-wrap md:flex-nowrap items-center justify-center md:justify-between min-h-16 gap-3 md:gap-4 py-3 md:py-2">
             {/* Logo - Sempre visível, não encolhe */}
@@ -130,6 +131,11 @@ export default function HomePage() {
           initialMode={authMode}
         />
       )}
+
+      <Timeline 
+        isVisible={true} 
+        onGoToStart={() => window.scrollTo({ top: 0, behavior: "smooth" })} 
+      />
 
       <ScrollToTopButton />
     </div>
