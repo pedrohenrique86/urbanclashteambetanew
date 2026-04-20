@@ -72,10 +72,12 @@ export default function RankingSection() {
 
   return (
     <section id="rankings" className="py-32 px-6 bg-black relative overflow-hidden">
+      {/* Background Cinematic Atmosphere */}
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1400px] h-[900px] bg-blue-600/5 blur-[150px] rounded-full pointer-events-none" />
+      <div className="absolute inset-0 opacity-[0.03] pointer-events-none bg-[length:40px_40px]" 
+           style={{ backgroundImage: 'radial-gradient(#ffffff 0.5px, transparent 0.5px)' }} />
+
       {/* HUD Background Decorations */}
-      <div className="absolute inset-0 opacity-[0.02] pointer-events-none" 
-           style={{ backgroundImage: 'radial-gradient(#ffffff 1px, transparent 1px)', backgroundSize: '60px 60px' }} />
-      
       {showNotification && lastUpdated && (
         <RankingUpdateNotification lastUpdated={lastUpdated} />
       )}

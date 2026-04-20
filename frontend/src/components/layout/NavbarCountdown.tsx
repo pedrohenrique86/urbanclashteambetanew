@@ -35,30 +35,29 @@ const NavbarCountdown: React.FC<NavbarCountdownProps> = ({ remainingTime }) => {
   }).replace(/ de /g, ".").toUpperCase().replace(/\./g, ".");
 
   return (
-    <div className="flex flex-col md:flex-row items-center gap-0.5 md:gap-3 px-1 md:px-2 py-0 relative group w-full md:w-auto">
-      {/* HUD Accent - Left (Hidden on Mobile Stack) */}
+    <div className="flex flex-row items-center justify-center gap-2 sm:gap-3 px-1 md:px-2 py-0 relative group w-full md:w-auto">
+      {/* HUD Accent - Left (Hidden on Mobile) */}
       <div className="hidden lg:block h-4 w-[1px] bg-gradient-to-b from-transparent via-cyan-500 to-transparent" />
 
-      {/* Main Mission Protocol Info */}
-      <div className="flex flex-col items-start min-w-[100px] sm:min-w-[120px]">
+      {/* Mission Protocol Info - Dual Layout */}
+      <div className="flex flex-row sm:flex-col items-center sm:items-start gap-1.5 sm:gap-0 flex-shrink-0">
         <div className="flex items-center gap-1">
           <div className="w-1 h-1 bg-cyan-500 rotate-45 animate-pulse" />
-          <span className="text-[8px] sm:text-[9px] font-black font-orbitron text-white tracking-[0.1em] uppercase">
-            Data_<span className="text-cyan-400">Inicio</span>
+          <span className="text-[7px] sm:text-[9px] font-black font-orbitron text-white tracking-[0.1em] uppercase whitespace-nowrap">
+            DATA_<span className="text-cyan-400">INICIO</span>
           </span>
         </div>
-        <span className="text-[7px] sm:text-[8px] font-mono font-bold text-gray-400 tracking-tighter">
-           {formattedDate.replace(/\.$/, "")} <span className="text-[6px] text-gray-700 mx-0.5">|</span> START_DAY
+        <span className="text-[7px] sm:text-[8px] font-mono font-bold text-gray-400 tracking-tighter whitespace-nowrap">
+           {formattedDate.replace(/\.$/, "")} <span className="hidden sm:inline text-[6px] text-gray-700 mx-0.5">|</span> <span className="hidden sm:inline">START_DAY</span>
         </span>
+        <div className="sm:hidden h-3 w-px bg-white/20 mx-0.5" />
       </div>
 
       {/* Armored HUD Timer Frame */}
       <div className="relative p-[1px] bg-gradient-to-br from-cyan-500/30 via-transparent to-orange-500/30"
-           style={{ clipPath: 'polygon(4px 0, 100% 0, 100% calc(100% - 4px), calc(100% - 4px) 100%, 0 100%, 0 4px)' }}>
+           style={{ clipPath: 'polygon(2px 0, 100% 0, 100% calc(100% - 2px), calc(100% - 2px) 100%, 0 100%, 0 2px)' }}>
         
-        <div className="bg-zinc-950 px-1.5 sm:px-3 py-0.5 flex items-center gap-1 sm:gap-2 relative overflow-hidden"
-             style={{ clipPath: 'polygon(4px 0, 100% 0, 100% calc(100% - 4px), calc(100% - 4px) 100%, 0 100%, 0 4px)' }}>
-          
+        <div className="bg-zinc-950 px-1 xs:px-2 sm:px-3 py-0.5 flex items-center gap-1 sm:gap-2 relative overflow-hidden">
           {/* Flowing Energy Effect */}
           <div className="absolute inset-0 bg-gradient-to-r from-transparent via-cyan-500/5 to-transparent -translate-x-full animate-[shimmer_3s_infinite]" />
           
@@ -70,15 +69,15 @@ const NavbarCountdown: React.FC<NavbarCountdownProps> = ({ remainingTime }) => {
           ].map((item, idx) => (
             <React.Fragment key={item.label}>
               <div className="flex items-center">
-                <div className="w-3.5 sm:w-6 flex justify-end">
-                  <span className="text-xs sm:text-lg font-black font-orbitron text-transparent bg-clip-text bg-gradient-to-b from-white to-gray-400 drop-shadow-[0_0_8px_rgba(255,255,255,0.1)] tabular-nums">
+                <div className="w-[14px] sm:w-[26px] flex justify-center">
+                  <span className="text-[10px] sm:text-lg font-black font-orbitron text-transparent bg-clip-text bg-gradient-to-b from-white to-gray-400 tabular-nums leading-none">
                     {item.val}
                   </span>
                 </div>
-                <span className="text-[8px] sm:text-[10px] font-mono font-bold text-cyan-500/60 ml-0.5">{item.label}</span>
+                <span className="text-[6px] sm:text-[9px] font-mono font-bold text-cyan-500/60 ml-[3px] sm:ml-1">{item.label}</span>
               </div>
               {idx < 3 && (
-                <div className="h-3 w-px bg-white/5 mx-0.5" />
+                <div className="h-2 sm:h-3 w-[1px] bg-white/10 mx-0.5 sm:mx-1" />
               )}
             </React.Fragment>
           ))}

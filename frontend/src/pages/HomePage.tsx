@@ -59,64 +59,91 @@ export default function HomePage() {
         <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-orange-500/50 to-transparent opacity-50" />
 
         <div className="max-w-[1440px] mx-auto px-4 sm:px-6 relative z-10">
-          <div className="flex flex-wrap md:flex-nowrap items-center justify-between min-h-[44px] py-0 gap-3">
-            
-            {/* Logo Section - Ultra Compact */}
-            <div className="flex-shrink-0 flex items-center group">
-              <h1 className="text-sm sm:text-lg md:text-xl font-orbitron font-black tracking-tighter flex items-center flex-shrink-0 cursor-pointer">
-                <span className="text-transparent bg-gradient-to-b from-white via-orange-400 to-orange-600 bg-clip-text drop-shadow-[0_0_8px_rgba(249,115,22,0.3)]">
-                  URBAN
-                </span>
-                <span className="mx-1 text-transparent bg-gradient-to-b from-white via-blue-400 to-blue-600 bg-clip-text drop-shadow-[0_0_8px_rgba(59,130,246,0.3)]">
-                  CLASH
-                </span>
-                <span className="text-transparent bg-gradient-to-b from-white via-purple-400 to-purple-600 bg-clip-text drop-shadow-[0_0_8px_rgba(168,85,247,0.3)]">
-                  TEAM
-                </span>
+          {/* Desktop Navbar - Slim Single Line */}
+          <div className="hidden sm:flex items-center justify-between h-[44px] gap-4">
+            {/* Logo Section */}
+            <div className="flex items-center gap-3 flex-shrink-0">
+              <h1 className="text-xl font-orbitron font-black tracking-tighter flex items-center">
+                <span className="text-transparent bg-gradient-to-b from-white via-orange-400 to-orange-600 bg-clip-text">URBAN</span>
+                <span className="mx-1 text-transparent bg-gradient-to-b from-white via-blue-400 to-blue-600 bg-clip-text">CLASH</span>
+                <span className="text-transparent bg-gradient-to-b from-white via-purple-400 to-purple-600 bg-clip-text">TEAM</span>
               </h1>
+              <div className="h-3 w-[1px] bg-white/10 mx-1" />
+              <span className="text-[9px] font-black font-orbitron text-orange-500 tracking-[0.2em] border border-orange-500/20 px-1.5 py-0.5 bg-orange-500/5 whitespace-nowrap uppercase">
+                TEMPORADA 1
+              </span>
             </div>
 
-            {/* Tactical HUD Countdown */}
-            <div className="flex-grow flex justify-center min-w-0 scale-90 sm:scale-100">
+            {/* Countdown */}
+            <div className="flex-grow flex justify-center">
               {status === "scheduled" && remainingTime > 0 && (
                 <NavbarCountdown remainingTime={remainingTime} />
               )}
             </div>
 
-            {/* Authentication Matrix - Slimmed and Compact */}
-            <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
-              <button
-                onClick={handleGoogleLogin}
-                disabled={isGoogleLoginProcessing}
-                className="relative p-1.5 bg-white/5 border border-white/10 rounded hover:bg-white/10 hover:border-white/30 transition-all group disabled:opacity-30"
-              >
-                {isGoogleLoginProcessing ? (
-                  <FaSpinner className="animate-spin text-xs sm:text-sm text-orange-500" />
-                ) : (
-                  <FcGoogle className="text-xs sm:text-sm group-hover:rotate-12 transition-transform" />
-                )}
-                <div className="absolute -top-0.5 -right-0.5 w-1 h-1 bg-green-500 rounded-full blur-[1px] animate-pulse" />
+            {/* Auth Matrix */}
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <button onClick={handleGoogleLogin} className="p-1.5 bg-white/5 border border-white/10 rounded hover:bg-white/10 transition-all">
+                <FcGoogle className="text-base" />
               </button>
-
-              <div className="flex items-center gap-1 sm:gap-1.5">
+              <div className="flex items-center gap-2">
                 <button
                   onClick={() => openAuthModal("login")}
-                  className="relative group px-2 sm:px-4 py-1 overflow-hidden bg-orange-600/10 border border-orange-500/40 hover:bg-orange-600 transition-all duration-300"
+                  className="px-4 py-1 bg-orange-600/10 border border-orange-500/30 rounded text-[10px] font-orbitron text-orange-500 uppercase hover:bg-orange-500 hover:text-black transition-all"
                 >
-                  <span className="relative z-10 font-orbitron font-black text-[8px] sm:text-[10px] text-orange-400 group-hover:text-white tracking-[0.15em] uppercase">
-                    Login
-                  </span>
+                  LOGIN
                 </button>
-
                 <button
                   onClick={() => openAuthModal("register")}
-                  className="relative group px-2 sm:px-4 py-1 overflow-hidden bg-blue-600/10 border border-blue-500/40 hover:bg-blue-600 transition-all duration-300"
+                  className="px-4 py-1 bg-blue-600/10 border border-blue-500/30 rounded text-[10px] font-orbitron text-blue-400 uppercase hover:bg-blue-500 hover:text-black transition-all"
                 >
-                  <span className="relative z-10 font-orbitron font-black text-[8px] sm:text-[10px] text-blue-400 group-hover:text-white tracking-[0.15em] uppercase">
-                    Alistar
-                  </span>
+                  ALISTAR
                 </button>
               </div>
+            </div>
+          </div>
+
+          {/* Mobile Navbar - 3 Tier Tactical Stack (Simples) */}
+          <div className="flex sm:hidden flex-col gap-2 py-2">
+            {/* Identity - Linha Simples */}
+            <div className="flex items-center justify-between px-2">
+              <h1 className="text-sm font-orbitron font-black tracking-tighter">
+                <span className="text-transparent bg-gradient-to-b from-white via-orange-400 to-orange-600 bg-clip-text">URBAN</span>
+                <span className="mx-1 text-transparent bg-gradient-to-b from-white via-blue-400 to-blue-600 bg-clip-text">CLASH</span>
+                <span className="text-transparent bg-gradient-to-b from-white via-purple-400 to-purple-600 bg-clip-text">TEAM</span>
+              </h1>
+              <span className="text-[8px] font-black font-orbitron text-orange-500 tracking-[0.1em] border border-orange-500/20 px-1.5 py-0.5 bg-orange-500/5 uppercase">
+                TEMPORADA 1
+              </span>
+            </div>
+
+            {/* Mission Clock - Linha Simples */}
+            <div className="flex justify-center py-1">
+              {status === "scheduled" && remainingTime > 0 && (
+                <NavbarCountdown remainingTime={remainingTime} />
+              )}
+            </div>
+
+            {/* Tactical Ops - Linha Simples Compacta */}
+            <div className="flex items-center justify-center gap-1.5 px-2">
+              <button 
+                onClick={handleGoogleLogin} 
+                className="p-1.5 bg-white/5 border border-white/10 rounded-md active:bg-white/10"
+              >
+                <FcGoogle className="text-xs" />
+              </button>
+              <button
+                onClick={() => openAuthModal("login")}
+                className="px-4 h-7 flex items-center justify-center bg-orange-600/10 border border-orange-500/30 rounded-md text-[8px] font-orbitron text-orange-500 uppercase active:bg-orange-500 active:text-black transition-all"
+              >
+                LOGIN
+              </button>
+              <button
+                onClick={() => openAuthModal("register")}
+                className="px-4 h-7 flex items-center justify-center bg-blue-600/10 border border-blue-500/30 rounded-md text-[8px] font-orbitron text-blue-400 uppercase active:bg-blue-500 active:text-black transition-all"
+              >
+                ALISTAR
+              </button>
             </div>
           </div>
         </div>

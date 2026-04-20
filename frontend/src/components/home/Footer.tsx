@@ -7,6 +7,11 @@ export function Footer() {
 
   return (
     <footer className="relative bg-black py-12 px-6 border-t border-white/5 overflow-hidden">
+      {/* Background Cinematic Atmosphere */}
+      <div className="absolute bottom-0 left-0 w-[500px] h-[400px] bg-orange-600/5 blur-[100px] rounded-full pointer-events-none -translate-x-1/4 translate-y-1/2" />
+      <div className="absolute bottom-0 right-0 w-[500px] h-[400px] bg-blue-600/5 blur-[100px] rounded-full pointer-events-none translate-x-1/4 translate-y-1/2" />
+      <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-full h-[300px] bg-purple-600/5 blur-[150px] rounded-full pointer-events-none translate-y-1/2" />
+      
       {/* Background Technical Pattern */}
       <div className="absolute inset-0 opacity-[0.02] pointer-events-none" 
            style={{ backgroundImage: 'radial-gradient(#ffffff 1px, transparent 1px)', backgroundSize: '40px 40px' }} />

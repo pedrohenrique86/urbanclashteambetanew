@@ -45,6 +45,11 @@ export function FactionsSection() {
       id="factions"
       className="py-24 px-4 bg-black relative overflow-hidden flex flex-col items-center"
     >
+      {/* Background Cinematic Atmosphere */}
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1200px] h-[800px] bg-purple-600/10 blur-[130px] rounded-full pointer-events-none" />
+      <div className="absolute inset-0 opacity-[0.02] pointer-events-none bg-[length:50px_50px]" 
+           style={{ backgroundImage: 'radial-gradient(#ffffff 0.5px, transparent 0.5px)' }} />
+
       {/* Scanline Effect Global */}
       <div className="absolute inset-0 z-0 pointer-events-none opacity-[0.03] bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%),linear-gradient(90deg,rgba(255,0,0,0.06),rgba(0,255,0,0.02),rgba(0,0,255,0.06))] bg-[length:100%_2px,3px_100%]" />
 

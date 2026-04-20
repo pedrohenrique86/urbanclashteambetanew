@@ -34,6 +34,12 @@ export function AboutSection() {
 
   return (
     <section id="about" className="py-32 px-6 bg-black relative overflow-hidden">
+      {/* Background Cinematic Atmosphere */}
+      <div className="absolute top-0 right-0 w-[1000px] h-[800px] bg-orange-600/5 blur-[120px] rounded-full pointer-events-none translate-x-1/2 -translate-y-1/4" />
+      <div className="absolute bottom-0 left-0 w-[800px] h-[600px] bg-red-600/5 blur-[100px] rounded-full pointer-events-none -translate-x-1/3 translate-y-1/3" />
+      <div className="absolute inset-0 opacity-[0.02] pointer-events-none bg-[length:60px_60px]" 
+           style={{ backgroundImage: 'radial-gradient(#ffffff 0.5px, transparent 0.5px)' }} />
+
       {/* Background HUD Elements */}
       <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
       <div className="absolute top-10 left-10 text-[8px] font-mono text-white/5 tracking-[0.4em] uppercase pointer-events-none origin-left rotate-90 hidden lg:block">
