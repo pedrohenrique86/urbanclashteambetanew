@@ -119,10 +119,7 @@ export default function HomePage() {
 
       <PrizesSection />
 
-      <Footer
-        onLoginClick={() => openAuthModal("login")}
-        onRegisterClick={() => openAuthModal("register")}
-      />
+      <Footer />
 
       {/* Auth Modal */}
       {showAuthModal && (

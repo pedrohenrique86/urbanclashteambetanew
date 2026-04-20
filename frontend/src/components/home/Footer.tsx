@@ -1,66 +1,72 @@
 import React from 'react';
 import { motion } from 'framer-motion';
+import { FaDiscord, FaYoutube, FaInstagram, FaWikipediaW } from 'react-icons/fa';
 
-interface FooterProps {
-  onLoginClick: () => void;
-  onRegisterClick: () => void;
-}
+export function Footer() {
+  const currentYear = new Date().getFullYear();
 
-export function Footer({ onLoginClick, onRegisterClick }: FooterProps) {
   return (
-    <motion.footer
-      initial={{ opacity: 0 }}
-      whileInView={{ opacity: 1 }}
-      transition={{ duration: 0.8 }}
-      viewport={{ once: true }}
-      className="bg-gradient-to-t from-black to-gray-900 py-16 px-4 border-t border-gray-800"
-    >
-      <div className="max-w-6xl mx-auto text-center">
-        <motion.h2
-          initial={{ opacity: 0, y: 30 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2, duration: 0.6 }}
-          viewport={{ once: true }}
-          className="text-4xl md:text-5xl font-orbitron font-bold mb-6 bg-gradient-to-r from-orange-400 to-red-500 bg-clip-text text-transparent"
-        >
-          URBAN CLASH TEAM
-        </motion.h2>
+    <footer className="relative bg-black py-12 px-6 border-t border-white/5 overflow-hidden">
+      {/* Background Technical Pattern */}
+      <div className="absolute inset-0 opacity-[0.02] pointer-events-none" 
+           style={{ backgroundImage: 'radial-gradient(#ffffff 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
+      
+      <div className="max-w-7xl mx-auto relative z-10">
+        <div className="flex flex-col md:flex-row items-center justify-between gap-8">
+          
+          {/* Brand & Season */}
+          <div className="flex flex-col items-center md:items-start gap-2">
+            <div className="flex items-center font-orbitron font-bold text-xl tracking-tighter">
+              <span className="text-transparent bg-gradient-to-r from-orange-400 to-orange-600 bg-clip-text font-bold">
+                URBAN
+              </span>
+              <span className="mx-1 text-transparent bg-gradient-to-r from-blue-400 to-blue-600 bg-clip-text font-bold">
+                CLASH
+              </span>
+              <span className="text-transparent bg-gradient-to-r from-purple-400 to-purple-600 bg-clip-text font-bold">
+                TEAM
+              </span>
+            </div>
+            <div className="flex items-center gap-3">
+              <span className="text-[10px] font-black font-orbitron text-orange-600 tracking-[0.3em] uppercase bg-orange-600/10 px-2 py-0.5 rounded">
+                TEMPORADA 1
+              </span>
+              <span className="text-[10px] text-gray-700 font-orbitron tracking-widest uppercase">
+                V2.4.0-BETA
+              </span>
+            </div>
+          </div>
 
-        <motion.p
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4, duration: 0.6 }}
-          viewport={{ once: true }}
-          className="text-gray-400 mb-8 text-lg"
-        >
-          © 2024 Urban Clash Team. Todos os direitos reservados.
-        </motion.p>
+          {/* Social Icons */}
+          <div className="flex gap-4">
+            {[
+              { Icon: FaDiscord, href: "#" },
+              { Icon: FaYoutube, href: "#" },
+              { Icon: FaInstagram, href: "#" },
+              { Icon: FaWikipediaW, href: "#" }
+            ].map(({ Icon, href }, i) => (
+              <motion.a
+                key={i}
+                href={href}
+                whileHover={{ y: -3, color: '#f97316', borderColor: 'rgba(249, 115, 22, 0.3)' }}
+                className="w-11 h-11 border border-white/5 rounded-full flex items-center justify-center text-gray-500 transition-all duration-300 bg-white/5 hover:bg-orange-500/5 shadow-lg"
+              >
+                <Icon size={20} />
+              </motion.a>
+            ))}
+          </div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.6, duration: 0.6 }}
-          viewport={{ once: true }}
-          className="flex flex-col sm:flex-row gap-4 justify-center items-center"
-        >
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={onLoginClick}
-            className="px-8 py-3 bg-gradient-to-r from-orange-500 to-orange-600 text-white font-bold rounded-lg hover:from-orange-600 hover:to-orange-700 transition-all duration-300 shadow-lg hover:shadow-orange-500/25"
-          >
-            ENTRAR
-          </motion.button>
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={onRegisterClick}
-            className="px-8 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white font-bold rounded-lg hover:from-blue-600 hover:to-blue-700 transition-all duration-300 shadow-lg hover:shadow-blue-500/25"
-          >
-            REGISTRAR
-          </motion.button>
-        </motion.div>
+          {/* Copyright Section */}
+          <div className="flex flex-col items-center md:items-end gap-1 font-orbitron">
+            <span className="text-[9px] text-gray-600 tracking-[0.2em]">© {currentYear} TODOS OS DIREITOS RESERVADOS</span>
+            <div className="flex items-center gap-2 text-[8px] text-gray-700 tracking-widest">
+              <span className="w-1 h-1 rounded-full bg-green-500/50" />
+              SISTEMA OPERACIONAL
+            </div>
+          </div>
+
+        </div>
       </div>
-    </motion.footer>
+    </footer>
   );
 }
