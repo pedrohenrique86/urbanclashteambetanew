@@ -112,7 +112,7 @@ export const DynamicBackground: React.FC = () => {
       {/* Layer 2: Active Background (fades in when ready) */}
       {activeImage && (
         <div
-          className={`fixed inset-0 z-[-2] bg-cover ${config?.position || "bg-center"} transition-opacity duration-500 ease-out ${
+          className={`fixed inset-0 z-[-2] bg-cover ${config?.position || "bg-center"} transition-opacity ${isMobile ? "duration-200" : "duration-500"} ease-out ${
             isNewReady ? "opacity-100" : "opacity-0"
           } ${config?.blur ? "blur-md scale-105" : ""}`}
           style={{ backgroundImage: `url(${activeImage})` }}
@@ -121,7 +121,7 @@ export const DynamicBackground: React.FC = () => {
 
       {/* Layer 3: Dynamic Overlay */}
       {config?.overlay && (
-        <div className={`fixed inset-0 z-[-1] pointer-events-none transition-opacity duration-500 ${config.overlay}`} />
+        <div className={`fixed inset-0 z-[-1] pointer-events-none transition-opacity ${isMobile ? "duration-200" : "duration-500"} ${config.overlay}`} />
       )}
     </>
   );

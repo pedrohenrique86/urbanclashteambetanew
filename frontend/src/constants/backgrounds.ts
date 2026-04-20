@@ -33,6 +33,7 @@ import zonaSocialBg from "../assets/zona-social.webp";
 import trainingGuardioes from "../assets/training-guardioes.webp";
 import trainingRenegados from "../assets/training-renegados.webp";
 import vipAccessBg from "../assets/vip-access.webp";
+import seasonBg from "../assets/season.webp";
 import { FACTION_ALIAS_MAP_FRONTEND } from "../utils/faction";
 
 export interface BackgroundConfig {
@@ -183,6 +184,11 @@ export const PAGE_BACKGROUNDS: BackgroundMap = {
   "/restricted-store": {
     src: restrictedStoreBg,
     overlay: "bg-black/60",
+    position: "bg-center",
+  },
+  "/season": {
+    src: seasonBg,
+    overlay: "bg-black/50",
     position: "bg-center",
   },
   // Future pages can be registered here easily

@@ -1,6 +1,7 @@
 import React from "react";
 import { motion } from "framer-motion";
 import { useUserProfileContext } from "../../contexts/UserProfileContext";
+import { FACTION_ALIAS_MAP_FRONTEND } from "../../utils/faction";
 
 interface UnderConstructionProps {
   title: string;
@@ -11,11 +12,12 @@ interface UnderConstructionProps {
 export const UnderConstruction: React.FC<UnderConstructionProps> = ({ title, icon, description }) => {
   const { userProfile } = useUserProfileContext();
   
-  // Extrai o nome da facção de forma defensiva
   const rawFaction = userProfile?.faction as any;
   const factionName = typeof rawFaction === 'string' ? rawFaction : (rawFaction?.name || 'gangsters');
     
-  const isGangster = factionName.toLowerCase().includes("gangster");
+  const factionKey = String(factionName).toLowerCase().trim();
+  const canonicalFaction = FACTION_ALIAS_MAP_FRONTEND[factionKey] || 'gangsters';
+  const isGangster = canonicalFaction === "gangsters";
 
   const theme = isGangster 
     ? {
