@@ -16,7 +16,7 @@ export function FactionsSection() {
       image: cardRenegado,
       color: "text-orange-500",
       glow: "bg-orange-500",
-      hover: "group-hover:text-orange-400",
+      activeColor: "group-hover:text-orange-400",
     },
     {
       id: "002",
@@ -26,7 +26,7 @@ export function FactionsSection() {
       image: cardGuardiao,
       color: "text-blue-500",
       glow: "bg-blue-500",
-      hover: "group-hover:text-blue-400",
+      activeColor: "group-hover:text-blue-400",
     },
     {
       id: "003",
@@ -36,7 +36,7 @@ export function FactionsSection() {
       image: cardDivisoes,
       color: "text-purple-500",
       glow: "bg-purple-500",
-      hover: "group-hover:text-purple-400",
+      activeColor: "group-hover:text-purple-400",
     },
   ];
 
@@ -67,33 +67,35 @@ export function FactionsSection() {
           />
         </div>
 
-        <div className="grid md:grid-cols-3 gap-6 lg:gap-8">
+        <div className="grid md:grid-cols-3 gap-10 md:gap-6 lg:gap-8">
           {factions.map((f, i) => (
             <motion.div
               key={f.id}
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.1 }}
               viewport={{ once: true }}
+              transition={{ delay: i * 0.1 }}
               className="relative group cursor-pointer"
             >
               <div
-                className="relative aspect-[3/4] overflow-hidden transition-all duration-500 
-                border border-white/10 group-hover:border-white/30 rounded-lg"
+                className="relative aspect-[3/4] overflow-hidden rounded-lg border border-white/10 
+                md:group-hover:border-white/30 transition-all duration-500 shadow-2xl"
               >
                 {/* Image Treatment */}
-                <div className="absolute inset-0 bg-gray-900 group-hover:bg-transparent transition-colors">
+                <div className="absolute inset-0 bg-gray-950">
                   <img
                     src={f.image}
                     alt={f.name}
                     className="absolute inset-0 w-full h-full object-cover 
-                    brightness-[0.4] group-hover:brightness-[0.7] saturate-0 group-hover:saturate-100 transition-all duration-700
-                    group-hover:animate-flicker"
+                    brightness-[0.8] saturate-100
+                    md:brightness-[0.4] md:saturate-0
+                    md:group-hover:brightness-[0.8] md:group-hover:saturate-100 
+                    transition-all duration-700"
                   />
                 </div>
 
                 {/* Overlays */}
-                <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black via-black/80 to-transparent z-[6]" />
+                <div className="absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-black via-black/80 to-transparent z-[6]" />
                 
                 {/* Technical HUD elements */}
                 <div className="absolute top-4 left-4 flex flex-col font-orbitron z-[7]">
@@ -102,50 +104,27 @@ export function FactionsSection() {
 
                 {/* Main Content */}
                 <div className="absolute bottom-6 left-6 right-6 z-[10]">
-                  <motion.div className="flex flex-col gap-2">
-                    <span className={`text-[10px] font-bold tracking-[0.3em] uppercase ${f.color}`}>{f.tag}</span>
+                  <div className="flex flex-col gap-2">
+                    <span className={`text-[10px] font-bold tracking-[0.3em] uppercase ${f.color}`}>
+                      {f.tag}
+                    </span>
                     
-                    <h3 className={`text-2xl font-black font-orbitron tracking-tighter text-white transition-colors duration-300 ${f.hover}`}>
+                    <h3 className={`text-2xl font-black font-orbitron tracking-tighter text-white transition-colors duration-300 ${f.activeColor}`}>
                       {f.name}
                     </h3>
                     
-                    <div className="h-0 group-hover:h-auto overflow-hidden transition-all duration-500 ease-out">
-                      <p className="text-[10px] text-gray-400 leading-relaxed font-exo tracking-wide opacity-0 group-hover:opacity-100 transition-opacity duration-500 delay-100">
+                    <div className="md:h-0 md:group-hover:h-auto overflow-hidden transition-all duration-500 ease-out">
+                      <p className="text-[10px] text-gray-400 leading-relaxed font-exo tracking-wide md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-500">
                         {f.desc}
                       </p>
                     </div>
-                  </motion.div>
+                  </div>
                 </div>
-
-                {/* Vertical Scanner Line */}
-                <div className="absolute inset-y-0 w-px bg-white/20 left-0 group-hover:animate-scanner-h pointer-events-none z-20" />
               </div>
-              
-              {/* Subtle outer glow dynamic */}
-              <div className={`absolute inset-0 opacity-0 group-hover:opacity-10 transition-opacity duration-700 blur-[40px] pointer-events-none ${f.glow}`} />
             </motion.div>
           ))}
         </div>
       </div>
-      
-      <style>{`
-        @keyframes scanner-h {
-          0% { left: 0% }
-          100% { left: 100% }
-        }
-        @keyframes flicker {
-          0% { filter: brightness(0.7) contrast(1); }
-          5% { filter: brightness(1.1) contrast(1.1) saturate(1.2); }
-          10% { filter: brightness(0.7) contrast(1); }
-          100% { filter: brightness(0.7) contrast(1); }
-        }
-        .animate-scanner-h {
-          animation: scanner-h 3s linear infinite;
-        }
-        .animate-flicker {
-          animation: flicker 5s steps(1) infinite;
-        }
-      `}</style>
     </section>
   );
 }
