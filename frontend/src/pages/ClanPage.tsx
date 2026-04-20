@@ -64,7 +64,7 @@ export default function ClanPage() {
         ring: "ring-blue-400",
         accent: "text-blue-400",
       };
-  }, [clan?.faction, userProfile?.faction?.name, userProfile?.faction]);
+  }, [clan?.faction, userProfile?.faction]);
 
   const availableSlots = useMemo(() => {
     if (!clan) return 0;
