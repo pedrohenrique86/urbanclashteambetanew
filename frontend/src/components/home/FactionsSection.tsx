@@ -12,7 +12,7 @@ export function FactionsSection() {
       id: "001",
       name: "RENEGADOS",
       tag: "OUTLAW_CELL",
-      desc: "Os donos da noite. Movidos pelo caos e pela liberdade das ruas cercadas por neon.",
+      desc: "Os donos da noite. Operando nas sombras com táticas de guerrilha urbana e liberdade absoluta.",
       image: cardRenegado,
       color: "text-orange-500",
       glow: "bg-orange-500",
@@ -22,7 +22,7 @@ export function FactionsSection() {
       id: "002",
       name: "GUARDIÕES",
       tag: "ENFORCER_UNIT",
-      desc: "Defensores da ordem corporativa. Equipados com tecnologia de ponta para manter a paz.",
+      desc: "A sentinela de ferro. Defendendo a ordem com tecnologia de ponta e protocolo rigoroso.",
       image: cardGuardiao,
       color: "text-blue-500",
       glow: "bg-blue-500",
@@ -32,7 +32,7 @@ export function FactionsSection() {
       id: "003",
       name: "DIVISÕES",
       tag: "TECH_CORP",
-      desc: "Divisões técnicas e estratégicas. Eles controlam os dados e a energia da cidade.",
+      desc: "O cérebro da rede. Estrategistas que moldam o futuro através do domínio cibernético.",
       image: cardDivisoes,
       color: "text-purple-500",
       glow: "bg-purple-500",
@@ -47,29 +47,33 @@ export function FactionsSection() {
     >
       {/* Background Cinematic Atmosphere */}
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1200px] h-[800px] bg-purple-600/10 blur-[130px] rounded-full pointer-events-none" />
-      <div className="absolute inset-0 opacity-[0.02] pointer-events-none bg-[length:50px_50px]" 
-           style={{ backgroundImage: 'radial-gradient(#ffffff 0.5px, transparent 0.5px)' }} />
-
-      {/* Scanline Effect Global */}
-      <div className="absolute inset-0 z-0 pointer-events-none opacity-[0.03] bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%),linear-gradient(90deg,rgba(255,0,0,0.06),rgba(0,255,0,0.02),rgba(0,0,255,0.06))] bg-[length:100%_2px,3px_100%]" />
-
+      
       <div className="max-w-5xl w-full relative z-10">
-        <div className="flex flex-col items-center mb-16 overflow-hidden text-center">
-          <motion.h2
-            initial={{ opacity: 0, y: -10 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="text-xs md:text-sm font-orbitron font-bold tracking-[0.5em] text-white flex items-center justify-center gap-4"
-          >
-            <span className="text-gray-500">[</span> ESCOLHA SEU LADO <span className="text-gray-500">]</span>
-          </motion.h2>
+        {/* ENFEITE APENAS NESTE TEXTO [ESCOLHA SEU LADO] */}
+        <div className="flex flex-col items-center mb-16 text-center">
           <motion.div
-            initial={{ width: 0 }}
-            whileInView={{ width: "100px" }}
+            initial={{ opacity: 0, scale: 0.95 }}
+            whileInView={{ opacity: 1, scale: 1 }}
             viewport={{ once: true }}
-            transition={{ delay: 0.3 }}
-            className="h-[1px] bg-gray-800 mt-4"
-          />
+            className="relative"
+          >
+            {/* Decorações HUD em volta do texto */}
+            <div className="absolute -top-4 -left-8 w-4 h-4 border-t-2 border-l-2 border-orange-500/50" />
+            <div className="absolute -bottom-4 -right-8 w-4 h-4 border-b-2 border-r-2 border-blue-500/50" />
+            
+            <h2 className="text-lg md:text-2xl font-orbitron font-black tracking-[0.4em] uppercase italic flex flex-col items-center">
+              <span className="text-transparent bg-clip-text bg-gradient-to-b from-white via-gray-200 to-gray-500 drop-shadow-[0_0_15px_rgba(255,255,255,0.3)]">
+                <span className="text-orange-500 mr-2">[</span>
+                ESCOLHA SEU LADO
+                <span className="text-blue-500 ml-2">]</span>
+              </span>
+              <div className="flex items-center gap-2 mt-1 w-full scale-x-110">
+                <div className="h-[1px] flex-1 bg-gradient-to-r from-transparent via-orange-500 to-transparent" />
+                <div className="w-1.5 h-1.5 bg-white rotate-45 animate-pulse" />
+                <div className="h-[1px] flex-1 bg-gradient-to-l from-transparent via-blue-500 to-transparent" />
+              </div>
+            </h2>
+          </motion.div>
         </div>
 
         <div className="grid md:grid-cols-3 gap-10 md:gap-6 lg:gap-8">
@@ -102,12 +106,12 @@ export function FactionsSection() {
                 {/* Overlays */}
                 <div className="absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-black via-black/80 to-transparent z-[6]" />
                 
-                {/* Technical HUD elements */}
+                {/* ID - SIMPLES */}
                 <div className="absolute top-4 left-4 flex flex-col font-orbitron z-[7]">
-                  <span className={`text-[9px] font-bold tracking-[0.2em] ${f.color}`}>ID_{f.id}</span>
+                  <span className={`text-[9px] font-bold tracking-[0.2em] ${f.color} opacity-70`}>ID_{f.id}</span>
                 </div>
 
-                {/* Main Content */}
+                {/* Main Content - SIMPLES */}
                 <div className="absolute bottom-6 left-6 right-6 z-[10]">
                   <div className="flex flex-col gap-2">
                     <span className={`text-[10px] font-bold tracking-[0.3em] uppercase ${f.color}`}>

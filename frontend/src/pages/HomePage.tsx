@@ -83,19 +83,22 @@ export default function HomePage() {
 
             {/* Auth Matrix */}
             <div className="flex items-center gap-2 flex-shrink-0">
-              <button onClick={handleGoogleLogin} className="p-1.5 bg-white/5 border border-white/10 rounded hover:bg-white/10 transition-all">
-                <FcGoogle className="text-base" />
+              <button 
+                onClick={handleGoogleLogin} 
+                className="h-[32px] w-[32px] flex items-center justify-center bg-white/5 border border-white/10 rounded hover:bg-white/10 transition-all"
+              >
+                <FcGoogle className="text-lg" />
               </button>
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => openAuthModal("login")}
-                  className="px-4 py-1 bg-orange-600/10 border border-orange-500/30 rounded text-[10px] font-orbitron text-orange-500 uppercase hover:bg-orange-500 hover:text-black transition-all"
+                  className="h-[32px] px-5 bg-orange-600/10 border border-orange-500/30 rounded text-[11px] font-orbitron font-black text-orange-500 uppercase hover:bg-orange-500 hover:text-black transition-all flex items-center justify-center"
                 >
                   LOGIN
                 </button>
                 <button
                   onClick={() => openAuthModal("register")}
-                  className="px-4 py-1 bg-blue-600/10 border border-blue-500/30 rounded text-[10px] font-orbitron text-blue-400 uppercase hover:bg-blue-500 hover:text-black transition-all"
+                  className="h-[32px] px-5 bg-blue-600/10 border border-blue-500/30 rounded text-[11px] font-orbitron font-black text-blue-400 uppercase hover:bg-blue-500 hover:text-black transition-all flex items-center justify-center"
                 >
                   ALISTAR
                 </button>
@@ -128,19 +131,19 @@ export default function HomePage() {
             <div className="flex items-center justify-center gap-2.5 px-2">
               <button 
                 onClick={handleGoogleLogin} 
-                className="p-2.5 bg-white/5 border border-white/10 rounded-md active:bg-white/10"
+                className="h-10 w-10 flex items-center justify-center bg-white/5 border border-white/10 rounded-md active:bg-white/10"
               >
-                <FcGoogle className="text-base" />
+                <FcGoogle className="text-xl" />
               </button>
               <button
                 onClick={() => openAuthModal("login")}
-                className="flex-1 max-w-[130px] h-10 flex items-center justify-center bg-orange-600/10 border border-orange-500/30 rounded-md text-[11px] font-orbitron text-orange-500 uppercase active:bg-orange-500 active:text-black transition-all shadow-[0_0_15px_rgba(249,115,22,0.15)]"
+                className="flex-1 max-w-[130px] h-10 flex items-center justify-center bg-orange-600/10 border border-orange-500/30 rounded-md text-[11px] font-orbitron font-black text-orange-500 uppercase active:bg-orange-500 active:text-black transition-all shadow-[0_0_15px_rgba(249,115,22,0.15)]"
               >
                 LOGIN
               </button>
               <button
                 onClick={() => openAuthModal("register")}
-                className="flex-1 max-w-[130px] h-10 flex items-center justify-center bg-blue-600/10 border border-blue-500/30 rounded-md text-[11px] font-orbitron text-blue-400 uppercase active:bg-blue-500 active:text-black transition-all shadow-[0_0_15px_rgba(59,130,246,0.15)]"
+                className="flex-1 max-w-[130px] h-10 flex items-center justify-center bg-blue-600/10 border border-blue-500/30 rounded-md text-[11px] font-orbitron font-black text-blue-400 uppercase active:bg-blue-500 active:text-black transition-all shadow-[0_0_15px_rgba(59,130,246,0.15)]"
               >
                 ALISTAR
               </button>

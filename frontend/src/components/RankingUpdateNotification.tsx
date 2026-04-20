@@ -29,62 +29,42 @@ export default function RankingUpdateNotification({
     <AnimatePresence>
       {show && (
         <motion.div
-          initial={{ opacity: 0, y: -20, x: "-50%", scale: 0.95 }}
-          animate={{ opacity: 1, y: 0, x: "-50%", scale: 1 }}
-          exit={{ opacity: 0, y: -20, x: "-50%", scale: 0.95 }}
-          className="fixed top-[180px] sm:top-20 left-1/2 z-[200] w-[90%] max-w-[400px] pointer-events-none"
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: 10 }}
+          className="fixed top-[180px] sm:top-24 right-4 sm:right-8 z-[200] pointer-events-none"
         >
-          {/* Tactical Container */}
-          <div className="relative group">
-            {/* Background with Blur and Texture */}
-            <div className="absolute inset-0 bg-zinc-950/90 backdrop-blur-xl border border-white/10 rounded-lg overflow-hidden shadow-[0_0_30px_rgba(0,0,0,0.5)]" />
+          {/* Tactical Container - Lighter Version */}
+          <div className="relative group overflow-hidden">
+            <div className="absolute inset-0 bg-zinc-950/80 backdrop-blur-md border border-cyan-500/20 rounded-sm" />
             
-            {/* Top Tactical Bar */}
-            <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-cyan-500 to-transparent" />
-            
-            {/* Content Area */}
-            <div className="relative px-5 py-4 flex items-center gap-4">
-              {/* Icon Container */}
-              <div className="relative flex-shrink-0 w-10 h-10 flex items-center justify-center">
-                <div className="absolute inset-0 bg-cyan-500/10 rounded-lg transform rotate-45 border border-cyan-500/30" />
-                <RefreshCcw className="w-5 h-5 text-cyan-400 rotate-0 animate-spin-slow" style={{ animationDuration: '4s' }} />
+            <div className="relative px-4 py-3 flex items-center gap-3">
+              <div className="relative flex-shrink-0 w-8 h-8 flex items-center justify-center">
+                <div className="absolute inset-0 bg-cyan-500/5 rounded-sm border border-cyan-500/20" />
+                <RefreshCcw className="w-4 h-4 text-cyan-400 animate-spin-slow" style={{ animationDuration: '6s' }} />
               </div>
 
-              {/* Text Info */}
               <div className="flex flex-col">
-                <div className="flex items-center gap-2">
-                  <span className="text-[10px] font-orbitron font-black text-cyan-500 tracking-widest uppercase">
-                    SYSTEM_UPDATE
-                  </span>
-                  <div className="w-1 h-1 bg-cyan-500 rounded-full animate-pulse" />
-                </div>
-                <h3 className="text-sm font-exo text-white/90 leading-tight">
-                  Status Global do Ranking Atualizado
-                </h3>
-                <p className="text-[11px] font-orbitron text-white/40 mt-1">
-                  TIMESTAMP: <span className="text-white/60 font-black">{formattedTime}</span>
+                <span className="text-[9px] font-orbitron font-black text-white/40 tracking-widest uppercase">
+                  SYSTEM_SYNC
+                </span>
+                <p className="text-[10px] font-mono text-cyan-400/80 uppercase">
+                  RANKING_ATUALIZADO: {formattedTime}
                 </p>
               </div>
 
-              {/* Bell Icon Decoration */}
-              <div className="ml-auto opacity-20 group-hover:opacity-100 transition-opacity">
-                <Bell className="w-4 h-4 text-cyan-500" />
-              </div>
+              <Bell className="w-3 h-3 text-cyan-500/30 ml-2" />
             </div>
 
-            {/* Auto-Hide Progress Bar */}
-            <div className="absolute bottom-0 left-0 h-[1.5px] bg-cyan-500">
+            {/* Subtle Progress Bar */}
+            <div className="absolute bottom-0 left-0 h-[1px] bg-cyan-500/20 w-full">
               <motion.div 
                 initial={{ width: "100%" }}
                 animate={{ width: "0%" }}
                 transition={{ duration: 5, ease: "linear" }}
-                className="h-full bg-cyan-500 shadow-[0_0_10px_rgba(6,182,212,0.5)]"
+                className="h-full bg-cyan-400 shadow-[0_0_8px_rgba(34,211,238,0.4)]"
               />
             </div>
-
-            {/* Corner Details */}
-            <div className="absolute top-0 right-0 w-4 h-4 border-t border-r border-cyan-500/30 rounded-tr-lg" />
-            <div className="absolute bottom-0 left-0 w-4 h-4 border-b border-l border-cyan-500/30 rounded-bl-lg" />
           </div>
         </motion.div>
       )}

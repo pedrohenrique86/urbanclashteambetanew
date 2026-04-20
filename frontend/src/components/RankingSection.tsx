@@ -29,9 +29,14 @@ export default function RankingSection() {
   const { data, loading, error, lastUpdated } = useRankingCache();
   const [showNotification, setShowNotification] = useState(false);
   const { gangsters, guardas, clans } = data;
+  const isFirstMount = React.useRef(true);
 
   React.useEffect(() => {
     if (lastUpdated) {
+      if (isFirstMount.current) {
+        isFirstMount.current = false;
+        return;
+      }
       setShowNotification(true);
       const timer = setTimeout(() => setShowNotification(false), 5000);
       return () => clearTimeout(timer);
@@ -60,7 +65,7 @@ export default function RankingSection() {
 
   const clanConfig = {
     title: "DIVISÕES DE ELITE",
-    code: "CL-TOP-05",
+    code: "DV-TOP-05",
     gradient: "from-purple-500 via-purple-400 to-purple-600",
     glow: "shadow-[0_0_20px_rgba(168,85,247,0.1)]",
     borderColor: "border-purple-500/20",
@@ -71,11 +76,23 @@ export default function RankingSection() {
   const rankingConfigs = [gangsterConfig, guardConfig, clanConfig];
 
   return (
-    <section id="rankings" className="py-32 px-6 bg-black relative overflow-hidden">
-      {/* Background Cinematic Atmosphere */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1400px] h-[900px] bg-blue-600/5 blur-[150px] rounded-full pointer-events-none" />
-      <div className="absolute inset-0 opacity-[0.03] pointer-events-none bg-[length:40px_40px]" 
-           style={{ backgroundImage: 'radial-gradient(#ffffff 0.5px, transparent 0.5px)' }} />
+    <section id="rankings" className="py-24 sm:py-32 px-4 sm:px-6 bg-[#020205] relative overflow-hidden">
+      {/* Background Cinematic Atmosphere - Multi-layered */}
+      <div className="absolute top-0 left-0 w-full h-full">
+        <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-orange-600/5 blur-[120px] rounded-full pointer-events-none animate-pulse" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-blue-600/5 blur-[120px] rounded-full pointer-events-none animate-pulse" style={{ animationDelay: '2s' }} />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[100%] h-[100%] bg-purple-600/[0.02] blur-[150px] rounded-full pointer-events-none" />
+      </div>
+
+      {/* Hex Grid Texture */}
+      <div className="absolute inset-0 opacity-[0.05] pointer-events-none" 
+           style={{ 
+             backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M30 0l25.98 15v30L30 60 4.02 45V15z' fill-rule='evenodd' stroke='%23ffffff' stroke-width='0.5' fill='none'/%3E%3C/svg%3E")`,
+             backgroundSize: '80px 80px'
+           }} />
+      
+      {/* Scanline Overlay */}
+      <div className="absolute inset-0 bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.1)_50%),linear-gradient(90deg,rgba(255,0,0,0.02),rgba(0,255,0,0.01),rgba(0,0,255,0.02))] z-0 pointer-events-none bg-[length:100%_4px,3px_100%]" />
 
       {/* HUD Background Decorations */}
       {showNotification && lastUpdated && (
@@ -83,24 +100,24 @@ export default function RankingSection() {
       )}
 
       <div className="max-w-7xl mx-auto relative z-10">
-        <div className="text-center mb-20">
+        <div className="text-center mb-16 sm:mb-24">
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             whileInView={{ opacity: 1, scale: 1 }}
             viewport={{ once: true }}
-            className="inline-flex items-center gap-3 px-4 py-1 border border-white/10 rounded-full mb-6 bg-white/5"
+            className="inline-flex items-center gap-3 px-4 py-1.5 border border-white/10 rounded-full mb-8 bg-white/5 backdrop-blur-md shadow-[0_0_20px_rgba(255,255,255,0.05)]"
           >
-            <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-            <span className="text-[10px] font-orbitron font-bold tracking-[0.3em] text-gray-400">LEADERBOARD_SYSTEM_LIVE</span>
+            <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.5)]" />
+            <span className="text-[10px] sm:text-[11px] font-orbitron font-bold tracking-[0.4em] text-gray-300">LEADERBOARD_SYSTEM_LIVE</span>
           </motion.div>
           
           <motion.h2
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="text-5xl md:text-7xl font-orbitron font-black tracking-tighter text-white mb-4"
+            className="text-4xl md:text-6xl lg:text-7xl font-orbitron font-black tracking-tighter text-white mb-6 uppercase"
           >
-            QUADRO DE <span className="text-transparent bg-clip-text bg-gradient-to-r from-gray-200 to-gray-500">HONRA</span>
+            QUADRO DE <span className="text-transparent bg-clip-text bg-gradient-to-b from-white via-white to-gray-500 drop-shadow-[0_0_30px_rgba(255,255,255,0.1)]">HONRA</span>
           </motion.h2>
           
           <motion.div
@@ -146,7 +163,7 @@ export default function RankingSection() {
                       return (
                         <div key={item.id} className="group transition-all duration-300">
                           {isPlayer(item) ? (
-                            <PlayerRankingItem player={item} bgColor="bg-white/[0.03] group-hover:bg-white/[0.08]" />
+                            <PlayerRankingItem player={item} forceFaction={config.type} bgColor="bg-white/[0.03] group-hover:bg-white/[0.08]" />
                           ) : isClan(item) ? (
                             <ClanRankingItem clan={item} bgColor="bg-white/[0.03] group-hover:bg-white/[0.08]" />
                           ) : null}

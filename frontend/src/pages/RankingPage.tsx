@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { Player, Clan } from "../types/ranking";
 import { useRankingCache } from "../hooks/useRankingCache";
 import { useHUD } from "../contexts/HUDContext";
+import { Skull, ShieldCheck, Shield, Users, Target, Crosshair, ShieldAlert } from "lucide-react";
 
 // Componente para item do ranking de jogadores
 const PlayerRankingItem = React.memo(function PlayerRankingItem({ player, gradient, onSelect }: {
@@ -17,30 +18,26 @@ const PlayerRankingItem = React.memo(function PlayerRankingItem({ player, gradie
     return `https://flagcdn.com/24x18/${countryCode.toLowerCase()}.png`;
   };
 
+  const factionName = player.faction?.toLowerCase() || "";
+  const isGuard = factionName.includes("guard") || factionName.includes("polic") || factionName.includes("guarda");
+  const FactionIcon = isGuard ? Shield : Skull;
+
   const getPositionColor = (position: number) => {
     switch (position) {
-      case 1:
-        return "text-yellow-400";
-      case 2:
-        return "text-gray-300";
-      case 3:
-        return "text-orange-500";
-      default:
-        return "text-gray-400";
+      case 1: return "text-yellow-400";
+      case 2: return "text-gray-300";
+      case 3: return isGuard ? "text-cyan-400" : "text-orange-500";
+      default: return isGuard ? "text-blue-400" : "text-orange-500";
     }
   };
 
   const getPositionDisplay = (position?: number) => {
     if (!position) return "—";
     switch (position) {
-      case 1:
-        return "🏆";
-      case 2:
-        return "🥈";
-      case 3:
-        return "🥉";
-      default:
-        return position;
+      case 1: return "🏆";
+      case 2: return "🥈";
+      case 3: return "🥉";
+      default: return position;
     }
   };
 
@@ -67,20 +64,21 @@ const PlayerRankingItem = React.memo(function PlayerRankingItem({ player, gradie
                   src={getCountryFlag(player.country)!}
                   alt={player.country}
                   title={player.country}
+                  className="w-4 h-3 object-cover"
                 />
               ) : (
                 "🏳️"
               )}
             </span>
 
-            <span className="min-w-0 flex-1 truncate text-sm font-bold text-white group-hover:text-blue-400">
+            <span className={`min-w-0 flex-1 truncate text-sm font-bold text-white ${isGuard ? 'group-hover:text-blue-400' : 'group-hover:text-orange-500'} transition-colors`}>
               {player.username}
             </span>
           </div>
 
           <div className="ml-1 flex-shrink-0 text-right">
-            <div className="whitespace-nowrap text-sm font-bold text-white">
-              Nível {player.level}
+            <div className={`whitespace-nowrap text-[10px] font-orbitron font-black uppercase ${isGuard ? 'text-blue-400/80' : 'text-orange-500/80'}`}>
+              NVL <span className="text-white text-sm">{player.level}</span>
             </div>
           </div>
         </div>
@@ -126,6 +124,10 @@ const ClanRankingItem = React.memo(function ClanRankingItem({ clan, gradient, on
     }
   };
 
+  const factionName = clan.faction?.toLowerCase() || "";
+  const isRenegado = factionName.includes("gangster") || factionName.includes("renegado");
+  const FactionIcon = isRenegado ? Crosshair : ShieldAlert;
+
   return (
     <motion.div
       className={`bg-gradient-to-r ${gradient} mb-2 cursor-pointer rounded-lg p-[1px] transition-all hover:shadow-lg active:scale-95`}
@@ -143,7 +145,13 @@ const ClanRankingItem = React.memo(function ClanRankingItem({ clan, gradient, on
               {getPositionDisplay(clan.position)}
             </div>
 
-            <span className="text-sm">{getClanIcon(clan.faction)}</span>
+            {/* Cyberpunk Icon Container */}
+            <div className="relative flex-shrink-0">
+               <div className={`p-2 rounded-sm bg-black/60 border ${isRenegado ? 'border-orange-500/20' : 'border-blue-500/20'} relative overflow-hidden`}>
+                  <div className="absolute inset-0 bg-[linear-gradient(transparent_50%,rgba(0,0,0,0.1)_50%)] bg-[length:100%_2px] opacity-10" />
+                  <FactionIcon className={`w-3.5 h-3.5 ${isRenegado ? 'text-orange-500' : 'text-blue-400'} animate-pulse-slow relative z-10`} />
+               </div>
+            </div>
 
             <span className="min-w-0 flex-1 truncate text-sm font-bold text-white group-hover:text-purple-400">
               {clan.name}
@@ -151,8 +159,8 @@ const ClanRankingItem = React.memo(function ClanRankingItem({ clan, gradient, on
           </div>
 
           <div className="ml-1 flex-shrink-0 text-right">
-            <div className="whitespace-nowrap text-sm font-bold text-purple-400">
-              {clan.score} pts
+            <div className="whitespace-nowrap text-[10px] font-orbitron font-black text-purple-400/50 uppercase">
+              SCORE <span className="text-purple-400 text-sm">{clan.score}</span>
             </div>
           </div>
         </div>
@@ -322,7 +330,7 @@ export default function RankingPage() {
 
   const rankingConfigs = useMemo(() => [
     {
-      title: "🔫 TOP 26 RENEGADOS",
+      title: "TOP 26 OPERATIVOS RENEGADOS",
       shortTitle: "RENEGADOS",
       gradient: "from-orange-600 to-red-500",
       borderColor: "border-orange-500/30",
@@ -330,7 +338,7 @@ export default function RankingPage() {
       type: "player" as const,
     },
     {
-      title: "🛡️ TOP 26 GUARDIÕES",
+      title: "TOP 26 UNIDADES GUARDIÕES",
       shortTitle: "GUARDIÕES",
       gradient: "from-blue-600 to-cyan-500",
       borderColor: "border-blue-500/30",
@@ -338,7 +346,7 @@ export default function RankingPage() {
       type: "player" as const,
     },
     {
-      title: "👥 TOP 26 DIVISÕES",
+      title: "TOP 26 DIVISÕES DE ELITE",
       shortTitle: "DIVISÕES",
       gradient: "from-purple-600 to-pink-500",
       borderColor: "border-purple-500/30",

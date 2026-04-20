@@ -1152,7 +1152,7 @@ export default function AuthModal({
                 <button
                   type="button"
                   onClick={() => handleGoogleLogin("login")}
-                  className="w-full bg-white/5 border border-white/10 text-gray-300 hover:text-white hover:bg-white/10 hover:border-white/30 font-orbitron text-xs font-bold tracking-widest uppercase py-2.5 sm:py-3 rounded-sm transition-all duration-300 flex items-center justify-center gap-3 relative overflow-hidden group"
+                  className="w-full bg-white/5 border border-white/10 text-gray-300 hover:text-white hover:bg-white/10 hover:border-white/30 font-orbitron text-xs font-bold tracking-widest uppercase py-3 sm:py-3.5 rounded-sm transition-all duration-300 flex items-center justify-center gap-3 relative overflow-hidden group"
                 >
                   <svg
                     version="1.1"
