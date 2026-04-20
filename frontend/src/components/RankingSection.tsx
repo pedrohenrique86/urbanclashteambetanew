@@ -12,7 +12,6 @@ import {
 } from "../utils/rankingUtils";
 
 export default function RankingSection() {
-  // Funções type guard para verificar tipos
   const isPlayer = (item: any): item is Player => {
     return (
       item &&
@@ -27,55 +26,44 @@ export default function RankingSection() {
     );
   };
 
-  // Usar o hook de cache para gerenciar os rankings (SSOT)
   const { data, loading, error, lastUpdated } = useRankingCache();
   const [showNotification, setShowNotification] = useState(false);
-
-  // Extrair dados do cache
   const { gangsters, guardas, clans } = data;
 
-  // Mostrar notificação quando os dados forem atualizados
   React.useEffect(() => {
     if (lastUpdated) {
       setShowNotification(true);
-
-      // Esconder a notificação após 5 segundos
-      const timer = setTimeout(() => {
-        setShowNotification(false);
-      }, 5000);
-
+      const timer = setTimeout(() => setShowNotification(false), 5000);
       return () => clearTimeout(timer);
     }
   }, [lastUpdated]);
 
-  // Configurações para os diferentes tipos de ranking
   const gangsterConfig = {
-    title: "TOP 5 RENEGADOS",
-    gradient: "from-orange-600 to-orange-500",
-    bgColor: "bg-orange-600/20",
-    borderColor: "border-orange-500/30",
-    delay: 0.3,
+    title: "OPERATIVOS RENEGADOS",
+    code: "RN-TOP-05",
+    gradient: "from-orange-500 via-orange-400 to-orange-600",
+    glow: "shadow-[0_0_20px_rgba(249,115,22,0.1)]",
+    borderColor: "border-orange-500/20",
     data: (gangsters || []).slice(0, 5),
     type: "gangsters" as const,
   };
 
   const guardConfig = {
-    title: "TOP 5 GUARDIÕES",
-    gradient: "from-blue-600 to-blue-400",
-    bgColor: "bg-blue-500/20",
-    borderColor: "border-blue-500/30",
-    delay: 0.4,
+    title: "UNIDADES GUARDIÕES",
+    code: "GD-TOP-05",
+    gradient: "from-blue-500 via-blue-400 to-blue-600",
+    glow: "shadow-[0_0_20px_rgba(59,130,246,0.1)]",
+    borderColor: "border-blue-500/20",
     data: (guardas || []).slice(0, 5),
     type: "guardas" as const,
   };
 
-  // Definição específica para o tipo Clan para evitar problemas de tipagem
   const clanConfig = {
-    title: "TOP 5 DIVISÕES",
-    gradient: "from-purple-600 to-purple-500",
-    bgColor: "bg-purple-600/20",
-    borderColor: "border-purple-500/30",
-    delay: 0.5,
+    title: "DIVISÕES DE ELITE",
+    code: "CL-TOP-05",
+    gradient: "from-purple-500 via-purple-400 to-purple-600",
+    glow: "shadow-[0_0_20px_rgba(168,85,247,0.1)]",
+    borderColor: "border-purple-500/20",
     data: (clans || []).slice(0, 5),
     type: "clans" as const,
   };
@@ -83,159 +71,109 @@ export default function RankingSection() {
   const rankingConfigs = [gangsterConfig, guardConfig, clanConfig];
 
   return (
-    <motion.section
-      id="rankings"
-      initial={{ opacity: 0 }}
-      whileInView={{ opacity: 1 }}
-      transition={{ duration: 0.8 }}
-      viewport={{ once: true }}
-      className="py-20 px-4 bg-gradient-to-b from-gray-800 to-gray-900 relative"
-    >
-      {/* Notificação de atualização */}
+    <section id="rankings" className="py-32 px-6 bg-black relative overflow-hidden">
+      {/* HUD Background Decorations */}
+      <div className="absolute inset-0 opacity-[0.02] pointer-events-none" 
+           style={{ backgroundImage: 'radial-gradient(#ffffff 1px, transparent 1px)', backgroundSize: '60px 60px' }} />
+      
       {showNotification && lastUpdated && (
         <RankingUpdateNotification lastUpdated={lastUpdated} />
       )}
 
-      <div className="max-w-7xl mx-auto">
-        <motion.h2
-          initial={{ opacity: 0, y: 30 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2, duration: 0.6 }}
-          viewport={{ once: true }}
-          className="text-4xl md:text-5xl font-orbitron text-center mb-8 bg-gradient-to-r from-blue-400 to-purple-600 bg-clip-text text-transparent"
-        >
-          RANKINGS
-        </motion.h2>
+      <div className="max-w-7xl mx-auto relative z-10">
+        <div className="text-center mb-20">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            whileInView={{ opacity: 1, scale: 1 }}
+            viewport={{ once: true }}
+            className="inline-flex items-center gap-3 px-4 py-1 border border-white/10 rounded-full mb-6 bg-white/5"
+          >
+            <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+            <span className="text-[10px] font-orbitron font-bold tracking-[0.3em] text-gray-400">LEADERBOARD_SYSTEM_LIVE</span>
+          </motion.div>
+          
+          <motion.h2
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="text-5xl md:text-7xl font-orbitron font-black tracking-tighter text-white mb-4"
+          >
+            QUADRO DE <span className="text-transparent bg-clip-text bg-gradient-to-r from-gray-200 to-gray-500">HONRA</span>
+          </motion.h2>
+          
+          <motion.div
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
+            viewport={{ once: true }}
+            className="flex items-center justify-center gap-4 text-[10px] font-mono text-gray-600 uppercase tracking-widest"
+          >
+            <span>Sync: 10m Interval</span>
+            <div className="w-1 h-1 bg-gray-800 rounded-full" />
+            <span>Last_Update: {lastUpdated ? lastUpdated.toLocaleTimeString("pt-BR") : "---"}</span>
+          </motion.div>
+        </div>
 
-        {/* Informação sobre atualização */}
-        <motion.p
-          initial={{ opacity: 0 }}
-          whileInView={{ opacity: 1 }}
-          transition={{ delay: 0.3, duration: 0.6 }}
-          viewport={{ once: true }}
-          className="text-center text-gray-400 mb-16"
-        >
-          Atualizado a cada 10 minutos • Última atualização:{" "}
-          {lastUpdated
-            ? (() => {
-                const roundedDate = new Date(lastUpdated);
-                roundedDate.setMinutes(
-                  Math.floor(lastUpdated.getMinutes() / 10) * 10,
-                  0,
-                  0
-                );
-                return roundedDate.toLocaleTimeString("pt-BR", {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                });
-              })()
-            : "Carregando..."}
-        </motion.p>
-
-        <div className="grid md:grid-cols-3 gap-8">
-          {rankingConfigs.map((config, configIdx) => (
+        <div className="grid lg:grid-cols-3 gap-8">
+          {rankingConfigs.map((config, idx) => (
             <motion.div
-              key={configIdx}
-              initial={{ opacity: 0, y: 50 }}
+              key={idx}
+              initial={{ opacity: 0, y: 40 }}
               whileInView={{ opacity: 1, y: 0 }}
-              transition={{ delay: config.delay, duration: 0.6 }}
               viewport={{ once: true }}
-              className={`bg-gradient-to-br from-gray-800 to-gray-900 p-6 rounded-2xl border ${config.borderColor} shadow-2xl`}
+              transition={{ delay: idx * 0.1 }}
+              className={`relative bg-zinc-950/40 border-t-2 ${config.borderColor} p-6 pt-10 ${config.glow} transition-all duration-500`}
             >
-              <h3
-                className={`text-2xl font-orbitron text-center mb-8 bg-gradient-to-r ${config.gradient} bg-clip-text text-transparent`}
-              >
+              {/* Card Header */}
+              <div className="absolute top-0 left-6 -translate-y-1/2 bg-black px-4 py-1 border border-white/10">
+                <span className="text-[10px] font-mono text-gray-500 tracking-tighter">{config.code}</span>
+              </div>
+
+              <h3 className={`text-xl font-orbitron font-black mb-8 text-center tracking-tight text-transparent bg-clip-text bg-gradient-to-r ${config.gradient}`}>
                 {config.title}
               </h3>
 
-              <div className="space-y-3">
+              <div className="space-y-2">
                 {loading ? (
-                  // Placeholders de carregamento aprimorados
-                  Array.from({ length: 5 }).map((_, index) => (
-                    <div
-                      key={`loading-${configIdx}-${index}`}
-                      className="bg-gray-700/50 animate-pulse h-[60px] rounded-lg"
-                    />
+                  Array.from({ length: 5 }).map((_, i) => (
+                    <div key={i} className="h-14 bg-white/5 animate-pulse border border-white/5 rounded" />
                   ))
-                ) : error ? (
-                  // Mensagem de erro aprimorada
-                  <div className="text-center text-red-400/80 py-8">
-                    <p className="font-semibold mb-2">Erro ao carregar</p>
-                    <p className="text-sm text-gray-400/70">
-                      Tentando reconectar...
-                    </p>
-                  </div>
                 ) : (
-                  // Lógica de renderização final e unificada
-                  Array.from({ length: 5 }).map((_, index) => {
-                    const item = config.data[index];
-
-                    // Renderiza o item real se ele existir
+                  Array.from({ length: 5 }).map((_, i) => {
+                    const item = config.data[i];
                     if (item) {
                       return (
-                        <div key={item.id} className="h-[62px]">
+                        <div key={item.id} className="group transition-all duration-300">
                           {isPlayer(item) ? (
-                            <PlayerRankingItem
-                              player={item}
-                              bgColor={config.bgColor}
-                            />
+                            <PlayerRankingItem player={item} bgColor="bg-white/[0.03] group-hover:bg-white/[0.08]" />
                           ) : isClan(item) ? (
-                            <ClanRankingItem
-                              clan={item}
-                              bgColor={config.bgColor}
-                            />
+                            <ClanRankingItem clan={item} bgColor="bg-white/[0.03] group-hover:bg-white/[0.08]" />
                           ) : null}
                         </div>
                       );
                     }
-
-                    // Renderiza o placeholder com o fundo sólido
-                    const position = index + 1;
-                    const displayType =
-                      config.type === "clans" ? "clan" : "player";
-
+                    
                     return (
-                      <div
-                        key={`placeholder-${configIdx}-${index}`}
-                        className={`${config.bgColor} p-2 sm:p-3 rounded-lg h-[62px] flex items-center opacity-60`}
-                      >
-                        <div className="flex items-center space-x-2 sm:space-x-3 min-w-0 w-full">
-                          {/* Posição */}
-                          <span
-                            className={`${getPositionSizeClass(
-                              position,
-                            )} font-bold min-w-[24px] sm:min-w-[30px] text-center flex-shrink-0 ${getPositionTextColor(
-                              position,
-                              config.type,
-                            )}`}
-                          >
-                            {getPositionDisplay(position, displayType)}
-                          </span>
-
-                          {/* Espaço para Bandeira/Escudo */}
-                          <div className="w-5 h-4 flex-shrink-0"></div>
-
-                          {/* Nome */}
-                          <span className="text-gray-400 font-medium flex-grow min-w-0 text-sm sm:text-base truncate">
-                            - - -
-                          </span>
-
-                          {/* Nível/Pontos */}
-                          <div className="flex flex-col items-end flex-shrink-0">
-                            <span className={`text-sm font-bold text-gray-500`}>
-                              ---
-                            </span>
-                          </div>
-                        </div>
+                      <div key={i} className="h-14 bg-white/[0.01] border border-white/5 flex items-center px-4 rounded opacity-20">
+                        <span className="text-xs font-mono text-gray-800">EMPTY_SLOT_{i+1}</span>
                       </div>
                     );
                   })
                 )}
               </div>
+
+              {/* Decorative HUD Details */}
+              <div className="mt-8 flex justify-between items-center opacity-20">
+                <div className="flex gap-1">
+                  <div className="w-1 h-3 bg-white" />
+                  <div className="w-1 h-3 bg-white" />
+                  <div className="w-4 h-3 bg-white" />
+                </div>
+                <div className="text-[8px] font-mono text-white">SECURE_TRANS_VERIFIED</div>
+              </div>
             </motion.div>
           ))}
         </div>
       </div>
-    </motion.section>
+    </section>
   );
 }
