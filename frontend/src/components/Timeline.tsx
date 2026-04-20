@@ -1,5 +1,13 @@
 import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { 
+  Home, 
+  Swords, 
+  BookOpen, 
+  Trophy, 
+  Wallet,
+  Target
+} from "lucide-react";
 
 interface TimelineProps {
   className?: string;
@@ -11,34 +19,37 @@ const timelineData = [
   {
     section: "Facções",
     title: "Escolha Sua Facção",
-    description:
-      "Renegados, Guardiões ou Divisões - cada um com suas características",
-    icon: "⚔️",
+    description: "Renegados, Guardiões ou Divisões",
+    icon: <Swords size={18} />,
     color: "from-blue-500 to-cyan-500",
+    glow: "shadow-cyan-500/50",
     id: "factions",
   },
   {
     section: "Sobre",
     title: "Sobre o Jogo",
-    description: "Conheça as regras e mecânicas do Urban Clash Team",
-    icon: "📖",
+    description: "Regras e mecânicas",
+    icon: <BookOpen size={18} />,
     color: "from-purple-500 to-pink-500",
+    glow: "shadow-purple-500/50",
     id: "about",
   },
   {
     section: "Rankings",
     title: "Classificações",
-    description: "Veja os melhores jogadores de cada facção",
-    icon: "🏆",
-    color: "from-yellow-500 to-orange-500",
+    description: "Os melhores jogadores",
+    icon: <Trophy size={18} />,
+    color: "from-orange-500 to-amber-500",
+    glow: "shadow-orange-500/50",
     id: "rankings",
   },
   {
     section: "Premiação",
     title: "Prêmios",
-    description: "Valores em dinheiro para os primeiros colocados",
-    icon: "💰",
+    description: "Valores em dinheiro",
+    icon: <Wallet size={18} />,
     color: "from-green-500 to-emerald-500",
+    glow: "shadow-green-500/50",
     id: "prizes",
   },
 ];
@@ -56,22 +67,16 @@ const Timeline: React.FC<TimelineProps> = ({
   const resetIdleTimer = () => {
     if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
     setIsIdle(false);
-    
-    // Inicia timer de 1s para esconder apenas se NÃO estiver no topo
     idleTimerRef.current = setTimeout(() => {
       setIsIdle(true);
-    }, 1000);
+    }, 1200);
   };
 
   useEffect(() => {
-    const handleMouseMove = () => {
-      resetIdleTimer();
-    };
-
+    const handleMouseMove = () => resetIdleTimer();
     window.addEventListener("mousemove", handleMouseMove);
     window.addEventListener("scroll", handleMouseMove);
     resetIdleTimer();
-
     return () => {
       window.removeEventListener("mousemove", handleMouseMove);
       window.removeEventListener("scroll", handleMouseMove);
@@ -79,17 +84,12 @@ const Timeline: React.FC<TimelineProps> = ({
     };
   }, []);
 
-  // Efeito para atualizar a seção ativa durante a rolagem
   useEffect(() => {
     const handleScroll = () => {
-      const sections = timelineData.map((item) =>
-        document.getElementById(item.id),
-      );
+      const sections = timelineData.map((item) => document.getElementById(item.id));
       const scrollPosition = window.scrollY + window.innerHeight / 2;
-      
       setIsAtTop(window.scrollY < 400);
 
-      // Update active section
       for (let i = sections.length - 1; i >= 0; i--) {
         const section = sections[i];
         if (section && section.offsetTop <= scrollPosition) {
@@ -98,137 +98,139 @@ const Timeline: React.FC<TimelineProps> = ({
         }
       }
     };
-
     window.addEventListener("scroll", handleScroll);
-    handleScroll(); // Check initial position
-
+    handleScroll();
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
   const scrollToSection = (id: string) => {
     const element = document.getElementById(id);
-    if (element) {
-      element.scrollIntoView({ behavior: "smooth" });
-    }
+    if (element) element.scrollIntoView({ behavior: "smooth" });
   };
 
+  const hudClip = "polygon(15% 0%, 85% 0%, 100% 15%, 100% 85%, 85% 100%, 15% 100%, 0% 85%, 0% 15%)";
+
   return (
-    <div className="fixed inset-0 flex items-center justify-end z-40 pointer-events-none">
+    <div className="fixed inset-0 flex items-center justify-end z-50 pointer-events-none">
       <AnimatePresence>
         {isVisible && (
           <motion.div
             initial={{ opacity: 0, x: 20 }}
             animate={{ 
-              opacity: (isIdle && !isAtTop) ? 0 : 0.85, 
-              x: (isIdle && !isAtTop) ? 40 : 0 
+              opacity: (isIdle && !isAtTop) ? 0 : 1, 
+              x: (isIdle && !isAtTop) ? 50 : 0 
             }}
             whileHover={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: 20 }}
-            transition={{ duration: 0.4, ease: "easeOut" }}
-            className={`pointer-events-auto mr-1 hidden lg:block ${className}`}
+            transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+            className={`pointer-events-auto mr-4 hidden lg:block ${className}`}
           >
-            <div className="bg-gradient-to-br from-gray-900/90 to-black/90 backdrop-blur-md border border-gray-500/30 rounded-2xl p-3 sm:p-3 md:p-4 shadow-2xl shadow-purple-500/20">
-              <div className="space-y-3 sm:space-y-3 md:space-y-4">
-                {/* Botão para voltar ao início - Oculto quando já está no topo */}
+            {/* Main HUD Frame */}
+            <div className="relative group/hud bg-black/40 backdrop-blur-xl border border-white/10 rounded-xl p-3 shadow-2xl overflow-hidden">
+              
+              {/* Technical Detailing - Corners */}
+              <div className="absolute top-0 right-0 w-4 h-4 border-t-2 border-r-2 border-orange-500/40 rounded-tr-lg" />
+              <div className="absolute bottom-0 right-0 w-4 h-4 border-b-2 border-r-2 border-orange-500/40 rounded-br-lg" />
+              
+              <div className="space-y-4 relative z-10">
+                {/* START / HOME NODE */}
                 {!isAtTop && (
                   <motion.div
-                    initial={{ opacity: 0, x: 20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0, duration: 0.3 }}
-                    className="relative cursor-pointer group flex items-center"
+                    className="relative cursor-pointer flex items-center group"
                     onClick={onGoToStart}
-                    title="Voltar ao Início"
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
+                    whileHover={{ x: -2 }}
                   >
-                    <motion.div
-                      className={`w-8 h-8 sm:w-8 sm:h-8 md:w-9 md:h-9 lg:w-10 lg:h-10 rounded-full flex items-center justify-center text-base sm:text-base md:text-lg lg:text-lg transition-all duration-500 relative bg-gradient-to-r from-gray-700 to-gray-600 text-gray-300 hover:from-gray-600 hover:to-gray-500`}
+                    <div 
+                      className="w-10 h-10 bg-zinc-900 border border-white/10 flex items-center justify-center transition-all duration-300 group-hover:border-orange-500/50 group-hover:bg-orange-500/10"
+                      style={{ clipPath: hudClip }}
                     >
-                      {"🏠"}
-                    </motion.div>
-                    <motion.div
-                      className={`ml-2 sm:ml-2 md:ml-3 text-xs sm:text-xs md:text-sm font-medium transition-all duration-300 opacity-100 whitespace-nowrap text-purple-300`}
-                      initial={{ x: -10 }}
-                      whileHover={{ x: 0 }}
-                    >
-                      {"Início"}
-                    </motion.div>
-                    <div
-                      className={`absolute left-5 top-10 w-0.5 h-4 transform -translate-x-1/2 transition-all duration-500 bg-gradient-to-b from-gray-600 to-gray-700`}
-                    ></div>
+                      <Home size={18} className="text-gray-400 group-hover:text-orange-500" />
+                    </div>
+                    <span className="ml-3 font-orbitron text-[10px] font-black tracking-[0.2em] text-gray-500 group-hover:text-orange-400 uppercase">
+                      INÍCIO
+                    </span>
+                    {/* Segmented Connector */}
+                    <div className="absolute left-5 top-10 w-0.5 h-4 bg-gradient-to-b from-orange-500/20 to-transparent -translate-x-1/2" />
                   </motion.div>
                 )}
 
-                {timelineData.map((event, index) => (
-                  <motion.div
-                    key={index}
-                    initial={{ opacity: 0, x: 20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: index * 0.1, duration: 0.3 }}
-                    className="relative cursor-pointer group flex items-center"
-                    onClick={() => scrollToSection(event.id)}
-                    title={event.title}
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                  >
-                    {/* Modern dot indicator with glow effect */}
+                {/* TIMELINE NODES */}
+                {timelineData.map((event, index) => {
+                  const isActive = index === activeSection;
+                  return (
                     <motion.div
-                      className={`w-8 h-8 sm:w-8 sm:h-8 md:w-9 md:h-9 lg:w-10 lg:h-10 rounded-full flex items-center justify-center text-base sm:text-base md:text-lg lg:text-lg transition-all duration-500 relative ${
-                        index === activeSection
-                          ? "bg-gradient-to-r from-purple-500 to-blue-500 text-white shadow-lg shadow-purple-500/50"
-                          : "bg-gradient-to-r from-gray-700 to-gray-600 text-gray-300 hover:from-gray-600 hover:to-gray-500"
-                      }`}
-                      animate={
-                        index === activeSection
-                          ? {
-                              boxShadow: [
-                                "0 0 20px rgba(168, 85, 247, 0.5)",
-                                "0 0 30px rgba(168, 85, 247, 0.8)",
-                                "0 0 20px rgba(168, 85, 247, 0.5)",
-                              ],
-                            }
-                          : {}
-                      }
-                      transition={{ duration: 2, repeat: Infinity }}
+                      key={index}
+                      className="relative cursor-pointer flex items-center group/node"
+                      onClick={() => scrollToSection(event.id)}
+                      whileHover={{ x: -2 }}
                     >
-                      {event.icon}
-                      {index === activeSection && (
-                        <motion.div
-                          className="absolute inset-0 rounded-full bg-gradient-to-r from-purple-500/30 to-blue-500/30"
-                          animate={{
-                            scale: [1, 1.2, 1],
-                            opacity: [0.5, 0, 0.5],
-                          }}
-                          transition={{ duration: 2, repeat: Infinity }}
-                        />
+                      {/* Armored Tactical Node */}
+                      <div className="relative">
+                        <div 
+                          className={`w-11 h-11 flex items-center justify-center transition-all duration-500 relative z-10 ${
+                            isActive 
+                              ? `bg-gradient-to-br ${event.color} text-white shadow-[0_0_25px_rgba(168,85,247,0.4)] border-white/30`
+                              : "bg-zinc-900/80 border border-white/5 text-gray-400 group-hover/node:border-white/20"
+                          }`}
+                          style={{ clipPath: hudClip, borderWidth: isActive ? '1px' : '0' }}
+                        >
+                          {event.icon}
+                        </div>
+                        
+                        {/* Active Scanline Pulse */}
+                        {isActive && (
+                          <motion.div
+                            className="absolute inset-0 z-0 bg-white/20"
+                            style={{ clipPath: hudClip }}
+                            animate={{ opacity: [0.1, 0.4, 0.1] }}
+                            transition={{ duration: 1.5, repeat: Infinity }}
+                          />
+                        )}
+                      </div>
+
+                      {/* Tactical HUD Label */}
+                      <div className="ml-4 flex flex-col items-start translate-y-[-1px]">
+                        <span className={`font-orbitron text-[10px] font-black tracking-[0.2em] transition-all duration-300 ${
+                          isActive 
+                            ? "text-transparent bg-gradient-to-r from-white to-gray-400 bg-clip-text drop-shadow-[0_0_10px_rgba(255,255,255,0.5)]" 
+                            : "text-gray-500 group-hover/node:text-gray-300"
+                        }`}>
+                          {event.section.toUpperCase()}
+                        </span>
+                        {isActive && (
+                          <motion.div 
+                            initial={{ width: 0 }}
+                            animate={{ width: "100%" }}
+                            className="h-[1px] bg-gradient-to-r from-white/40 to-transparent mt-0.5"
+                          />
+                        )}
+                      </div>
+
+                      {/* Circuit Connector Line */}
+                      {index < timelineData.length - 1 && (
+                        <div className="absolute left-[21px] top-11 w-[2px] h-4 -translate-x-1/2 overflow-hidden">
+                          <div className={`w-full h-full ${
+                            isActive 
+                              ? "bg-gradient-to-b from-white/40 to-white/10" 
+                              : "bg-white/5"
+                          }`} />
+                          {isActive && (
+                            <motion.div 
+                              className="absolute top-0 left-0 w-full h-[30%] bg-white shadow-[0_0_8px_white]"
+                              animate={{ top: ["0%", "100%"] }}
+                              transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
+                            />
+                          )}
+                        </div>
                       )}
                     </motion.div>
+                  );
+                })}
+              </div>
 
-                    {/* Enhanced text label with gradient */}
-                    <motion.div
-                      className={`ml-2 sm:ml-2 md:ml-3 text-xs sm:text-xs md:text-sm font-medium transition-all duration-300 opacity-100 whitespace-nowrap ${
-                        index === activeSection
-                          ? "text-transparent bg-gradient-to-r from-purple-400 to-purple-600 bg-clip-text font-bold"
-                          : "text-purple-300"
-                      }`}
-                      initial={{ x: -10 }}
-                      whileHover={{ x: 0 }}
-                    >
-                      {event.section}
-                    </motion.div>
-
-                    {/* Modern connection line with gradient */}
-                    {index < timelineData.length - 1 && (
-                      <div
-                        className={`absolute left-5 top-10 w-0.5 h-4 transform -translate-x-1/2 transition-all duration-500 ${
-                          index === activeSection
-                            ? "bg-gradient-to-b from-purple-400 to-blue-400 shadow-sm shadow-purple-400/50"
-                            : "bg-gradient-to-b from-gray-600 to-gray-700"
-                        }`}
-                      ></div>
-                    )}
-                  </motion.div>
-                ))}
+              {/* HUD Background Details */}
+              <div className="absolute inset-0 pointer-events-none opacity-[0.03]">
+                <div className="absolute inset-0 bg-[radial-gradient(#fff_1px,transparent_1px)] [background-size:12px_12px]" />
               </div>
             </div>
           </motion.div>
