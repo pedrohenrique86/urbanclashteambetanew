@@ -613,7 +613,7 @@ export default function AuthModal({
         </div>
       ) : (
         <div
-          className="bg-zinc-950/90 backdrop-blur-xl rounded-xl w-full max-w-xl p-4 sm:p-5 pt-10 sm:pt-12 relative border border-white/10 shadow-[0_0_50px_rgba(255,100,0,0.1)] max-h-[calc(100vh-140px)] sm:max-h-[calc(100vh-80px)] overflow-y-auto custom-scrollbar"
+          className="bg-gradient-to-b from-zinc-900/95 via-[#050505]/95 to-orange-950/20 backdrop-blur-2xl rounded-xl w-full max-w-xl p-4 sm:p-5 pt-10 sm:pt-12 relative border border-orange-500/20 shadow-[0_0_60px_rgba(255,100,0,0.15)] max-h-[calc(100vh-140px)] sm:max-h-[calc(100vh-80px)] overflow-y-auto custom-scrollbar"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Tech Decorative Corners */}
