@@ -4,7 +4,7 @@ import homeMobilePngUrl from "../../assets/home-mobile.webp";
 
 export function HeroSection() {
   return (
-    <section id="hero" className="relative w-full h-[100dvh] overflow-hidden bg-black flex items-center justify-center pt-20">
+    <section id="hero" className="relative w-full h-[100dvh] overflow-hidden bg-black flex items-center justify-center">
       {/* Background Layer with Responsive Image */}
       <div className="absolute inset-0 z-0">
         <picture>
@@ -23,7 +23,7 @@ export function HeroSection() {
         <div className="absolute inset-0 z-10 pointer-events-none opacity-[0.04] bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%),linear-gradient(90deg,rgba(255,0,0,0.06),rgba(0,255,0,0.02),rgba(0,0,255,0.06))] bg-[length:100%_3px,3px_100%] animate-pulse" />
         
         {/* Technical Layer 3: Bottom Gradient Transition to Home Content */}
-        <div className="absolute inset-x-0 bottom-0 h-64 bg-gradient-to-t from-black via-black/60 to-transparent z-20" />
+        <div className="absolute inset-x-0 bottom-0 h-40 md:h-64 bg-gradient-to-t from-black via-black/60 to-transparent z-20" />
       </div>
 
       {/* Surface Noise/Grain Overlay - Embedded to prevent 403 Error */}
