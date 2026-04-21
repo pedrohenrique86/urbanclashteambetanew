@@ -22,14 +22,15 @@ const DigitalIdentityModal = React.memo(
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-[9000] flex items-center justify-center p-4 bg-black/20 backdrop-blur-[2px]"
+          className="fixed inset-0 z-[9000] flex items-center justify-center p-4 bg-transparent pointer-events-auto"
           onClick={onClose}
         >
           <motion.div
-            initial={{ scale: 0.98, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 0.98, opacity: 0 }}
-            className="w-full max-w-4xl flex justify-center md:ml-48"
+            initial={{ scale: 0.3, opacity: 0, y: 40 }}
+            animate={{ scale: 1, opacity: 1, y: 0 }}
+            exit={{ scale: 0.3, opacity: 0, y: 40 }}
+            transition={{ type: "spring", damping: 15, stiffness: 200 }}
+            className="pointer-events-auto relative"
             onClick={(e) => e.stopPropagation()}
           >
             <DigitalIdentityPage forcedId={userId} onClose={onClose} isCompact={true} />

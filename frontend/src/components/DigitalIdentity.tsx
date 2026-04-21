@@ -116,10 +116,15 @@ const DigitalIdentity = React.memo(
 
     return (
       <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        className={`w-full ${isCompact ? 'max-w-md' : 'max-w-4xl'} mx-auto overflow-hidden rounded-[2rem] border border-white/10 bg-[#080808]/98 backdrop-blur-3xl shadow-2xl relative selection:bg-zinc-800`}
+        initial={{ opacity: 0, scale: 0.9, y: 20 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        transition={{ type: "spring", damping: 20, stiffness: 100 }}
+        className={`w-full ${isCompact ? 'max-w-md' : 'max-w-4xl'} mx-auto overflow-hidden rounded-[2.5rem] border-2 ${factionTheme.border.replace('/20', '/50')} bg-[#0a0a0a] shadow-[0_20px_50px_-20px_rgba(0,0,0,0.8)] relative selection:bg-zinc-800 before:absolute before:inset-0 before:bg-gradient-to-br ${factionTheme.accent} before:opacity-[0.05] before:pointer-events-none`}
       >
+        {/* Balloon Point (Tail) */}
+        {isCompact && (
+          <div className={`absolute -bottom-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-[#0a0a0a] border-r-2 border-b-2 ${factionTheme.border.replace('/20', '/50')} rotate-45 z-[-1]`} />
+        )}
         <div className="p-5 sm:p-8">
            {/* Compact Header for external links */}
            <div className="flex items-center justify-between mb-4 pb-4 border-b border-white/5">
