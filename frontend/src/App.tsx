@@ -76,11 +76,11 @@ const router = createBrowserRouter([
     element: <RootWrapper />,
     children: [
       // --- Rotas Públicas ---
-      { path: "/", element: <HomePage /> },
-      { path: "/auth/google/callback", element: <GoogleCallbackPage /> },
-      { path: "/confirm-email", element: <EmailConfirmationPage /> },
-      { path: "/email-confirmation", element: <EmailConfirmationPage /> },
-      { path: "/reset-password", element: <ResetPasswordPage /> },
+      { path: "/", element: <GlobalLayout><HomePage /></GlobalLayout> },
+      { path: "/auth/google/callback", element: <GlobalLayout><GoogleCallbackPage /></GlobalLayout> },
+      { path: "/confirm-email", element: <GlobalLayout><EmailConfirmationPage /></GlobalLayout> },
+      { path: "/email-confirmation", element: <GlobalLayout><EmailConfirmationPage /></GlobalLayout> },
+      { path: "/reset-password", element: <GlobalLayout><ResetPasswordPage /></GlobalLayout> },
 
       // --- Rotas Protegidas ---
       {
