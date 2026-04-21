@@ -118,8 +118,8 @@ const DigitalIdentity = React.memo(
       const factionString = (player?.faction || "gangsters").toLowerCase();
       const isGangster = factionString.includes("gangster") || factionString.includes("renegado");
       return isGangster
-        ? { primary: "text-orange-500", border: "border-orange-500/20", bg: "bg-orange-500/10", accent: "from-orange-500 to-red-900", button: "bg-orange-600", icon: Skull, label: "RENEGADO" }
-        : { primary: "text-blue-500", border: "border-blue-500/20", bg: "bg-blue-500/10", accent: "from-blue-600 to-blue-900", button: "bg-blue-600", icon: Shield, label: "GUARDIÃO" };
+        ? { primary: "text-orange-500 drop-shadow-[0_0_8px_rgba(249,115,22,0.8)]", border: "border-orange-500/40 shadow-[0_0_10px_rgba(249,115,22,0.1)]", bg: "bg-orange-500/10", accent: "from-orange-500 to-red-900", button: "bg-orange-600 shadow-[0_0_15px_rgba(249,115,22,0.5)]", icon: Skull, label: "RENEGADO", boxGlow: "shadow-[0_0_30px_rgba(249,115,22,0.15)]", borderIcon: "border-orange-500/40 shadow-[0_0_10px_rgba(249,115,22,0.2)]" }
+        : { primary: "text-cyan-400 drop-shadow-[0_0_8px_rgba(34,211,238,0.8)]", border: "border-cyan-400/40 shadow-[0_0_10px_rgba(34,211,238,0.1)]", bg: "bg-cyan-500/10", accent: "from-cyan-400 to-blue-900", button: "bg-cyan-600 shadow-[0_0_15px_rgba(34,211,238,0.5)]", icon: Shield, label: "GUARDIÃO", boxGlow: "shadow-[0_0_30px_rgba(34,211,238,0.15)]", borderIcon: "border-cyan-400/40 shadow-[0_0_10px_rgba(34,211,238,0.2)]" };
     }, [player?.faction]);
 
     const winRate = useMemo(() => {
@@ -135,20 +135,20 @@ const DigitalIdentity = React.memo(
         initial={{ opacity: 0, scale: 0.9, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         transition={{ type: "spring", damping: 20, stiffness: 100 }}
-        className={`w-[95vw] ${isCompact ? 'max-w-md' : 'max-w-4xl'} mx-auto overflow-hidden rounded-[2rem] border-2 ${factionTheme.border.replace('/20', '/50')} bg-[#0a0a0a] shadow-[0_20px_50px_-20px_rgba(0,0,0,0.8)] relative selection:bg-zinc-800 before:absolute before:inset-0 before:bg-gradient-to-br ${factionTheme.accent} before:opacity-[0.05] before:pointer-events-none`}
+        className={`w-[95vw] ${isCompact ? 'max-w-md' : 'max-w-4xl'} mx-auto overflow-hidden rounded-[2rem] border-2 ${factionTheme.border} bg-[#0a0a0a] ${factionTheme.boxGlow} relative selection:bg-zinc-800 before:absolute before:inset-0 before:bg-gradient-to-br ${factionTheme.accent} before:opacity-[0.08] before:pointer-events-none transition-all duration-500`}
       >
         {/* Balloon Point (Tail) */}
         {isCompact && (
-          <div className={`absolute -bottom-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-[#0a0a0a] border-r-2 border-b-2 ${factionTheme.border.replace('/20', '/50')} rotate-45 z-[-1]`} />
+          <div className={`absolute -bottom-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-[#0a0a0a] border-r-2 border-b-2 ${factionTheme.border} rotate-45 z-[-1]`} />
         )}
         <div className="p-5 sm:p-8">
            {/* Compact Header for external links */}
            <div className="flex items-center justify-between mb-4 pb-4 border-b border-white/5">
               <div className="flex items-center gap-2">
-                 <div className={`w-8 h-8 rounded-lg ${factionTheme.bg} flex items-center justify-center border ${factionTheme.border}`}>
+                 <div className={`w-8 h-8 rounded-lg ${factionTheme.bg} flex items-center justify-center border ${factionTheme.borderIcon || factionTheme.border}`}>
                     <Fingerprint className={`w-4 h-4 ${factionTheme.primary}`} />
                  </div>
-                 <span className="text-[10px] font-black font-orbitron text-zinc-500 uppercase tracking-widest">D.IDENTITY</span>
+                 <span className="text-[10px] font-black font-orbitron text-zinc-400 uppercase tracking-widest drop-shadow-[0_0_3px_rgba(255,255,255,0.2)]">D.IDENTITY</span>
               </div>
               <div className="flex items-center gap-3">
                  {isOwnProfile && <button onClick={onToggleEdit} className="p-1 px-2 text-[10px] font-bold text-zinc-500 hover:text-white transition-colors uppercase tracking-widest">EDITAR</button>}
@@ -161,8 +161,8 @@ const DigitalIdentity = React.memo(
               
               {/* Left/Main Column - Always Visible */}
               <div className={!isCompact ? "lg:col-span-5 flex flex-col items-center lg:items-start" : "flex items-center gap-6"}>
-                 <div className="relative flex-shrink-0">
-                    <div className={`w-20 h-20 sm:w-28 sm:h-28 rounded-2xl border-2 ${factionTheme.border} bg-zinc-900 overflow-hidden shadow-2xl`}>
+                 <div className="relative flex-shrink-0 group">
+                    <div className={`w-20 h-20 sm:w-28 sm:h-28 rounded-2xl border-2 ${factionTheme.border} bg-zinc-900 overflow-hidden ${factionTheme.boxGlow} transition-transform group-hover:scale-[1.02]`}>
                        {isEditing ? (
                           <div className="absolute inset-0 bg-black/80 flex items-center justify-center p-2 z-10 backdrop-blur-sm">
                              <input 
@@ -182,8 +182,8 @@ const DigitalIdentity = React.memo(
 
                  <div className="flex flex-col min-w-0">
                     <div className="flex items-center gap-2 mb-1">
-                        <h2 className="text-xl sm:text-2xl font-black font-orbitron text-white uppercase italic tracking-tighter break-words leading-tight">{player.display_name || player.username}</h2>
-                       {player.country && <img src={getFlagUrl(player.country)!} className="w-5 h-auto rounded-sm opacity-60" alt="" />}
+                        <h2 className="text-xl sm:text-2xl font-black font-orbitron text-white uppercase italic tracking-tighter break-words leading-tight drop-shadow-[0_0_8px_rgba(255,255,255,0.4)]">{player.display_name || player.username}</h2>
+                       {player.country && <img src={getFlagUrl(player.country)!} className="w-5 h-auto rounded-sm opacity-80 drop-shadow-[0_0_3px_rgba(255,255,255,0.3)]" alt="" />}
                     </div>
                     <div className="flex items-center gap-2">
                        <span className={`text-[9px] font-black font-orbitron tracking-widest uppercase ${player.clan_name ? factionTheme.primary : "text-yellow-400"}`}>{player.clan_name || "SOLO"}</span>
@@ -313,19 +313,19 @@ const DigitalIdentity = React.memo(
 );
 
 const StatBox = ({ label, value, icon: Icon, color, pulse }: any) => (
-  <div className={`p-3 rounded-2xl bg-white/[0.03] border border-white/5 flex flex-col items-center hover:bg-white/[0.05] transition-all ${pulse ? 'shadow-[0_0_15px_rgba(250,204,21,0.05)]' : ''}`}>
-     <Icon className={`w-3.5 h-3.5 ${color} mb-1.5 ${pulse ? 'animate-pulse' : ''}`} />
-     <span className="text-sm font-black font-orbitron text-white leading-none">{value}</span>
-     <span className="text-[6px] font-black text-zinc-600 uppercase tracking-widest mt-1">{label}</span>
+  <div className={`p-3 rounded-2xl bg-white/[0.03] border border-white/5 flex flex-col items-center hover:bg-white/[0.05] transition-all group ${pulse ? 'shadow-[0_0_15px_rgba(250,204,21,0.15)] border-yellow-500/30' : 'hover:shadow-[0_0_15px_rgba(255,255,255,0.05)] border-transparent'}`}>
+     <Icon className={`w-3.5 h-3.5 ${color} mb-1.5 drop-shadow-[0_0_5px_currentColor] ${pulse ? 'animate-pulse' : ''}`} />
+     <span className="text-sm font-black font-orbitron text-white leading-none group-hover:drop-shadow-[0_0_8px_rgba(255,255,255,0.6)] transition-all">{value}</span>
+     <span className="text-[6px] font-black text-zinc-500 uppercase tracking-widest mt-1">{label}</span>
   </div>
 );
 
 const DataPoint = ({ label, value, icon: Icon }: any) => (
-   <div className="flex flex-col gap-1.5">
-      <span className="text-[7px] font-black text-zinc-600 uppercase">{label}</span>
+   <div className="flex flex-col gap-1.5 group">
+      <span className="text-[7px] font-black text-zinc-500 uppercase transition-colors group-hover:text-zinc-400">{label}</span>
       <div className="flex items-center gap-2 text-zinc-300">
-         <Icon className="w-3 h-3 opacity-30" />
-         <span className="text-xs font-medium truncate">{value}</span>
+         <Icon className="w-3 h-3 opacity-30 drop-shadow-[0_0_3px_currentColor] transition-all group-hover:opacity-80" />
+         <span className="text-xs font-medium truncate transition-colors group-hover:text-white drop-shadow-sm">{value}</span>
       </div>
    </div>
 );
