@@ -262,12 +262,14 @@ export default function ClanPage() {
                        </div>
 
                        <div className="flex items-center justify-between flex-grow min-w-0">
-                          <span className="text-[10px] font-black font-orbitron text-zinc-400 uppercase truncate pr-2 group-hover:text-white group-hover:drop-shadow-[0_0_5px_rgba(255,255,255,0.4)] transition-all">
+                          <span className="text-xs font-black font-orbitron text-zinc-400 uppercase truncate pr-2 group-hover:text-white group-hover:drop-shadow-[0_0_5px_rgba(255,255,255,0.4)] transition-all">
                              {member.username}
                           </span>
-                          <div className={`px-1.5 py-0.5 rounded bg-black/60 border border-white/5 shadow-[inset_0_0_8px_rgba(0,0,0,0.5)] flex items-center gap-1 group-hover:border-white/20 transition-colors`}>
-                             <span className="text-[6px] font-black text-zinc-500 uppercase tracking-tighter">LV</span>
-                             <span className={`text-[9px] font-black font-orbitron text-white drop-shadow-[0_0_3px_rgba(255,255,255,0.5)]`}>{member.level || 1}</span>
+                          <div className={`px-2 py-1 rounded-lg bg-black/80 border ${theme.border.replace('/20', '/40')} flex items-center gap-1.5 group-hover:scale-110 transition-all duration-300 shadow-lg`}>
+                             <span className={`text-[8px] font-black ${theme.accent} uppercase tracking-tighter opacity-70`}>LV</span>
+                             <span className={`text-sm font-black font-orbitron text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.4)]`}>
+                                {member.level || 1}
+                             </span>
                           </div>
                        </div>
                     </motion.div>
