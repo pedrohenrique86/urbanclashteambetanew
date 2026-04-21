@@ -62,7 +62,7 @@ export function Footer() {
           </div>
 
           {/* Copyright Section */}
-          <div className="flex flex-col items-center md:items-end gap-1 font-orbitron">
+          <div className="flex flex-col items-center md:items-end gap-1 font-orbitron md:pr-32">
             <span className="text-[9px] text-gray-600 tracking-[0.2em]">© {currentYear} TODOS OS DIREITOS RESERVADOS</span>
             <div className="flex items-center gap-2 text-[8px] text-gray-700 tracking-widest">
               <span className="w-1 h-1 rounded-full bg-green-500/50" />

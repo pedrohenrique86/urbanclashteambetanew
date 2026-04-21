@@ -43,11 +43,11 @@ const NavbarCountdown: React.FC<NavbarCountdownProps> = ({ remainingTime }) => {
       <div className="flex flex-row sm:flex-col items-center sm:items-start gap-1.5 sm:gap-0 flex-shrink-0">
         <div className="flex items-center gap-1">
           <div className="w-1 h-1 bg-cyan-500 rotate-45 animate-pulse" />
-          <span className="text-[7px] sm:text-[9px] font-black font-orbitron text-white tracking-[0.1em] uppercase whitespace-nowrap">
+          <span className="text-[10px] sm:text-[11px] font-black font-orbitron text-white tracking-[0.1em] uppercase whitespace-nowrap">
             DATA_<span className="text-cyan-400">INICIO</span>
           </span>
         </div>
-        <span className="text-[7px] sm:text-[8px] font-mono font-bold text-gray-400 tracking-tighter whitespace-nowrap">
+        <span className="text-[9px] sm:text-[10px] font-mono font-bold text-gray-400 tracking-tighter whitespace-nowrap">
            {formattedDate.replace(/\.$/, "")} <span className="hidden sm:inline text-[6px] text-gray-700 mx-0.5">|</span> <span className="hidden sm:inline">START_DAY</span>
         </span>
         <div className="sm:hidden h-3 w-px bg-white/20 mx-0.5" />
@@ -69,12 +69,12 @@ const NavbarCountdown: React.FC<NavbarCountdownProps> = ({ remainingTime }) => {
           ].map((item, idx) => (
             <React.Fragment key={item.label}>
               <div className="flex items-center">
-                <div className="w-[14px] sm:w-[26px] flex justify-center">
-                  <span className="text-[10px] sm:text-lg font-black font-orbitron text-transparent bg-clip-text bg-gradient-to-b from-white to-gray-400 tabular-nums leading-none">
+                <div className="w-[18px] sm:w-[30px] flex justify-center">
+                  <span className="text-[14px] sm:text-xl font-black font-orbitron text-transparent bg-clip-text bg-gradient-to-b from-white to-gray-400 tabular-nums leading-none">
                     {item.val}
                   </span>
                 </div>
-                <span className="text-[6px] sm:text-[9px] font-mono font-bold text-cyan-500/60 ml-[3px] sm:ml-1">{item.label}</span>
+                <span className="text-[8px] sm:text-[10px] font-mono font-bold text-cyan-500/60 ml-[3px] sm:ml-1">{item.label}</span>
               </div>
               {idx < 3 && (
                 <div className="h-2 sm:h-3 w-[1px] bg-white/10 mx-0.5 sm:mx-1" />
