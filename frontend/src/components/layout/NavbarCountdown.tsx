@@ -57,9 +57,9 @@ const NavbarCountdown: React.FC<NavbarCountdownProps> = ({ remainingTime }) => {
       <div className="relative p-[1px] bg-gradient-to-br from-cyan-500/30 via-transparent to-orange-500/30"
            style={{ clipPath: 'polygon(2px 0, 100% 0, 100% calc(100% - 2px), calc(100% - 2px) 100%, 0 100%, 0 2px)' }}>
         
-        <div className="bg-zinc-950 px-1 xs:px-2 sm:px-3 py-0.5 flex items-center gap-1 sm:gap-2 relative overflow-hidden">
+        <div className="bg-zinc-950 px-2 sm:px-4 py-0.5 flex items-center gap-2 sm:gap-3 relative">
           {/* Flowing Energy Effect */}
-          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-cyan-500/5 to-transparent -translate-x-full animate-[shimmer_3s_infinite]" />
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-cyan-500/5 to-transparent -translate-x-full animate-[shimmer_3s_infinite] pointer-events-none" />
           
           {[
             { val: d, label: "D" },
@@ -68,16 +68,16 @@ const NavbarCountdown: React.FC<NavbarCountdownProps> = ({ remainingTime }) => {
             { val: s, label: "S" }
           ].map((item, idx) => (
             <React.Fragment key={item.label}>
-              <div className="flex items-center">
-                <div className="w-[18px] sm:w-[30px] flex justify-center">
+              <div className="flex items-center gap-[4px]">
+                <div className="w-[1.3em] flex justify-end">
                   <span className="text-[14px] sm:text-xl font-black font-orbitron text-transparent bg-clip-text bg-gradient-to-b from-white to-gray-400 tabular-nums leading-none">
                     {item.val}
                   </span>
                 </div>
-                <span className="text-[8px] sm:text-[10px] font-mono font-bold text-cyan-500/60 ml-[3px] sm:ml-1">{item.label}</span>
+                <span className="text-[8px] sm:text-[10px] font-mono font-bold text-cyan-500/60 ">{item.label}</span>
               </div>
               {idx < 3 && (
-                <div className="h-2 sm:h-3 w-[1px] bg-white/10 mx-0.5 sm:mx-1" />
+                <div className="h-2 sm:h-3 w-[1px] bg-white/10 mx-0.5" />
               )}
             </React.Fragment>
           ))}
