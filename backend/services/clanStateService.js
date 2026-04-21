@@ -119,12 +119,14 @@ async function persistDirtyClanStates() {
       const state = await redisClient.hGetAllAsync(key);
       if (state && state.is_dirty === "1") {
         const clanId = key.split(":")[1];
+        const rawPoints = parseInt(state.points, 10);
+        const safePoints = isNaN(rawPoints) ? 0 : rawPoints;
         await query(
            "UPDATE clans SET points = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2",
-           [parseInt(state.points, 10), clanId]
+           [safePoints, clanId]
         );
         await redisClient.hSetAsync(key, "is_dirty", "0");
-        console.log(`💾 Estado do clã ${clanId} persistido (Pontos: ${state.points})`);
+        console.log(`💾 Estado do clã ${clanId} persistido (Pontos: ${safePoints})`);
       }
     }
   } catch (error) {

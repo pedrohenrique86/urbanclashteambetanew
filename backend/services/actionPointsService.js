@@ -1,122 +1,70 @@
-const { query } = require('../config/database');
+const playerStateService = require('./playerStateService');
 
 /**
- * Serviço para gerenciar pontos de ação dos usuários
- * - Reset diário às 00:00 (meia-noite)
- * - 20.000 pontos por dia, não cumulativos
+ * ActionPointsService - RedIRECIONADO para playerStateService
+ * 
+ * Este serviço foi mantido para compatibilidade com as rotas que ainda o importam,
+ * mas toda a lógica agora reside no playerStateService.js (Redis-first).
  */
-
 class ActionPointsService {
   /**
-   * Verifica se o usuário precisa de reset dos pontos de ação
-   * @param {string} userId - ID do usuário
-   * @returns {Promise<boolean>} - true se precisar de reset
+   * Verifica se o usuário precisa de reset (Legado, agora gerido internamente pelo getPlayerState)
    */
   static async needsReset(userId) {
-    try {
-      const result = await query(
-        'SELECT action_points_reset_time FROM user_profiles WHERE user_id = $1',
-        [userId]
-      );
-      
-      if (result.rows.length === 0) {
-        return false;
-      }
-      
-      const lastReset = new Date(result.rows[0].action_points_reset_time);
-      const now = new Date();
-      
-      // Verificar se passou da meia-noite desde o último reset
-      const lastMidnight = new Date(now);
-      lastMidnight.setHours(0, 0, 0, 0);
-      
-      return lastReset < lastMidnight;
-    } catch (error) {
-      console.error('❌ Erro ao verificar reset de pontos de ação:', error.message);
-      return false;
-    }
+    // playerStateService gerencia isso internamente via _checkAndResetAP
+    return false; 
   }
   
   /**
-   * Reseta os pontos de ação do usuário para 20.000
-   * @param {string} userId - ID do usuário
-   * @returns {Promise<boolean>} - true se resetou com sucesso
+   * Reseta os pontos de ação do usuário para 20.000 (Via Redis)
    */
   static async resetActionPoints(userId) {
     try {
-      await query(
-        `UPDATE user_profiles 
-         SET action_points = 20000, action_points_reset_time = CURRENT_TIMESTAMP 
-         WHERE user_id = $1`,
-        [userId]
-      );
-      
-      console.log(`🔄 Pontos de ação resetados para usuário: ${userId}`);
+      await playerStateService.updatePlayerState(userId, { action_points: 20000 });
       return true;
     } catch (error) {
-      console.error('❌ Erro ao resetar pontos de ação:', error.message);
+      console.error('❌ ActionPointsService.resetActionPoints falhou:', error.message);
       return false;
     }
   }
   
   /**
-   * Obtém os pontos de ação atuais do usuário, aplicando reset se necessário
-   * @param {string} userId - ID do usuário
-   * @returns {Promise<number>} - pontos de ação atuais
+   * Obtém os pontos de ação atuais do usuário (Via Redis)
    */
   static async getCurrentActionPoints(userId) {
     try {
-      // Verificar se precisa de reset
-      if (await this.needsReset(userId)) {
-        await this.resetActionPoints(userId);
-      }
-      
-      const result = await query(
-        'SELECT action_points FROM user_profiles WHERE user_id = $1',
-        [userId]
-      );
-      
-      return result.rows.length > 0 ? result.rows[0].action_points : 0;
+      const state = await playerStateService.getPlayerState(userId);
+      return state ? state.action_points : 0;
     } catch (error) {
-      console.error('❌ Erro ao obter pontos de ação:', error.message);
+      console.error('❌ ActionPointsService.getCurrentActionPoints falhou:', error.message);
       return 0;
     }
   }
   
   /**
-   * Consome pontos de ação do usuário
-   * @param {string} userId - ID do usuário
-   * @param {number} amount - quantidade de pontos a consumir
-   * @returns {Promise<{success: boolean, remaining: number}>}
+   * Consome pontos de ação do usuário (Via Redis)
    */
   static async consumeActionPoints(userId, amount) {
     try {
-      // Verificar pontos atuais (com reset automático se necessário)
-      const currentPoints = await this.getCurrentActionPoints(userId);
-      
-      if (currentPoints < amount) {
+      const state = await playerStateService.getPlayerState(userId);
+      if (!state) return { success: false, remaining: 0, error: 'Usuário não encontrado' };
+
+      if (state.action_points < amount) {
         return {
           success: false,
-          remaining: currentPoints,
+          remaining: state.action_points,
           error: 'Pontos de ação insuficientes'
         };
       }
       
-      // Consumir pontos
-      const newAmount = currentPoints - amount;
-      await query(
-        'UPDATE user_profiles SET action_points = $1 WHERE user_id = $2',
-        [newAmount, userId]
-      );
-      
-      console.log(`⚡ ${amount} pontos de ação consumidos. Restam: ${newAmount}`);
+      const newState = await playerStateService.updatePlayerState(userId, { action_points: -amount });
       
       return {
         success: true,
-        remaining: newAmount
+        remaining: newState ? newState.action_points : 0
       };
     } catch (error) {
-      console.error('❌ Erro ao consumir pontos de ação:', error.message);
+      console.error('❌ ActionPointsService.consumeActionPoints falhou:', error.message);
       return {
         success: false,
         remaining: 0,
@@ -126,23 +74,10 @@ class ActionPointsService {
   }
   
   /**
-   * Reset em massa para todos os usuários (executar diariamente às 00:00)
-   * @returns {Promise<number>} - número de usuários resetados
+   * Reset em massa (Agora gerido pelo mecanismo de Lazy Reset do playerStateService)
    */
   static async massReset() {
-    try {
-      const result = await query(
-        `UPDATE user_profiles 
-         SET action_points = 20000, action_points_reset_time = CURRENT_TIMESTAMP 
-         WHERE action_points_reset_time < CURRENT_DATE`
-      );
-      
-      console.log(`🔄 Reset em massa: ${result.rowCount} usuários resetados`);
-      return result.rowCount;
-    } catch (error) {
-      console.error('❌ Erro no reset em massa:', error.message);
-      return 0;
-    }
+    return 0;
   }
 }
 
