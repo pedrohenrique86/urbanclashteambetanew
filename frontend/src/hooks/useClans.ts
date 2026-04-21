@@ -8,6 +8,7 @@ interface Clan {
   faction: 'gangsters' | 'guardas';
   member_count: number;
   max_members: number;
+  score?: number;
 }
 
 export const useClans = (faction?: 'gangsters' | 'guardas') => {

@@ -51,7 +51,7 @@ const PlayerRankingItem = React.memo(function PlayerRankingItem({ player, config
       animate={{ opacity: 1, y: 0 }}
       whileHover={{ scale: 1.005, backgroundColor: "rgba(255,255,255,0.02)" }}
       onClick={() => onSelect(player.id)}
-      className="group relative flex items-center gap-3 sm:gap-6 p-2 sm:p-3 rounded border border-white/5 bg-zinc-950/40 cursor-pointer transition-all duration-300 mb-1"
+      className="group relative flex items-center gap-3 sm:gap-6 p-2 sm:p-3 rounded border border-white/10 bg-black/80 cursor-pointer transition-all duration-300 mb-1 shadow-lg"
     >
       {/* Selection Glow Indicator */}
       <div className={`absolute inset-y-0 left-0 w-0.5 bg-gradient-to-b ${config.gradient} opacity-40 group-hover:opacity-100 transition-opacity`} />
@@ -76,7 +76,7 @@ const PlayerRankingItem = React.memo(function PlayerRankingItem({ player, config
             {player.country && <img src={`https://flagcdn.com/w20/${player.country.toLowerCase()}.png`} className="w-3.5 h-auto opacity-50" alt="" />}
             <span className="text-sm sm:text-base font-orbitron font-bold text-white truncate uppercase tracking-tight">{player.username}</span>
           </div>
-          <span className={`text-[8px] sm:text-[10px] font-black tracking-[0.2em] ${isGuard ? 'text-cyan-500/50' : 'text-orange-500/50'} uppercase`}>
+          <span className={`text-[8px] sm:text-[10px] font-black tracking-[0.2em] ${isGuard ? 'text-cyan-400/70' : 'text-orange-500/70'} uppercase leading-none`}>
             ID: {player.id.slice(0, 8)}
           </span>
         </div>
@@ -85,8 +85,8 @@ const PlayerRankingItem = React.memo(function PlayerRankingItem({ player, config
       {/* Stats - Standardized horizontal layout */}
       <div className="flex items-center gap-4 sm:gap-16 pr-2">
          <div className="flex flex-col items-center">
-            <span className="text-[7px] text-zinc-600 font-black uppercase tracking-widest">NVL</span>
-            <span className="text-xs sm:text-base font-orbitron font-black text-white">{player.level}</span>
+            <span className="text-[7px] text-zinc-400 font-black uppercase tracking-widest leading-none mb-1">NVL</span>
+            <span className="text-xs sm:text-base font-orbitron font-black text-white leading-none">{player.level}</span>
          </div>
          <div className="hidden sm:flex flex-col items-center w-20">
             <span className="text-[7px] text-zinc-600 font-black uppercase tracking-widest mb-1 text-center">STATUS</span>
@@ -127,7 +127,7 @@ const ClanRankingItem = React.memo(function ClanRankingItem({ clan, config, onSe
       animate={{ opacity: 1, y: 0 }}
       whileHover={{ scale: 1.005, backgroundColor: "rgba(255,255,255,0.02)" }}
       onClick={() => onSelect(clan.id)}
-      className="group relative flex items-center gap-3 sm:gap-6 p-2 sm:p-3 rounded border border-white/5 bg-zinc-950/40 cursor-pointer transition-all duration-300 mb-1"
+      className="group relative flex items-center gap-3 sm:gap-6 p-2 sm:p-3 rounded border border-white/10 bg-black/80 cursor-pointer transition-all duration-300 mb-1 shadow-lg"
     >
       <div className={`absolute inset-y-0 left-0 w-0.5 bg-gradient-to-b ${config.gradient} opacity-40 group-hover:opacity-100 transition-opacity`} />
       
@@ -250,7 +250,7 @@ export default function RankingPage() {
         {error && <div className="p-4 rounded border border-red-500/20 bg-red-500/5 text-red-500 text-center font-mono text-[10px] uppercase mb-4 tracking-widest">[ ERROR_{error} ]</div>}
 
         {/* Ranking List - Clean One Column Vertical Approach */}
-        <div className="bg-zinc-900/30 rounded-xl p-1 sm:p-2 border border-white/5 backdrop-blur-xl">
+        <div className="bg-black/40 rounded-xl p-1 sm:p-2 border border-white/5 backdrop-blur-xl">
           <AnimatePresence mode="wait">
             <motion.div
               key={currentTab.id}
