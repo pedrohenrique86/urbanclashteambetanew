@@ -80,7 +80,10 @@ const renderSafeBio = (text?: string) => {
 const formatDate = (dateStr?: string) => {
   if (!dateStr || dateStr === "null" || dateStr === "undefined") return "DESCONHECIDA";
   try {
-    const date = dateStr.includes("T") ? new Date(dateStr) : new Date(`${dateStr}T12:00:00`);
+    const rawDate = dateStr.split('T')[0];
+    const [year, month, day] = rawDate.split('-').map(Number);
+    if (!year || !month || !day) return "INVALIDADA";
+    const date = new Date(year, month - 1, day);
     return date.toLocaleDateString("pt-BR", { day: '2-digit', month: '2-digit', year: 'numeric' });
   } catch { return "INVÁLIDA"; }
 };
@@ -98,12 +101,24 @@ const DigitalIdentity = React.memo(
     isCompact = false,
   }: DigitalIdentityProps) => {
     const [isExpanded, setIsExpanded] = useState(!isCompact);
+    const [localDate, setLocalDate] = useState("");
+
+    // Sincroniza valor inicial quando entra no modo edição
+    React.useEffect(() => {
+       if (isEditing && editData?.birth_date) {
+          const raw = editData.birth_date.split('T')[0];
+          const [y, m, d] = raw.split("-");
+          if (y && m && d) setLocalDate(`${d}${m}${y}`);
+       } else if (!isEditing) {
+          setLocalDate("");
+       }
+    }, [isEditing, editData?.birth_date]);
     
     const factionTheme = useMemo(() => {
       const isGangster = (player?.faction || "gangsters") === "gangsters";
       return isGangster
         ? { primary: "text-orange-500", border: "border-orange-500/20", bg: "bg-orange-500/10", accent: "from-orange-500 to-red-900", button: "bg-orange-600", icon: Skull, label: "RENEGADO" }
-        : { primary: "text-cyan-400", border: "border-cyan-500/20", bg: "bg-cyan-500/10", accent: "from-cyan-500 to-blue-900", button: "bg-cyan-600", icon: Shield, label: "GUARDIÃO" };
+        : { primary: "text-blue-500", border: "border-blue-500/20", bg: "bg-blue-500/10", accent: "from-blue-600 to-blue-900", button: "bg-blue-600", icon: Shield, label: "GUARDIÃO" };
     }, [player?.faction]);
 
     const winRate = useMemo(() => {
@@ -119,7 +134,7 @@ const DigitalIdentity = React.memo(
         initial={{ opacity: 0, scale: 0.9, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         transition={{ type: "spring", damping: 20, stiffness: 100 }}
-        className={`w-full ${isCompact ? 'max-w-md' : 'max-w-4xl'} mx-auto overflow-hidden rounded-[2.5rem] border-2 ${factionTheme.border.replace('/20', '/50')} bg-[#0a0a0a] shadow-[0_20px_50px_-20px_rgba(0,0,0,0.8)] relative selection:bg-zinc-800 before:absolute before:inset-0 before:bg-gradient-to-br ${factionTheme.accent} before:opacity-[0.05] before:pointer-events-none`}
+        className={`w-[95vw] ${isCompact ? 'max-w-md' : 'max-w-4xl'} mx-auto overflow-hidden rounded-[2rem] border-2 ${factionTheme.border.replace('/20', '/50')} bg-[#0a0a0a] shadow-[0_20px_50px_-20px_rgba(0,0,0,0.8)] relative selection:bg-zinc-800 before:absolute before:inset-0 before:bg-gradient-to-br ${factionTheme.accent} before:opacity-[0.05] before:pointer-events-none`}
       >
         {/* Balloon Point (Tail) */}
         {isCompact && (
@@ -166,7 +181,7 @@ const DigitalIdentity = React.memo(
 
                  <div className="flex flex-col min-w-0">
                     <div className="flex items-center gap-2 mb-1">
-                       <h2 className="text-xl sm:text-2xl font-black font-orbitron text-white uppercase italic tracking-tighter truncate">{player.display_name || player.username}</h2>
+                        <h2 className="text-xl sm:text-2xl font-black font-orbitron text-white uppercase italic tracking-tighter break-words leading-tight">{player.display_name || player.username}</h2>
                        {player.country && <img src={getFlagUrl(player.country)!} className="w-5 h-auto rounded-sm opacity-60" alt="" />}
                     </div>
                     <div className="flex items-center gap-2">
@@ -210,7 +225,42 @@ const DigitalIdentity = React.memo(
                              <DataPoint 
                                 label="MATRIZ_NASC" 
                                 value={isEditing ? (
-                                   <input type="date" value={editData?.birth_date?.split('T')[0] || ""} onChange={(e) => onEditChange?.({...editData, birth_date: e.target.value})} className="bg-black text-[9px] border-none focus:outline-none text-zinc-400" />
+                                    <input 
+                                       type="text" 
+                                       placeholder="DD/MM/AAAA"
+                                       maxLength={10}
+                                       value={(() => {
+                                          const d = localDate;
+                                          let m = "";
+                                          if (d.length > 0) {
+                                             m = d.substring(0, 2);
+                                             if (d.length > 2) m += "/" + d.substring(2, 4);
+                                             if (d.length > 4) m += "/" + d.substring(4, 8);
+                                          }
+                                          return m;
+                                       })()}
+                                       onChange={(e) => {
+                                          const val = e.target.value.replace(/\D/g, "").substring(0, 8);
+                                          setLocalDate(val);
+                                          
+                                          if (val.length === 8) {
+                                             const dd = val.substring(0, 2);
+                                             const mm = val.substring(2, 4);
+                                             const yyyy = val.substring(4, 8);
+                                             
+                                             const dayNum = parseInt(dd);
+                                             const monthNum = parseInt(mm);
+                                             const yearNum = parseInt(yyyy);
+                                             
+                                             if (monthNum >= 1 && monthNum <= 12 && dayNum >= 1 && dayNum <= 31 && yearNum >= 1900) {
+                                                onEditChange?.({...editData, birth_date: `${yyyy}-${mm}-${dd}`});
+                                             }
+                                          } else if (val.length === 0) {
+                                             onEditChange?.({...editData, birth_date: ""});
+                                          }
+                                       }}
+                                       className="bg-black text-[10px] w-24 border-none focus:outline-none text-zinc-400 placeholder:opacity-30" 
+                                    />
                                 ) : formatDate(player.birth_date)} 
                                 icon={Calendar} 
                              />

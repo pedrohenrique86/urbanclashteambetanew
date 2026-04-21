@@ -47,11 +47,10 @@ async function loadPlayerState(userId) {
     const stateForRedis = Object.entries(playerState).reduce(
       (acc, [key, value]) => {
         if (value instanceof Date) {
-          acc[key] = value.toISOString();
+          acc[key] = !isNaN(value.getTime()) ? value.toISOString().split("T")[0] : "";
         } else if (key === "birth_date" && value) {
-          // birth_date no Postgres 'date' vem como objeto Date.
-          // Se vier como string/outro, tentamos garantir o formato ISO date.
-          acc[key] = new Date(value).toISOString().split("T")[0];
+          const d = new Date(value);
+          acc[key] = !isNaN(d.getTime()) ? d.toISOString().split("T")[0] : "";
         } else {
           acc[key] = String(value ?? "");
         }
@@ -237,5 +236,6 @@ module.exports = {
   getPlayerState,
   updatePlayerState,
   persistPlayerState,
+  persistDirtyStates,
   schedulePersistence,
 };

@@ -184,7 +184,7 @@ export default function ClanPage() {
                     <Activity className={`w-2.5 h-2.5 ${theme.accent} animate-pulse`} />
                     <span className="text-[8px] font-black font-orbitron text-zinc-500 tracking-[0.2em] uppercase">{theme.label}</span>
                  </div>
-                 <h1 className="text-2xl sm:text-3xl font-black font-orbitron text-white leading-none tracking-tighter uppercase italic truncate">
+                 <h1 className="text-xl sm:text-2xl md:text-3xl font-black font-orbitron text-white leading-tight tracking-tighter uppercase italic break-words">
                     {clan?.name}
                  </h1>
                  <p className="text-zinc-500 text-[10px] mt-1 max-w-md leading-tight font-medium line-clamp-1">

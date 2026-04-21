@@ -36,9 +36,15 @@ function sanitizeBirthDate(birthDate) {
     birthDate === undefined ||
     birthDate === null ||
     birthDate === "" ||
-    birthDate === "Invalid Date"
+    birthDate === "Invalid Date" ||
+    birthDate === "null" ||
+    birthDate === "undefined"
   ) {
     return null;
+  }
+  // Se for uma data ISO completa, pega apenas a parte da data
+  if (typeof birthDate === 'string' && birthDate.includes('T')) {
+     return birthDate.split('T')[0];
   }
   return birthDate;
 }
@@ -145,7 +151,20 @@ const updateProfileValidation = [
     .isString()
     .isLength({ max: 100 })
     .withMessage("Avatar URL deve ser uma string de até 100 caracteres"),
-  body("birth_date").optional({ checkFalsy: true }),
+  body("birth_date")
+    .optional({ checkFalsy: true })
+    .matches(/^\d{4}-\d{2}-\d{2}$/)
+    .withMessage("Data de nascimento deve estar no formato AAAA-MM-DD")
+    .custom((value) => {
+      if (!value) return true;
+      const d = new Date(value);
+      if (isNaN(d.getTime())) throw new Error("Data inválida");
+      const year = d.getFullYear();
+      if (year < 1900 || year > new Date().getFullYear()) {
+        throw new Error("Ano de nascimento fora da faixa permitida");
+      }
+      return true;
+    }),
 ];
 
 const changePasswordValidation = [
@@ -518,6 +537,26 @@ router.get("/:id", async (req, res) => {
       return res.status(404).json({ error: "Usuário não encontrado" });
     }
 
+    let birthDate = null;
+    if (player.birth_date) {
+      try {
+        if (typeof player.birth_date === "string") {
+          birthDate = player.birth_date.split("T")[0];
+          // Validação básica de formato YYYY-MM-DD
+          if (!/^\d{4}-\d{2}-\d{2}$/.test(birthDate)) {
+             const d = new Date(player.birth_date);
+             birthDate = !isNaN(d.getTime()) ? d.toISOString().split("T")[0] : null;
+          }
+        } else {
+          const d = new Date(player.birth_date);
+          birthDate = !isNaN(d.getTime()) ? d.toISOString().split("T")[0] : null;
+        }
+      } catch (e) {
+        console.warn(`[USER_PROFILE] Data de nascimento inválida para user ${id}:`, player.birth_date);
+        birthDate = null;
+      }
+    }
+
     res.json({
       user: {
         id: player.user_id,
@@ -532,11 +571,7 @@ router.get("/:id", async (req, res) => {
         defeats: parseInt(player.defeats, 10) || 0,
         winning_streak: parseInt(player.winning_streak, 10) || 0,
         created_at: player.account_created_at,
-        birth_date: player.birth_date
-          ? typeof player.birth_date === "string"
-            ? player.birth_date.split("T")[0]
-            : new Date(player.birth_date).toISOString().split("T")[0]
-          : null,
+        birth_date: birthDate,
         clan_name: player.clan_name || null,
       },
     });

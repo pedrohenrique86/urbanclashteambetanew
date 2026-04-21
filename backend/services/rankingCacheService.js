@@ -3,6 +3,8 @@ const { query } = require("../config/database");
 const crypto = require("crypto");
 const sseService = require("./sseService");
 const { FACTION_ALIAS_MAP } = require("../utils/faction");
+const clanStateService = require("./clanStateService");
+const playerStateService = require("./playerStateService");
 
 const RANKINGS_TTL_SECONDS = 700; // Redis TTL ~11.7 min
 const STALE_THRESHOLD_SECONDS = 600; // Stale após 10 min
@@ -67,14 +69,17 @@ async function fetchClansFromDB() {
       c.name,
       c.faction,
       c.points as score,
+      mc.member_count,
       c.created_at,
       c.updated_at,
-      COUNT(cm.id) as member_count,
-      ROW_NUMBER() OVER (ORDER BY c.points DESC, COUNT(cm.id) DESC) as rank
+      ROW_NUMBER() OVER (ORDER BY c.points DESC, mc.member_count DESC) as rank
     FROM clans c
-    LEFT JOIN clan_members cm ON c.id = cm.clan_id
-    GROUP BY c.id, c.name, c.faction, c.points, c.created_at, c.updated_at
-    ORDER BY c.points DESC, COUNT(cm.id) DESC
+    LEFT JOIN LATERAL (
+      SELECT COUNT(*)::int AS member_count
+      FROM clan_members cm
+      WHERE cm.clan_id = c.id
+    ) mc ON true
+    ORDER BY c.points DESC, mc.member_count DESC
     LIMIT $1
   `,
     [STANDARD_LIMIT],
@@ -170,7 +175,14 @@ async function ensureFreshRanking(type, faction) {
 }
 
 async function warmupRankings() {
-  console.log("🔥 Aquecendo caches de ranking (SSOT)...");
+  console.log("🔥 [RANKING] Iniciando ciclo de persistência e atualização (10 min)...");
+  
+  // Persiste estados sujos (Clãs e Jogadores) antes de atualizar o ranking
+  await Promise.allSettled([
+    clanStateService.persistDirtyClanStates(),
+    playerStateService.persistDirtyStates(), // Reutiliza a lógica de jogadores já existente
+  ]);
+
   const tasks = [
     triggerRefresh("users", "gangsters"),
     triggerRefresh("users", "guardas"),
@@ -179,7 +191,7 @@ async function warmupRankings() {
   ];
 
   await Promise.allSettled(tasks);
-  console.log("✅ Caches de ranking aquecidos");
+  console.log("✅ [RANKING] Ciclo concluído.");
 }
 
 function startPeriodicRefresh() {

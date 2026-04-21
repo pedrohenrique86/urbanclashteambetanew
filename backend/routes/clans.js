@@ -56,6 +56,7 @@ router.get("/:id/events", authenticateToken, (req, res) => {
 });
 
 const rankingCacheService = require("../services/rankingCacheService");
+const clanStateService = require("../services/clanStateService");
 
 // =========================
 // Validações
@@ -302,18 +303,7 @@ router.get("/:id", async (req, res) => {
     const { id } = req.params;
 
     const clanResult = await query(
-      `
-      SELECT
-        c.*,
-        mc.member_count
-      FROM clans c
-      LEFT JOIN LATERAL (
-        SELECT COUNT(*)::int AS member_count
-        FROM clan_members cm
-        WHERE cm.clan_id = c.id
-      ) mc ON true
-      WHERE c.id = $1
-      `,
+      "SELECT * FROM clans WHERE id = $1",
       [id],
     );
 
@@ -365,6 +355,45 @@ router.get("/:id", async (req, res) => {
     });
   } catch (error) {
     console.error("❌ Erro ao buscar clã:", error.message);
+    res.status(500).json({ error: "Erro interno do servidor" });
+  }
+});
+
+// =========================
+// GET /api/clans/:id/members
+// =========================
+router.get("/:id/members", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const membersResult = await query(
+      `
+      SELECT 
+        cm.role,
+        cm.joined_at,
+        u.id as user_id,
+        u.username,
+        u.country,
+        COALESCE(p.display_name, p.username, u.username) as display_name,
+        p.avatar_url,
+        p.level,
+        p.experience_points
+      FROM clan_members cm
+      INNER JOIN users u ON cm.user_id = u.id
+      LEFT JOIN user_profiles p ON u.id = p.user_id
+      WHERE cm.clan_id = $1
+      ORDER BY 
+        CASE cm.role 
+          WHEN 'leader' THEN 1 
+          WHEN 'officer' THEN 2 
+          ELSE 3 
+        END,
+        cm.joined_at ASC
+      `,
+      [id],
+    );
+    res.json({ members: membersResult.rows });
+  } catch (error) {
+    console.error("❌ Erro ao buscar membros do clã:", error.message);
     res.status(500).json({ error: "Erro interno do servidor" });
   }
 });
@@ -592,19 +621,7 @@ router.post("/:id/join", authenticateToken, async (req, res) => {
   try {
     const result = await transaction(async (client) => {
       const clanResult = await client.query(
-        `
-        SELECT
-          c.*,
-          mc.member_count
-        FROM clans c
-        LEFT JOIN LATERAL (
-          SELECT COUNT(*)::int AS member_count
-          FROM clan_members cm
-          WHERE cm.clan_id = c.id
-        ) mc ON true
-        WHERE c.id = $1
-        FOR UPDATE OF c
-        `,
+        "SELECT * FROM clans WHERE id = $1 FOR UPDATE",
         [clanId],
       );
 
@@ -653,9 +670,9 @@ router.post("/:id/join", authenticateToken, async (req, res) => {
 
     await redisClient.delAsync(`playerState:${userId}`);
 
-    console.log(
-      `[CLAN_JOIN_SUCCESS] User ${userId} entrou com sucesso no clã ${clanId}`,
-    );
+    // Atualiza contagem no Cache (Redis) - Sincroniza em lote a cada 10 min
+    await clanStateService.updateClanState(clanId, { member_count: 1 });
+
     broadcastToClan(clanId, "member_joined", { userId, clanId });
     res.json({ message: result.message });
   } catch (error) {
@@ -686,7 +703,12 @@ router.post("/:id/leave", authenticateToken, async (req, res) => {
       );
 
       if (memberResult.rows.length === 0) {
-        return { status: 404, error: "Você não é membro deste clã." };
+        // Correção: Se o membro não estiver em clan_members, limpamos o user_profiles para evitar bug na UI.
+        await client.query(
+          "UPDATE user_profiles SET clan_id = NULL, updated_at = CURRENT_TIMESTAMP WHERE user_id = $1",
+          [userId],
+        );
+        return { status: 200, message: "O seu perfil foi desvinculado deste clã com sucesso." };
       }
 
       const userRole = memberResult.rows[0].role;
@@ -724,6 +746,9 @@ router.post("/:id/leave", authenticateToken, async (req, res) => {
     }
 
     await redisClient.delAsync(`playerState:${userId}`);
+
+    // Atualiza contagem no Cache (Redis)
+    await clanStateService.updateClanState(clanId, { member_count: -1 });
 
     broadcastToClan(clanId, "member_left", { userId, clanId });
     res.json({ message: result.message });
@@ -798,6 +823,9 @@ router.post("/:id/vote-kick/:targetUserId", authenticateToken, async (req, res) 
           `DELETE FROM clan_members WHERE clan_id = $1 AND user_id = $2`,
           [clanId, targetUserId],
         );
+        
+        // Atualiza contagem no Cache (Redis) se foi expulso
+        await clanStateService.updateClanState(clanId, { member_count: -1 });
 
         await client.query(
           `UPDATE user_profiles SET clan_id = NULL, updated_at = CURRENT_TIMESTAMP WHERE user_id = $1`,

@@ -22,7 +22,7 @@ const DigitalIdentityModal = React.memo(
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-[9000] flex items-center justify-center p-4 bg-transparent pointer-events-auto"
+          className="fixed inset-0 z-[9000] flex justify-center items-start overflow-y-auto p-4 py-12 bg-transparent pointer-events-auto custom-scrollbar"
           onClick={onClose}
         >
           <motion.div
