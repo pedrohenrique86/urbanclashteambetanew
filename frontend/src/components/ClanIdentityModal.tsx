@@ -106,10 +106,12 @@ const ClanIdentityModal = React.memo(
 
     if (!clanId) return null;
 
-    const factionStyles =
-      clan?.faction === "gangsters"
-        ? "border-orange-500/40 bg-gradient-to-br from-orange-600/60 to-stone-950/90"
-        : "border-blue-500/40 bg-gradient-to-br from-blue-600/60 to-stone-950/90";
+    const factionName = clan?.faction?.toLowerCase() || "";
+    const isRenegado = factionName.includes("gangster") || factionName.includes("renegado");
+
+    const factionStyles = isRenegado
+        ? "border-orange-500/40 bg-gradient-to-br from-orange-600/60 to-stone-950/90 shadow-orange-900/20"
+        : "border-blue-500/40 bg-gradient-to-br from-blue-600/60 to-stone-950/90 shadow-blue-900/20";
 
     return (
       <AnimatePresence>
@@ -190,7 +192,7 @@ const ClanIdentityModal = React.memo(
                         MORADORES
                       </p>
                       <p className="text-xl font-bold">
-                        {clan.member_count || 0}/{clan.max_members || 20}
+                        {clan.member_count || 0}/{clan.max_members || 40}
                       </p>
                     </div>
 

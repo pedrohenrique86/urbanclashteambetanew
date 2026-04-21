@@ -1,405 +1,299 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { Player, Clan } from "../types/ranking";
 import { useRankingCache } from "../hooks/useRankingCache";
 import { useHUD } from "../contexts/HUDContext";
-import { Skull, ShieldCheck, Shield, Users, Target, Crosshair, ShieldAlert } from "lucide-react";
+import { 
+  Skull, 
+  Shield, 
+  Users, 
+  Target, 
+  Zap, 
+  ChevronRight,
+  ShieldAlert,
+  Crosshair,
+  Crown
+} from "lucide-react";
 
-// Componente para item do ranking de jogadores
-const PlayerRankingItem = React.memo(function PlayerRankingItem({ player, gradient, onSelect }: {
-  player: Player;
-  gradient: string;
-  onSelect: (id: string) => void;
-}) {
-  const getCountryFlag = (countryCode?: string) => {
-    if (!countryCode) {
-      return null;
-    }
-    return `https://flagcdn.com/24x18/${countryCode.toLowerCase()}.png`;
+// --- Tactical UI Components ---
+
+const RankBadge = ({ position, isGuard }: { position: number, isGuard: boolean }) => {
+  const isTop3 = position <= 3;
+  const getRankColor = () => {
+    if (position === 1) return "text-yellow-400";
+    if (position === 2) return "text-slate-300";
+    if (position === 3) return isGuard ? "text-cyan-400" : "text-orange-500";
+    return "text-zinc-500";
   };
 
+  return (
+    <div className={`flex flex-col items-center justify-center w-8 sm:w-12`}>
+      {position === 1 && <Crown className="w-3 h-3 text-yellow-400 mb-0.5 animate-bounce" />}
+      <span className={`font-orbitron font-black ${isTop3 ? 'text-xl' : 'text-sm'} ${getRankColor()} leading-none`}>
+        {String(position).padStart(2, '0')}
+      </span>
+    </div>
+  );
+};
+
+const PlayerRankingItem = React.memo(function PlayerRankingItem({ player, config, onSelect }: {
+  player: Player;
+  config: any;
+  onSelect: (id: string) => void;
+}) {
   const factionName = player.faction?.toLowerCase() || "";
   const isGuard = factionName.includes("guard") || factionName.includes("polic") || factionName.includes("guarda");
   const FactionIcon = isGuard ? Shield : Skull;
 
-  const getPositionColor = (position: number) => {
-    switch (position) {
-      case 1: return "text-yellow-400";
-      case 2: return "text-gray-300";
-      case 3: return isGuard ? "text-cyan-400" : "text-orange-500";
-      default: return isGuard ? "text-blue-400" : "text-orange-500";
-    }
-  };
-
-  const getPositionDisplay = (position?: number) => {
-    if (!position) return "—";
-    switch (position) {
-      case 1: return "🏆";
-      case 2: return "🥈";
-      case 3: return "🥉";
-      default: return position;
-    }
-  };
-
   return (
     <motion.div
-      className={`bg-gradient-to-r ${gradient} mb-2 cursor-pointer rounded-lg p-[1px] transition-all hover:shadow-lg active:scale-95`}
-      whileHover={{ scale: 1.015 }}
-      transition={{ duration: 0.2 }}
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      whileHover={{ scale: 1.005, backgroundColor: "rgba(255,255,255,0.02)" }}
       onClick={() => onSelect(player.id)}
+      className="group relative flex items-center gap-3 sm:gap-6 p-2 sm:p-3 rounded border border-white/5 bg-zinc-950/40 cursor-pointer transition-all duration-300 mb-1"
     >
-      <div className="rounded-lg bg-gray-800/80 p-3 backdrop-blur-sm">
-        <div className="flex min-w-0 items-center justify-between">
-          <div className="flex min-w-0 flex-1 items-center space-x-3">
-            <div
-              className={`w-8 flex-shrink-0 text-center font-bold ${(player.position ?? 0) <= 3 ? "text-2xl" : "text-sm"
-                } ${getPositionColor(player.position ?? 0)}`}
-            >
-              {getPositionDisplay(player.position)}
-            </div>
+      {/* Selection Glow Indicator */}
+      <div className={`absolute inset-y-0 left-0 w-0.5 bg-gradient-to-b ${config.gradient} opacity-40 group-hover:opacity-100 transition-opacity`} />
+      
+      {/* Rank */}
+      <RankBadge position={player.position || 0} isGuard={isGuard} />
 
-            <span className="text-sm flex-shrink-0">
-              {getCountryFlag(player.country) ? (
-                <img
-                  src={getCountryFlag(player.country)!}
-                  alt={player.country}
-                  title={player.country}
-                  className="w-4 h-3 object-cover"
-                />
-              ) : (
-                "🏳️"
-              )}
-            </span>
-
-            <span className={`min-w-0 flex-1 truncate text-sm font-bold text-white ${isGuard ? 'group-hover:text-blue-400' : 'group-hover:text-orange-500'} transition-colors`}>
-              {player.username}
-            </span>
+      {/* Profile */}
+      <div className="flex items-center gap-2 sm:gap-4 flex-1 min-w-0">
+        <div className={`relative w-8 h-8 sm:w-11 sm:h-11 rounded border ${isGuard ? 'border-cyan-500/40' : 'border-orange-500/40'} bg-zinc-900 overflow-hidden flex-shrink-0`}>
+           {player.avatar_url ? (
+             <img src={player.avatar_url} className="w-full h-full object-cover" alt="" />
+           ) : (
+             <div className="w-full h-full flex items-center justify-center">
+               <FactionIcon className={`w-4 h-4 sm:w-5 sm:h-5 ${isGuard ? 'text-cyan-400 drop-shadow-[0_0_8px_rgba(34,211,238,0.6)]' : 'text-orange-500 drop-shadow-[0_0_8px_rgba(249,115,22,0.6)]'}`} />
+             </div>
+           )}
+        </div>
+        
+        <div className="flex flex-col min-w-0">
+          <div className="flex items-center gap-2">
+            {player.country && <img src={`https://flagcdn.com/w20/${player.country.toLowerCase()}.png`} className="w-3.5 h-auto opacity-50" alt="" />}
+            <span className="text-sm sm:text-base font-orbitron font-bold text-white truncate uppercase tracking-tight">{player.username}</span>
           </div>
-
-          <div className="ml-1 flex-shrink-0 text-right">
-            <div className={`whitespace-nowrap text-[10px] font-orbitron font-black uppercase ${isGuard ? 'text-blue-400/80' : 'text-orange-500/80'}`}>
-              NVL <span className="text-white text-sm">{player.level}</span>
-            </div>
-          </div>
+          <span className={`text-[8px] sm:text-[10px] font-black tracking-[0.2em] ${isGuard ? 'text-cyan-500/50' : 'text-orange-500/50'} uppercase`}>
+            ID: {player.id.slice(0, 8)}
+          </span>
         </div>
       </div>
+
+      {/* Stats - Standardized horizontal layout */}
+      <div className="flex items-center gap-4 sm:gap-16 pr-2">
+         <div className="flex flex-col items-center">
+            <span className="text-[7px] text-zinc-600 font-black uppercase tracking-widest">NVL</span>
+            <span className="text-xs sm:text-base font-orbitron font-black text-white">{player.level}</span>
+         </div>
+         <div className="hidden sm:flex flex-col items-center w-20">
+            <span className="text-[7px] text-zinc-600 font-black uppercase tracking-widest mb-1 text-center">STATUS</span>
+            <div className={`h-1 w-full bg-zinc-800 rounded-full overflow-hidden`}>
+              <motion.div 
+                initial={{ width: 0 }}
+                animate={{ width: '70%' }}
+                transition={{ duration: 1, delay: 0.2 }}
+                className={`h-full bg-gradient-to-r ${config.gradient}`} 
+              />
+            </div>
+         </div>
+         <ChevronRight className="w-3 h-3 sm:w-4 sm:h-4 text-zinc-700 group-hover:text-white" />
+      </div>
+
+      {/* Rank 1-3 Accent */}
+      {(player.position || 0) <= 3 && (
+        <div className="absolute top-0 right-0 w-16 h-16 pointer-events-none overflow-hidden">
+           <div className={`absolute top-0 right-0 w-[150%] h-[20%] bg-gradient-to-r ${config.gradient} rotate-45 translate-x-[40%] -translate-y-[40%] opacity-10`} />
+        </div>
+      )}
     </motion.div>
   );
 });
 
-// Componente para item do ranking de clãs
-const ClanRankingItem = React.memo(function ClanRankingItem({ clan, gradient, onSelect }: {
+const ClanRankingItem = React.memo(function ClanRankingItem({ clan, config, onSelect }: {
   clan: Clan;
-  gradient: string;
+  config: any;
   onSelect: (id: string) => void;
 }) {
-  const getClanIcon = (faction: string) => {
-    return faction === "gangsters" ? "🔫" : "🛡️";
-  };
-
-  const getPositionColor = (position: number) => {
-    switch (position) {
-      case 1:
-        return "text-yellow-400";
-      case 2:
-        return "text-gray-300";
-      case 3:
-        return "text-orange-500";
-      default:
-        return "text-gray-400";
-    }
-  };
-
-  const getPositionDisplay = (position?: number) => {
-    if (!position) return "—";
-    switch (position) {
-      case 1:
-        return "🏆";
-      case 2:
-        return "🥈";
-      case 3:
-        return "🥉";
-      default:
-        return position;
-    }
-  };
-
   const factionName = clan.faction?.toLowerCase() || "";
   const isRenegado = factionName.includes("gangster") || factionName.includes("renegado");
   const FactionIcon = isRenegado ? Crosshair : ShieldAlert;
 
   return (
     <motion.div
-      className={`bg-gradient-to-r ${gradient} mb-2 cursor-pointer rounded-lg p-[1px] transition-all hover:shadow-lg active:scale-95`}
-      whileHover={{ scale: 1.015 }}
-      transition={{ duration: 0.2 }}
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      whileHover={{ scale: 1.005, backgroundColor: "rgba(255,255,255,0.02)" }}
       onClick={() => onSelect(clan.id)}
+      className="group relative flex items-center gap-3 sm:gap-6 p-2 sm:p-3 rounded border border-white/5 bg-zinc-950/40 cursor-pointer transition-all duration-300 mb-1"
     >
-      <div className="rounded-lg bg-gray-800/80 p-3 backdrop-blur-sm">
-        <div className="flex min-w-0 items-center justify-between">
-          <div className="flex min-w-0 flex-1 items-center space-x-3">
-            <div
-              className={`w-8 flex-shrink-0 text-center font-bold ${(clan.position ?? 0) <= 3 ? "text-2xl" : "text-sm"
-                } ${getPositionColor(clan.position ?? 0)}`}
-            >
-              {getPositionDisplay(clan.position)}
-            </div>
+      <div className={`absolute inset-y-0 left-0 w-0.5 bg-gradient-to-b ${config.gradient} opacity-40 group-hover:opacity-100 transition-opacity`} />
+      
+      <RankBadge position={clan.position || 0} isGuard={!isRenegado} />
 
-            {/* Cyberpunk Icon Container */}
-            <div className="relative flex-shrink-0">
-               <div className={`p-2 rounded-sm bg-black/60 border ${isRenegado ? 'border-orange-500/20' : 'border-blue-500/20'} relative overflow-hidden`}>
-                  <div className="absolute inset-0 bg-[linear-gradient(transparent_50%,rgba(0,0,0,0.1)_50%)] bg-[length:100%_2px] opacity-10" />
-                  <FactionIcon className={`w-3.5 h-3.5 ${isRenegado ? 'text-orange-500' : 'text-blue-400'} animate-pulse-slow relative z-10`} />
-               </div>
-            </div>
-
-            <span className="min-w-0 flex-1 truncate text-sm font-bold text-white group-hover:text-purple-400">
-              {clan.name}
+      <div className="flex items-center gap-2 sm:gap-4 flex-1 min-w-0">
+        <div className={`w-8 h-8 sm:w-11 sm:h-11 rounded border ${isRenegado ? 'border-orange-500/40' : 'border-blue-500/40'} bg-zinc-900 flex items-center justify-center flex-shrink-0`}>
+          <FactionIcon className={`w-4 h-4 sm:w-5 sm:h-5 ${isRenegado ? 'text-orange-500 drop-shadow-[0_0_8px_rgba(249,115,22,0.6)]' : 'text-cyan-400 drop-shadow-[0_0_8px_rgba(34,211,238,0.6)]'}`} />
+        </div>
+        
+          <div className="flex flex-col min-w-0">
+            <span className="text-sm sm:text-base font-orbitron font-bold text-white truncate uppercase tracking-tight">{clan.name}</span>
+            <span className={`text-[8px] sm:text-[10px] font-black tracking-[0.2em] ${isRenegado ? 'text-orange-500/50' : 'text-blue-500/50'} uppercase`}>
+              LÍDER: {clan.leaderName || "RECRUTA"}
             </span>
           </div>
-
-          <div className="ml-1 flex-shrink-0 text-right">
-            <div className="whitespace-nowrap text-[10px] font-orbitron font-black text-purple-400/50 uppercase">
-              SCORE <span className="text-purple-400 text-sm">{clan.score}</span>
-            </div>
-          </div>
         </div>
+
+        <div className="flex items-center gap-4 sm:gap-16 pr-2">
+          <div className="flex flex-col items-center">
+            <span className="text-[7px] text-zinc-600 font-black uppercase tracking-widest">PONTOS</span>
+            <span className={`text-xs sm:text-base font-orbitron font-black text-purple-400 italic`}>{clan.score}</span>
+          </div>
+         <div className="hidden sm:flex flex-col items-center w-20">
+            <span className="text-[7px] text-zinc-600 font-black uppercase tracking-widest text-center">MEMBROS</span>
+            <span className="text-xs font-orbitron font-bold text-zinc-400">{clan.memberCount} / 40</span>
+         </div>
+         <ChevronRight className="w-3 h-3 sm:w-4 sm:h-4 text-zinc-700 group-hover:text-white" />
       </div>
     </motion.div>
   );
 });
 
-// Componente para placeholder de posição vazia
-const EmptyRankingItem = React.memo(function EmptyRankingItem({ position, type }: {
-  position: number;
-  type: "player" | "clan";
-}) {
-  const getPositionColor = (position: number) => {
-    switch (position) {
-      case 1:
-        return "text-yellow-400";
-      case 2:
-        return "text-gray-300";
-      case 3:
-        return "text-orange-500";
-      default:
-        return "text-gray-500";
-    }
-  };
-
-  const getPositionDisplay = (position: number) => {
-    switch (position) {
-      case 1:
-        return "🏆";
-      case 2:
-        return "🥈";
-      case 3:
-        return "🥉";
-      default:
-        return position;
-    }
-  };
-
-  return (
-    <div className="mb-2 rounded-lg border border-gray-700/50 bg-gray-800/30 p-3 opacity-60">
-      <div className="flex min-w-0 items-center justify-between">
-        <div className="flex min-w-0 flex-1 items-center space-x-3">
-          <div
-            className={`w-8 flex-shrink-0 text-center font-bold ${position <= 3 ? "text-2xl" : "text-sm"
-              } ${getPositionColor(position)}`}
-          >
-            {getPositionDisplay(position)}
-          </div>
-
-          <span className="flex-shrink-0 text-sm font-bold text-red-500/70">
-            ❓
-          </span>
-
-          <span className="min-w-0 flex-1 text-sm italic text-gray-500">
-            {type === "clan" ? "Aguardando divisão..." : "Aguardando jogador..."}
-          </span>
-        </div>
-
-        <div className="ml-1 flex-shrink-0 text-right">
-          <div className="whitespace-nowrap text-sm font-bold text-gray-600">
-            ---
-          </div>
-        </div>
-      </div>
+const EmptyRankingItem = ({ position }: { position: number }) => (
+  <div className="group relative flex items-center gap-6 p-4 rounded border border-dashed border-white/5 bg-white/[0.01] mb-1 overflow-hidden">
+    <div className="w-8 sm:w-12 text-center text-zinc-800 font-orbitron font-black italic text-lg opacity-40">
+      {String(position).padStart(2, '0')}
     </div>
-  );
-});
-
-const RankingColumn = React.memo(function RankingColumn({ config, isLoading, onSelectPlayer, onSelectClan }: {
-  config: any;
-  isLoading: boolean;
-  onSelectPlayer: (id: string) => void;
-  onSelectClan: (id: string) => void;
-}) {
-  const dataMap = useMemo(() => {
-    const map = new Map();
-    if (config?.data) {
-      config.data.forEach((d: any) => {
-        if (d.position !== undefined) map.set(d.position, d);
-      });
-    }
-    return map;
-  }, [config?.data]);
-
-  return (
-  <motion.div
-    initial={{ opacity: 0, y: 50 }}
-    animate={{ opacity: 1, y: 0 }}
-    transition={{ duration: 0.6 }}
-    className={`rounded-2xl border bg-gray-900/50 p-4 shadow-2xl sm:p-6 ${config.borderColor}`}
-  >
-    <div className="mb-6 text-center">
-      <h2
-        className={`bg-gradient-to-r bg-clip-text text-xl font-orbitron font-bold text-transparent sm:text-2xl ${config.gradient}`}
-      >
-        {config.title}
-      </h2>
-      <div
-        className={`mx-auto mt-2 h-1 w-16 rounded-full bg-gradient-to-r ${config.gradient}`}
-      />
+    <div className="flex-1 flex flex-col gap-2">
+      <div className="h-2 w-32 bg-zinc-900 rounded" />
+      <div className="h-1.5 w-24 bg-zinc-900/50 rounded" />
     </div>
-
-    <div className="space-y-2">
-      {isLoading
-        ? Array.from({ length: 26 }, (_, i) => (
-          <div
-            key={i}
-            className="h-14 animate-pulse rounded-lg bg-gray-700/50"
-          />
-        ))
-        : Array.from({ length: 26 }, (_, idx) => {
-          const position = idx + 1;
-          const item = dataMap.get(position);
-          const gradient = config.gradient;
-
-          if (item) {
-            return config.type === "player" ? (
-              <PlayerRankingItem
-                key={item.id}
-                player={item}
-                gradient={gradient}
-                onSelect={onSelectPlayer}
-              />
-            ) : (
-              <ClanRankingItem
-                key={item.id}
-                clan={item}
-                gradient={gradient}
-                onSelect={onSelectClan}
-              />
-            );
-          }
-
-          return (
-            <EmptyRankingItem
-              key={`empty-${position}`}
-              position={position}
-              type={config.type}
-            />
-          );
-        })}
+    <div className="flex items-center gap-2 grayscale opacity-10">
+       <span className="text-[8px] font-black text-zinc-500 tracking-widest uppercase">[ SEM_DADOS_REGISTRADOS ]</span>
+       <Zap className="w-3 h-3 text-zinc-500" />
     </div>
-  </motion.div>
-  );
-});
+    
+    {/* Scanning Animation for Empty Slots */}
+    <motion.div 
+      animate={{ x: ['100%', '-100%'] }}
+      transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
+      className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[0.02] to-transparent pointer-events-none"
+    />
+  </div>
+);
+
+// --- Main Page ---
 
 export default function RankingPage() {
   const { openUserPanel, openClanPanel } = useHUD();
   const [selectedRanking, setSelectedRanking] = useState(0);
-
-  useEffect(() => {
-    const cacheCleared = localStorage.getItem("ranking_cache_cleared_v1");
-    if (!cacheCleared) {
-      localStorage.removeItem("ranking_cache");
-      localStorage.setItem("ranking_cache_cleared_v1", "true");
-    }
-  }, []);
-
   const { data, loading: isLoading, error } = useRankingCache();
 
-  const { gangsters, guardas, clans } = data || {
-    gangsters: [],
-    guardas: [],
-    clans: [],
-  };
+  const rankingData = useMemo(() => {
+    const { gangsters, guardas, clans } = data || { gangsters: [], guardas: [], clans: [] };
+    return [
+      { id: 'renegados', label: "RENEGADOS", icon: Target, gradient: "from-orange-600 to-red-500", accent: "text-orange-500", data: gangsters, type: "player" },
+      { id: 'guardioes', label: "GUARDIÕES", icon: Shield, gradient: "from-cyan-600 to-blue-500", accent: "text-cyan-400", data: guardas, type: "player" },
+      { id: 'divisoes', label: "DIVISÕES", icon: Users, gradient: "from-blue-600 to-indigo-700", accent: "text-blue-500", data: clans, type: "clan" }
+    ];
+  }, [data]);
 
-  const rankingConfigs = useMemo(() => [
-    {
-      title: "TOP 26 OPERATIVOS RENEGADOS",
-      shortTitle: "RENEGADOS",
-      gradient: "from-orange-600 to-red-500",
-      borderColor: "border-orange-500/30",
-      data: gangsters,
-      type: "player" as const,
-    },
-    {
-      title: "TOP 26 UNIDADES GUARDIÕES",
-      shortTitle: "GUARDIÕES",
-      gradient: "from-blue-600 to-cyan-500",
-      borderColor: "border-blue-500/30",
-      data: guardas,
-      type: "player" as const,
-    },
-    {
-      title: "TOP 26 DIVISÕES DE ELITE",
-      shortTitle: "DIVISÕES",
-      gradient: "from-purple-600 to-pink-500",
-      borderColor: "border-purple-500/30",
-      data: clans,
-      type: "clan" as const,
-    },
-  ], [gangsters, guardas, clans]);
-
-  const currentConfig = rankingConfigs[selectedRanking];
+  const currentTab = rankingData[selectedRanking];
 
   return (
-    <div className="relative h-full flex-1">
-      <div className="mx-auto max-w-7xl px-4 pb-8">
-        <div className="mb-4 hidden justify-center space-x-2 sm:flex">
-          {rankingConfigs.map((config, index) => (
-            <button
-              key={config.title}
-              onClick={() => setSelectedRanking(index)}
-              className={`rounded-lg px-6 py-2 text-sm font-orbitron transition-all duration-300 ${selectedRanking === index
-                  ? `bg-gradient-to-r ${config.gradient} text-white shadow-lg`
-                  : "bg-gray-700/50 text-gray-300 hover:bg-gray-600/70"
-                }`}
+    <div className="relative min-h-screen flex flex-col pt-2 sm:pt-6">
+      {/* Subtle Aesthetic Background Overlay */}
+      <div className="fixed inset-0 pointer-events-none z-0">
+         <div className="absolute top-0 right-1/4 w-[400px] h-[400px] bg-orange-500/5 blur-[120px] rounded-full" />
+         <div className="absolute bottom-0 left-1/4 w-[400px] h-[400px] bg-blue-500/5 blur-[120px] rounded-full" />
+      </div>
+
+      <div className="relative z-10 w-full max-w-4xl mx-auto px-2 sm:px-6 pb-24">
+        
+        {/* Navigation - Industrial Tabs */}
+        <div className="flex items-center bg-zinc-900/80 p-1.5 rounded-lg border border-white/5 mb-8">
+           {rankingData.map((tab, idx) => {
+             const Icon = tab.icon;
+             const active = selectedRanking === idx;
+             return (
+               <button
+                 key={tab.id}
+                 onClick={() => setSelectedRanking(idx)}
+                 className={`flex-1 flex items-center justify-center gap-2 py-3 rounded text-[10px] sm:text-xs font-orbitron font-black tracking-widest transition-all duration-300 ${
+                   active ? `bg-gradient-to-r ${tab.gradient} text-white shadow-xl` : 'text-zinc-500 hover:text-zinc-300'
+                 }`}
+               >
+                 <Icon className="w-3 h-3 sm:w-4 sm:h-4" />
+                 {tab.label}
+               </button>
+             );
+           })}
+        </div>
+
+        {/* Tactical Info Header */}
+        <div className="flex items-center justify-between px-4 py-2 border-l-2 border-orange-500/50 bg-white/[0.02] mb-6">
+           <div className="flex items-center gap-3">
+              <Zap className="w-3 h-3 text-orange-500 animate-pulse" />
+              <span className="text-[9px] font-black font-orbitron text-white tracking-[0.4em] uppercase">SYSTEM.RANKING.V2</span>
+           </div>
+           <div className="flex items-center gap-4">
+              <div className="flex items-center gap-1.5">
+                 <div className="w-1.5 h-1.5 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.5)]" />
+                 <span className="text-[8px] font-black text-zinc-500 uppercase tracking-widest">LIVE</span>
+              </div>
+           </div>
+        </div>
+
+        {/* Global Loading / Error State */}
+        {error && <div className="p-4 rounded border border-red-500/20 bg-red-500/5 text-red-500 text-center font-mono text-[10px] uppercase mb-4 tracking-widest">[ ERROR_{error} ]</div>}
+
+        {/* Ranking List - Clean One Column Vertical Approach */}
+        <div className="bg-zinc-900/30 rounded-xl p-1 sm:p-2 border border-white/5 backdrop-blur-xl">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={currentTab.id}
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 10 }}
+              transition={{ duration: 0.3 }}
+              className="flex flex-col"
             >
-              {config.shortTitle}
-            </button>
-          ))}
+              {isLoading ? (
+                Array.from({ length: 5 }).map((_, i) => <EmptyRankingItem key={i} position={i + 1} />)
+              ) : currentTab.data.length > 0 ? (
+                currentTab.data.map((item: any) => (
+                  currentTab.type === 'clan' 
+                    ? <ClanRankingItem key={item.id} clan={item} config={currentTab} onSelect={openClanPanel} />
+                    : <PlayerRankingItem key={item.id} player={item} config={currentTab} onSelect={openUserPanel} />
+                ))
+              ) : (
+                /* Cinematic Empty State */
+                <div className="py-20 flex flex-col items-center justify-center opacity-40">
+                   <div className="p-4 rounded-full bg-zinc-900/50 border border-white/5 mb-4">
+                      <Target className="w-8 h-8 text-zinc-500" />
+                   </div>
+                   <span className="text-[10px] font-black font-orbitron text-zinc-600 tracking-[0.3em] uppercase">NENHUM_REGISTRO_LOCALIZADO</span>
+                </div>
+              )}
+            </motion.div>
+          </AnimatePresence>
         </div>
 
-        <div className="mb-4 sm:hidden">
-          <select
-            value={selectedRanking}
-            onChange={(e) => setSelectedRanking(Number(e.target.value))}
-            className="w-full rounded-lg border border-gray-700 bg-gray-800 px-4 py-3 font-orbitron text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
-          >
-            {rankingConfigs.map((config, index) => (
-              <option key={config.title} value={index} className="font-sans">
-                {config.shortTitle}
-              </option>
-            ))}
-          </select>
+        {/* Footer Technical Metadata */}
+        <div className="mt-8 flex items-center justify-center gap-8 opacity-20 grayscale pointer-events-none">
+           <div className="flex items-center gap-2">
+              <span className="text-[7px] font-black text-white">UPDT_FREQ</span>
+              <span className="text-[7px] font-mono text-white">10_MIN_INT</span>
+           </div>
+           <div className="h-4 w-px bg-white/20" />
+           <div className="flex items-center gap-2">
+              <span className="text-[7px] font-black text-white">DATA_SRC</span>
+              <span className="text-[7px] font-mono text-white">CENTRAL_DB_01</span>
+           </div>
         </div>
 
-        <div className="mb-8 text-center text-xs text-gray-400">
-          <p>🔄 Atualizado a cada 10 minutos</p>
-          {error && <p className="mt-1 text-red-400">⚠️ {error}</p>}
-        </div>
-
-        <RankingColumn
-          config={currentConfig}
-          isLoading={isLoading}
-          onSelectPlayer={openUserPanel}
-          onSelectClan={openClanPanel}
-        />
       </div>
     </div>
   );
