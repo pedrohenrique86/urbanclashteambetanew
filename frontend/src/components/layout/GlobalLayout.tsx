@@ -88,7 +88,7 @@ const GlobalLayout: React.FC<GlobalLayoutProps> = ({ children }) => {
     return (
       <div className={`min-h-screen font-exo text-white ${hasDynamicBg ? "" : themeClasses.bg} flex flex-col relative`}>
         <DynamicBackground />
-        <main className="flex-1 relative z-10">
+        <main className="flex-1 relative z-10 overflow-y-auto">
           {children}
         </main>
         <ScrollToTopButton />

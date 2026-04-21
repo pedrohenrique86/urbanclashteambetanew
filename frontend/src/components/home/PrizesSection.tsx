@@ -133,16 +133,31 @@ export function PrizesSection() {
            initial={{ opacity: 0 }}
            whileInView={{ opacity: 1 }}
            viewport={{ once: true }}
-           className="mt-16 md:mt-24 pt-8 border-t border-white/5 flex flex-wrap justify-center gap-6 md:gap-16 px-4"
+           className="mt-16 md:mt-24 pt-12 border-t border-white/5 flex flex-col items-center"
         >
-          {['RENEGADOS', 'GUARDIÕES', 'DIVISÕES'].map((cat, i) => (
-            <div key={i} className="flex items-center gap-3 sm:gap-4 group">
-              <div className="w-1.5 h-1.5 rounded-full bg-white/20 group-hover:bg-yellow-500 transition-colors" />
-              <span className="text-[9px] sm:text-[10px] font-orbitron font-bold text-gray-600 tracking-[0.2em] sm:tracking-[0.4em] uppercase group-hover:text-white transition-colors">
-                {cat}
-              </span>
-            </div>
-          ))}
+          <span className="text-[10px] font-orbitron font-bold text-yellow-500/80 tracking-[0.4em] mb-10 uppercase">
+            PÓDIO INDEPENDENTE PARA CADA CATEGORIA
+          </span>
+
+          <div className="flex flex-wrap justify-center gap-8 md:gap-20 px-4">
+            {[
+              { name: 'RENEGADOS', color: 'bg-orange-500', shadow: 'shadow-orange-500/40' },
+              { name: 'GUARDIÕES', color: 'bg-blue-500', shadow: 'shadow-blue-500/40' },
+              { name: 'DIVISÕES', color: 'bg-purple-500', shadow: 'shadow-purple-500/40' }
+            ].map((cat, i) => (
+              <div key={i} className="flex flex-col items-center gap-2 group">
+                <div className="flex items-center gap-3">
+                  <div className={`w-2 h-2 rounded-full ${cat.color} ${cat.shadow} shadow-lg`} />
+                  <span className="text-[11px] sm:text-[12px] font-orbitron font-black text-white tracking-[0.2em] uppercase">
+                    {cat.name}
+                  </span>
+                </div>
+                <span className="text-[8px] font-mono text-gray-500 tracking-widest uppercase">
+                  TOP_03_PREMIUM
+                </span>
+              </div>
+            ))}
+          </div>
         </motion.div>
       </div>
     </section>
