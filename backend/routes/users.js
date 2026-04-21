@@ -130,30 +130,51 @@ router.get("/rankings/subscribe", (req, res) => {
 // =========================
 // SSE — Estado do Jogador (canal privado por usuário)
 // GET /api/users/state/subscribe
+// Keep-alive: ping a cada 25s para manter a conexão viva em proxies/load balancers
+// Segurança: token via query param — NÃO logado (sanitizado antes do morgan)
 // =========================
 router.get("/state/subscribe", authenticateToken, (req, res) => {
   const userId = req.user.id;
   const topic  = `player:${userId}`;
 
+  // Sanitiza query params para evitar que o token apareça nos logs do morgan
+  // (o morgan loga req.url, então sobrescrevemos antes do log ser gerado)
+  if (req.query.token) {
+    req.url        = req.url.replace(/([?&])token=[^&]*/g, "$1token=[REDACTED]");
+    req.originalUrl = req.originalUrl.replace(/([?&])token=[^&]*/g, "$1token=[REDACTED]");
+  }
+
   res.set({
-    "Content-Type": "text/event-stream",
-    "Cache-Control": "no-cache",
-    Connection: "keep-alive",
+    "Content-Type" : "text/event-stream",
+    "Cache-Control": "no-cache, no-transform",
+    "Connection"   : "keep-alive",
+    "X-Accel-Buffering": "no",   // Desabilita buffering em nginx/proxies
   });
   if (res.flushHeaders) res.flushHeaders();
   res.write("\n");
 
   sseService.subscribe(res, topic);
 
-  // Envia confirmação de conexão
+  // Confirmação de conexão
   res.write(
     `event: player:connected\ndata: ${JSON.stringify({
-      userId,
-      message: "Canal de estado do jogador conectado.",
+      message: "Canal privado conectado.",
     })}\n\n`,
   );
 
+  // Keep-alive: envia comentário SSE a cada 25s para evitar timeout
+  // de proxies/load balancers (padrão é 30–60s)
+  const pingInterval = setInterval(() => {
+    try {
+      res.write(": ping\n\n");
+    } catch (_) {
+      clearInterval(pingInterval);
+    }
+  }, 25_000);
+
+  // Cleanup ao fechar conexão
   req.on("close", () => {
+    clearInterval(pingInterval);
     sseService.unsubscribe(res, topic);
   });
 });

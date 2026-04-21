@@ -1,68 +1,106 @@
 /**
  * playerStateService.js
  *
- * ARQUITETURA:
- *   ação → Redis (instantâneo - fonte primária)
- *         → dirty tracking (somente se XP/nível mudou)
- *         → debounce 3s (agrupa múltiplas ações do mesmo jogador)
- *         → PostgreSQL (persistência assíncrona)
+ * ARQUITETURA FINAL — Performance + Segurança + Escalabilidade (5000 jogadores)
  *
- * RANKING:
- *   - Redis ZSET é a fonte do ranking (ranking:users:zset)
- *   - Score = level * 10000 + xp (permite ordenar por nível, depois XP)
- *   - dirtyRankingPlayers = Set em memória de quem mudou XP/nível
- *   - rankingCacheService usa esse Set para reprocessar apenas quem mudou
+ * FLUXO:
+ *   ação → Redis (instantâneo, fonte primária)
+ *        → PATCH SSE (apenas campos modificados + version)
+ *        → dirty separado por tipo (DB vs temporário)
+ *        → debounce 3s → PostgreSQL async
  *
- * PROIBIDO:
- *   ❌ Batch longo (10-20 min) para dados do player
- *   ❌ Leitura do banco em tempo real para gameplay
- *   ❌ persist síncrono por ação
- *   ❌ marcar dirty sem mudança real
+ * DIRTY — dois tipos separados:
+ *   DB_PERSIST_FIELDS: campos que DEVEM ir ao banco (level, xp, atributos, money)
+ *   VOLATILE_FIELDS:   campos que NÃO persistem frequentemente (energy, action_points)
+ *
+ * SAFETY-NET:
+ *   Só persiste estados com is_dirty_at há mais de SAFETY_STALENESS_MS
+ *   Não duplica o debounce, não processa todos os jogadores a cada ciclo
+ *
+ * SSE:
+ *   Canal privado por jogador: "player:{userId}"
+ *   Payload PATCH: apenas campos alterados + version
+ *   Keep-alive: ping a cada 25s (gerido pelo endpoint de rota)
  */
 
-const { query }    = require("../config/database");
-const redisClient  = require("../config/redisClient");
-const sseService   = require("./sseService");
+const { query }   = require("../config/database");
+const redisClient = require("../config/redisClient");
+const sseService  = require("./sseService");
 
-// ─── Constantes ─────────────────────────────────────────────────────────────────
-const PLAYER_STATE_PREFIX = "playerState:";
-const RANKING_ZSET_KEY    = "ranking:users:zset";
-const PLAYER_TTL_SECONDS  = 3600 * 6;  // 6 horas de inatividade
-const DEBOUNCE_MS         = 3000;       // 3s de debounce antes de persistir no banco
-const PERSIST_BATCH_SIZE  = 50;         // max players por ciclo de flush
+// ─── Constantes ──────────────────────────────────────────────────────────────────
+const PLAYER_STATE_PREFIX   = "playerState:";
+const RANKING_ZSET_KEY      = "ranking:users:zset";
+const PLAYER_TTL_SECONDS    = 3600 * 6;   // 6h inatividade
+const DEBOUNCE_MS           = 3000;        // debounce primário antes do DB
+const PERSIST_BATCH_SIZE    = 50;          // máx players por lote no safety-net
+const SAFETY_STALENESS_MS   = 12_000;      // safety-net só persiste dirty > 12s
 
-// Campos cujas mudanças afetam o score do ranking
+// ─── Campos que afetam o ranking (ZSET) ──────────────────────────────────────────
 const RANKING_FIELDS = new Set(["experience_points", "level"]);
 
-// Campos que disparam dirty (persistência) + evento SSE ao frontend
-// Inclui TODOS os atributos visíveis na UI do jogador
-const DIRTY_FIELDS = new Set([
+// ─── Dirty TIPO 1: campos que DEVEM ser persistidos no banco ─────────────────────
+// Subconjunto de DB_PERSIST_FIELDS — apenas dados de progressão permanente
+const DB_PERSIST_FIELDS = new Set([
   "experience_points", "level",
+  "attack", "defense", "focus",
+  "critical_chance", "critical_damage",
+  "intimidation", "discipline",
+  "money",
+  "victories", "defeats", "winning_streak",
+  "xp_required",
+]);
+
+// ─── Dirty TIPO 2: campos voláteis (NÃO persistem no safety-net, só via debounce
+//                   quando absolutamente necessário — energia regenera sozinha)
+const VOLATILE_FIELDS = new Set([
   "energy", "max_energy",
-  "attack", "defense", "focus",
-  "critical_chance", "critical_damage",
-  "intimidation", "discipline",
-  "money", "action_points",
-  "victories", "defeats", "winning_streak",
+  "action_points",
 ]);
 
-// Campos numéricos armazenados como string no Redis Hash
-const NUMERIC_FIELDS = new Set([
-  "level", "experience_points", "energy", "max_energy",
-  "attack", "defense", "focus",
-  "critical_chance", "critical_damage",
-  "intimidation", "discipline",
-  "money", "action_points",
-  "victories", "defeats", "winning_streak",
-]);
+// ─── Todos os campos que disparam SSE ao frontend ────────────────────────────────
+const SSE_FIELDS = new Set([...DB_PERSIST_FIELDS, ...VOLATILE_FIELDS]);
 
-// ─── Estado interno ──────────────────────────────────────────────────────────────
-const _debounceTimers   = new Map();  // userId → timer handle
-const _memDirtyRanking  = new Set();  // userId → teve mudança de XP/nível
+// ─── Mapeamento Redis key → campo SSE (camelCase) ────────────────────────────────
+// Usado para construir o PATCH mínimo
+const FIELD_TO_SSE = {
+  level             : "level",
+  experience_points : "xp",
+  energy            : "energy",
+  max_energy        : "maxEnergy",
+  action_points     : "actionPoints",
+  attack            : "attack",
+  defense           : "defense",
+  focus             : "focus",
+  critical_damage   : "critDamage",
+  critical_chance   : "critChance",
+  money             : "cash",
+  intimidation      : "intimidation",
+  discipline        : "discipline",
+  victories         : "victories",
+  defeats           : "defeats",
+  winning_streak    : "winningStreak",
+};
 
-// ─── Helpers privados ────────────────────────────────────────────────────────────
+// ─── Campos numéricos no Redis Hash ──────────────────────────────────────────────
+const NUMERIC_FIELDS = new Set(Object.keys(FIELD_TO_SSE));
 
-/** Converte hash Redis (strings) de volta para tipos corretos. */
+// ─── Estado interno ───────────────────────────────────────────────────────────────
+const _debounceTimers  = new Map();  // userId → timer handle
+const _memDirtyRanking = new Set();  // userId → mudança de XP/nível (para ranking)
+
+// Contador de versão por jogador para consistência do PATCH no frontend
+const _versionMap = new Map();       // userId → number
+
+function _nextVersion(userId) {
+  const uid = String(userId);
+  const v   = (_versionMap.get(uid) || 0) + 1;
+  _versionMap.set(uid, v);
+  return v;
+}
+
+// ─── Helpers privados ─────────────────────────────────────────────────────────────
+
+/** Converte hash Redis (strings) para tipos corretos. */
 function _parseState(raw) {
   if (!raw) return null;
   const out = { ...raw };
@@ -75,14 +113,32 @@ function _parseState(raw) {
   return out;
 }
 
-/** Score do ranking: nível tem prioridade, XP é desempate. */
+/** Score do ranking: nível > XP. */
 function _calcRankingScore(state) {
-  const level = Number(state.level || 0);
-  const xp    = Number(state.experience_points || 0);
-  return level * 10_000 + xp;
+  return Number(state.level || 0) * 10_000 + Number(state.experience_points || 0);
 }
 
-/** Agenda persistência com debounce. Reinicia o timer se chegar nova ação. */
+/**
+ * Constrói o PATCH mínimo: apenas campos que foram alterados,
+ * mapeados para camelCase (API SSE do frontend).
+ *
+ * @param {object} updates  - campos originais passados ao updatePlayerState
+ * @param {object} newState - estado completo pós-update do Redis
+ * @returns {object} patch com apenas os campos alterados em camelCase
+ */
+function _buildPatch(updates, newState) {
+  const patch = {};
+  for (const redisKey of Object.keys(updates)) {
+    const sseKey = FIELD_TO_SSE[redisKey];
+    if (!sseKey) continue;
+    // Usa o valor resolvido do Redis (pós-HINCRBY) — não o delta
+    const val = newState[redisKey];
+    if (val !== undefined) patch[sseKey] = Number(val);
+  }
+  return patch;
+}
+
+/** Debounce de persistência no banco. Reinicia timer a cada nova ação. */
 function _scheduleDebounce(userId) {
   const uid = String(userId);
   if (_debounceTimers.has(uid)) clearTimeout(_debounceTimers.get(uid));
@@ -92,33 +148,30 @@ function _scheduleDebounce(userId) {
     await persistPlayerState(uid);
   }, DEBOUNCE_MS);
 
-  if (timer.unref) timer.unref(); // Não impede o processo de encerrar
-
+  if (timer.unref) timer.unref();
   _debounceTimers.set(uid, timer);
 }
 
-// ─── Ranking dirty tracking (API interna para rankingCacheService) ────────────────
+// ─── Ranking dirty tracking ───────────────────────────────────────────────────────
 function _markRankingDirty(userId) { _memDirtyRanking.add(String(userId)); }
 function _clearRankingDirty()      { _memDirtyRanking.clear(); }
 function getDirtyRankingPlayers()  { return new Set(_memDirtyRanking); }
 
-// ─── ZSET helpers (usando wrapper do redisClient) ─────────────────────────────────
+// ─── ZSET helpers ─────────────────────────────────────────────────────────────────
 
-/** Adiciona/atualiza o score de ranking de um jogador no ZSET. */
 async function _zaddRanking(userId, score) {
   try {
     await redisClient.zAddAsync(RANKING_ZSET_KEY, score, String(userId));
   } catch (err) {
-    console.error("[playerState] _zaddRanking falhou:", err.message);
+    console.error("[playerState] ZADD falhou:", err.message);
   }
 }
 
-/** Retorna top-N do ZSET por score desc, incluindo o score. */
 async function _zrangeRankingWithScores(start, stop) {
   try {
     return await redisClient.zRangeWithScoresAsync(RANKING_ZSET_KEY, start, stop);
   } catch (err) {
-    console.error("[playerState] _zrangeRankingWithScores falhou:", err.message);
+    console.error("[playerState] ZRANGE falhou:", err.message);
     return [];
   }
 }
@@ -126,21 +179,19 @@ async function _zrangeRankingWithScores(start, stop) {
 // ─── API pública ──────────────────────────────────────────────────────────────────
 
 /**
- * Carrega o estado de um jogador do PostgreSQL para o Redis.
- * Chamado no login ou em cache miss.
+ * Carrega o estado de um jogador do PostgreSQL para o Redis (login / cache miss).
  */
 async function loadPlayerState(userId) {
   if (!redisClient.client.isReady) {
-    console.error("[playerState] Redis não pronto. Não é possível carregar estado.");
+    console.error("[playerState] Redis não pronto.");
     return null;
   }
 
   try {
     const result = await query(
-      `SELECT
-         p.*,
-         u.username, u.country, u.created_at AS account_created_at, u.birth_date,
-         c.name AS clan_name
+      `SELECT p.*,
+              u.username, u.country, u.created_at AS account_created_at, u.birth_date,
+              c.name AS clan_name
        FROM user_profiles p
        JOIN users u ON p.user_id = u.id
        LEFT JOIN clan_members cm ON cm.user_id = p.user_id
@@ -154,7 +205,6 @@ async function loadPlayerState(userId) {
     const playerState = result.rows[0];
     const redisKey    = `${PLAYER_STATE_PREFIX}${userId}`;
 
-    // Serializa tudo para string (Redis Hash só aceita strings)
     const stateForRedis = Object.entries(playerState).reduce((acc, [k, v]) => {
       if (v instanceof Date) {
         acc[k] = !isNaN(v.getTime()) ? v.toISOString().split("T")[0] : "";
@@ -167,16 +217,16 @@ async function loadPlayerState(userId) {
       return acc;
     }, {});
 
-    stateForRedis.is_dirty = "0";
+    stateForRedis.is_dirty       = "0";
+    stateForRedis.is_dirty_at    = "";   // timestamp da última vez que ficou dirty
 
     await redisClient.hSetAsync(redisKey, stateForRedis);
     await redisClient.expireAsync(redisKey, PLAYER_TTL_SECONDS);
 
-    // Inicializa/atualiza score no ZSET de ranking
     const score = _calcRankingScore(playerState);
     await _zaddRanking(userId, score);
 
-    console.log(`[playerState] Estado de ${userId} carregado. Score: ${score}`);
+    console.log(`[playerState] Estado de ${userId} carregado. Score ranking: ${score}`);
     return playerState;
   } catch (err) {
     console.error(`[playerState] Erro ao carregar ${userId}:`, err.message);
@@ -185,19 +235,15 @@ async function loadPlayerState(userId) {
 }
 
 /**
- * Obtém o estado atual de um jogador do Redis (fonte primária).
- * Faz fallback para o banco APENAS em cache miss.
+ * Obtém o estado atual de um jogador — sempre do Redis.
+ * Fallback ao banco apenas em cache miss.
  */
 async function getPlayerState(userId) {
   if (!redisClient.client.isReady) return null;
 
   const raw = await redisClient.hGetAllAsync(`${PLAYER_STATE_PREFIX}${userId}`);
+  if (raw && Object.keys(raw).length > 0) return _parseState(raw);
 
-  if (raw && Object.keys(raw).length > 0) {
-    return _parseState(raw);
-  }
-
-  // Cache miss → carrega do banco (ocorre apenas no primeiro acesso pós-restart)
   return await loadPlayerState(userId);
 }
 
@@ -205,15 +251,15 @@ async function getPlayerState(userId) {
  * Atualiza o estado de um jogador.
  *
  * FLUXO:
- *   1. Pipeline Redis atômico com as mudanças
- *   2. is_dirty=1 SOMENTE se XP ou nível mudou
- *   3. Atualiza ZSET de ranking se XP/nível mudou
- *   4. Emite SSE imediatamente (tempo real)
- *   5. Agenda debounce 3s para persistir no banco
+ *   1. Pipeline Redis atômico
+ *   2. Determina tipo de dirty (DB vs volátil)
+ *   3. Emite PATCH SSE mínimo (apenas campos alterados + version)
+ *   4. Atualiza ZSET se XP/nível mudou
+ *   5. Debounce 3s para persistência DB (apenas se DB dirty)
  *
  * @param {string} userId
- * @param {object} updates  Ex: { experience_points: 50, level: 1, energy: -10 }
- * @returns {Promise<object|null>} Novo estado completo
+ * @param {object} updates  Ex: { experience_points: 50, energy: -10 }
+ * @returns {Promise<object|null>}
  */
 async function updatePlayerState(userId, updates) {
   if (!redisClient.client.isReady || !updates || Object.keys(updates).length === 0) {
@@ -223,10 +269,11 @@ async function updatePlayerState(userId, updates) {
   const redisKey = `${PLAYER_STATE_PREFIX}${userId}`;
 
   try {
-    // ── 1. Aplica mudanças atomicamente via pipeline ───────────────────────────────────
-    const pipeline         = redisClient.pipeline();
-    let hasAnyChange       = false;  // qualquer campo relevante
-    let hasCriticalChange  = false;  // XP ou nível (ranking)
+    // ── 1. Aplica mudanças atomicamente ──────────────────────────────────────────
+    const pipeline       = redisClient.pipeline();
+    let hasSSEChange     = false;  // algum campo visível mudou → emite SSE
+    let hasDBChange      = false;  // algum campo persistível mudou → debounce DB
+    let hasCritical      = false;  // XP ou level mudou → ZSET ranking
 
     for (const [key, value] of Object.entries(updates)) {
       if (typeof value === "number") {
@@ -234,60 +281,48 @@ async function updatePlayerState(userId, updates) {
       } else {
         pipeline.hSet(redisKey, key, String(value));
       }
-      if (DIRTY_FIELDS.has(key))   hasAnyChange      = true;
-      if (RANKING_FIELDS.has(key)) hasCriticalChange = true;
+      if (SSE_FIELDS.has(key))     hasSSEChange = true;
+      if (DB_PERSIST_FIELDS.has(key)) hasDBChange  = true;
+      if (RANKING_FIELDS.has(key)) hasCritical  = true;
     }
 
-    // Marca dirty para persistência se qualquer campo relevante mudou
-    if (hasAnyChange) {
+    // Marca dirty apenas para campos que precisam ir ao banco
+    if (hasDBChange) {
+      const now = String(Date.now());
       pipeline.hSet(redisKey, "is_dirty", "1");
+      pipeline.hSet(redisKey, "is_dirty_at", now);  // timestamp para o safety-net
     }
 
     await pipeline.exec();
 
-    // ── 2. Renova TTL (jogador está ativo) ──────────────────────────────────────
+    // ── 2. Renova TTL ────────────────────────────────────────────────────────────
     await redisClient.expireAsync(redisKey, PLAYER_TTL_SECONDS);
 
-    // ── 3. Lê estado atualizado do Redis ─────────────────────────────────────────
+    // ── 3. Lê estado atualizado ──────────────────────────────────────────────────
     const newState = await getPlayerState(userId);
     if (!newState) return null;
 
-    // ── 4. Emite estado COMPLETO via SSE ao frontend (todas as mudanças) ─────────
-    if (hasAnyChange) {
-      const playerEvent = {
-        type       : "player:update",
-        playerId   : String(userId),
-        data: {
-          level         : Number(newState.level),
-          xp            : Number(newState.experience_points),
-          energy        : Number(newState.energy),
-          maxEnergy     : Number(newState.max_energy || 100),
-          actionPoints  : Number(newState.action_points),
-          attack        : Number(newState.attack),
-          defense       : Number(newState.defense),
-          focus         : Number(newState.focus),
-          critDamage    : Number(newState.critical_damage),
-          critChance    : Number(newState.critical_chance),
-          cash          : Number(newState.money),
-          intimidation  : Number(newState.intimidation),
-          discipline    : Number(newState.discipline),
-          victories     : Number(newState.victories),
-          defeats       : Number(newState.defeats),
-          winningStreak : Number(newState.winning_streak),
-        },
-      };
+    // ── 4. Emite PATCH mínimo via SSE (somente campos alterados) ─────────────────
+    if (hasSSEChange) {
+      const patch   = _buildPatch(updates, newState);
+      const version = _nextVersion(userId);
 
-      // Canal dedicado por jogador: "player:{userId}"
-      sseService.publish(`player:${userId}`, "player:state", playerEvent);
+      if (Object.keys(patch).length > 0) {
+        sseService.publish(`player:${userId}`, "player:state", {
+          type    : "player:patch",
+          patch,
+          version,
+        });
+      }
     }
 
-    // ── 5. Atualiza ZSET e dirty tracking de ranking se XP/nível mudou ────────
-    if (hasCriticalChange) {
+    // ── 5. Atualiza ZSET de ranking se XP/nível mudou ────────────────────────────
+    if (hasCritical) {
       const score = _calcRankingScore(newState);
       await _zaddRanking(userId, score);
       _markRankingDirty(userId);
 
-      // ── 5. Emite SSE ao frontend imediatamente ────────────────────────────
+      // Evento de ranking simplificado (não o perfil completo)
       sseService.publish("ranking", "ranking:player:update", {
         playerId  : String(userId),
         username  : newState.username  || "",
@@ -297,8 +332,8 @@ async function updatePlayerState(userId, updates) {
       });
     }
 
-    // ── 6. Agenda debounce para persistência assíncrona (qualquer mudança dirty) ─
-    if (hasAnyChange) {
+    // ── 6. Agenda debounce para DB apenas se campos persistíveis mudaram ─────────
+    if (hasDBChange) {
       _scheduleDebounce(userId);
     }
 
@@ -311,7 +346,7 @@ async function updatePlayerState(userId, updates) {
 
 /**
  * Persiste o estado de UM jogador do Redis → PostgreSQL.
- * Respeita o flag is_dirty — não grava se não houver nada novo.
+ * Persiste apenas DIRTY_FIELDS (DB_PERSIST_FIELDS) — não campos voláteis.
  */
 async function persistPlayerState(userId) {
   if (!redisClient.client.isReady) return;
@@ -322,19 +357,15 @@ async function persistPlayerState(userId) {
   if (!playerState || playerState.is_dirty !== "1") return;
 
   try {
-    // Remove campos de controle/meta que não existem em user_profiles
-    const {
-      id, user_id, is_dirty,
-      username, country, account_created_at, birth_date, clan_name,
-      ...fieldsToUpdate
-    } = playerState;
-
-    // Remove campos vazios
-    const safeFields = Object.entries(fieldsToUpdate).filter(
-      ([, v]) => v !== "" && v !== undefined && v !== null,
+    // Filtra apenas campos que devem ir ao banco
+    const safeFields = Object.entries(playerState).filter(([k, v]) =>
+      DB_PERSIST_FIELDS.has(k) && v !== "" && v !== undefined && v !== null,
     );
 
-    if (safeFields.length === 0) return;
+    if (safeFields.length === 0) {
+      await redisClient.hSetAsync(redisKey, "is_dirty", "0");
+      return;
+    }
 
     const setClauses = safeFields.map(([k], i) => `${k} = $${i + 1}`);
     const values     = safeFields.map(([, v]) => v);
@@ -347,59 +378,72 @@ async function persistPlayerState(userId) {
       values,
     );
 
-    await redisClient.hSetAsync(redisKey, "is_dirty", "0");
-    console.log(`[playerState] ✅ ${userId} persistido no PostgreSQL.`);
+    await redisClient.hSetAsync(redisKey, { is_dirty: "0", is_dirty_at: "" });
+    console.log(`[playerState] ✅ ${userId} persistido (${safeFields.length} campos).`);
   } catch (err) {
     console.error(`[playerState] ❌ Erro ao persistir ${userId}:`, err.message);
-    // is_dirty permanece "1" — será retentado no próximo ciclo
+    // is_dirty permanece "1" — retentado no próximo ciclo
   }
 }
 
 /**
- * Varre todos os estados dirty no Redis e persiste no PostgreSQL em lotes.
- * Chamado pelo ciclo de 10 minutos do ranking E pelo safety-net de 2 min.
+ * Safety-net: persiste apenas estados dirty há mais de SAFETY_STALENESS_MS.
+ * NÃO processa todos os jogadores — verifica o timestamp is_dirty_at.
+ * NÃO duplica debounce: ignora entradas com debounce ativo.
  */
 async function persistDirtyStates() {
   if (!redisClient.client.isReady) return;
 
-  console.log("[playerState] 🔄 Iniciando flush de estados dirty...");
+  const now      = Date.now();
+  const staleMin = now - SAFETY_STALENESS_MS;
 
   try {
-    const iterator  = redisClient.scanIterator({ MATCH: `${PLAYER_STATE_PREFIX}*`, COUNT: 100 });
-    const dirtyIds  = [];
+    const iterator = redisClient.scanIterator({ MATCH: `${PLAYER_STATE_PREFIX}*`, COUNT: 100 });
+    const staleIds = [];
 
     for await (const key of iterator) {
-      const isDirty = await redisClient.hGetAsync(key, "is_dirty");
-      if (isDirty === "1") {
-        dirtyIds.push(key.replace(PLAYER_STATE_PREFIX, ""));
-      }
+      const [isDirty, dirtyAt] = await Promise.all([
+        redisClient.hGetAsync(key, "is_dirty"),
+        redisClient.hGetAsync(key, "is_dirty_at"),
+      ]);
+
+      if (isDirty !== "1") continue;
+
+      const uid = key.replace(PLAYER_STATE_PREFIX, "");
+
+      // Pula se ainda há um debounce ativo para este jogador
+      if (_debounceTimers.has(uid)) continue;
+
+      // Pula se ficou dirty há menos de SAFETY_STALENESS_MS
+      const dirtyAtMs = Number(dirtyAt || 0);
+      if (dirtyAtMs > staleMin) continue;
+
+      staleIds.push(uid);
     }
 
-    if (dirtyIds.length === 0) {
-      console.log("[playerState] Nenhum estado dirty para persistir.");
-      return;
-    }
+    if (staleIds.length === 0) return;
 
-    console.log(`[playerState] ${dirtyIds.length} jogadores dirty para persistir.`);
+    console.log(`[playerState] 🔄 Safety-net: ${staleIds.length} estados stale para persistir.`);
 
-    for (let i = 0; i < dirtyIds.length; i += PERSIST_BATCH_SIZE) {
-      const batch = dirtyIds.slice(i, i + PERSIST_BATCH_SIZE);
+    for (let i = 0; i < staleIds.length; i += PERSIST_BATCH_SIZE) {
+      const batch = staleIds.slice(i, i + PERSIST_BATCH_SIZE);
       await Promise.allSettled(batch.map((uid) => persistPlayerState(uid)));
     }
 
-    console.log("[playerState] ✅ Flush concluído.");
+    console.log("[playerState] ✅ Safety-net concluído.");
   } catch (err) {
-    console.error("[playerState] ❌ Erro no flush:", err.message);
+    console.error("[playerState] ❌ Erro no safety-net:", err.message);
   }
 }
 
 /**
- * Inicia o safety-net de persistência (a cada 2 minutos).
- * O debounce de 3s é o mecanismo primário; este é o fallback de segurança.
+ * Inicia o safety-net de persistência a cada 2 minutos.
+ * O debounce de 3s é o mecanismo primário — este é o fallback para
+ * casos onde o debounce não disparou (ex: servidor reiniciou).
  */
 function schedulePersistence() {
   const INTERVAL_MS = 2 * 60 * 1000;
-  console.log(`[playerState] 🚀 Safety-net de persistência ativo (a cada ${INTERVAL_MS / 1000}s).`);
+  console.log(`[playerState] 🚀 Safety-net ativo (a cada ${INTERVAL_MS / 1000}s, staleness >${SAFETY_STALENESS_MS / 1000}s).`);
   const t = setInterval(persistDirtyStates, INTERVAL_MS);
   if (t.unref) t.unref();
 }

@@ -71,34 +71,42 @@ const UserProfileContext = createContext<IUserProfileContext | undefined>(
 );
 
 /**
- * Merge de um evento player:state (SSE) no perfil React atual.
- * Converte os campos camelCase do evento para os campos do UserProfile.
+ * Merge de um evento player:patch (SSE) no perfil React atual.
+ * Atualiza APENAS os campos que o backend enviou no patch.
  */
 function mergePlayerStateIntoProfile(
   prev: UserProfile | null,
   payload: PlayerStatePayload,
 ): UserProfile | null {
   if (!prev) return prev;
-  const { data } = payload;
-  return {
-    ...prev,
-    level         : data.level,
-    xp            : data.xp,
-    current_xp    : data.xp,
-    energy        : data.energy,
-    max_energy    : data.maxEnergy,
-    action_points : data.actionPoints,
-    attack        : data.attack,
-    defense       : data.defense,
-    focus         : data.focus,
-    money         : data.cash,
-    intimidation  : data.intimidation,
-    discipline    : data.discipline,
-    wins          : data.victories,
-    losses        : data.defeats,
-    streak        : data.winningStreak,
-    winning_streak: data.winningStreak,
-  };
+  // Payload agora é um patch: só processamos o que foi enviado
+  const { patch } = payload;
+  if (!patch) return prev;
+
+  const next = { ...prev };
+
+  if (patch.level !== undefined) next.level = patch.level;
+  if (patch.xp !== undefined) {
+    next.xp         = patch.xp;
+    next.current_xp = patch.xp;
+  }
+  if (patch.energy !== undefined) next.energy = patch.energy;
+  if (patch.maxEnergy !== undefined) next.max_energy = patch.maxEnergy;
+  if (patch.actionPoints !== undefined) next.action_points = patch.actionPoints;
+  if (patch.attack !== undefined) next.attack = patch.attack;
+  if (patch.defense !== undefined) next.defense = patch.defense;
+  if (patch.focus !== undefined) next.focus = patch.focus;
+  if (patch.cash !== undefined) next.money = patch.cash;
+  if (patch.intimidation !== undefined) next.intimidation = patch.intimidation;
+  if (patch.discipline !== undefined) next.discipline = patch.discipline;
+  if (patch.victories !== undefined) next.wins = patch.victories;
+  if (patch.defeats !== undefined) next.losses = patch.defeats;
+  if (patch.winningStreak !== undefined) {
+    next.streak         = patch.winningStreak;
+    next.winning_streak = patch.winningStreak;
+  }
+
+  return next;
 }
 
 export const UserProfileProvider = ({ children }: { children: ReactNode }) => {
