@@ -1,7 +1,19 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useClanChat } from "../../hooks/useClanChat";
 import { useUserProfile } from "../../hooks/useUserProfile";
-import { Send } from "lucide-react"; // Usando um ícone para o botão de enviar
+import { motion, AnimatePresence } from "framer-motion";
+import { 
+  Send, 
+  Terminal, 
+  Wifi, 
+  WifiOff, 
+  AtSign, 
+  Clock, 
+  MessageSquare,
+  Shield,
+  Skull,
+  Activity
+} from "lucide-react";
 
 interface ClanMember {
   username: string;
@@ -21,59 +33,66 @@ const MessageList = React.memo(function MessageList({ messages, userProfile, cha
         return (
           <span
             key={i}
-            className={`font-bold ${
+            className={`font-black ${
               isMentioningMe
-                ? "text-yellow-400 bg-yellow-400/20 px-1 rounded"
-                : "text-yellow-300"
+                ? "text-yellow-400 bg-yellow-400/10 px-1.5 py-0.5 rounded border border-yellow-400/20 shadow-[0_0_8px_rgba(250,204,21,0.2)]"
+                : "text-blue-400"
             }`}
           >
             {part}
           </span>
         );
       }
-      return part;
+      return <span key={i}>{part}</span>;
     });
   };
 
   return (
     <div 
       ref={chatContainerRef}
-      className="flex-1 p-3 overflow-y-auto bg-gray-900/50 rounded-md m-3 space-y-1 custom-scrollbar scroll-smooth"
+      className="flex-1 overflow-y-auto px-4 py-6 scroll-smooth custom-scrollbar bg-black/20"
     >
-      {messages.map((msg: any, index: number) => {
-        const isMe = msg.userId === userProfile?.id;
-        const displayUsername = msg.username || (isMe ? userProfile?.username : 'Membro');
-        
-        // Determinar a cor baseada na facção (para o próprio usuário)
-        const userFaction = typeof userProfile?.faction === 'string' 
-          ? userProfile.faction 
-          : userProfile?.faction?.name;
-        
-        const nameColorClass = isMe 
-          ? (userFaction === 'gangsters' ? 'text-orange-400' : 'text-blue-400')
-          : 'text-green-400';
+      <div className="flex flex-col gap-3">
+        {messages.map((msg: any, index: number) => {
+          const isMe = msg.userId === userProfile?.id;
+          const displayUsername = msg.username || (isMe ? userProfile?.username : 'Membro');
           
-        return (
-          <div key={index} className="text-sm break-words leading-relaxed">
-            <span className={`font-bold ${nameColorClass}`}>
-              {displayUsername}
-            </span>
-            <span className="text-gray-500 text-xs mx-1">
-              {new Date(msg.timestamp).toLocaleString([], {
-                day: "2-digit",
-                month: "2-digit",
-                year: "2-digit",
-                hour: "2-digit",
-                minute: "2-digit",
-              })}
-            </span>
-            <span className="text-gray-300">
-              : {renderMessageText(msg.text)}
-            </span>
-          </div>
-        );
-      })}
-      <div ref={messagesEndRef} />
+          const rawFaction = userProfile?.faction as any;
+          const userFaction = typeof rawFaction === 'string' ? rawFaction : rawFaction?.name;
+          
+          const factionColor = isMe 
+            ? (userFaction?.toLowerCase().includes('gangster') ? 'text-orange-500' : 'text-cyan-400')
+            : 'text-zinc-400';
+
+          return (
+            <motion.div 
+              initial={{ opacity: 0, x: isMe ? 10 : -10 }}
+              animate={{ opacity: 1, x: 0 }}
+              key={index} 
+              className={`flex flex-col ${isMe ? 'items-end' : 'items-start'} group`}
+            >
+              <div className="flex items-center gap-2 mb-1 px-1">
+                 <span className={`text-[9px] font-black font-orbitron ${factionColor} uppercase tracking-widest`}>
+                    {displayUsername}
+                 </span>
+                 <div className="w-1 h-1 rounded-full bg-zinc-800" />
+                 <span className="text-[8px] font-mono text-zinc-600">
+                    {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                 </span>
+              </div>
+              
+              <div className={`relative max-w-[85%] px-4 py-2.5 rounded-xl border ${isMe ? 'bg-zinc-900 border-white/10 rounded-tr-none' : 'bg-zinc-900/50 border-white/5 rounded-tl-none'} transition-all group-hover:border-white/20`}>
+                 <p className="text-sm text-zinc-200 leading-relaxed break-words font-medium">
+                    {renderMessageText(msg.text)}
+                 </p>
+                 {/* Visual Accent */}
+                 <div className={`absolute top-0 ${isMe ? 'right-0' : 'left-0'} w-1.5 h-1.5 bg-zinc-800 rounded-full -translate-x-1/2 -translate-y-1/2 border border-zinc-950`} />
+              </div>
+            </motion.div>
+          );
+        })}
+        <div ref={messagesEndRef} />
+      </div>
     </div>
   );
 });
@@ -82,7 +101,7 @@ export const ClanChat: React.FC<ClanChatProps> = ({ members = [] }) => {
   const { messages, sendMessage, isConnected } = useClanChat();
   const { userProfile } = useUserProfile();
   const [newMessage, setNewMessage] = useState("");
-  const [isSending, setIsSending] = useState(false); // Estado para o cooldown
+  const [isSending, setIsSending] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -93,7 +112,10 @@ export const ClanChat: React.FC<ClanChatProps> = ({ members = [] }) => {
 
   const scrollToBottom = () => {
     if (chatContainerRef.current) {
-      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+      chatContainerRef.current.scrollTo({
+        top: chatContainerRef.current.scrollHeight,
+        behavior: 'smooth'
+      });
     }
   };
 
@@ -104,7 +126,6 @@ export const ClanChat: React.FC<ClanChatProps> = ({ members = [] }) => {
   const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault();
     if (showMentions && filteredMembers.length > 0) {
-      // Prevent form submit if selecting a mention via enter
       insertMention(filteredMembers[mentionIndex].username);
       return;
     }
@@ -144,7 +165,6 @@ export const ClanChat: React.FC<ClanChatProps> = ({ members = [] }) => {
     const cursorPosition = inputRef.current?.selectionStart || newMessage.length;
     const textBeforeCursor = newMessage.slice(0, cursorPosition);
     const textAfterCursor = newMessage.slice(cursorPosition);
-    
     const newTextBefore = textBeforeCursor.replace(/@[a-zA-Z0-9_\u00C0-\u017F]*$/, `@${username} `);
     
     setNewMessage(newTextBefore + textAfterCursor);
@@ -172,27 +192,31 @@ export const ClanChat: React.FC<ClanChatProps> = ({ members = [] }) => {
     }
   };
 
-
-  if (!isConnected) {
-    return (
-      <div className="flex flex-col h-96 w-full max-w-2xl mx-auto bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-lg shadow-lg">
-        <div className="flex items-center justify-center h-full text-gray-400">
-          Conectando ao chat...
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="flex flex-col h-full w-full bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-lg shadow-lg">
-      {/* Cabeçalho do Chat */}
-      <div className="flex justify-between items-center p-3 border-b border-gray-700">
-        <h3 className="font-bold text-white flex items-center gap-2">
-          Chat da Divisão
-          <span className="text-white/60 text-[10px] font-normal uppercase tracking-wider">
-            | Mensagens serão apagadas após 24h
-          </span>
-        </h3>
+    <div className="flex flex-col h-[500px] sm:h-full w-full bg-[#0a0a0a]/80 backdrop-blur-xl border border-white/5 rounded-2xl shadow-2xl overflow-hidden relative">
+      {/* Cinematic Glitch/Scanline Overlay */}
+      <div className="absolute inset-0 pointer-events-none opacity-[0.03] z-50 bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%),linear-gradient(90deg,rgba(255,0,0,0.06),rgba(0,255,0,0.02),rgba(0,0,255,0.06))] bg-[length:100%_2px,3px_100%]" />
+
+      {/* Header HUD */}
+      <div className="flex justify-between items-center px-4 py-3 border-b border-white/5 bg-white/[0.02]">
+        <div className="flex items-center gap-3">
+           <div className={`p-1.5 rounded bg-zinc-900 border border-white/5`}>
+              <Terminal className="w-3.5 h-3.5 text-zinc-400" />
+           </div>
+           <div className="flex flex-col">
+              <h3 className="font-orbitron font-black text-[10px] text-white tracking-[0.2em] uppercase">CANAL_VOZ_INTERNO</h3>
+              <div className="flex items-center gap-1.5">
+                 <div className={`w-1 h-1 rounded-full ${isConnected ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`} />
+                 <span className="text-[7px] font-black text-zinc-500 uppercase tracking-widest leading-none">
+                    {isConnected ? 'SISTEMA_SINCRONIZADO' : 'CONEXÃO_INTERROMPIDA'}
+                 </span>
+              </div>
+           </div>
+        </div>
+        <div className="flex items-center gap-2">
+           <Activity className="w-3 h-3 text-zinc-700" />
+           <span className="text-[8px] font-mono text-zinc-600">v1.2.0_ELITE</span>
+        </div>
       </div>
 
       <MessageList
@@ -202,58 +226,92 @@ export const ClanChat: React.FC<ClanChatProps> = ({ members = [] }) => {
         messagesEndRef={messagesEndRef}
       />
 
-      {/* Formulário de Envio, Menções e Contador */}
-      <div className="p-3 border-t border-gray-700 relative">
+      {/* Mention Box */}
+      <AnimatePresence>
         {showMentions && filteredMembers.length > 0 && (
-          <div className="absolute bottom-full left-3 mb-2 w-64 max-h-48 overflow-y-auto bg-gray-800 border border-gray-600 rounded-lg shadow-lg z-50">
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95, y: 10 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: 10 }}
+            className="absolute bottom-20 left-4 w-64 max-h-48 overflow-y-auto bg-zinc-900/95 border border-white/10 rounded-xl shadow-[0_10px_30px_rgba(0,0,0,0.5)] z-[60] backdrop-blur-md"
+          >
+            <div className="p-2 border-b border-white/5 bg-white/[0.02]">
+               <span className="text-[7px] font-black text-zinc-500 uppercase tracking-widest">MENTION_SYSTEM</span>
+            </div>
             {filteredMembers.map((member, i) => (
               <div
                 key={i}
-                className={`px-4 py-2 cursor-pointer ${
+                className={`px-4 py-2.5 flex items-center gap-3 cursor-pointer transition-colors ${
                   mentionIndex === i
-                    ? "bg-blue-600 text-white"
-                    : "text-gray-300 hover:bg-gray-700"
+                    ? "bg-white/10 text-white"
+                    : "text-zinc-400 hover:bg-white/5"
                 }`}
                 onClick={() => insertMention(member.username)}
               >
-                {member.username}
+                <div className="w-1 h-1 rounded-full bg-blue-500" />
+                <span className="text-xs font-orbitron font-bold">{member.username}</span>
               </div>
             ))}
-          </div>
+          </motion.div>
         )}
-        <form className="flex items-center gap-2" onSubmit={handleSendMessage}>
-          <input
-            ref={inputRef}
-            type="text"
-            value={newMessage}
-            onChange={handleInputChange}
-            onKeyDown={handleKeyDown}
-            placeholder="Digite sua mensagem... Use @ para marcar alguém"
-            className="flex-1 bg-gray-700 border border-gray-600 rounded-full py-2 px-4 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            disabled={!isConnected}
-            maxLength={100}
-          />
+      </AnimatePresence>
+
+      {/* Input HUD Area */}
+      <div className="p-4 bg-white/[0.02] border-t border-white/5 relative">
+        <form className="flex items-center gap-3" onSubmit={handleSendMessage}>
+          <div className="relative flex-1 group">
+             <div className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none">
+                <AtSign className={`w-3.5 h-3.5 ${newMessage.includes('@') ? 'text-blue-500' : 'text-zinc-600'} transition-colors`} />
+             </div>
+             <input
+               ref={inputRef}
+               type="text"
+               value={newMessage}
+               onChange={handleInputChange}
+               onKeyDown={handleKeyDown}
+               placeholder="TRANSMITIR MENSAGEM..."
+               className="w-full bg-zinc-900 border border-white/5 rounded-xl py-3.5 pl-11 pr-16 text-xs text-white placeholder-zinc-700 font-medium focus:outline-none focus:border-white/20 transition-all focus:bg-zinc-800/80"
+               disabled={!isConnected}
+               maxLength={100}
+             />
+             <div className="absolute right-4 top-1/2 -translate-y-1/2 text-[9px] font-black font-mono text-zinc-700 select-none">
+                {newMessage.length}/100
+             </div>
+          </div>
+
           <button
             type="submit"
-            className="bg-blue-600 text-white rounded-full p-2 hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed transition-colors w-24 flex items-center justify-center" // Largura fixa
-            disabled={
-              !isConnected ||
-              !newMessage.trim() ||
-              newMessage.length > 100 || // Limite atualizado
-              isSending // Desabilita durante o cooldown
-            }
+            className={`min-w-[60px] h-12 flex items-center justify-center rounded-xl transition-all duration-300 shadow-lg ${
+              !isConnected || !newMessage.trim() || isSending 
+                ? 'bg-zinc-900 text-zinc-700 cursor-not-allowed grayscale' 
+                : 'bg-white text-black hover:scale-105 active:scale-95 shadow-white/5'
+            }`}
+            disabled={!isConnected || !newMessage.trim() || newMessage.length > 100 || isSending}
           >
-            {isSending ? "Aguarde..." : <Send size={20} />}
+            {isSending ? (
+               <div className="w-4 h-4 border-2 border-zinc-700 border-t-white rounded-full animate-spin" />
+            ) : (
+               <Send size={18} className={!isConnected || !newMessage.trim() ? 'opacity-20' : 'opacity-100'} />
+            )}
           </button>
         </form>
-        {/* Contador de Caracteres */}
-        <p
-          className={`text-xs text-right mt-1 pr-4 ${
-            newMessage.length > 100 ? "text-red-500" : "text-gray-400"
-          }`}
-        >
-          {newMessage.length}/100
-        </p>
+
+        {/* Technical Footer Labels */}
+        <div className="mt-3 flex justify-between px-1">
+           <div className="flex items-center gap-2">
+              <Clock className="w-2.5 h-2.5 text-zinc-700" />
+              <span className="text-[7px] font-black text-zinc-600 uppercase tracking-widest">REALTIME_LINK_ACTIVE</span>
+           </div>
+           {isSending && (
+              <motion.span 
+                 animate={{ opacity: [1, 0.4, 1] }} 
+                 transition={{ repeat: Infinity, duration: 1.5 }}
+                 className="text-[7px] font-black text-zinc-600 uppercase tracking-widest"
+              >
+                 PROTOCOL.COOLDOWN_ACTIVE
+              </motion.span>
+           )}
+        </div>
       </div>
     </div>
   );
