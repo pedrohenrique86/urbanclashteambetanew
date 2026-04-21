@@ -4,14 +4,14 @@ import homeMobilePngUrl from "../../assets/home-mobile.webp";
 
 export function HeroSection() {
   return (
-    <section id="hero" className="relative w-full h-screen overflow-hidden bg-black flex items-center justify-center pt-20">
+    <section id="hero" className="relative w-full h-[100dvh] overflow-hidden bg-black flex items-center justify-center pt-20">
       {/* Background Layer with Responsive Image */}
       <div className="absolute inset-0 z-0">
         <picture>
           <source srcSet={homeMobilePngUrl} media="(max-width: 767px)" />
           <img
             src={homePngUrl}
-            className="w-full h-full object-cover object-center saturate-[1.1] contrast-[1.1]"
+            className="w-full h-full object-cover object-[50%_50%] saturate-[1.1] contrast-[1.1]"
             alt="Submundo Urbano Background"
           />
         </picture>
