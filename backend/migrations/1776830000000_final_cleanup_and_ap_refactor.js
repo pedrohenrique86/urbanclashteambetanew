@@ -11,24 +11,20 @@
 exports.shorthands = undefined;
 
 exports.up = async (pgm) => {
-  // 1. Garantir que total_xp está populado com o melhor dado disponível antes de deletar o resto
-  // Usamos GREATEST para pegar o maior valor entre as colunas redundantes
+  // 1. Garantir que total_xp está populado com o melhor dado de experience_points
+  // Usamos SQL dinâmico (EXECUTE) dentro de um bloco DO para evitar erros de parser se a coluna não existir.
   pgm.sql(`
-    UPDATE user_profiles 
-    SET total_xp = GREATEST(
-      total_xp, 
-      COALESCE(CAST(current_xp AS BIGINT), 0), 
-      COALESCE(CAST(experience_points AS BIGINT), 0)
-    )
-    WHERE total_xp = 0 OR total_xp IS NULL;
+    DO $$ 
+    BEGIN 
+      IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='user_profiles' AND column_name='experience_points') THEN
+        EXECUTE 'UPDATE user_profiles SET total_xp = GREATEST(COALESCE(total_xp, 0), COALESCE(CAST(experience_points AS BIGINT), 0)) WHERE total_xp = 0 OR total_xp IS NULL';
+      END IF;
+    END $$;
   `);
 
   // 2. Remoção das colunas obsoletas
   pgm.dropColumn('user_profiles', [
     'experience_points',
-    'xp_required',
-    'current_xp',
-    'money_daily_gain',
     'action_points_reset_time'
   ], { ifExists: true });
 

@@ -27,7 +27,7 @@ const { query }   = require("../config/database");
 const redisClient = require("../config/redisClient");
 const sseService  = require("./sseService");
 const gameLogic   = require("../utils/gameLogic");
-const { DateTime } = require("luxon"); // Para timezone America/Sao_Paulo
+// Removida dependência externa luxon para evitar crash; usando Intl nativo
 
 // ─── Constantes ──────────────────────────────────────────────────────────────────
 const PLAYER_STATE_PREFIX   = "playerState:";
@@ -127,8 +127,8 @@ function _calcRankingScore(state) {
  * Se não, restaura AP para 20.000.
  */
 async function _checkAndResetAP(userId, redisKey) {
-  const nowSP = DateTime.now().setZone("America/Sao_Paulo");
-  const dateKey = nowSP.toISODate(); // YYYY-MM-DD
+  // Pega a data atual no fuso de SP no formato YYYY-MM-DD usando API nativa Intl
+  const dateKey = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' });
   const lockKey = `ap_reset:${userId}:${dateKey}`;
 
   const alreadyReset = await redisClient.getAsync(lockKey);

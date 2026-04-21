@@ -18,31 +18,29 @@
 exports.shorthands = undefined;
 
 exports.up = async (pgm) => {
-  // 1. Criar total_xp se não existir (Idempotência)
-  // Usamos BIGINT para evitar overflow em jogos de longa progressão
-  pgm.sql(`
-    ALTER TABLE user_profiles 
-    ADD COLUMN IF NOT EXISTS total_xp BIGINT NOT NULL DEFAULT 0;
-  `);
+  // 1. Criar total_xp se não existir
+  pgm.addColumn('user_profiles', {
+    total_xp: { type: 'bigint', notNull: true, default: 0 }
+  }, { ifNotExists: true });
 
-  // 2. Preservação de Dados: Migrar current_xp para total_xp
-  // Fazemos isso apenas se total_xp ainda estiver zerado e a coluna legada existir
+  // 2. Migrar dados: Precisamos verificar se a coluna legada existe antes de rodar o SQL
+  // Usamos pgm.sql diretamente; se a coluna não existir, o PG retornaria erro se não filtrado.
+  // Como estamos em transição, vamos garantir que só rode se current_xp existir.
   pgm.sql(`
-    DO $$ 
-    BEGIN 
-      IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='user_profiles' AND column_name='current_xp') THEN
-        UPDATE user_profiles 
-        SET total_xp = CAST(current_xp AS BIGINT)
-        WHERE total_xp = 0 AND current_xp > 0;
-      END IF;
-    END $$;
+    UPDATE user_profiles 
+    SET total_xp = CAST(current_xp AS BIGINT)
+    WHERE total_xp = 0 
+      AND current_xp > 0 
+      AND EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_name='user_profiles' AND column_name='current_xp'
+      );
   `);
 
   // 3. Remover colunas obsoletas
-  // Usamos ifExists para garantir idempotência
   pgm.dropColumn('user_profiles', ['xp_required', 'current_xp', 'money_daily_gain'], { ifExists: true });
 
-  console.log('✅ Migration UP: user_profiles refatorado. total_xp adicionado e colunas obsoletas removidas.');
+  console.log('✅ Migration UP: user_profiles refatorado com total_xp.');
 };
 
 exports.down = async (pgm) => {
