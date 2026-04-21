@@ -151,7 +151,7 @@ const DigitalIdentity = React.memo(
                  <span className="text-[10px] font-black font-orbitron text-zinc-400 uppercase tracking-widest drop-shadow-[0_0_3px_rgba(255,255,255,0.2)]">D.IDENTITY</span>
               </div>
               <div className="flex items-center gap-3">
-                 {isOwnProfile && <button onClick={onToggleEdit} className="p-1 px-2 text-[10px] font-bold text-zinc-500 hover:text-white transition-colors uppercase tracking-widest">EDITAR</button>}
+                 {isOwnProfile && <button onClick={onToggleEdit} className={`p-1 px-2 text-[10px] font-bold ${isEditing ? 'text-red-400' : 'text-zinc-500'} hover:text-white transition-colors uppercase tracking-widest`}>{isEditing ? "CANCELAR" : "EDITAR"}</button>}
                  {onClose && <button onClick={onClose} className="p-1 text-zinc-500 hover:text-red-500 transition-colors"><X className="w-4 h-4" /></button>}
               </div>
            </div>
@@ -194,8 +194,9 @@ const DigitalIdentity = React.memo(
 
               {/* Right/Stats Column - High Density */}
               <div className={!isCompact ? "lg:col-span-7 flex flex-col gap-4" : "mt-2"}>
-                 <div className="grid grid-cols-3 gap-2">
+                 <div className="grid grid-cols-4 gap-2">
                     <StatBox label="SCORE" value={player.victories} icon={Trophy} color="text-green-500" />
+                    <StatBox label="LOSSES" value={player.defeats} icon={Frown} color="text-red-500" />
                     <StatBox label="W_RATE" value={`${winRate}%`} icon={Target} color={factionTheme.primary} />
                     <StatBox label="STREAK" value={`x${player.winning_streak}`} icon={Zap} color={player.winning_streak >= 5 ? "text-yellow-400" : "text-zinc-500"} pulse={player.winning_streak >= 5} />
                  </div>
@@ -216,7 +217,12 @@ const DigitalIdentity = React.memo(
                           <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-4 min-h-[80px]">
                              {isEditing ? (
                                 <div className="flex flex-col h-full justify-between">
-                                  <textarea value={editData?.bio || ""} onChange={(e) => onEditChange?.({...editData, bio: e.target.value})} className="w-full h-20 bg-transparent text-sm text-white focus:outline-none resize-none" maxLength={100} />
+                                   <div className="relative">
+                                     <textarea value={editData?.bio || ""} onChange={(e) => onEditChange?.({...editData, bio: e.target.value})} className="w-full h-20 bg-transparent text-sm text-white focus:outline-none resize-none" maxLength={100} />
+                                     <div className="absolute bottom-0 right-0 text-[10px] font-mono text-zinc-600 select-none">
+                                        {(editData?.bio || "").length}/100
+                                     </div>
+                                   </div>
                                   <div className="mt-2 pt-2 border-t border-white/10 flex flex-col gap-1.5">
                                     <span className="text-[10px] font-black text-green-400 uppercase tracking-widest flex items-center gap-1.5 drop-shadow-[0_0_8px_rgba(74,222,128,0.3)]">
                                       <Zap className="w-3 h-3" /> BB CODE SUPORTADO:
