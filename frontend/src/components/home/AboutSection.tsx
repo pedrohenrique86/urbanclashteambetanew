@@ -65,7 +65,7 @@ export function AboutSection() {
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              className="text-4xl md:text-7xl font-orbitron font-black tracking-tighter leading-none"
+              className="text-3xl md:text-5xl lg:text-7xl font-orbitron font-black tracking-tighter leading-none"
             >
               DOMINE O <span className="text-white">SETOR 01</span> DA <br />
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-400 via-orange-500 to-red-600">
@@ -88,7 +88,7 @@ export function AboutSection() {
         </div>
 
         {/* Technical Data Cards */}
-        <div className="grid md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {intelData.map((data, i) => (
             <motion.div
               key={i}
@@ -116,7 +116,7 @@ export function AboutSection() {
               <div className="relative z-10">
                 <div className="flex items-baseline gap-2 mb-4">
                   <span className="text-xs font-orbitron text-gray-700">DATA_{data.id}</span>
-                  <h3 className="text-xl font-orbitron font-black text-white group-hover:text-orange-500 transition-colors">
+                  <h3 className="text-lg lg:text-xl font-orbitron font-black text-white group-hover:text-orange-500 transition-colors break-words">
                     {data.title}
                   </h3>
                 </div>

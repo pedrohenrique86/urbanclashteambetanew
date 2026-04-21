@@ -67,7 +67,7 @@ export function PrizesSection() {
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="text-4xl sm:text-6xl md:text-8xl font-orbitron font-black tracking-tighter mb-6 md:mb-8"
+            className="text-4xl sm:text-5xl lg:text-8xl font-orbitron font-black tracking-tighter mb-6 md:mb-8"
           >
             SISTEMA DE <span className="text-white">PRÊMIOS</span>
           </motion.h2>
@@ -79,7 +79,7 @@ export function PrizesSection() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8 items-end max-w-sm mx-auto md:max-w-none">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8 items-end max-w-sm mx-auto md:max-w-none">
           {prizes.map((p, i) => (
             <motion.div
               key={i}
@@ -113,7 +113,7 @@ export function PrizesSection() {
                   </h3>
                 </div>
 
-                <div className={`text-4xl sm:text-5xl md:text-6xl font-orbitron font-black bg-gradient-to-b ${p.color} bg-clip-text text-transparent group-hover:scale-105 transition-transform duration-500`}>
+                <div className={`text-3xl lg:text-6xl font-orbitron font-black bg-gradient-to-b ${p.color} bg-clip-text text-transparent group-hover:scale-105 transition-transform duration-500`}>
                   {p.amount}
                 </div>
 

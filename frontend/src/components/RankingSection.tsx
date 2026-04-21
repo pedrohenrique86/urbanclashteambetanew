@@ -115,7 +115,7 @@ export default function RankingSection() {
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="text-4xl md:text-6xl lg:text-7xl font-orbitron font-black tracking-tighter text-white mb-6 uppercase"
+            className="text-4xl md:text-5xl lg:text-7xl font-orbitron font-black tracking-tighter text-white mb-6 uppercase"
           >
             QUADRO DE <span className="text-transparent bg-clip-text bg-gradient-to-b from-white via-white to-gray-500 drop-shadow-[0_0_30px_rgba(255,255,255,0.1)]">HONRA</span>
           </motion.h2>
@@ -132,7 +132,7 @@ export default function RankingSection() {
           </motion.div>
         </div>
 
-        <div className="grid lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {rankingConfigs.map((config, idx) => (
             <motion.div
               key={idx}

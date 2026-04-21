@@ -60,16 +60,16 @@ export default function HomePage() {
 
         <div className="max-w-[1440px] mx-auto px-4 sm:px-6 relative z-10">
           {/* Desktop Navbar - Slim Single Line */}
-          <div className="hidden sm:flex items-center justify-between h-[44px] gap-4">
+          <div className="hidden sm:flex items-center justify-between h-[44px] gap-1 md:gap-2 lg:gap-4">
             {/* Logo Section */}
-            <div className="flex items-center gap-3 flex-shrink-0">
-              <h1 className="text-xl font-orbitron font-black tracking-tighter flex items-center">
+            <div className="flex items-center gap-1 md:gap-2 lg:gap-3 flex-shrink-0">
+              <h1 className="text-sm md:text-base lg:text-xl font-orbitron font-black tracking-tighter flex items-center">
                 <span className="text-transparent bg-gradient-to-b from-white via-orange-400 to-orange-600 bg-clip-text">URBAN</span>
                 <span className="mx-1 text-transparent bg-gradient-to-b from-white via-blue-400 to-blue-600 bg-clip-text">CLASH</span>
                 <span className="text-transparent bg-gradient-to-b from-white via-purple-400 to-purple-600 bg-clip-text">TEAM</span>
               </h1>
-              <div className="h-3 w-[1px] bg-white/10 mx-1" />
-              <span className="text-[9px] font-black font-orbitron text-orange-500 tracking-[0.2em] border border-orange-500/20 px-1.5 py-0.5 bg-orange-500/5 whitespace-nowrap uppercase">
+              <div className="h-3 w-[1px] bg-white/10 mx-0.5" />
+              <span className="text-[8px] lg:text-[9px] font-black font-orbitron text-orange-500 tracking-[0.2em] border border-orange-500/20 px-1.5 py-0.5 bg-orange-500/5 whitespace-nowrap uppercase hidden lg:block">
                 TEMPORADA 1
               </span>
             </div>
@@ -85,20 +85,20 @@ export default function HomePage() {
             <div className="flex items-center gap-2 flex-shrink-0">
               <button 
                 onClick={handleGoogleLogin} 
-                className="h-[32px] w-[32px] flex items-center justify-center bg-white/5 border border-white/10 rounded hover:bg-white/10 transition-all"
+                className="h-[28px] w-[28px] lg:h-[32px] lg:w-[32px] flex items-center justify-center bg-white/5 border border-white/10 rounded hover:bg-white/10 transition-all"
               >
-                <FcGoogle className="text-lg" />
+                <FcGoogle className="text-base lg:text-lg" />
               </button>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1 lg:gap-2">
                 <button
                   onClick={() => openAuthModal("login")}
-                  className="h-[32px] px-5 bg-orange-600/10 border border-orange-500/30 rounded text-[11px] font-orbitron font-black text-orange-500 uppercase hover:bg-orange-500 hover:text-black transition-all flex items-center justify-center"
+                  className="h-[28px] lg:h-[32px] px-2 lg:px-5 bg-orange-600/10 border border-orange-500/30 rounded text-[9px] lg:text-[11px] font-orbitron font-black text-orange-500 uppercase hover:bg-orange-500 hover:text-black transition-all flex items-center justify-center"
                 >
                   LOGIN
                 </button>
                 <button
                   onClick={() => openAuthModal("register")}
-                  className="h-[32px] px-5 bg-blue-600/10 border border-blue-500/30 rounded text-[11px] font-orbitron font-black text-blue-400 uppercase hover:bg-blue-500 hover:text-black transition-all flex items-center justify-center"
+                  className="h-[28px] lg:h-[32px] px-2 lg:px-5 bg-blue-600/10 border border-blue-500/30 rounded text-[9px] lg:text-[11px] font-orbitron font-black text-blue-400 uppercase hover:bg-blue-500 hover:text-black transition-all flex items-center justify-center"
                 >
                   ALISTAR
                 </button>
