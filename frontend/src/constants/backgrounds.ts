@@ -75,7 +75,7 @@ export const PAGE_BACKGROUNDS: BackgroundMap = {
   },
   "/faction-selection": {
     src: factionSelectionBg,
-    overlay: "bg-black/40",
+    overlay: "bg-black/80",
     position: "bg-center",
   },
   "/confirm-email": {

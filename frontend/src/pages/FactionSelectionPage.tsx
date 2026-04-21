@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useUserProfile } from "../hooks/useUserProfile";
 import { useUserProfileContext } from "../contexts/UserProfileContext";
 import { motion, AnimatePresence } from "framer-motion";
@@ -10,7 +10,6 @@ import {
   BackgroundEffects,
   FactionHeader,
   FactionCard,
-  ConfirmButton,
 } from "../components/faction";
 
 export default function FactionSelectionPage() {
@@ -39,34 +38,24 @@ export default function FactionSelectionPage() {
     showLoading("Confirmando sua facção...");
     setError(null);
 
-    // Adiciona um delay para melhorar a UX
+    // Delay cinemático para aumentar a tensão da escolha
     await new Promise((resolve) => setTimeout(resolve, 3000));
 
     try {
       if (!user) {
-        throw new Error(
-          "Usuário não autenticado. Por favor, faça login novamente.",
-        );
+        throw new Error("Usuário não autenticado.");
       }
 
       if (!profile?.faction) {
         try {
           await api.post("/users/profile", {
             faction: selectedFaction,
-            username:
-              user.user_metadata?.username ||
-              user.email?.split("@")[0] ||
-              "Usuário",
+            username: user.user_metadata?.username || user.email?.split("@")[0] || "Recruta",
           });
         } catch (creationError: any) {
-          const isDuplicateProfile =
-            creationError.response?.status === 409 || 
-            creationError.message?.includes("Perfil já existe");
-
+          const isDuplicateProfile = creationError.response?.status === 409;
           if (isDuplicateProfile) {
-            await api.put(`/users/${user.id}/profile`, {
-              faction: selectedFaction,
-            });
+            await api.put(`/users/${user.id}/profile`, { faction: selectedFaction });
           } else {
             throw creationError;
           }
@@ -76,43 +65,103 @@ export default function FactionSelectionPage() {
       hideLoading();
       navigate("/dashboard");
     } catch (error: any) {
-      console.error("❌ Erro na seleção de facção:", error);
-      setError(error.message || "Erro ao selecionar facção. Tente novamente.");
+      console.error("❌ Erro:", error);
+      setError(error.message || "Erro ao processar escolha.");
       hideLoading();
     }
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-start md:justify-center p-8 py-12 md:py-8 overflow-y-auto relative custom-scrollbar">
+    <div className="min-h-screen flex flex-col items-center justify-center p-6 md:p-12 relative overflow-hidden custom-scrollbar bg-black/60 backdrop-blur-[2px]">
+      {/* 1. Cinematic Background Layers */}
       <BackgroundEffects selectedFaction={selectedFaction} />
 
-      <AnimatePresence>
+      {/* 2. Top Navigation Bar (Decorative AAA) */}
+      <div className="fixed top-0 left-0 w-full h-1 bg-gradient-to-r from-orange-600/50 via-white/20 to-blue-600/50 z-50 opacity-50" />
+      <div className="fixed top-8 left-1/2 -translate-x-1/2 z-50 flex items-center gap-12 opacity-30 pointer-events-none">
+        <span className="text-[8px] font-black font-orbitron tracking-[0.5em] text-white">SYSTEM_BOOT: OK</span>
+        <span className="text-[8px] font-black font-orbitron tracking-[0.5em] text-white">RECRUIT_SYNC: READY</span>
+      </div>
+
+      {/* 3. Main Selection Content */}
+      <AnimatePresence mode="wait">
         <motion.div
-          key="selection"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -20 }}
-          transition={{ duration: 0.5 }}
-          className="relative z-10 w-full max-w-4xl"
+          key="selection-container"
+          initial={{ opacity: 0, scale: 0.98 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.8, ease: "easeOut" }}
+          className="relative z-10 w-full max-w-6xl mt-10"
         >
+          {/* Header Section */}
           <FactionHeader />
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-12 mb-10 w-full max-w-5xl mx-auto">
-            <FactionCard
-              faction="gangsters"
-              selectedFaction={selectedFaction}
-              onSelect={setSelectedFaction}
-              onConfirm={handleFactionSelect}
-            />
-            <FactionCard
-              faction="guardas"
-              selectedFaction={selectedFaction}
-              onSelect={setSelectedFaction}
-              onConfirm={handleFactionSelect}
-            />
+          {/* Faction Grid - Cinematic Vertical Divider in-between */}
+          <div className="relative grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-24 mb-16 px-4">
+            
+            {/* Center Decorative Divider (Holographic effect) */}
+            <div className="hidden md:block absolute left-1/2 top-0 bottom-0 w-px -translate-x-1/2 overflow-hidden">
+               <div className="w-full h-full bg-gradient-to-b from-transparent via-white/10 to-transparent" />
+               <motion.div 
+                 animate={{ y: ["-100%", "100%"] }}
+                 transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
+                 className="w-full h-20 bg-gradient-to-b from-transparent via-white to-transparent opacity-30"
+               />
+            </div>
+
+            {/* Faction Cards - (Props not modified as per instructions) */}
+            <div className="relative group">
+              <FactionCard
+                faction="gangsters"
+                selectedFaction={selectedFaction}
+                onSelect={setSelectedFaction}
+                onConfirm={handleFactionSelect}
+              />
+            </div>
+
+            <div className="relative group">
+              <FactionCard
+                faction="guardas"
+                selectedFaction={selectedFaction}
+                onSelect={setSelectedFaction}
+                onConfirm={handleFactionSelect}
+              />
+            </div>
+          </div>
+
+          {/* Bottom Information (Tactical Footer) */}
+          {error && (
+            <motion.div 
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="text-red-500 font-mono text-[10px] uppercase tracking-widest text-center mb-8 border border-red-500/20 bg-red-500/5 py-2 px-4 rounded"
+            >
+              [ ALERTA_ERRO: {error} ]
+            </motion.div>
+          )}
+
+          <div className="flex flex-col items-center gap-4 opacity-40 hover:opacity-100 transition-opacity duration-300">
+            <div className="flex items-center gap-6">
+              <div className="text-right">
+                <span className="block text-[7px] text-zinc-500 font-black">ENCRYPT_KEY</span>
+                <span className="block text-[9px] text-zinc-400 font-mono">X92-ALFA-BETA</span>
+              </div>
+              <div className="w-2 h-2 rounded-full border border-white/20 flex items-center justify-center">
+                 <div className="w-0.5 h-0.5 bg-white rounded-full" />
+              </div>
+              <div className="text-left">
+                <span className="block text-[7px] text-zinc-500 font-black">ACCESS_LEVEL</span>
+                <span className="block text-[9px] text-zinc-400 font-mono">LEVEL_01_INITIAL</span>
+              </div>
+            </div>
           </div>
         </motion.div>
       </AnimatePresence>
+
+      {/* Decorative Corner Accents (AAA Touch) */}
+      <div className="fixed top-4 left-4 w-12 h-12 border-t border-l border-white/5 pointer-events-none" />
+      <div className="fixed top-4 right-4 w-12 h-12 border-t border-r border-white/5 pointer-events-none" />
+      <div className="fixed bottom-4 left-4 w-12 h-12 border-b border-l border-white/5 pointer-events-none" />
+      <div className="fixed bottom-4 right-4 w-12 h-12 border-b border-r border-white/5 pointer-events-none" />
     </div>
   );
 }
