@@ -337,7 +337,8 @@ async function initializeRankingZSet() {
     );
 
     for (const row of result.rows) {
-      const score = Number(row.level) * 10_000 + Number(row.total_xp);
+      // Score: level * 1.000.000 + total_xp (SSOT)
+      const score = Number(row.level || 1) * 1_000_000 + Number(row.total_xp || 0);
       await playerStateService._zaddRanking(row.user_id, score);
     }
 

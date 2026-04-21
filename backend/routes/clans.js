@@ -57,6 +57,7 @@ router.get("/:id/events", authenticateToken, (req, res) => {
 
 const rankingCacheService = require("../services/rankingCacheService");
 const clanStateService = require("../services/clanStateService");
+const gameLogic = require("../utils/gameLogic");
 
 // =========================
 // Validações
@@ -100,10 +101,25 @@ const updateClanValidation = [
 // Helpers
 // =========================
 function parseClanCount(row) {
+  if (!row) return null;
   return {
     ...row,
     member_count: Number(row.member_count || 0),
     max_members: Number(row.max_members || 0),
+  };
+}
+
+/**
+ * Normaliza dados do membro, derivando o nível do XP (SSOT).
+ */
+function parseMember(row) {
+  const total_xp = parseInt(row.experience_points || 0, 10);
+  const derivedLevel = gameLogic.calculateLevelFromXp(total_xp);
+  
+  return {
+    ...row,
+    level: derivedLevel,
+    experience_points: total_xp
   };
 }
 
@@ -303,7 +319,18 @@ router.get("/:id", async (req, res) => {
     const { id } = req.params;
 
     const clanResult = await query(
-      "SELECT * FROM clans WHERE id = $1",
+      `
+      SELECT 
+        c.*,
+        mc.member_count
+      FROM clans c
+      LEFT JOIN LATERAL (
+        SELECT COUNT(*)::int AS member_count
+        FROM clan_members cm
+        WHERE cm.clan_id = c.id
+      ) mc ON true
+      WHERE c.id = $1
+      `,
       [id],
     );
 
@@ -324,7 +351,7 @@ router.get("/:id", async (req, res) => {
         COALESCE(p.display_name, p.username, u.username) as display_name,
         p.avatar_url,
         p.level,
-        p.experience_points
+        p.total_xp as experience_points
       FROM clan_members cm
       INNER JOIN users u ON cm.user_id = u.id
       LEFT JOIN user_profiles p ON u.id = p.user_id
@@ -350,12 +377,16 @@ router.get("/:id", async (req, res) => {
             avatar_url: clan.leader_avatar,
           }
           : null,
-        members: membersResult.rows,
+        members: membersResult.rows.map(parseMember),
       },
     });
   } catch (error) {
-    console.error("❌ Erro ao buscar clã:", error.message);
-    res.status(500).json({ error: "Erro interno do servidor" });
+    console.error(`❌ [GET /clans/${req.params.id}] Erro:`, {
+      message: error.message,
+      stack: error.stack,
+      id: req.params.id
+    });
+    res.status(500).json({ error: "Erro interno do servidor", details: error.message });
   }
 });
 
@@ -376,7 +407,7 @@ router.get("/:id/members", async (req, res) => {
         COALESCE(p.display_name, p.username, u.username) as display_name,
         p.avatar_url,
         p.level,
-        p.experience_points
+        p.total_xp as experience_points
       FROM clan_members cm
       INNER JOIN users u ON cm.user_id = u.id
       LEFT JOIN user_profiles p ON u.id = p.user_id
@@ -391,7 +422,7 @@ router.get("/:id/members", async (req, res) => {
       `,
       [id],
     );
-    res.json({ members: membersResult.rows });
+    res.json({ members: membersResult.rows.map(parseMember) });
   } catch (error) {
     console.error("❌ Erro ao buscar membros do clã:", error.message);
     res.status(500).json({ error: "Erro interno do servidor" });
