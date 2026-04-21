@@ -49,7 +49,7 @@ export default function ClanRankingItem({
 
         {/* Clan Details */}
         <div className="flex flex-col flex-grow min-w-0">
-          <span className="text-white font-black font-orbitron text-[10px] sm:text-xs uppercase whitespace-nowrap group-hover:text-purple-400 transition-colors tracking-tighter">
+          <span className={`${accentColor} font-black font-orbitron text-[10px] sm:text-xs uppercase whitespace-nowrap group-hover:text-purple-400 transition-colors tracking-tighter`}>
             {clan.name || "UNNAMED_DIV"}
           </span>
           <div className="flex items-center gap-1.5">

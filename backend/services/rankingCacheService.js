@@ -48,9 +48,12 @@ async function fetchUsersFromDB(faction) {
       u.id, u.username, u.country,
       p.display_name, p.avatar_url, p.level,
       p.experience_points as current_xp, p.faction, p.victories, p.defeats, p.winning_streak,
+      c.name as clan_name,
       ROW_NUMBER() OVER (ORDER BY p.level DESC, p.experience_points DESC) as rank
     FROM users u
     INNER JOIN user_profiles p ON u.id = p.user_id
+    LEFT JOIN clan_members cm ON cm.user_id = u.id
+    LEFT JOIN clans c ON cm.clan_id = c.id
     ${whereClause}
     ORDER BY p.level DESC, p.experience_points DESC
     LIMIT ${limitPlaceholder}

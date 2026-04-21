@@ -76,9 +76,17 @@ const PlayerRankingItem = React.memo(function PlayerRankingItem({ player, config
             {player.country && <img src={`https://flagcdn.com/w20/${player.country.toLowerCase()}.png`} className="w-3.5 h-auto opacity-50" alt="" />}
             <span className="text-sm sm:text-base font-orbitron font-bold text-white truncate uppercase tracking-tight">{player.username}</span>
           </div>
-          <span className={`text-[8px] sm:text-[10px] font-black tracking-[0.2em] ${isGuard ? 'text-cyan-400/70' : 'text-orange-500/70'} uppercase leading-none`}>
-            ID: {player.id.slice(0, 8)}
-          </span>
+          <div className="flex items-center gap-2">
+            <span className={`text-[8px] sm:text-[10px] font-black tracking-[0.2em] ${isGuard ? 'text-cyan-400/70' : 'text-orange-500/70'} uppercase leading-none`}>
+              ID: {player.id.slice(0, 8)}
+            </span>
+            <>
+              <span className="text-[8px] sm:text-[10px] font-black text-zinc-600 leading-none">|</span>
+              <span className={`text-[8px] sm:text-[10px] font-black tracking-[0.3em] ${player.clan_name ? (isGuard ? 'text-cyan-400' : 'text-orange-500') : 'text-yellow-400'} uppercase leading-none truncate max-w-[100px] sm:max-w-[200px]`}>
+                {player.clan_name || "SOLO"}
+              </span>
+            </>
+          </div>
         </div>
       </div>
 
@@ -112,10 +120,9 @@ const PlayerRankingItem = React.memo(function PlayerRankingItem({ player, config
   );
 });
 
-const ClanRankingItem = React.memo(function ClanRankingItem({ clan, config, onSelect }: {
+const ClanRankingItem = React.memo(function ClanRankingItem({ clan, config }: {
   clan: Clan;
   config: any;
-  onSelect: (id: string) => void;
 }) {
   const factionName = clan.faction?.toLowerCase() || "";
   const isRenegado = factionName.includes("gangster") || factionName.includes("renegado");
@@ -126,8 +133,7 @@ const ClanRankingItem = React.memo(function ClanRankingItem({ clan, config, onSe
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       whileHover={{ scale: 1.005, backgroundColor: "rgba(255,255,255,0.02)" }}
-      onClick={() => onSelect(clan.id)}
-      className="group relative flex items-center gap-3 sm:gap-6 p-2 sm:p-3 rounded border border-white/10 bg-black/80 cursor-pointer transition-all duration-300 mb-1 shadow-lg"
+      className="group relative flex items-center gap-3 sm:gap-6 p-2 sm:p-3 rounded border border-white/10 bg-black/80 transition-all duration-300 mb-1 shadow-lg"
     >
       <div className={`absolute inset-y-0 left-0 w-0.5 bg-gradient-to-b ${config.gradient} opacity-40 group-hover:opacity-100 transition-opacity`} />
       
@@ -139,7 +145,7 @@ const ClanRankingItem = React.memo(function ClanRankingItem({ clan, config, onSe
         </div>
         
           <div className="flex flex-col min-w-0">
-            <span className="text-sm sm:text-base font-orbitron font-bold text-white truncate uppercase tracking-tight">{clan.name}</span>
+            <span className={`text-sm sm:text-base font-orbitron font-bold ${isRenegado ? 'text-orange-500' : 'text-cyan-400'} truncate uppercase tracking-tight`}>{clan.name}</span>
             <span className={`text-[8px] sm:text-[10px] font-black tracking-[0.2em] ${isRenegado ? 'text-orange-500/50' : 'text-blue-500/50'} uppercase`}>
               LÍDER: {clan.leaderName || "RECRUTA"}
             </span>
@@ -151,11 +157,6 @@ const ClanRankingItem = React.memo(function ClanRankingItem({ clan, config, onSe
             <span className="text-[7px] text-zinc-600 font-black uppercase tracking-widest">PONTOS</span>
             <span className={`text-xs sm:text-base font-orbitron font-black text-purple-400 italic`}>{clan.score}</span>
           </div>
-         <div className="hidden sm:flex flex-col items-center w-20">
-            <span className="text-[7px] text-zinc-600 font-black uppercase tracking-widest text-center">MEMBROS</span>
-            <span className="text-xs font-orbitron font-bold text-zinc-400">{clan.memberCount} / 40</span>
-         </div>
-         <ChevronRight className="w-3 h-3 sm:w-4 sm:h-4 text-zinc-700 group-hover:text-white" />
       </div>
     </motion.div>
   );
@@ -212,86 +213,94 @@ export default function RankingPage() {
 
       <div className="relative z-10 w-full max-w-4xl mx-auto px-2 sm:px-6 pb-24">
         
-        {/* Navigation - Industrial Tabs */}
-        <div className="flex items-center bg-zinc-900/80 p-1.5 rounded-lg border border-white/5 mb-8">
-           {rankingData.map((tab, idx) => {
-             const Icon = tab.icon;
-             const active = selectedRanking === idx;
-             return (
-               <button
-                 key={tab.id}
-                 onClick={() => setSelectedRanking(idx)}
-                 className={`flex-1 flex items-center justify-center gap-2 py-3 rounded text-[10px] sm:text-xs font-orbitron font-black tracking-widest transition-all duration-300 ${
-                   active ? `bg-gradient-to-r ${tab.gradient} text-white shadow-xl` : 'text-zinc-500 hover:text-zinc-300'
-                 }`}
-               >
-                 <Icon className="w-3 h-3 sm:w-4 sm:h-4" />
-                 {tab.label}
-               </button>
-             );
-           })}
-        </div>
+        {/* ═══════════════════════════════════════════
+            UNIFIED RANKING PANEL
+        ═══════════════════════════════════════════ */}
+        <div className="rounded-xl border border-white/10 bg-black/60 backdrop-blur-xl overflow-hidden shadow-2xl">
 
-        {/* Tactical Info Header */}
-        <div className="flex items-center justify-between px-4 py-2 border-l-2 border-orange-500/50 bg-white/[0.02] mb-6">
-           <div className="flex items-center gap-3">
-              <Zap className="w-3 h-3 text-orange-500 animate-pulse" />
-              <span className="text-[9px] font-black font-orbitron text-white tracking-[0.4em] uppercase">SYSTEM.RANKING.V2</span>
-           </div>
-           <div className="flex items-center gap-4">
-              <div className="flex items-center gap-1.5">
-                 <div className="w-1.5 h-1.5 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.5)]" />
-                 <span className="text-[8px] font-black text-zinc-500 uppercase tracking-widest">LIVE</span>
+          {/* Tab Navigation */}
+          <div className="flex items-center bg-black/40 border-b border-white/5 p-1.5 gap-1.5">
+            {rankingData.map((tab, idx) => {
+              const Icon = tab.icon;
+              const active = selectedRanking === idx;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setSelectedRanking(idx)}
+                  className={`flex-1 flex items-center justify-center gap-2 py-3 sm:py-4 rounded-lg text-xs sm:text-sm font-orbitron font-black tracking-widest transition-all duration-300 ${
+                    active
+                      ? `bg-gradient-to-r ${tab.gradient} text-white shadow-[0_0_24px_rgba(255,255,255,0.08)] border border-white/20`
+                      : 'text-zinc-500 hover:text-zinc-200 hover:bg-white/5 border border-transparent'
+                  }`}
+                >
+                  <Icon className="w-4 h-4 sm:w-5 sm:h-5" />
+                  {tab.label}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* System Header Bar */}
+          <div className="flex items-center justify-between px-4 sm:px-6 py-3 border-b border-white/5 border-l-4 border-l-orange-500 bg-orange-500/5">
+            <div className="flex items-center gap-3">
+              <Zap className="w-5 h-5 text-orange-500 drop-shadow-[0_0_8px_rgba(249,115,22,0.8)] animate-pulse" />
+              <span className="text-sm sm:text-base font-black font-orbitron text-transparent bg-clip-text bg-gradient-to-r from-white to-zinc-400 tracking-[0.3em] uppercase">SYSTEM.RANKING.V2</span>
+            </div>
+            <div className="flex items-center gap-3 sm:gap-5">
+              <span className="hidden sm:inline text-[10px] font-mono text-zinc-500 tracking-[0.15em] uppercase border border-white/10 rounded px-2 py-1 bg-white/5">
+                ↻ ATUALIZA A CADA 10 MINUTOS INTEIROS
+              </span>
+              <div className="flex items-center gap-1.5 px-2 py-1 bg-green-500/10 border border-green-500/20 rounded-md">
+                <div className="w-1.5 h-1.5 rounded-full bg-green-400 shadow-[0_0_10px_rgba(74,222,128,0.9)] animate-pulse" />
+                <span className="text-[10px] font-black text-green-400 uppercase tracking-widest leading-none">LIVE</span>
               </div>
-           </div>
-        </div>
+            </div>
+          </div>
 
-        {/* Global Loading / Error State */}
-        {error && <div className="p-4 rounded border border-red-500/20 bg-red-500/5 text-red-500 text-center font-mono text-[10px] uppercase mb-4 tracking-widest">[ ERROR_{error} ]</div>}
+          {/* Error State */}
+          {error && <div className="px-4 py-3 border-b border-red-500/20 bg-red-500/5 text-red-400 text-center font-mono text-[10px] uppercase tracking-widest">[ ERROR_{error} ]</div>}
 
-        {/* Ranking List - Clean One Column Vertical Approach */}
-        <div className="bg-black/40 rounded-xl p-1 sm:p-2 border border-white/5 backdrop-blur-xl">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={currentTab.id}
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 10 }}
-              transition={{ duration: 0.3 }}
-              className="flex flex-col"
-            >
-              {isLoading ? (
-                Array.from({ length: 5 }).map((_, i) => <EmptyRankingItem key={i} position={i + 1} />)
-              ) : currentTab.data.length > 0 ? (
-                currentTab.data.map((item: any) => (
-                  currentTab.type === 'clan' 
-                    ? <ClanRankingItem key={item.id} clan={item} config={currentTab} onSelect={openClanPanel} />
-                    : <PlayerRankingItem key={item.id} player={item} config={currentTab} onSelect={openUserPanel} />
-                ))
-              ) : (
-                /* Cinematic Empty State */
-                <div className="py-20 flex flex-col items-center justify-center opacity-40">
-                   <div className="p-4 rounded-full bg-zinc-900/50 border border-white/5 mb-4">
+          {/* Ranking List */}
+          <div className="p-1.5 sm:p-2">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={currentTab.id}
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 10 }}
+                transition={{ duration: 0.3 }}
+                className="flex flex-col"
+              >
+                {isLoading ? (
+                  Array.from({ length: 5 }).map((_, i) => <EmptyRankingItem key={i} position={i + 1} />)
+                ) : currentTab.data.length > 0 ? (
+                  currentTab.data.map((item: any) => (
+                    currentTab.type === 'clan'
+                      ? <ClanRankingItem key={item.id} clan={item} config={currentTab} />
+                      : <PlayerRankingItem key={item.id} player={item} config={currentTab} onSelect={openUserPanel} />
+                  ))
+                ) : (
+                  <div className="py-20 flex flex-col items-center justify-center opacity-40">
+                    <div className="p-4 rounded-full bg-zinc-900/50 border border-white/5 mb-4">
                       <Target className="w-8 h-8 text-zinc-500" />
-                   </div>
-                   <span className="text-[10px] font-black font-orbitron text-zinc-600 tracking-[0.3em] uppercase">NENHUM_REGISTRO_LOCALIZADO</span>
-                </div>
-              )}
-            </motion.div>
-          </AnimatePresence>
-        </div>
+                    </div>
+                    <span className="text-[10px] font-black font-orbitron text-zinc-600 tracking-[0.3em] uppercase">NENHUM_REGISTRO_LOCALIZADO</span>
+                  </div>
+                )}
+              </motion.div>
+            </AnimatePresence>
+          </div>
 
-        {/* Footer Technical Metadata */}
-        <div className="mt-8 flex items-center justify-center gap-8 opacity-20 grayscale pointer-events-none">
-           <div className="flex items-center gap-2">
-              <span className="text-[7px] font-black text-white">UPDT_FREQ</span>
-              <span className="text-[7px] font-mono text-white">10_MIN_INT</span>
-           </div>
-           <div className="h-4 w-px bg-white/20" />
-           <div className="flex items-center gap-2">
-              <span className="text-[7px] font-black text-white">DATA_SRC</span>
-              <span className="text-[7px] font-mono text-white">CENTRAL_DB_01</span>
-           </div>
+          {/* Panel Footer */}
+          <div className="flex items-center justify-center gap-4 px-4 py-2.5 border-t border-white/5 bg-black/30">
+            <span className="sm:hidden text-[8px] font-mono text-zinc-600 uppercase tracking-widest">↻ ATUALIZAÇÃO A CADA 10 MINUTOS INTEIROS</span>
+            <div className="hidden sm:flex items-center gap-6 opacity-30">
+              <span className="text-[8px] font-mono text-white uppercase tracking-wider">UPDT_FREQ: 10_MIN_INT</span>
+              <div className="h-3 w-px bg-white/20" />
+              <span className="text-[8px] font-mono text-white uppercase tracking-wider">DATA_SRC: CENTRAL_DB_01</span>
+            </div>
+          </div>
+
         </div>
 
       </div>

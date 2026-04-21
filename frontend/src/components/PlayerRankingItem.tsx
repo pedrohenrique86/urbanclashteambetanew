@@ -59,7 +59,13 @@ export default function PlayerRankingItem({
               {player.username}
             </span>
           </div>
-          <span className="text-[7px] sm:text-[8px] font-mono text-gray-500 uppercase tracking-tighter">SEC_ID_{player.id.substring(0,4)}</span>
+          <div className="flex items-center gap-1.5 min-w-0">
+            <span className="text-[7px] sm:text-[8px] font-mono text-gray-500 uppercase tracking-tighter flex-shrink-0">SEC_ID_{player.id.substring(0,4)}</span>
+            <>
+              <span className="text-[7px] sm:text-[8px] text-zinc-700">|</span>
+              <span className={`text-[7px] sm:text-[8px] font-black font-orbitron ${player.clan_name ? accentColor : 'text-yellow-400'} uppercase tracking-tighter truncate`}>{player.clan_name || "SOLO"}</span>
+            </>
+          </div>
         </div>
 
         {/* Level */}

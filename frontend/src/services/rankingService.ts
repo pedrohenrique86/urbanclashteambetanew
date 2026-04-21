@@ -34,6 +34,7 @@ export const fetchPlayerRankings = async (
       faction: player.faction,
       position: index + 1,
       country: player.country || null,
+      clan_name: player.clan_name || undefined,
     });
 
     if (response?.__notModified) {

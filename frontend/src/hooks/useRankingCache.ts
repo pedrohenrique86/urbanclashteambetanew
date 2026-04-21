@@ -218,7 +218,7 @@ const mergeData = (oldData: RankingData, newData: RankingData): RankingData => {
     p1.id === p2.id && p1.username === p2.username && p1.level === p2.level && 
     p1.position === p2.position && p1.current_xp === p2.current_xp &&
     p1.display_name === p2.display_name && p1.avatar_url === p2.avatar_url &&
-    p1.faction === p2.faction && p1.country === p2.country;
+    p1.faction === p2.faction && p1.country === p2.country && p1.clan_name === p2.clan_name;
 
   const playerMap = new Map(oldData.gangsters.map(p => [p.id, p]));
   const gangsters = newData.gangsters.map(p => {

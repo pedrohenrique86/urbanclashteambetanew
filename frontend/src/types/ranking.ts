@@ -9,6 +9,7 @@ export interface Player {
   country?: string;
   current_xp: number;
   position?: number;
+  clan_name?: string;
 }
 
 export interface Clan {

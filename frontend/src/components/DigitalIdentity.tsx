@@ -115,7 +115,8 @@ const DigitalIdentity = React.memo(
     }, [isEditing, editData?.birth_date]);
     
     const factionTheme = useMemo(() => {
-      const isGangster = (player?.faction || "gangsters") === "gangsters";
+      const factionString = (player?.faction || "gangsters").toLowerCase();
+      const isGangster = factionString.includes("gangster") || factionString.includes("renegado");
       return isGangster
         ? { primary: "text-orange-500", border: "border-orange-500/20", bg: "bg-orange-500/10", accent: "from-orange-500 to-red-900", button: "bg-orange-600", icon: Skull, label: "RENEGADO" }
         : { primary: "text-blue-500", border: "border-blue-500/20", bg: "bg-blue-500/10", accent: "from-blue-600 to-blue-900", button: "bg-blue-600", icon: Shield, label: "GUARDIÃO" };
@@ -185,7 +186,7 @@ const DigitalIdentity = React.memo(
                        {player.country && <img src={getFlagUrl(player.country)!} className="w-5 h-auto rounded-sm opacity-60" alt="" />}
                     </div>
                     <div className="flex items-center gap-2">
-                       <span className={`text-[9px] font-black font-orbitron tracking-widest uppercase ${factionTheme.primary}`}>{player.clan_name || "INDEPENDENTE"}</span>
+                       <span className={`text-[9px] font-black font-orbitron tracking-widest uppercase ${player.clan_name ? factionTheme.primary : "text-yellow-400"}`}>{player.clan_name || "SOLO"}</span>
                        {isCompact && <div className="px-1.5 py-0.5 rounded bg-zinc-900 border border-white/5 text-[8px] font-black text-zinc-400">NVL {player.level}</div>}
                     </div>
                  </div>
@@ -213,7 +214,21 @@ const DigitalIdentity = React.memo(
                        <div className="space-y-3">
                           <div className="flex items-center gap-2 opacity-40"><Activity className="w-3 h-3" /><span className="text-[9px] font-black uppercase tracking-widest">MEMORIA_BIOMETRICA</span></div>
                           <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-4 min-h-[80px]">
-                             {isEditing ? <textarea value={editData?.bio || ""} onChange={(e) => onEditChange?.({...editData, bio: e.target.value})} className="w-full h-20 bg-transparent text-xs text-zinc-300 focus:outline-none resize-none" maxLength={100} /> : renderSafeBio(player.bio)}
+                             {isEditing ? (
+                                <div className="flex flex-col h-full justify-between">
+                                  <textarea value={editData?.bio || ""} onChange={(e) => onEditChange?.({...editData, bio: e.target.value})} className="w-full h-20 bg-transparent text-sm text-white focus:outline-none resize-none" maxLength={100} />
+                                  <div className="mt-2 pt-2 border-t border-white/10 flex flex-col gap-1.5">
+                                    <span className="text-[10px] font-black text-green-400 uppercase tracking-widest flex items-center gap-1.5 drop-shadow-[0_0_8px_rgba(74,222,128,0.3)]">
+                                      <Zap className="w-3 h-3" /> BB CODE SUPORTADO:
+                                    </span>
+                                    <div className="flex flex-wrap gap-1.5">
+                                      <span className="px-2 py-0.5 rounded bg-black/40 border border-white/10 text-[9px] font-mono text-zinc-300"><span className="text-zinc-500">[b]</span>NEGRITO<span className="text-zinc-500">[/b]</span></span>
+                                      <span className="px-2 py-0.5 rounded bg-black/40 border border-white/10 text-[9px] font-mono text-zinc-300"><span className="text-zinc-500">[i]</span>ITÁLICO<span className="text-zinc-500">[/i]</span></span>
+                                      <span className="px-2 py-0.5 rounded bg-black/40 border border-white/10 text-[9px] font-mono text-zinc-300"><span className="text-zinc-500">[color=#HEX]</span>COR<span className="text-zinc-500">[/color]</span></span>
+                                    </div>
+                                  </div>
+                                </div>
+                             ) : renderSafeBio(player.bio)}
                           </div>
                        </div>
                        
