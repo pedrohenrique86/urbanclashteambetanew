@@ -41,8 +41,20 @@ export const startGoogleLoginFlow = async (
       sessionStorage.removeItem('google_auth_country');
     }
 
-    const hashed = await sha256(codeVerifier);
-    const codeChallenge = base64urlencode(hashed);
+    let codeChallenge = codeVerifier;
+    let codeChallengeMethod = 'plain';
+
+    if (window.crypto && window.crypto.subtle) {
+      try {
+        const hashed = await sha256(codeVerifier);
+        codeChallenge = base64urlencode(hashed);
+        codeChallengeMethod = 'S256';
+      } catch (e) {
+        console.warn('Erro ao gerar S256, usando plain:', e);
+      }
+    } else {
+      console.warn('Contexto não seguro (sem HTTPS), usando PKCE modo plain para login Google');
+    }
 
     const redirectUri = `${window.location.origin}/auth/google/callback`;
 
@@ -54,7 +66,7 @@ export const startGoogleLoginFlow = async (
     const params = new URLSearchParams({
       redirect_uri: redirectUri,
       code_challenge: codeChallenge,
-      code_challenge_method: 'S256',
+      code_challenge_method: codeChallengeMethod,
       state: JSON.stringify(state),
     });
 

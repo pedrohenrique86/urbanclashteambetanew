@@ -46,6 +46,7 @@ class SocketService {
         reconnectionAttempts: 10,
         reconnectionDelay: 1000,
         path: "/socket.io/",
+        transports: ["websocket"],
       });
 
       this.socket.on("connect", () => {
