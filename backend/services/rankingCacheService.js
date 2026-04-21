@@ -22,6 +22,7 @@ const sseService   = require("./sseService");
 const clanStateService  = require("./clanStateService");
 const playerStateService = require("./playerStateService");
 const { FACTION_ALIAS_MAP } = require("../utils/faction");
+const gameLogic = require("../utils/gameLogic");
 
 // ─── Constantes ────────────────────────────────────────────────────────────────
 const RANKINGS_USERS_PREFIX   = "rankings:users:";
@@ -141,14 +142,20 @@ async function buildRankingFromZSet(faction) {
       if (state.faction !== canonical) continue;
     }
 
+    const level = Number(state.level || 0);
+    const total_xp = Number(state.total_xp || 0);
+    const xpStatus = gameLogic.deriveXpStatus(total_xp, level);
+
     hydratedPlayers.push({
       id          : state.user_id || userId,
       username    : state.username    || "",
       country     : state.country     || "",
       display_name: state.display_name || state.username || "",
       avatar_url  : state.avatar_url  || null,
-      level       : Number(state.level || 0),
-      current_xp  : Number(state.experience_points || 0),
+      level       : level,
+      total_xp    : total_xp,
+      current_xp  : xpStatus.currentXp,
+      xp_required : xpStatus.xpRequired,
       faction     : state.faction     || "",
       victories   : Number(state.victories || 0),
       defeats     : Number(state.defeats || 0),
@@ -322,15 +329,15 @@ async function initializeRankingZSet() {
 
   try {
     const result = await query(
-      `SELECT user_id, level, experience_points, faction
+      `SELECT user_id, level, total_xp, faction
        FROM user_profiles
-       WHERE level > 0 OR experience_points > 0
-       ORDER BY level DESC, experience_points DESC
+       WHERE level > 0 OR total_xp > 0
+       ORDER BY level DESC, total_xp DESC
        LIMIT 500`,
     );
 
     for (const row of result.rows) {
-      const score = Number(row.level) * 10_000 + Number(row.experience_points);
+      const score = Number(row.level) * 10_000 + Number(row.total_xp);
       await playerStateService._zaddRanking(row.user_id, score);
     }
 

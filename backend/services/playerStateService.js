@@ -26,6 +26,8 @@
 const { query }   = require("../config/database");
 const redisClient = require("../config/redisClient");
 const sseService  = require("./sseService");
+const gameLogic   = require("../utils/gameLogic");
+const { DateTime } = require("luxon"); // Para timezone America/Sao_Paulo
 
 // ─── Constantes ──────────────────────────────────────────────────────────────────
 const PLAYER_STATE_PREFIX   = "playerState:";
@@ -36,18 +38,17 @@ const PERSIST_BATCH_SIZE    = 50;          // máx players por lote no safety-ne
 const SAFETY_STALENESS_MS   = 12_000;      // safety-net só persiste dirty > 12s
 
 // ─── Campos que afetam o ranking (ZSET) ──────────────────────────────────────────
-const RANKING_FIELDS = new Set(["experience_points", "level"]);
+const RANKING_FIELDS = new Set(["total_xp", "level"]);
 
 // ─── Dirty TIPO 1: campos que DEVEM ser persistidos no banco ─────────────────────
 // Subconjunto de DB_PERSIST_FIELDS — apenas dados de progressão permanente
 const DB_PERSIST_FIELDS = new Set([
-  "experience_points", "level",
+  "total_xp", "level",
   "attack", "defense", "focus",
   "critical_chance", "critical_damage",
   "intimidation", "discipline",
   "money",
   "victories", "defeats", "winning_streak",
-  "xp_required",
 ]);
 
 // ─── Dirty TIPO 2: campos voláteis (NÃO persistem no safety-net, só via debounce
@@ -64,7 +65,7 @@ const SSE_FIELDS = new Set([...DB_PERSIST_FIELDS, ...VOLATILE_FIELDS]);
 // Usado para construir o PATCH mínimo
 const FIELD_TO_SSE = {
   level             : "level",
-  experience_points : "xp",
+  total_xp          : "xp",
   energy            : "energy",
   max_energy        : "maxEnergy",
   action_points     : "actionPoints",
@@ -113,9 +114,39 @@ function _parseState(raw) {
   return out;
 }
 
-/** Score do ranking: nível > XP. */
+/** Score do ranking: nível > XP total. */
 function _calcRankingScore(state) {
-  return Number(state.level || 0) * 10_000 + Number(state.experience_points || 0);
+  // Level tem peso de 1 milhão para garantir que 
+  // nível maior sempre ganhe de nível menor, com XP como desempate fino.
+  return Number(state.level || 1) * 1_000_000 + Number(state.total_xp || 0);
+}
+
+/**
+ * Lazy Reset de Action Points (AP).
+ * Verifica se o jogador já teve reset hoje (America/Sao_Paulo).
+ * Se não, restaura AP para 20.000.
+ */
+async function _checkAndResetAP(userId, redisKey) {
+  const nowSP = DateTime.now().setZone("America/Sao_Paulo");
+  const dateKey = nowSP.toISODate(); // YYYY-MM-DD
+  const lockKey = `ap_reset:${userId}:${dateKey}`;
+
+  const alreadyReset = await redisClient.getAsync(lockKey);
+  if (!alreadyReset) {
+    // Resetar AP para o máximo
+    const MAX_AP = 20000;
+    await redisClient.hSetAsync(redisKey, {
+      action_points: String(MAX_AP),
+      is_dirty: "1",
+      is_dirty_at: String(Date.now())
+    });
+
+    // Marcar reset do dia com TTL de 48h
+    await redisClient.setAsync(lockKey, "1", "EX", 172800);
+    
+    return true;
+  }
+  return false;
 }
 
 /**
@@ -241,10 +272,21 @@ async function loadPlayerState(userId) {
 async function getPlayerState(userId) {
   if (!redisClient.client.isReady) return null;
 
-  const raw = await redisClient.hGetAllAsync(`${PLAYER_STATE_PREFIX}${userId}`);
-  if (raw && Object.keys(raw).length > 0) return _parseState(raw);
+  const redisKey = `${PLAYER_STATE_PREFIX}${userId}`;
+  const raw = await redisClient.hGetAllAsync(redisKey);
 
-  return await loadPlayerState(userId);
+  if (raw && Object.keys(raw).length > 0) {
+    // Executa Lazy Reset de AP em background (não bloqueia a leitura)
+    _checkAndResetAP(userId, redisKey).catch(e => console.error("[apReset] Falha:", e.message));
+    return _parseState(raw);
+  }
+
+  // Cache miss → carrega do banco
+  const state = await loadPlayerState(userId);
+  if (state) {
+    await _checkAndResetAP(userId, redisKey);
+  }
+  return state;
 }
 
 /**
@@ -295,14 +337,27 @@ async function updatePlayerState(userId, updates) {
 
     await pipeline.exec();
 
-    // ── 2. Renova TTL ────────────────────────────────────────────────────────────
-    await redisClient.expireAsync(redisKey, PLAYER_TTL_SECONDS);
+    // ── 2. Garante que AP está atualizado (Lazy Reset) ───────────────────────────
+    await _checkAndResetAP(userId, redisKey);
 
-    // ── 3. Lê estado atualizado ──────────────────────────────────────────────────
-    const newState = await getPlayerState(userId);
+    // ── 3. Renova TTL e lê estado ────────────────────────────────────────────────
+    await redisClient.expireAsync(redisKey, PLAYER_TTL_SECONDS);
+    let newState = await getPlayerState(userId);
     if (!newState) return null;
 
-    // ── 4. Emite PATCH mínimo via SSE (somente campos alterados) ─────────────────
+    // ── 4. Lógica de LEVEL UP Automática ─────────────────────────────────────────
+    const correctLevel = gameLogic.calculateLevelFromXp(newState.total_xp);
+    if (correctLevel > newState.level) {
+      await redisClient.hSetAsync(redisKey, {
+        level: String(correctLevel),
+        is_dirty: "1",
+        is_dirty_at: String(Date.now())
+      });
+      newState = await getPlayerState(userId); // Recarrega estado com novo nível
+      hasCritical = true; // Força atualização de ranking
+    }
+
+    // ── 5. Emite PATCH mínimo via SSE ────────────────────────────────────────────
     if (hasSSEChange) {
       const patch   = _buildPatch(updates, newState);
       const version = _nextVersion(userId);
@@ -328,7 +383,7 @@ async function updatePlayerState(userId, updates) {
         username  : newState.username  || "",
         faction   : newState.faction   || "",
         level     : Number(newState.level),
-        current_xp: Number(newState.experience_points),
+        current_xp: Number(newState.total_xp),
       });
     }
 

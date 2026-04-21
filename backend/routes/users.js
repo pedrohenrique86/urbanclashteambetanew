@@ -8,6 +8,7 @@ const redisClient = require("../config/redisClient");
 const { getGameState } = require("../services/gameStateService");
 const sseService = require("../services/sseService");
 const rankingCacheService = require("../services/rankingCacheService");
+const gameLogic = require("../utils/gameLogic");
 
 const router = express.Router();
 
@@ -237,11 +238,9 @@ function getFactionStats(faction) {
   const baseStats = {
     level: 1,
     energy: 100,
-    current_xp: 0,
-    xp_required: 100,
+    total_xp: 0,
     action_points: 20000,
     money: 1000,
-    money_daily_gain: 0,
     victories: 0,
     defeats: 0,
     winning_streak: 0,
@@ -306,6 +305,11 @@ router.get("/profile", authenticateToken, async (req, res) => {
 
     // Se o profile veio do Redis, os campos numéricos podem estar como strings.
     // Garantimos a conversão para manter a compatibilidade com o frontend.
+    // XP e XP requerido agora são calculados dinamicamente baseado no total_xp e level.
+    const level    = parseInt(profile.level, 10) || 1;
+    const total_xp = parseInt(profile.total_xp || 0, 10);
+    const xpStatus = gameLogic.deriveXpStatus(total_xp, level);
+
     const convertedProfile = {
       ...profile,
       id: profile.user_id || profile.id, // Normalização de ID
@@ -318,13 +322,13 @@ router.get("/profile", authenticateToken, async (req, res) => {
       critical_chance: parseFloat(profile.critical_chance) || 0,
       intimidation: parseFloat(profile.intimidation) || 0,
       discipline: parseFloat(profile.discipline) || 0,
-      level: parseInt(profile.level, 10) || 1,
+      level,
       energy: parseInt(profile.energy, 10) || 0,
-      current_xp: parseInt(profile.experience_points || profile.current_xp, 10) || 0,
-      xp_required: parseInt(profile.xp_required, 10) || 0,
+      total_xp,
+      current_xp: xpStatus.currentXp,
+      xp_required: xpStatus.xpRequired,
       action_points: parseInt(profile.action_points, 10) || 0,
       money: parseInt(profile.money, 10) || 0,
-      money_daily_gain: parseInt(profile.money_daily_gain || 0, 10),
       victories: parseInt(profile.victories, 10) || 0,
       defeats: parseInt(profile.defeats, 10) || 0,
       winning_streak: parseInt(profile.winning_streak, 10) || 0,
@@ -391,10 +395,8 @@ router.post("/profile", authenticateToken, async (req, res) => {
         faction,
         faction_id,
         level,
-        experience_points,
+        total_xp,
         energy,
-        current_xp,
-        xp_required,
         action_points,
         attack,
         defense,
@@ -404,7 +406,6 @@ router.post("/profile", authenticateToken, async (req, res) => {
         critical_chance,
         critical_damage,
         money,
-        money_daily_gain,
         victories,
         defeats,
         winning_streak,
@@ -412,8 +413,7 @@ router.post("/profile", authenticateToken, async (req, res) => {
       )
       VALUES (
         $1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
-        $11, $12, $13, $14, $15, $16, $17, $18,
-        $19, $20, $21, $22, $23, CURRENT_TIMESTAMP
+        $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, CURRENT_TIMESTAMP
       )
       RETURNING *
       `,
@@ -421,13 +421,11 @@ router.post("/profile", authenticateToken, async (req, res) => {
         user.id,
         usernameToInsert,
         usernameToInsert,
-        canonicalName,        // faction VARCHAR — valor canônico
-        factionId,            // faction_id FK — obrigatório
+        canonicalName,
+        factionId,
         factionStats.level,
-        factionStats.current_xp,
+        factionStats.total_xp,
         factionStats.energy,
-        factionStats.current_xp,
-        factionStats.xp_required,
         factionStats.action_points,
         factionStats.attack,
         factionStats.defense,
@@ -437,7 +435,6 @@ router.post("/profile", authenticateToken, async (req, res) => {
         factionStats.critical_chance,
         factionStats.critical_damage,
         factionStats.money,
-        factionStats.money_daily_gain,
         factionStats.victories,
         factionStats.defeats,
         factionStats.winning_streak,
@@ -485,8 +482,7 @@ router.put(
         "bio",
         "avatar_url",
         "level",
-        "experience_points",
-        "health",
+        "total_xp",
         "energy",
         "action_points",
         "money",
