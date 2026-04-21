@@ -16,11 +16,13 @@ type IdentityEditChangeData = Parameters<
 interface DigitalIdentityPageProps {
   forcedId?: string;
   onClose?: () => void;
+  isCompact?: boolean;
 }
 
 export default function DigitalIdentityPage({
   forcedId,
   onClose: forcedOnClose,
+  isCompact = false,
 }: DigitalIdentityPageProps = {}) {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -219,6 +221,7 @@ export default function DigitalIdentityPage({
         onEditChange={handleEditChange}
         onToggleEdit={handleToggleEdit}
         onSave={handleSave}
+        isCompact={isCompact}
       />
     </>
   );
