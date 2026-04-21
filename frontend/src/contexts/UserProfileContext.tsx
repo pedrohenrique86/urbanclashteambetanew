@@ -12,6 +12,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "./AuthContext";
 import api from "../lib/api";
 import { HUDCache } from "../hooks/useHUDCache";
+import { usePlayerStateSSE, PlayerStatePayload } from "../hooks/usePlayerStateSSE";
 
 export interface Faction {
   id: number;
@@ -68,6 +69,37 @@ export interface IUserProfileContext {
 const UserProfileContext = createContext<IUserProfileContext | undefined>(
   undefined,
 );
+
+/**
+ * Merge de um evento player:state (SSE) no perfil React atual.
+ * Converte os campos camelCase do evento para os campos do UserProfile.
+ */
+function mergePlayerStateIntoProfile(
+  prev: UserProfile | null,
+  payload: PlayerStatePayload,
+): UserProfile | null {
+  if (!prev) return prev;
+  const { data } = payload;
+  return {
+    ...prev,
+    level         : data.level,
+    xp            : data.xp,
+    current_xp    : data.xp,
+    energy        : data.energy,
+    max_energy    : data.maxEnergy,
+    action_points : data.actionPoints,
+    attack        : data.attack,
+    defense       : data.defense,
+    focus         : data.focus,
+    money         : data.cash,
+    intimidation  : data.intimidation,
+    discipline    : data.discipline,
+    wins          : data.victories,
+    losses        : data.defeats,
+    streak        : data.winningStreak,
+    winning_streak: data.winningStreak,
+  };
+}
 
 export const UserProfileProvider = ({ children }: { children: ReactNode }) => {
   const { user, logout } = useAuth();
@@ -206,6 +238,18 @@ export const UserProfileProvider = ({ children }: { children: ReactNode }) => {
     });
   }, [logout, navigate]);
 
+  // ─── SSE: canal privado de estado do jogador ─────────────────────────────────
+  // Quando o backend emite player:state, atualiza o React state IMEDIATAMENTE
+  // sem nenhuma chamada HTTP adicional.
+  const handlePlayerStateUpdate = useCallback((payload: PlayerStatePayload) => {
+    setUserProfile((prev) => mergePlayerStateIntoProfile(prev, payload));
+  }, []);
+
+  usePlayerStateSSE({
+    userId: user?.id ?? null,
+    onStateUpdate: handlePlayerStateUpdate,
+  });
+  // ───────────────────────────────────────────────────────────────────
   const isProfileLoading =
     loading || (user !== null && fetchedForUser.current !== user.id);
 

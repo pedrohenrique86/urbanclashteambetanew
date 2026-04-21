@@ -128,6 +128,37 @@ router.get("/rankings/subscribe", (req, res) => {
 });
 
 // =========================
+// SSE — Estado do Jogador (canal privado por usuário)
+// GET /api/users/state/subscribe
+// =========================
+router.get("/state/subscribe", authenticateToken, (req, res) => {
+  const userId = req.user.id;
+  const topic  = `player:${userId}`;
+
+  res.set({
+    "Content-Type": "text/event-stream",
+    "Cache-Control": "no-cache",
+    Connection: "keep-alive",
+  });
+  if (res.flushHeaders) res.flushHeaders();
+  res.write("\n");
+
+  sseService.subscribe(res, topic);
+
+  // Envia confirmação de conexão
+  res.write(
+    `event: player:connected\ndata: ${JSON.stringify({
+      userId,
+      message: "Canal de estado do jogador conectado.",
+    })}\n\n`,
+  );
+
+  req.on("close", () => {
+    sseService.unsubscribe(res, topic);
+  });
+});
+
+// =========================
 // Validações
 // =========================
 const updateProfileValidation = [

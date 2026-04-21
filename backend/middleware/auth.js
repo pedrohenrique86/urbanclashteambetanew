@@ -5,7 +5,8 @@ const { query } = require("../config/database");
 const authenticateToken = async (req, res, next) => {
   try {
     const authHeader = req.headers["authorization"];
-    const token = authHeader && authHeader.split(" ")[1]; // Bearer TOKEN
+    // Suporta token via header (padrão) OU via query param (necessário para SSE)
+    const token = (authHeader && authHeader.split(" ")[1]) || req.query.token;
 
     if (!token) {
       return res.status(401).json({ error: "Token de acesso requerido" });

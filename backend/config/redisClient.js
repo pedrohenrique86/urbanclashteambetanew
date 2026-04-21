@@ -5,6 +5,10 @@ let client = null;
 let isReady = false;
 let isUpstash = false;
 
+// Expõe para playerStateService usar ZSET sem duplicar lógica local/Upstash
+function getRawClient() { return client; }
+function getIsUpstash() { return isUpstash; }
+
 async function initRedis() {
   try {
     if (
@@ -246,6 +250,51 @@ const redisWrapper = {
       return null;
     }
   },
+
+  // ─── ZSET (Sorted Set) — para ranking ──────────────────────────────────────
+
+  /**
+   * Adiciona/atualiza membro no Sorted Set com o score dado.
+   */
+  zAddAsync: async (key, score, member) => {
+    if (!key || !isReady) return null;
+    try {
+      const k = String(key);
+      const s = Number(score);
+      const m = String(member);
+      if (isUpstash) {
+        return await client.zadd(k, { score: s, member: m });
+      } else {
+        return await client.zAdd(k, { score: s, value: m });
+      }
+    } catch (err) {
+      console.error(`[RedisClient] Erro em zAddAsync key=${key}:`, err.message);
+      return null;
+    }
+  },
+
+  /**
+   * Retorna membros do ZSET em ordem de score descendente com scores.
+   * @returns {Array} [{value/member, score}, ...]
+   */
+  zRangeWithScoresAsync: async (key, start, stop) => {
+    if (!key || !isReady) return [];
+    try {
+      const k = String(key);
+      if (isUpstash) {
+        return await client.zrange(k, start, stop, { rev: true, withScores: true });
+      } else {
+        return await client.zRangeWithScores(k, start, stop, { REV: true });
+      }
+    } catch (err) {
+      console.error(`[RedisClient] Erro em zRangeWithScoresAsync key=${key}:`, err.message);
+      return [];
+    }
+  },
+
+  // Expõe referências internas para playerStateService usar ZSET
+  getRawClient,
+  getIsUpstash,
 };
 
 // Aliases para compatibilidade legada
@@ -254,3 +303,4 @@ redisWrapper.hgetAsync = redisWrapper.hGetAsync;
 redisWrapper.hgetallAsync = redisWrapper.hGetAllAsync;
 
 module.exports = redisWrapper;
+

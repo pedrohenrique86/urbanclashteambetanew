@@ -162,7 +162,9 @@ async function startServer() {
 
     initializeSocket(io);
 
-    schedulePersistence(); // Inicia o worker de persistência de estado do jogador
+    // schedulePersistence() inicia o safety-net de persistência a cada 2 minutos
+    schedulePersistence();
+
 
     server.listen(PORT, () => {
       console.log(`🚀 Servidor rodando na porta ${PORT}`);
@@ -173,6 +175,7 @@ async function startServer() {
         try {
           await startGameStateMonitor();
           console.log("⏱️ Iniciando warmup de ranking...");
+          await rankingCacheService.initializeRankingZSet();
           await rankingCacheService.warmupRankings();
           rankingCacheService.startPeriodicRefresh();
           console.log("✅ Warmup de background concluído.");
