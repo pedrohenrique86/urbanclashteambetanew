@@ -88,7 +88,6 @@ async function getChatHistory(clanId) {
     // Formatar e converter timestamps para ISO para consistência
     const dbHistory = rows.reverse().map(row => ({
       ...row,
-      username: 'Membro', // Username será resolvido no front ou via JOIN (idealmente JOIN no futuro)
       timestamp: new Date(row.timestamp).toISOString()
     }));
 
@@ -108,7 +107,7 @@ async function handleNewMessage(io, socket, text) {
   if (!clanId || clanId === "null" || clanId === "undefined") return;
 
   const trimmedText = typeof text === "string" ? text.trim() : "";
-  if (!trimmedText) return;
+  if (!trimmedText || trimmedText.length > 100) return;
 
   // Gerar ID robusto aqui no Backend (RFC4122 v4)
   const crypto = require('crypto');

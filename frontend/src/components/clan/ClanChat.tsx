@@ -35,8 +35,8 @@ const MessageList = React.memo(function MessageList({ messages, userProfile, cha
             key={i}
             className={`font-black ${
               isMentioningMe
-                ? "text-yellow-400 bg-yellow-400/10 px-1.5 py-0.5 rounded border border-yellow-400/20 shadow-[0_0_8px_rgba(250,204,21,0.2)]"
-                : "text-blue-400"
+                ? "text-yellow-400 bg-yellow-400/10 px-1.5 py-0.5 rounded border border-yellow-400/30 shadow-[0_0_12px_rgba(250,204,21,0.4)]"
+                : "text-blue-400 drop-shadow-[0_0_5px_rgba(96,165,250,0.5)]"
             }`}
           >
             {part}
@@ -61,7 +61,7 @@ const MessageList = React.memo(function MessageList({ messages, userProfile, cha
           const userFaction = typeof rawFaction === 'string' ? rawFaction : rawFaction?.name;
           
           const factionColor = isMe 
-            ? (userFaction?.toLowerCase().includes('gangster') ? 'text-orange-500' : 'text-cyan-400')
+            ? (userFaction?.toLowerCase().includes('gangster') ? 'text-orange-500 drop-shadow-[0_0_5px_rgba(249,115,22,0.6)]' : 'text-cyan-400 drop-shadow-[0_0_5px_rgba(34,211,238,0.6)]')
             : 'text-zinc-400';
 
           return (
@@ -81,12 +81,12 @@ const MessageList = React.memo(function MessageList({ messages, userProfile, cha
                  </span>
               </div>
               
-              <div className={`relative max-w-[85%] px-4 py-2.5 rounded-xl border ${isMe ? 'bg-zinc-900 border-white/10 rounded-tr-none' : 'bg-zinc-900/50 border-white/5 rounded-tl-none'} transition-all group-hover:border-white/20`}>
-                 <p className="text-sm text-zinc-200 leading-relaxed break-words font-medium">
+              <div className={`relative max-w-[85%] px-4 py-2.5 rounded-xl border ${isMe ? 'bg-zinc-900/80 border-white/10 rounded-tr-none shadow-[0_0_15px_rgba(0,0,0,0.5)]' : 'bg-black/40 border-white/5 rounded-tl-none shadow-[0_0_10px_rgba(0,0,0,0.3)]'} transition-all group-hover:border-white/20 group-hover:bg-zinc-900/90`}>
+                 <p className="text-sm text-zinc-200 leading-relaxed break-words font-medium tracking-tight">
                     {renderMessageText(msg.text)}
                  </p>
                  {/* Visual Accent */}
-                 <div className={`absolute top-0 ${isMe ? 'right-0' : 'left-0'} w-1.5 h-1.5 bg-zinc-800 rounded-full -translate-x-1/2 -translate-y-1/2 border border-zinc-950`} />
+                 <div className={`absolute top-0 ${isMe ? 'right-0' : 'left-0'} w-1.5 h-1.5 ${isMe ? 'bg-zinc-700 shadow-[0_0_5px_rgba(255,255,255,0.3)]' : 'bg-zinc-800'} rounded-full -translate-x-1/2 -translate-y-1/2 border border-zinc-950`} />
               </div>
             </motion.div>
           );
@@ -193,9 +193,9 @@ export const ClanChat: React.FC<ClanChatProps> = ({ members = [] }) => {
   };
 
   return (
-    <div className="flex flex-col h-[500px] sm:h-full w-full bg-[#0a0a0a]/80 backdrop-blur-xl border border-white/5 rounded-2xl shadow-2xl overflow-hidden relative">
+    <div className="flex flex-col h-[500px] sm:h-full w-full bg-transparent overflow-hidden relative">
       {/* Cinematic Glitch/Scanline Overlay */}
-      <div className="absolute inset-0 pointer-events-none opacity-[0.03] z-50 bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%),linear-gradient(90deg,rgba(255,0,0,0.06),rgba(0,255,0,0.02),rgba(0,0,255,0.06))] bg-[length:100%_2px,3px_100%]" />
+      <div className="absolute inset-0 pointer-events-none opacity-[0.03] z-[5] bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%),linear-gradient(90deg,rgba(255,0,0,0.06),rgba(0,255,0,0.02),rgba(0,0,255,0.06))] bg-[length:100%_2px,3px_100%]" />
 
       {/* Header HUD */}
       <div className="flex justify-between items-center px-4 py-3 border-b border-white/5 bg-white/[0.02]">
@@ -203,11 +203,11 @@ export const ClanChat: React.FC<ClanChatProps> = ({ members = [] }) => {
            <div className={`p-1.5 rounded bg-zinc-900 border border-white/5`}>
               <Terminal className="w-3.5 h-3.5 text-zinc-400" />
            </div>
-           <div className="flex flex-col">
-              <h3 className="font-orbitron font-black text-[10px] text-white tracking-[0.2em] uppercase">CANAL_VOZ_INTERNO</h3>
+            <div className="flex flex-col">
+              <h3 className="font-orbitron font-black text-[10px] text-white tracking-[0.2em] uppercase drop-shadow-[0_0_5px_rgba(255,255,255,0.3)]">CANAL_VOZ_INTERNO</h3>
               <div className="flex items-center gap-1.5">
-                 <div className={`w-1 h-1 rounded-full ${isConnected ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`} />
-                 <span className="text-[7px] font-black text-zinc-500 uppercase tracking-widest leading-none">
+                 <div className={`w-1 h-1 rounded-full ${isConnected ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)] animate-pulse' : 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.6)]'}`} />
+                 <span className={`text-[7px] font-black uppercase tracking-widest leading-none ${isConnected ? 'text-green-500/80' : 'text-red-500/80'}`}>
                     {isConnected ? 'SISTEMA_SINCRONIZADO' : 'CONEXÃO_INTERROMPIDA'}
                  </span>
               </div>
@@ -263,20 +263,20 @@ export const ClanChat: React.FC<ClanChatProps> = ({ members = [] }) => {
              <div className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none">
                 <AtSign className={`w-3.5 h-3.5 ${newMessage.includes('@') ? 'text-blue-500' : 'text-zinc-600'} transition-colors`} />
              </div>
-             <input
-               ref={inputRef}
-               type="text"
-               value={newMessage}
-               onChange={handleInputChange}
-               onKeyDown={handleKeyDown}
-               placeholder="TRANSMITIR MENSAGEM..."
-               className="w-full bg-zinc-900 border border-white/5 rounded-xl py-3.5 pl-11 pr-16 text-xs text-white placeholder-zinc-700 font-medium focus:outline-none focus:border-white/20 transition-all focus:bg-zinc-800/80"
-               disabled={!isConnected}
-               maxLength={100}
-             />
-             <div className="absolute right-4 top-1/2 -translate-y-1/2 text-[9px] font-black font-mono text-zinc-700 select-none">
-                {newMessage.length}/100
-             </div>
+              <input
+                ref={inputRef}
+                type="text"
+                value={newMessage}
+                onChange={handleInputChange}
+                onKeyDown={handleKeyDown}
+                placeholder="TRANSMITIR MENSAGEM..."
+                className="w-full bg-black/60 border border-white/10 rounded-xl py-3.5 pl-11 pr-16 text-xs text-white placeholder-zinc-700 font-medium focus:outline-none focus:border-white/30 transition-all focus:bg-black/80 focus:shadow-[0_0_15px_rgba(255,255,255,0.05)] shadow-inner"
+                disabled={!isConnected}
+                maxLength={100}
+              />
+              <div className="absolute right-4 top-1/2 -translate-y-1/2 text-[9px] font-black font-mono text-zinc-600 select-none">
+                 {newMessage.length}/100
+              </div>
           </div>
 
           <button
