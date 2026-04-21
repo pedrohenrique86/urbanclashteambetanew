@@ -332,7 +332,7 @@ export default function ClanPage() {
                
                <h3 className="font-orbitron font-black text-xl text-white uppercase tracking-tight mb-2">ABORTAR OPERAÇÃO?</h3>
                <p className="text-zinc-500 text-xs font-medium leading-relaxed mb-8 uppercase tracking-widest">
-                  VOCÊ ESTÁ PRESTES A ENCERRAR SUA CONEXÃO COM A DIVISÃO <span className="text-white italic">"{clan?.name}"</span>. ESTA AÇÃO É IRREVERSÍVEL.
+                  VOCÊ ESTÁ PRESTES A ENCERRAR SUA CONEXÃO COM A DIVISÃO <span className="text-white italic">&quot;{clan?.name}&quot;</span>. ESTA AÇÃO É IRREVERSÍVEL.
                </p>
 
                <div className="flex flex-col gap-3">
