@@ -22,7 +22,7 @@ const RankBadge = ({ position, isGuard }: { position: number, isGuard: boolean }
   const getRankColor = () => {
     if (position === 1) return "text-yellow-400";
     if (position === 2) return "text-slate-300";
-    if (position === 3) return isGuard ? "text-cyan-400" : "text-orange-500";
+    if (position === 3) return isGuard ? "text-blue-400" : "text-orange-500";
     return "text-zinc-500";
   };
 
@@ -61,12 +61,12 @@ const PlayerRankingItem = React.memo(function PlayerRankingItem({ player, config
 
       {/* Profile */}
       <div className="flex items-center gap-2 sm:gap-4 flex-1 min-w-0">
-        <div className={`relative w-8 h-8 sm:w-11 sm:h-11 rounded border ${isGuard ? 'border-cyan-500/40' : 'border-orange-500/40'} bg-zinc-900 overflow-hidden flex-shrink-0`}>
+        <div className={`relative w-8 h-8 sm:w-11 sm:h-11 rounded border ${isGuard ? 'border-blue-500/40' : 'border-orange-500/40'} bg-zinc-900 overflow-hidden flex-shrink-0`}>
            {player.avatar_url ? (
              <img src={player.avatar_url} className="w-full h-full object-cover" alt="" />
            ) : (
              <div className="w-full h-full flex items-center justify-center">
-               <FactionIcon className={`w-4 h-4 sm:w-5 sm:h-5 ${isGuard ? 'text-cyan-400 drop-shadow-[0_0_8px_rgba(34,211,238,0.6)]' : 'text-orange-500 drop-shadow-[0_0_8px_rgba(249,115,22,0.6)]'}`} />
+               <FactionIcon className={`w-4 h-4 sm:w-5 sm:h-5 ${isGuard ? 'text-blue-400 drop-shadow-[0_0_8px_rgba(59,130,246,0.6)]' : 'text-orange-500 drop-shadow-[0_0_8px_rgba(249,115,22,0.6)]'}`} />
              </div>
            )}
         </div>
@@ -77,12 +77,12 @@ const PlayerRankingItem = React.memo(function PlayerRankingItem({ player, config
             <span className="text-sm sm:text-base font-orbitron font-bold text-white truncate uppercase tracking-tight">{player.username}</span>
           </div>
           <div className="flex items-center gap-2">
-            <span className={`text-[8px] sm:text-[10px] font-black tracking-[0.2em] ${isGuard ? 'text-cyan-400/70' : 'text-orange-500/70'} uppercase leading-none`}>
+            <span className={`text-[8px] sm:text-[10px] font-black tracking-[0.2em] ${isGuard ? 'text-blue-400/70' : 'text-orange-500/70'} uppercase leading-none`}>
               ID: {player.id.slice(0, 8)}
             </span>
             <>
               <span className="text-[8px] sm:text-[10px] font-black text-zinc-600 leading-none">|</span>
-              <span className={`text-[8px] sm:text-[10px] font-black tracking-[0.3em] ${player.clan_name ? (isGuard ? 'text-cyan-400' : 'text-orange-500') : 'text-yellow-400'} uppercase leading-none truncate max-w-[100px] sm:max-w-[200px]`}>
+              <span className={`text-[8px] sm:text-[10px] font-black tracking-[0.3em] ${player.clan_name ? (isGuard ? 'text-blue-400' : 'text-orange-500') : 'text-yellow-400'} uppercase leading-none truncate max-w-[100px] sm:max-w-[200px]`}>
                 {player.clan_name || "SOLO"}
               </span>
             </>
@@ -141,11 +141,11 @@ const ClanRankingItem = React.memo(function ClanRankingItem({ clan, config }: {
 
       <div className="flex items-center gap-2 sm:gap-4 flex-1 min-w-0">
         <div className={`w-8 h-8 sm:w-11 sm:h-11 rounded border ${isRenegado ? 'border-orange-500/40' : 'border-blue-500/40'} bg-zinc-900 flex items-center justify-center flex-shrink-0`}>
-          <FactionIcon className={`w-4 h-4 sm:w-5 sm:h-5 ${isRenegado ? 'text-orange-500 drop-shadow-[0_0_8px_rgba(249,115,22,0.6)]' : 'text-cyan-400 drop-shadow-[0_0_8px_rgba(34,211,238,0.6)]'}`} />
+          <FactionIcon className={`w-4 h-4 sm:w-5 sm:h-5 ${isRenegado ? 'text-orange-500 drop-shadow-[0_0_8px_rgba(249,115,22,0.6)]' : 'text-blue-400 drop-shadow-[0_0_8px_rgba(59,130,246,0.6)]'}`} />
         </div>
         
           <div className="flex flex-col min-w-0">
-            <span className={`text-sm sm:text-base font-orbitron font-bold ${isRenegado ? 'text-orange-500' : 'text-cyan-400'} truncate uppercase tracking-tight`}>{clan.name}</span>
+            <span className={`text-sm sm:text-base font-orbitron font-bold ${isRenegado ? 'text-orange-500' : 'text-blue-400'} truncate uppercase tracking-tight`}>{clan.name}</span>
             <span className={`text-[8px] sm:text-[10px] font-black tracking-[0.2em] ${isRenegado ? 'text-orange-500/50' : 'text-blue-500/50'} uppercase`}>
               LÍDER: {clan.leaderName || "RECRUTA"}
             </span>
@@ -155,7 +155,7 @@ const ClanRankingItem = React.memo(function ClanRankingItem({ clan, config }: {
         <div className="flex items-center gap-4 sm:gap-16 pr-2">
           <div className="flex flex-col items-center">
             <span className="text-[7px] text-zinc-600 font-black uppercase tracking-widest">PONTOS</span>
-            <span className={`text-xs sm:text-base font-orbitron font-black text-purple-400 italic`}>{clan.score}</span>
+            <span className={`text-xs sm:text-base font-orbitron font-black ${config.accent} italic`}>{clan.score}</span>
           </div>
       </div>
     </motion.div>
@@ -196,8 +196,8 @@ export default function RankingPage() {
     const { gangsters, guardas, clans } = data || { gangsters: [], guardas: [], clans: [] };
     return [
       { id: 'renegados', label: "RENEGADOS", icon: Target, gradient: "from-orange-600 to-red-500", accent: "text-orange-500", data: gangsters, type: "player" },
-      { id: 'guardioes', label: "GUARDIÕES", icon: Shield, gradient: "from-cyan-600 to-blue-500", accent: "text-cyan-400", data: guardas, type: "player" },
-      { id: 'divisoes', label: "DIVISÕES", icon: Users, gradient: "from-blue-600 to-indigo-700", accent: "text-blue-500", data: clans, type: "clan" }
+      { id: 'guardioes', label: "GUARDIÕES", icon: Shield, gradient: "from-blue-600 to-cyan-500", accent: "text-blue-400", data: guardas, type: "player" },
+      { id: 'divisoes', label: "DIVISÕES", icon: Users, gradient: "from-[#8b5cf6] to-[#6366f1]", accent: "text-purple-400", data: clans, type: "clan" }
     ];
   }, [data]);
 
@@ -241,9 +241,9 @@ export default function RankingPage() {
           </div>
 
           {/* System Header Bar */}
-          <div className="flex items-center justify-between px-4 sm:px-6 py-3 border-b border-white/5 border-l-4 border-l-orange-500 bg-orange-500/5">
+          <div className={`flex items-center justify-between px-4 sm:px-6 py-3 border-b border-white/5 border-l-4 transition-all duration-500 ${currentTab.id === 'renegados' ? 'border-l-orange-500 bg-orange-500/5' : 'border-l-blue-500 bg-blue-500/5'}`}>
             <div className="flex items-center gap-3">
-              <Zap className="w-5 h-5 text-orange-500 drop-shadow-[0_0_8px_rgba(249,115,22,0.8)] animate-pulse" />
+              <Zap className={`w-5 h-5 transition-colors duration-500 ${currentTab.id === 'renegados' ? 'text-orange-500 drop-shadow-[0_0_8px_rgba(249,115,22,0.8)]' : 'text-blue-400 drop-shadow-[0_0_8px_rgba(59,130,246,0.8)]'} animate-pulse`} />
               <span className="text-sm sm:text-base font-black font-orbitron text-transparent bg-clip-text bg-gradient-to-r from-white to-zinc-400 tracking-[0.3em] uppercase">SYSTEM.RANKING.V2</span>
             </div>
             <div className="flex items-center gap-3 sm:gap-5">
