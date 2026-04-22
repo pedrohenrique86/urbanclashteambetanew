@@ -31,6 +31,7 @@ const gameLogic   = require("../utils/gameLogic");
 
 // ─── Constantes ──────────────────────────────────────────────────────────────────
 const PLAYER_STATE_PREFIX   = "playerState:";
+module.exports.PLAYER_STATE_PREFIX = PLAYER_STATE_PREFIX;
 const RANKING_ZSET_KEY      = "ranking:users:zset";
 const PLAYER_TTL_SECONDS    = 3600 * 6;   // 6h inatividade
 const DEBOUNCE_MS           = 3000;        // debounce primário antes do DB
@@ -503,6 +504,19 @@ function schedulePersistence() {
   if (t.unref) t.unref();
 }
 
+/**
+ * Remove um jogador do Redis completamente (limpeza de ghosts).
+ */
+async function deletePlayerState(userId) {
+  const uid = String(userId);
+  const redisKey = `${PLAYER_STATE_PREFIX}${uid}`;
+  await Promise.all([
+    redisClient.delAsync(redisKey),
+    redisClient.zRemAsync(RANKING_ZSET_KEY, uid)
+  ]);
+  console.log(`[playerState] 🗑️ Estado e ranking de ${uid} removidos do Redis.`);
+}
+
 module.exports = {
   loadPlayerState,
   getPlayerState,
@@ -510,6 +524,7 @@ module.exports = {
   persistPlayerState,
   persistDirtyStates,
   schedulePersistence,
+  deletePlayerState,
   // Para rankingCacheService
   getDirtyRankingPlayers,
   _clearRankingDirty,
@@ -517,4 +532,5 @@ module.exports = {
   _zrangeRankingWithScores,
   _calcRankingScore,
   RANKING_ZSET_KEY,
+  PLAYER_STATE_PREFIX,
 };

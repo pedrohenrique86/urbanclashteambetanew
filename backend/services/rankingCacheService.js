@@ -130,6 +130,32 @@ async function buildRankingFromZSet(faction) {
     entries = zsetMembers.map((e) => ({ userId: e.value || e.member, score: Number(e.score) }));
   }
 
+  // ─── 1.5 Validação de Existência (Ghost Cleanup) ──────────────────────────
+  // Como engenheiro sênior, garantimos que usuários deletados no PostgreSQL
+  // sejam removidos do Redis durante o ciclo de 10 minutos.
+  // Fazemos uma única query em lote para performance.
+  const candidateIds = entries.map((e) => e.userId);
+  if (candidateIds.length > 0) {
+    try {
+      const { rows } = await query("SELECT id FROM users WHERE id = ANY($1)", [candidateIds]);
+      const existingIds = new Set(rows.map((r) => r.id));
+
+      const invalidIds = candidateIds.filter((id) => !existingIds.has(id));
+      if (invalidIds.length > 0) {
+        console.log(`[ranking] 👻 ${invalidIds.length} usuários removidos da 'users' detectados. Limpando...`);
+        for (const ghostId of invalidIds) {
+          // Remove do Redis (Hash e ZSET) para não aparecer no próximo ciclo
+          await playerStateService.deletePlayerState(ghostId).catch(() => {});
+        }
+        // Filtra da lista atual que será processada para o snapshot
+        entries = entries.filter((e) => existingIds.has(e.userId));
+      }
+    } catch (dbErr) {
+      console.error("[ranking] ❌ Falha na validação de usuários fantasma:", dbErr.message);
+      // Se o banco falhar, mantemos a lista para não quebrar o ranking
+    }
+  }
+
   // 2. Hidrata perfis do Redis Hash (sem bater no banco)
   const hydratedPlayers = [];
   for (const { userId } of entries) {
