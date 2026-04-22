@@ -135,7 +135,7 @@ export const useRankingCache = (): UseRankingCacheReturn => {
   useEffect(() => {
     loadRankingsRef.current = loadRankings;
     forceRefreshRef.current = forceRefresh;
-  });
+  }, [loadRankings, forceRefresh]);
 
   // 3. Ciclo de Vida e Timers
   useEffect(() => {
@@ -176,11 +176,11 @@ export const useRankingCache = (): UseRankingCacheReturn => {
   useEffect(() => {
     let eventSource: EventSource | null = null;
     let reconnectTimeout: ReturnType<typeof setTimeout> | null = null;
+    let refreshDebounce: ReturnType<typeof setTimeout> | null = null;
 
     const connect = () => {
       if (!mountedRef.current) return;
       
-      // Usa o método do apiClient para garantir o prefixo /api correto
       const url = (apiClient as any).getApiUrl("/users/rankings/subscribe");
       eventSource = new EventSource(url, { withCredentials: true });
 
@@ -193,7 +193,13 @@ export const useRankingCache = (): UseRankingCacheReturn => {
 
       events.forEach(name => {
         eventSource?.addEventListener(name, () => {
-          if (mountedRef.current) forceRefreshRef.current();
+          if (!mountedRef.current) return;
+          
+          // Debounce para evitar múltiplas chamadas simultâneas quando múltiplos eventos chegam juntos
+          if (refreshDebounce) clearTimeout(refreshDebounce);
+          refreshDebounce = setTimeout(() => {
+            if (mountedRef.current) forceRefreshRef.current();
+          }, 1000); // Espera 1s para agrupar eventos
         });
       });
 
@@ -207,6 +213,7 @@ export const useRankingCache = (): UseRankingCacheReturn => {
     return () => {
       eventSource?.close();
       if (reconnectTimeout) clearTimeout(reconnectTimeout);
+      if (refreshDebounce) clearTimeout(refreshDebounce);
     };
   }, []);
 

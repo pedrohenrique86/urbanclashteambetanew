@@ -19,11 +19,18 @@ import NavbarCountdown from "../components/layout/NavbarCountdown";
 import { useAuth } from "../contexts/AuthContext";
 import { Navigate } from "react-router-dom";
 
+const NavbarCountdownWrapper = () => {
+  const { status, remainingTime } = useGameClock();
+  if (status === "scheduled" && remainingTime > 0) {
+    return <NavbarCountdown remainingTime={remainingTime} />;
+  }
+  return null;
+};
+
 export default function HomePage() {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authMode, setAuthMode] = useState<"login" | "register">("login");
   const [isGoogleLoginProcessing, setIsGoogleLoginProcessing] = useState(false);
-  const { status, remainingTime } = useGameClock();
   const { user, isHydrating } = useAuth();
 
   if (isHydrating) {
@@ -76,9 +83,7 @@ export default function HomePage() {
 
             {/* Countdown */}
             <div className="flex-grow flex justify-center">
-              {status === "scheduled" && remainingTime > 0 && (
-                <NavbarCountdown remainingTime={remainingTime} />
-              )}
+              <NavbarCountdownWrapper />
             </div>
 
             {/* Auth Matrix */}
@@ -122,9 +127,7 @@ export default function HomePage() {
 
             {/* Mission Clock - Linha Simples */}
             <div className="flex justify-center scale-110 origin-center py-1">
-              {status === "scheduled" && remainingTime > 0 && (
-                <NavbarCountdown remainingTime={remainingTime} />
-              )}
+              <NavbarCountdownWrapper />
             </div>
 
             {/* Tactical Ops - Linha Simples Compacta */}

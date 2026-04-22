@@ -78,16 +78,16 @@ async function fetchClansFromDB() {
   const result = await query(
     `SELECT
        c.id, c.name, c.faction,
-       c.points AS score,
+       c.season_score AS score,
        mc.member_count,
        c.created_at, c.updated_at,
-       ROW_NUMBER() OVER (ORDER BY c.points DESC, mc.member_count DESC) AS rank
+       ROW_NUMBER() OVER (ORDER BY c.season_score DESC, mc.member_count DESC) AS rank
      FROM clans c
      LEFT JOIN LATERAL (
        SELECT COUNT(*)::int AS member_count
        FROM clan_members cm WHERE cm.clan_id = c.id
      ) mc ON true
-     ORDER BY c.points DESC, mc.member_count DESC
+     ORDER BY c.season_score DESC, mc.member_count DESC
      LIMIT $1`,
     [STANDARD_LIMIT],
   );

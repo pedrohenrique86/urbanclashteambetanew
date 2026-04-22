@@ -1,3 +1,4 @@
+import React from "react";
 import { Clan } from "../types/ranking";
 import { Crosshair, ShieldAlert } from "lucide-react";
 import {
@@ -11,7 +12,7 @@ interface ClanRankingItemProps {
   bgColor: string;
 }
 
-export default function ClanRankingItem({
+export default React.memo(function ClanRankingItem({
   clan,
   bgColor,
 }: ClanRankingItemProps) {
@@ -68,4 +69,4 @@ export default function ClanRankingItem({
       </div>
     </div>
   );
-}
+});

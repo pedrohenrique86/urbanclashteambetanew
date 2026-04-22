@@ -13,7 +13,7 @@ interface PlayerRankingItemProps {
   forceFaction?: string;
 }
 
-export default function PlayerRankingItem({
+export default React.memo(function PlayerRankingItem({
   player,
   bgColor,
   forceFaction,
@@ -82,4 +82,4 @@ export default function PlayerRankingItem({
       </div>
     </div>
   );
-}
+});
