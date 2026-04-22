@@ -12,7 +12,9 @@ import {
   ChevronRight,
   ShieldAlert,
   Crosshair,
-  Crown
+  Crown,
+  Activity,
+  Check
 } from "lucide-react";
 
 // --- Tactical UI Components ---
@@ -98,13 +100,20 @@ const PlayerRankingItem = React.memo(function PlayerRankingItem({ player, config
          </div>
          <div className="hidden sm:flex flex-col items-center w-20">
             <span className="text-[7px] text-zinc-600 font-black uppercase tracking-widest mb-1 text-center">STATUS</span>
-            <div className={`h-1 w-full bg-zinc-800 rounded-full overflow-hidden`}>
-              <motion.div 
-                initial={{ width: 0 }}
-                animate={{ width: '70%' }}
-                transition={{ duration: 1, delay: 0.2 }}
-                className={`h-full bg-gradient-to-r ${config.gradient}`} 
-              />
+            <div className="flex items-center justify-center">
+              {player.status === 'preso' ? (
+                 <div className="flex items-center gap-1 text-[8px] font-black text-red-500 uppercase animate-pulse drop-shadow-[0_0_5px_rgba(239,68,68,0.5)]">
+                    <Shield className="w-2 h-2" /> PRESO
+                 </div>
+              ) : player.status === 'recuperacao' ? (
+                 <div className="flex items-center gap-1 text-[8px] font-black text-yellow-500 uppercase animate-pulse drop-shadow-[0_0_5px_rgba(234,179,8,0.5)]">
+                    <Activity className="w-2 h-2" /> RECUP
+                 </div>
+              ) : (
+                 <div className="flex items-center gap-1 text-[8px] font-black text-green-500/60 uppercase">
+                    <Check className="w-2 h-2" /> LIVRE
+                 </div>
+              )}
             </div>
          </div>
          <ChevronRight className="w-3 h-3 sm:w-4 sm:h-4 text-zinc-700 group-hover:text-white" />

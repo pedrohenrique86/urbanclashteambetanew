@@ -17,7 +17,9 @@ DATABASE_URL_DEV=postgresql://USER:PASS@HOST-DEV/DB?sslmode=require
 DATABASE_URL_PROD=postgresql://USER:PASS@HOST-PROD/DB?sslmode=require
 
 FINALIZAR TODOS OS PROCESSOS DO TERMINAL (ÚTIL DEMAIS PARA LIMPAR ERROS E CACHE)
+taskkill /F /IM node.exe
 tasklist /FI "IMAGENAME eq node.exe"
+
 
 
 

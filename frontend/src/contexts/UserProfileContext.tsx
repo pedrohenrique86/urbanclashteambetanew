@@ -51,6 +51,8 @@ export interface UserProfile {
   xp_required?: number;
   action_points?: number;
   money?: number;
+  status?: string;
+  status_ends_at?: string | null;
 }
 
 export interface IUserProfileContext {
@@ -109,6 +111,9 @@ function mergePlayerStateIntoProfile(
     next.streak         = patch.winningStreak;
     next.winning_streak = patch.winningStreak;
   }
+ 
+  if (patch.status !== undefined) next.status = patch.status;
+  if (patch.statusEndsAt !== undefined) next.status_ends_at = patch.statusEndsAt;
 
   return next;
 }
@@ -158,6 +163,8 @@ export const UserProfileProvider = ({ children }: { children: ReactNode }) => {
         wins: Number(profileData.wins) || 0,
         losses: Number(profileData.losses) || 0,
         streak: Number(profileData.streak) || 0,
+        status: profileData.status || 'livre',
+        status_ends_at: profileData.status_ends_at || null,
       };
     },
     [],
@@ -257,9 +264,18 @@ export const UserProfileProvider = ({ children }: { children: ReactNode }) => {
     setUserProfile((prev) => mergePlayerStateIntoProfile(prev, payload));
   }, []);
 
+  const handlePlayerStatusUpdate = useCallback((payload: { status: string; status_ends_at: string | null }) => {
+    setUserProfile((prev) => prev ? {
+      ...prev,
+      status: payload.status,
+      status_ends_at: payload.status_ends_at
+    } : prev);
+  }, []);
+
   usePlayerStateSSE({
     userId: user?.id ?? null,
     onStateUpdate: handlePlayerStateUpdate,
+    onStatusUpdate: handlePlayerStatusUpdate,
   });
   // ───────────────────────────────────────────────────────────────────
   const isProfileLoading =

@@ -51,7 +51,8 @@ const TopBar: React.FC<TopBarProps> = ({ userProfile }) => {
       glowColor: "#f97316", 
       tooltip: "Energia",
       progress: energyPercentage,
-      barColor: "bg-orange-600/30"
+      barColor: "bg-orange-600/30",
+      isBattery: true
     },
     { label: "PA", value: userProfile?.action_points ?? "-", className: "text-cyan-400", glowColor: "#06b6d4", tooltip: "Pontos de Ação" },
     { label: "ATK", value: userProfile?.attack ?? "-", className: "text-red-400", glowColor: "#ef4444", tooltip: "Ataque" },
@@ -85,8 +86,10 @@ const TopBar: React.FC<TopBarProps> = ({ userProfile }) => {
                     {metric.label}
                   </span>
                   
-                  {/* Value container with optional progress background */}
-                  <div className={`relative px-3 py-1 rounded-lg overflow-hidden min-w-[50px] flex items-center justify-center ${metric.progress !== undefined ? 'bg-white/5' : ''}`}>
+                  {/* Value container with optional progress or battery background */}
+                  <div className={`relative px-3 py-1 rounded-lg overflow-hidden min-w-[50px] flex items-center justify-center ${metric.progress !== undefined ? 'bg-white/5' : ''} ${metric.isBattery ? 'pr-4 !rounded-md' : ''}`}>
+                    
+                    {/* The Fill Layer */}
                     {metric.progress !== undefined && (
                       <motion.div
                         initial={{ width: 0 }}
@@ -95,7 +98,8 @@ const TopBar: React.FC<TopBarProps> = ({ userProfile }) => {
                         className={`absolute inset-0 left-0 right-auto h-full ${metric.barColor} z-0 shadow-[inset_-1px_0_6px_rgba(255,255,255,0.1)]`}
                       />
                     )}
-                    
+
+                    {/* Content Layer */}
                     <span
                       className={`relative z-10 font-orbitron font-black text-xs sm:text-sm ${metric.className} leading-none`}
                       style={{
@@ -104,6 +108,11 @@ const TopBar: React.FC<TopBarProps> = ({ userProfile }) => {
                     >
                       {metric.value}
                     </span>
+
+                    {/* Battery Tip (Conditional) */}
+                    {metric.isBattery && (
+                       <div className="absolute right-[2px] top-1/2 -translate-y-1/2 w-[3px] h-[6px] bg-white/20 rounded-r-[1px] z-20" />
+                    )}
                   </div>
                 </div>
                 {index === 0 && (

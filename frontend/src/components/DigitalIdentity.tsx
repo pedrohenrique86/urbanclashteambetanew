@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   Shield, 
@@ -39,6 +39,8 @@ interface PublicPlayer {
   created_at?: string;
   birth_date?: string;
   clan_name?: string;
+  status?: string;
+  status_ends_at?: string | null;
 }
 
 interface DigitalIdentityProps {
@@ -86,6 +88,90 @@ const formatDate = (dateStr?: string) => {
     const date = new Date(year, month - 1, day);
     return date.toLocaleDateString("pt-BR", { day: '2-digit', month: '2-digit', year: 'numeric' });
   } catch { return "INVÁLIDA"; }
+};
+
+const StatusBanner = ({ status, endsAt }: { status?: string; endsAt?: string | null }) => {
+  const config = useMemo(() => {
+    switch (status) {
+      case 'preso':
+        return {
+          bg: 'bg-red-500/20',
+          border: 'border-red-500/50',
+          text: 'text-red-400',
+          label: 'PRESO',
+          icon: Shield, // Using Shield as base or could use lock if imported
+          glow: 'shadow-[0_0_15px_rgba(239,68,68,0.3)]',
+          animate: 'animate-pulse'
+        };
+      case 'recuperacao':
+        return {
+          bg: 'bg-yellow-500/20',
+          border: 'border-yellow-500/50',
+          text: 'text-yellow-400',
+          label: 'RECUPERAÇÃO',
+          icon: Activity,
+          glow: 'shadow-[0_0_15px_rgba(234,179,8,0.3)]',
+          animate: 'animate-pulse'
+        };
+      default:
+        return {
+          bg: 'bg-green-500/10',
+          border: 'border-green-500/30',
+          text: 'text-green-400',
+          label: 'LIVRE',
+          icon: Check,
+          glow: 'shadow-[0_0_10px_rgba(34,197,94,0.1)]',
+          animate: ''
+        };
+    }
+  }, [status]);
+
+  const timeRemaining = useMemo(() => {
+    if (!endsAt) return null;
+    const diff = new Date(endsAt).getTime() - Date.now();
+    if (diff <= 0) return null;
+    
+    const mins = Math.floor(diff / 60000);
+    const secs = Math.floor((diff % 60000) / 1000);
+    return `${mins}m ${secs}s`;
+  }, [endsAt]);
+
+  const [displayTime, setDisplayTime] = useState(timeRemaining);
+
+  useEffect(() => {
+    if (!endsAt) return;
+    const interval = setInterval(() => {
+      const diff = new Date(endsAt).getTime() - Date.now();
+      if (diff <= 0) {
+        setDisplayTime(null);
+        clearInterval(interval);
+        return;
+      }
+      const m = Math.floor(diff / 60000);
+      const s = Math.floor((diff % 60000) / 1000);
+      setDisplayTime(`${m}m ${s}s`);
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [endsAt]);
+
+  return (
+    <div className={`mt-3 flex items-center gap-3 px-4 py-2 rounded-xl border ${config.border} ${config.bg} ${config.glow} ${config.animate} transition-all duration-500`}>
+       <div className={`w-5 h-5 rounded-lg flex items-center justify-center bg-black/40 border ${config.border}`}>
+          <config.icon className={`w-3 h-3 ${config.text}`} />
+       </div>
+       <div className="flex flex-col">
+          <span className={`text-[10px] font-black font-orbitron ${config.text} tracking-[0.2em] leading-none uppercase`}>
+            {config.label}
+          </span>
+          {displayTime && (
+            <span className="text-[7px] text-white/40 font-mono mt-1">EM_COOLDOWN: {displayTime}</span>
+          )}
+       </div>
+       {status === 'preso' && (
+         <div className="ml-auto w-1 h-1 rounded-full bg-red-500 animate-ping shadow-[0_0_8px_red]" />
+       )}
+    </div>
+  );
 };
 
 const DigitalIdentity = React.memo(
@@ -183,16 +269,15 @@ const DigitalIdentity = React.memo(
                  <div className="flex flex-col min-w-0">
                     <div className="flex items-center gap-2 mb-1">
                         <h2 className="text-xl sm:text-2xl font-black font-orbitron text-white uppercase italic tracking-tighter break-words leading-tight drop-shadow-[0_0_8px_rgba(255,255,255,0.4)]">{player.display_name || player.username}</h2>
-                       {player.country && <img src={getFlagUrl(player.country)!} className="w-5 h-auto rounded-sm opacity-80 drop-shadow-[0_0_3px_rgba(255,255,255,0.3)]" alt="" />}
                     </div>
                     <div className="flex items-center gap-2">
                        <span className={`text-[9px] font-black font-orbitron tracking-widest uppercase ${player.clan_name ? factionTheme.primary : "text-yellow-400"}`}>{player.clan_name || "SOLO"}</span>
                        {isCompact && <div className="px-1.5 py-0.5 rounded bg-zinc-900 border border-white/5 text-[8px] font-black text-zinc-400">NVL {player.level}</div>}
                     </div>
+                    <StatusBanner status={player.status} endsAt={player.status_ends_at} />
                  </div>
               </div>
 
-              {/* Right/Stats Column - High Density */}
               <div className={!isCompact ? "lg:col-span-7 flex flex-col gap-4" : "mt-2"}>
                  <div className="grid grid-cols-4 gap-2">
                     <StatBox label="SCORE" value={player.victories} icon={Trophy} color="text-green-500" />

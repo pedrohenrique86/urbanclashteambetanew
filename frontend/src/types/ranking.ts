@@ -10,6 +10,8 @@ export interface Player {
   current_xp: number;
   position?: number;
   clan_name?: string;
+  status?: string;
+  status_ends_at?: string | null;
 }
 
 export interface Clan {

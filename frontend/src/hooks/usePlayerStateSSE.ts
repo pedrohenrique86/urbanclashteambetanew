@@ -1,3 +1,6 @@
+import { useEffect, useRef } from "react";
+import { tokenStorage } from "../lib/api";
+
 /**
  * usePlayerStateSSE.ts
  *
@@ -12,14 +15,8 @@
  *   - Token NUNCA enviado em header (SSE nativo não suporta) — query param sanitizado no backend
  */
 
-import { useEffect, useRef } from "react";
-import { tokenStorage } from "../lib/api";
-
-// ─── Tipos ────────────────────────────────────────────────────────────────────────
-
 /**
  * Patch enviado pelo backend: apenas os campos que mudaram, em camelCase.
- * Todos os valores são numéricos.
  */
 export interface PlayerStatePatch {
   level?         : number;
@@ -40,6 +37,8 @@ export interface PlayerStatePatch {
   victories?     : number;
   defeats?       : number;
   winningStreak? : number;
+  status?        : string;
+  statusEndsAt?  : string | null;
 }
 
 /**
@@ -52,9 +51,19 @@ export interface PlayerStatePayload {
   version : number;
 }
 
+/**
+ * Payload do evento player:status emitido pelo backend.
+ */
+export interface PlayerStatusPayload {
+  type: "player:status";
+  status: string;
+  status_ends_at: string | null;
+}
+
 interface UsePlayerStateSSEOptions {
-  userId       : string | null;
-  onStateUpdate: (payload: PlayerStatePayload) => void;
+  userId         : string | null;
+  onStateUpdate  : (payload: PlayerStatePayload) => void;
+  onStatusUpdate?: (payload: PlayerStatusPayload) => void;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────────
@@ -73,6 +82,7 @@ function buildSSEUrl(): string {
 export function usePlayerStateSSE({
   userId,
   onStateUpdate,
+  onStatusUpdate,
 }: UsePlayerStateSSEOptions): void {
   const mountedRef       = useRef(true);
   const esRef            = useRef<EventSource | null>(null);
@@ -80,10 +90,12 @@ export function usePlayerStateSSE({
   const backoffRef       = useRef(1000);         // ms — duplica a cada retry, max 30s
   const lastVersionRef   = useRef(0);            // versão do último patch recebido
   const onUpdateRef      = useRef(onStateUpdate);
+  const onStatusRef      = useRef(onStatusUpdate);
 
-  // Mantém referência atualizada sem recriar a conexão
+  // Mantém referências atualizadas sem recriar a conexão
   useEffect(() => {
     onUpdateRef.current = onStateUpdate;
+    onStatusRef.current = onStatusUpdate;
   });
 
   useEffect(() => {
@@ -125,7 +137,20 @@ export function usePlayerStateSSE({
           lastVersionRef.current = payload.version;
           onUpdateRef.current(payload);
         } catch (err) {
-          console.warn("[playerSSE] Falha ao parsear evento:", err);
+          console.warn("[playerSSE] Falha ao parsear evento state:", err);
+        }
+      });
+
+      // ── Evento específico: player:status (Livre, Preso, Recuperação) ──────────
+      es.addEventListener("player:status", (e: MessageEvent) => {
+        if (!mountedRef.current) return;
+        try {
+          const payload = JSON.parse(e.data) as PlayerStatusPayload;
+          if (onStatusRef.current) {
+            onStatusRef.current(payload);
+          }
+        } catch (err) {
+          console.warn("[playerSSE] Falha ao parsear evento status:", err);
         }
       });
 

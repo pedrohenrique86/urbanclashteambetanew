@@ -50,6 +50,7 @@ const DB_PERSIST_FIELDS = new Set([
   "intimidation", "discipline",
   "money",
   "victories", "defeats", "winning_streak",
+  "status", "status_ends_at",
 ]);
 
 // ─── Dirty TIPO 2: campos voláteis (NÃO persistem no safety-net, só via debounce
@@ -81,6 +82,8 @@ const FIELD_TO_SSE = {
   victories         : "victories",
   defeats           : "defeats",
   winning_streak    : "winningStreak",
+  status            : "status",
+  status_ends_at    : "statusEndsAt",
 };
 
 // ─── Campos numéricos no Redis Hash ──────────────────────────────────────────────
@@ -92,6 +95,14 @@ const _memDirtyRanking = new Set();  // userId → mudança de XP/nível (para r
 
 // Contador de versão por jogador para consistência do PATCH no frontend
 const _versionMap = new Map();       // userId → number
+
+// ─── Status Constants ─────────────────────────────────────────────────────────────
+const ALLOWED_STATUSES = ['livre', 'preso', 'recuperacao'];
+const VALID_TRANSITIONS = {
+  'livre': ['preso', 'recuperacao'],
+  'preso': ['livre'],
+  'recuperacao': ['livre']
+};
 
 function _nextVersion(userId) {
   const uid = String(userId);
@@ -118,6 +129,17 @@ function _parseState(raw) {
   const xpStatus = gameLogic.deriveXpStatus(out.total_xp, out.level);
   out.current_xp  = xpStatus.currentXp;
   out.xp_required = xpStatus.xpRequired;
+
+  // SÊNIOR: Lazy Reset do Status (Zero-Cron)
+  // Se o status tiver expiração e o tempo passou, reseta para livre
+  if (out.status && out.status !== 'livre' && out.status_ends_at) {
+    const endsAt = new Date(out.status_ends_at).getTime();
+    if (!isNaN(endsAt) && Date.now() >= endsAt) {
+      console.log(`[status] ⏳ Expiração detectada para ${out.user_id}: ${out.status} -> livre`);
+      // O reset real acontece no getPlayerState para garantir que seja persistido
+      out._status_expired = true;
+    }
+  }
 
   return out;
 }
@@ -300,7 +322,18 @@ async function getPlayerState(userId) {
   if (raw && Object.keys(raw).length > 0) {
     // Executa Lazy Reset de AP em background (não bloqueia a leitura)
     _checkAndResetAP(userId, redisKey).catch(e => console.error("[apReset] Falha:", e.message));
-    return _parseState(raw);
+    
+    const parsed = _parseState(raw);
+    
+    // SÊNIOR: Executa Lazy Reset de Status se necessário
+    if (parsed && parsed._status_expired) {
+      delete parsed._status_expired;
+      setPlayerStatus(userId, 'livre').catch(e => console.error("[statusReset] Falha:", e.message));
+      parsed.status = 'livre';
+      parsed.status_ends_at = null;
+    }
+
+    return parsed;
   }
 
   // Cache miss → carrega do banco
@@ -545,6 +578,78 @@ async function deletePlayerState(userId) {
   console.log(`[playerState] 🗑️ Estado e ranking de ${uid} removidos do Redis.`);
 }
 
+/**
+ * IMPLEMENTAÇÃO SÊNIOR: Sistema de Status Completo
+ * status (livre, preso, recuperacao) com histórico, Redis primário e SSE.
+ *
+ * @param {string} userId 
+ * @param {string} newStatus 
+ * @param {number|null} durationSeconds 
+ */
+async function setPlayerStatus(userId, newStatus, durationSeconds = null) {
+  if (!ALLOWED_STATUSES.includes(newStatus)) {
+    throw new Error(`🚫 Status inválido: ${newStatus}`);
+  }
+
+  const redisKey = `${PLAYER_STATE_PREFIX}${userId}`;
+  const currentState = await getPlayerState(userId);
+  if (!currentState) throw new Error("👤 Jogador não encontrado.");
+
+  // Validação de Transição
+  const currentStatus = currentState.status || 'livre';
+  if (currentStatus !== newStatus) {
+    const validNext = VALID_TRANSITIONS[currentStatus] || [];
+    if (!validNext.includes(newStatus)) {
+      console.warn(`[status] ⚠️ Transição bloqueada: ${currentStatus} -> ${newStatus}`);
+      return currentState; 
+    }
+  }
+
+  // Cálculo de Tempo de Expiração
+  let status_ends_at = null;
+  if (durationSeconds && durationSeconds > 0) {
+    status_ends_at = new Date(Date.now() + (durationSeconds * 1000)).toISOString();
+  }
+
+  console.log(`[status] 🔄 Mudando ${userId}: ${currentStatus} -> ${newStatus} (Expira: ${status_ends_at || 'Nunca'})`);
+
+  // 1. Atualiza Redis (Fonte Primária)
+  await redisClient.hSetAsync(redisKey, {
+    status: newStatus,
+    status_ends_at: status_ends_at || "",
+    is_dirty: "1",
+    is_dirty_at: String(Date.now())
+  });
+
+  // 2. Emite SSE em tempo real (Canal Privado)
+  sseService.publish(`player:${userId}`, "player:status", {
+    type: "player:status",
+    status: newStatus,
+    status_ends_at: status_ends_at
+  });
+
+  // 3. Histórico no PostgreSQL (Execução Imediata)
+  try {
+    await query(`
+      UPDATE player_status_logs 
+      SET ended_at = NOW() 
+      WHERE user_id = $1 AND ended_at IS NULL
+    `, [userId]);
+
+    await query(`
+      INSERT INTO player_status_logs (user_id, status, started_at) 
+      VALUES ($1, $2, NOW())
+    `, [userId, newStatus]);
+  } catch (err) {
+    console.error("[status] ❌ Erro ao salvar histórico:", err.message);
+  }
+
+  // 4. Persistência no banco (Via Debounce 3s)
+  _scheduleDebounce(userId);
+
+  return getPlayerState(userId);
+}
+
 module.exports = {
   loadPlayerState,
   getPlayerState,
@@ -553,6 +658,7 @@ module.exports = {
   persistDirtyStates,
   schedulePersistence,
   deletePlayerState,
+  setPlayerStatus,
   // Para rankingCacheService
   getDirtyRankingPlayers,
   _clearRankingDirty,

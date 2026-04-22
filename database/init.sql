@@ -65,6 +65,8 @@ CREATE TABLE user_profiles (
     critical_chance NUMERIC DEFAULT 0,
     critical_damage NUMERIC DEFAULT 150,
     energy INTEGER DEFAULT 100,
+    status VARCHAR(20) NOT NULL DEFAULT 'livre',
+    status_ends_at TIMESTAMP NULL,
     action_points INTEGER DEFAULT 20000,
     money INTEGER DEFAULT 1000,
     money_daily_gain INTEGER DEFAULT 0,
@@ -74,6 +76,16 @@ CREATE TABLE user_profiles (
     action_points_reset_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Tabela de histórico de status (OBRIGATÓRIO SENIOR)
+CREATE TABLE player_status_logs (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    status VARCHAR(20) NOT NULL,
+    started_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    ended_at TIMESTAMP NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Tabela de membros do clã
@@ -113,6 +125,12 @@ CREATE INDEX idx_clan_members_clan_id ON clan_members(clan_id);
 CREATE INDEX idx_clan_members_user_id ON clan_members(user_id);
 CREATE INDEX idx_chat_messages_clan_created_at
 ON chat_messages (clan_id, created_at DESC);
+
+-- Índices Status Senior
+CREATE INDEX idx_status_logs_user_id ON player_status_logs(user_id);
+CREATE INDEX idx_status_logs_status ON player_status_logs(status);
+CREATE INDEX idx_status_logs_composite ON player_status_logs(user_id, ended_at);
+CREATE INDEX idx_status_logs_started_at ON player_status_logs(started_at);
 
 -- Inserir os 26 clãs iniciais (PONTUAÇÃO ZERADA)
 INSERT INTO clans (name, faction, points, description) VALUES

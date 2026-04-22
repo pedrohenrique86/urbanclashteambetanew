@@ -187,6 +187,8 @@ async function buildRankingFromZSet(faction) {
       defeats     : Number(state.defeats || 0),
       winning_streak: Number(state.winning_streak || 0),
       clan_name   : state.clan_name   || null,
+      status      : state.status      || 'livre',
+      status_ends_at: state.status_ends_at || null,
     });
 
     if (hydratedPlayers.length >= STANDARD_LIMIT) break;
