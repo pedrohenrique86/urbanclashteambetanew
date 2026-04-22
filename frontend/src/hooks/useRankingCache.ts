@@ -22,7 +22,9 @@ const STORAGE_KEY = "ranking_cache_ssot";
 const TIMESTAMP_KEY = "ranking_cache_timestamp_ssot";
 
 const isCacheValid = (timestamp: number): boolean => {
-  return Date.now() - timestamp < CACHE_DURATION;
+  const ageSeconds = (Date.now() - timestamp) / 1000;
+  // Reduzido para 2 minutos para evitar "teimosia" do cache durante o ciclo de 10 min
+  return ageSeconds < 120;
 };
 
 // Singleton para memória cache
@@ -186,14 +188,36 @@ export const useRankingCache = (): UseRankingCacheReturn => {
       ];
 
       events.forEach(name => {
-        eventSource?.addEventListener(name, () => {
+        eventSource?.addEventListener(name, (event: any) => {
           if (!mountedRef.current) return;
           
-          // Debounce para evitar múltiplas chamadas simultâneas quando múltiplos eventos chegam juntos
-          if (refreshDebounce) clearTimeout(refreshDebounce);
-          refreshDebounce = setTimeout(() => {
-            if (mountedRef.current) forceRefreshRef.current();
-          }, 1000); // Espera 1s para agrupar eventos
+          try {
+            const data = JSON.parse(event.data);
+            if (!data) return;
+
+            // Atualização Direta (Zero Race Condition)
+            setData(prev => {
+              const updated = { ...prev };
+              if (name.includes(":gangsters")) updated.gangsters = data;
+              else if (name.includes(":guardas")) updated.guardas = data;
+              else if (name.includes(":all")) {
+                 // No snapshot 'all' o backend manda o ranking geral de players
+                 // Dependendo da implementação, podemos atualizar as listas ou ignorar
+                 // mas o ideal é que o 'all' reflita a aba "Todos" se ela existir.
+              }
+              else if (name.includes(":clans")) updated.clans = data;
+              
+              return mergeData(prev, updated);
+            });
+            
+            setLastUpdated(new Date());
+          } catch (err) {
+            // Se falhar o parse, fazemos o fallback de re-fetch
+            if (refreshDebounce) clearTimeout(refreshDebounce);
+            refreshDebounce = setTimeout(() => {
+              if (mountedRef.current) forceRefreshRef.current();
+            }, 1000);
+          }
         });
       });
 

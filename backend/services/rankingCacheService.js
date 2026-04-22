@@ -264,7 +264,8 @@ async function ensureFreshRanking(type, faction) {
   if (cached && cached.timestamp) {
     const ageSeconds = (Date.now() - cached.timestamp) / 1000;
 
-    if (ageSeconds < STALE_THRESHOLD) return cached;
+    // Reduzido para 2 minutos para evitar "teimosia" do cache durante o ciclo de 10 min
+    if (ageSeconds < 120) return cached;
 
     // Stale — serve o cache e dispara refresh em background
     if (type === "users") {
