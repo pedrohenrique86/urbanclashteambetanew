@@ -36,7 +36,7 @@ const MessageList = React.memo(function MessageList({ messages, userProfile, cha
             className={`font-black ${
               isMentioningMe
                 ? "text-yellow-400 bg-yellow-400/10 px-1.5 py-0.5 rounded border border-yellow-400/30 shadow-[0_0_12px_rgba(250,204,21,0.4)]"
-                : "text-blue-400 drop-shadow-[0_0_5px_rgba(96,165,250,0.5)]"
+                : "text-blue-500 drop-shadow-[0_0_5px_rgba(59,130,246,0.5)]"
             }`}
           >
             {part}
@@ -61,7 +61,7 @@ const MessageList = React.memo(function MessageList({ messages, userProfile, cha
           const userFaction = typeof rawFaction === 'string' ? rawFaction : rawFaction?.name;
           
           const factionColor = isMe 
-            ? (userFaction?.toLowerCase().includes('gangster') ? 'text-orange-500 drop-shadow-[0_0_5px_rgba(249,115,22,0.6)]' : 'text-cyan-400 drop-shadow-[0_0_5px_rgba(34,211,238,0.6)]')
+            ? (userFaction?.toLowerCase().includes('gangster') ? 'text-orange-500 drop-shadow-[0_0_5px_rgba(249,115,22,0.6)]' : 'text-blue-500 drop-shadow-[0_0_5px_rgba(59,130,246,0.6)]')
             : 'text-zinc-400';
 
           return (

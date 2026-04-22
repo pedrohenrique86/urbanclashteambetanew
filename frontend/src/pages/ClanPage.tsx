@@ -70,11 +70,11 @@ export default function ClanPage() {
         label: "REDE_RENEGADA_ATIVA"
       }
       : {
-        accent: "text-cyan-400",
-        border: "border-cyan-500/20",
-        bg: "bg-cyan-500/5",
-        gradient: "from-cyan-600/20 to-zinc-950",
-        glow: "shadow-[0_0_30px_rgba(34,211,238,0.1)]",
+        accent: "text-blue-500",
+        border: "border-blue-500/20",
+        bg: "bg-blue-500/5",
+        gradient: "from-blue-600/20 to-zinc-950",
+        glow: "shadow-[0_0_30px_rgba(59,130,246,0.1)]",
         icon: Shield,
         label: "CENTRO_DE_OPERACOES_ESTATAIS"
       };
@@ -240,7 +240,7 @@ export default function ClanPage() {
                       initial={{ opacity: 0, x: 10 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: index * 0.05 }}
-                      whileHover={{ scale: 1.01, backgroundColor: "rgba(255,255,255,0.03)" }}
+                      whileHover={{ scale: 1.01, backgroundColor: "rgba(173, 24, 24, 0.03)" }}
                       className="flex items-center gap-3 p-2 rounded-xl border border-transparent hover:border-white/10 transition-colors cursor-pointer group"
                       onClick={() => openUserPanel(member.user_id || member.id || "")}
                     >
@@ -266,7 +266,7 @@ export default function ClanPage() {
                              {member.username}
                           </span>
                           <div className={`px-2 py-1 rounded-lg bg-black/80 border ${theme.border.replace('/20', '/40')} flex items-center gap-1.5 group-hover:scale-110 transition-all duration-300 shadow-lg`}>
-                             <span className={`text-[8px] font-black ${theme.accent} uppercase tracking-tighter opacity-70`}>LV</span>
+                             <span className={`text-[12px] font-black ${theme.accent} uppercase tracking-tighter opacity-60`}>NVL</span>
                              <span className={`text-sm font-black font-orbitron text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.4)]`}>
                                 {member.level || 1}
                              </span>

@@ -19,11 +19,11 @@ import {
 
 const FactionThemes = {
   guardas: {
-    accent: 'text-cyan-400',
-    border: 'border-cyan-500/40',
+    accent: 'text-blue-500',
+    border: 'border-blue-500/40',
     bg: 'bg-black/80',
-    glow: 'shadow-[0_0_20px_rgba(34,211,238,0.1)]',
-    button: 'bg-gradient-to-r from-cyan-600 to-blue-700 hover:from-cyan-500 hover:to-blue-600',
+    glow: 'shadow-[0_0_20px_rgba(59,130,246,0.1)]',
+    button: 'bg-gradient-to-r from-blue-600 to-indigo-700 hover:from-blue-500 hover:to-indigo-600',
     icon: Shield,
     label: 'CENTRAL_DE_COMANDO // ESTADO_DE_DIREITO'
   },
@@ -81,7 +81,7 @@ const SelecaoClasPage: React.FC = () => {
     <div className="relative min-h-screen flex flex-col pt-2 pb-32 overflow-x-hidden">
       {/* Dynamic Background Effects */}
       <div className="fixed inset-0 pointer-events-none z-0">
-         <div className={`absolute top-0 left-0 w-full h-[500px] bg-gradient-to-b ${factionName === 'guardas' ? 'from-cyan-500/5' : 'from-orange-500/5'} to-transparent`} />
+         <div className={`absolute top-0 left-0 w-full h-[500px] bg-gradient-to-b ${factionName === 'guardas' ? 'from-blue-500/5' : 'from-orange-500/5'} to-transparent`} />
          <div className="absolute top-[20%] right-[-10%] w-[600px] h-[600px] bg-white/[0.01] blur-[120px] rounded-full" />
       </div>
 
