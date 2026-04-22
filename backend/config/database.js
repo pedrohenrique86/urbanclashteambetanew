@@ -148,11 +148,19 @@ async function cleanExpiredChatMessages() {
   }
 }
 
-// Limpar sessões e mensagens expiradas a cada hora
-setInterval(async () => {
-  await cleanExpiredSessions();
-  await cleanExpiredChatMessages();
-}, 60 * 60 * 1000);
+// Função para executar as limpezas de manutenção
+async function runMaintenanceOperations() {
+  console.log("🧹 Iniciando operações de manutenção (Sessões e Chat)...");
+  await Promise.allSettled([
+    cleanExpiredSessions(),
+    cleanExpiredChatMessages()
+  ]);
+  console.log("✅ Operações de manutenção concluídas.");
+}
+
+// Executa limpeza imediata no carregamento do módulo e agenda repetição horária
+runMaintenanceOperations();
+setInterval(runMaintenanceOperations, 60 * 60 * 1000);
 
 // Graceful shutdown function (to be called from server.js)
 async function closePool() {

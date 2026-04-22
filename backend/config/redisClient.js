@@ -292,6 +292,22 @@ const redisWrapper = {
     }
   },
 
+  /**
+   * Remove um membro do Sorted Set.
+   */
+  zRemAsync: async (key, member) => {
+    if (!key || !isReady) return null;
+    try {
+      const k = String(key);
+      const m = String(member);
+      if (isUpstash) return await client.zrem(k, m);
+      return await client.zRem(k, m);
+    } catch (err) {
+      console.error(`[RedisClient] Erro em zRemAsync key=${key} member=${member}:`, err.message);
+      return null;
+    }
+  },
+
   // Expõe referências internas para playerStateService usar ZSET
   getRawClient,
   getIsUpstash,
