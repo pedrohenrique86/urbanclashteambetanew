@@ -22,6 +22,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useDrawerOrder, DrawerFolder } from "../../hooks/useDrawerOrder";
 import { useGameClock } from "../../hooks/useGameClock";
 import { useAuth } from "../../contexts/AuthContext";
+import { useUserProfileContext } from "../../contexts/UserProfileContext";
+import { LockClosedIcon as LockIcon } from "@heroicons/react/20/solid";
 import { ALL_PAGES, DEFAULT_ORDER, PAGE_MAP, DrawerPage, FOLDER_COLORS, SNAP_OPEN_PX, SNAP_CLOSE_PX, LONG_PRESS_MS } from "./MobileDrawerConstants";
 import { DrawerItem, DrawerFolderItem } from "./MobileDrawerItems";
 
@@ -115,6 +117,29 @@ export const MobileAppDrawer: React.FC = () => {
   const gridRef = useRef<HTMLDivElement>(null);
 
   const [drawerData, setDrawerData] = useDrawerOrder(DEFAULT_ORDER);
+
+  const { userProfile } = useUserProfileContext();
+  const playerStatus = userProfile?.status || 'Operacional';
+
+  const isPathBlocked = useCallback((path: string) => {
+    if (playerStatus === 'Operacional') return false;
+
+    const whitelist = [
+      '/dashboard',
+      '/digital-identity',
+      '/social-zone',
+      '/clan',
+      '/vip-access',
+      '/season',
+      '/ranking'
+    ];
+
+    if (playerStatus === 'Isolamento') whitelist.push('/isolation');
+    if (playerStatus === 'Recondicionamento') whitelist.push('/recovery-base');
+    if (playerStatus === 'Aprimoramento') whitelist.push('/training');
+
+    return !whitelist.some(p => path === p || path.startsWith(p + '/'));
+  }, [playerStatus]);
 
   // Removido o uso do hook central para evitar que a Gaveta inteira (800+ linhas)
   // re-renderize a cada 1 segundo. Usamos o Wrapper local abaixo.
@@ -357,6 +382,8 @@ export const MobileAppDrawer: React.FC = () => {
     if (drawerData?.folders && drawerData.folders[id]) {
       setCurrentFolder(id); // Entra na Pasta visual Modal Fluida
     } else if (path) {
+      if (isPathBlocked(path)) return;
+      
       // Resposta instantânea na UI ("clicou abriu")
       setIsOpen(false);
       // Delega a troca de página pesada do React Router para baixa prioridade (não trava a animação)
@@ -406,6 +433,8 @@ export const MobileAppDrawer: React.FC = () => {
     if (folderDragId || didReorderRef.current) return;
     const page = PAGE_MAP.get(itemId);
     if (page) {
+      if (isPathBlocked(page.path)) return;
+      
       setCurrentFolder(null);
       setIsOpen(false);
       
@@ -639,7 +668,14 @@ export const MobileAppDrawer: React.FC = () => {
                           {folder ? (
                             <DrawerFolderItem folder={folder} isActive={isActive} isEditMode={isEditMode} isDragging={false} onPress={() => { }} />
                           ) : (
-                            <DrawerItem page={page!} isActive={isActive} isEditMode={isEditMode} isDragging={false} onPress={() => { }} />
+                            <DrawerItem 
+                              page={page!} 
+                              isActive={isActive} 
+                              isEditMode={isEditMode} 
+                              isDragging={false} 
+                              onPress={() => { }} 
+                              isBlocked={isPathBlocked(page!.path)}
+                            />
                           )}
                         </div>
                       </motion.div>
@@ -836,30 +872,31 @@ export const MobileAppDrawer: React.FC = () => {
                   if (!page) return null;
                   const isDragging = folderDragId === itemId;
                   const isActive = location.pathname === page.path;
+                  const isBlocked = isPathBlocked(page.path);
 
                   return (
                     <motion.div
                       key={itemId}
                       className={[
                         "relative flex flex-col items-center gap-1.5 rounded-xl px-1.5 py-2.5 transition-all duration-300 select-none w-full outline-none active:scale-95",
-                        isActive ? "bg-purple-500/20 text-purple-300 shadow-[0_0_12px_rgba(168,85,247,0.35)]" : "text-slate-300 hover:bg-white/5",
+                        isBlocked ? "opacity-30 cursor-not-allowed" : (isActive ? "bg-purple-500/20 text-purple-300 shadow-[0_0_12px_rgba(168,85,247,0.35)]" : "text-slate-300 hover:bg-white/5"),
                         isEditMode && !isDragging ? "animate-[drawer-wiggle_0.45s_ease-in-out_infinite]" : "",
                       ].join(" ")}
-                      onPointerDown={(e: any) => handleFolderItemPointerDown(e, itemId)}
+                      onPointerDown={isBlocked && !isEditMode ? undefined : (e: any) => handleFolderItemPointerDown(e, itemId)}
                       onPointerUp={(e: any) => { e.preventDefault(); handleFolderItemPointerUp(e, itemId); }}
                       onClick={(e: any) => handleFolderItemClick(e, itemId)}
                       animate={{ scale: isDragging ? 0.8 : 1, opacity: isDragging ? 0.3 : 1 }}
                     >
                       <div className={[
                         "w-14 h-14 rounded-2xl flex items-center justify-center border transition-all duration-300 pointer-events-none relative",
-                        isActive ? "border-purple-500/60 bg-purple-600/25 shadow-[inset_0_1px_0_rgba(255,255,255,0.1)]" : "border-white/10 bg-white/5",
+                        isBlocked ? "border-zinc-800 bg-black/40 grayscale" : (isActive ? "border-purple-500/60 bg-purple-600/25 shadow-[inset_0_1px_0_rgba(255,255,255,0.1)]" : "border-white/10 bg-white/5"),
                       ].join(" ")}>
-                        {React.cloneElement(page.icon as React.ReactElement, { className: "w-7 h-7" })}
-                        {isActive && <span className="absolute bottom-1.5 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-purple-400 shadow-[0_0_6px_rgba(168,85,247,0.8)]" />}
+                        {isBlocked ? <LockIcon className="w-8 h-8 text-zinc-700/50" /> : React.cloneElement(page.icon as React.ReactElement, { className: "w-7 h-7" })}
+                        {isActive && !isBlocked && <span className="absolute bottom-1.5 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-purple-400 shadow-[0_0_6px_rgba(168,85,247,0.8)]" />}
                       </div>
                       <span className={[
                         "text-[11px] font-bold leading-tight text-center max-w-[72px] line-clamp-2 transition-colors",
-                        isActive ? "text-purple-300" : "text-slate-300"
+                        isBlocked ? "text-zinc-600 line-through decoration-zinc-700" : (isActive ? "text-purple-300" : "text-slate-300")
                       ].join(" ")}>{page.name}</span>
                     </motion.div>
                   )
