@@ -19,7 +19,7 @@ export default React.memo(function ClanRankingItem({
   const factionName = clan.faction?.toLowerCase() || "";
   const isRenegado = factionName.includes("gangster") || factionName.includes("renegado");
   const FactionIcon = isRenegado ? Crosshair : ShieldAlert;
-  const accentColor = isRenegado ? "text-orange-500" : "text-blue-400";
+  const accentColor = isRenegado ? "text-orange-500" : "text-blue-500";
   const glowColor = isRenegado ? "shadow-orange-500/20" : "shadow-blue-500/20";
   
   return (
@@ -44,7 +44,7 @@ export default React.memo(function ClanRankingItem({
               <FactionIcon className={`w-4 h-4 sm:w-5 sm:h-5 ${accentColor} drop-shadow-[0_0_5px_currentColor] z-10 animate-pulse-slow`} />
               
               {/* Bottom Rank Indicator (Cyber) */}
-              <div className={`absolute bottom-0 left-0 w-full h-[1px] ${isRenegado ? 'bg-orange-500' : 'bg-blue-400'} opacity-50 group-hover:opacity-100 transition-opacity shadow-[0_0_10px_currentColor]`} />
+              <div className={`absolute bottom-0 left-0 w-full h-[1px] ${isRenegado ? 'bg-orange-500' : 'bg-blue-500'} opacity-50 group-hover:opacity-100 transition-opacity shadow-[0_0_10px_currentColor]`} />
           </div>
         </div>
 

@@ -119,7 +119,7 @@ const DigitalIdentity = React.memo(
       const isGangster = factionString.includes("gangster") || factionString.includes("renegado");
       return isGangster
         ? { primary: "text-orange-500 drop-shadow-[0_0_8px_rgba(249,115,22,0.8)]", border: "border-orange-500/40 shadow-[0_0_10px_rgba(249,115,22,0.1)]", bg: "bg-orange-500/10", accent: "from-orange-500 to-red-900", button: "bg-orange-600 shadow-[0_0_15px_rgba(249,115,22,0.5)]", icon: Skull, label: "RENEGADO", boxGlow: "shadow-[0_0_30px_rgba(249,115,22,0.15)]", borderIcon: "border-orange-500/40 shadow-[0_0_10px_rgba(249,115,22,0.2)]" }
-        : { primary: "text-cyan-400 drop-shadow-[0_0_8px_rgba(34,211,238,0.8)]", border: "border-cyan-400/40 shadow-[0_0_10px_rgba(34,211,238,0.1)]", bg: "bg-cyan-500/10", accent: "from-cyan-400 to-blue-900", button: "bg-cyan-600 shadow-[0_0_15px_rgba(34,211,238,0.5)]", icon: Shield, label: "GUARDIÃO", boxGlow: "shadow-[0_0_30px_rgba(34,211,238,0.15)]", borderIcon: "border-cyan-400/40 shadow-[0_0_10px_rgba(34,211,238,0.2)]" };
+        : { primary: "text-blue-500 drop-shadow-[0_0_8px_rgba(59,130,246,0.8)]", border: "border-blue-500/40 shadow-[0_0_10px_rgba(59,130,246,0.1)]", bg: "bg-blue-500/10", accent: "from-blue-400 to-blue-900", button: "bg-blue-600 shadow-[0_0_15px_rgba(59,130,246,0.5)]", icon: Shield, label: "GUARDIÃO", boxGlow: "shadow-[0_0_30px_rgba(59,130,246,0.15)]", borderIcon: "border-blue-500/40 shadow-[0_0_10px_rgba(59,130,246,0.2)]" };
     }, [player?.faction]);
 
     const winRate = useMemo(() => {

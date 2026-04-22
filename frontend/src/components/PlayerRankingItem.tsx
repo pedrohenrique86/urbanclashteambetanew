@@ -25,12 +25,12 @@ export default React.memo(function PlayerRankingItem({
 
   const factionName = (forceFaction || player.faction || "").toLowerCase();
   const isGuard = factionName.includes("guard") || factionName.includes("polic") || factionName.includes("guarda");
-  const accentColor = isGuard ? "text-blue-400" : "text-orange-500";
+  const accentColor = isGuard ? "text-blue-500" : "text-orange-500";
   const barColor = isGuard ? "bg-blue-500/30" : "bg-orange-500/20";
   const FactionIcon = isGuard ? Shield : Crosshair;
 
   // Cor customizada para Guardas no Top 3 (exceto 1 e 2)
-  const posColor = player.position === 3 && isGuard ? "text-cyan-400" : getPositionTextColor(player.position, player.faction);
+  const posColor = player.position === 3 && isGuard ? "text-blue-400" : getPositionTextColor(player.position, player.faction);
 
   return (
     <div className={`${bgColor} relative border-l-2 ${isGuard ? 'border-blue-500/40' : 'border-orange-500/40'} px-2 py-2 h-full flex items-center transition-all duration-300 backdrop-blur-sm overflow-hidden group`}>
@@ -75,7 +75,7 @@ export default React.memo(function PlayerRankingItem({
            </span>
            <div className="flex gap-[1px] mt-0.5">
              {Array.from({ length: 5 }).map((_, i) => (
-               <div key={i} className={`w-0.5 h-2 sm:w-1 sm:h-1 ${i < Math.min(player.level / 10, 5) ? (isGuard ? 'bg-blue-400' : 'bg-orange-500') : 'bg-white/10'}`} />
+               <div key={i} className={`w-0.5 h-2 sm:w-1 sm:h-1 ${i < Math.min(player.level / 10, 5) ? (isGuard ? 'bg-blue-500' : 'bg-orange-500') : 'bg-white/10'}`} />
              ))}
            </div>
         </div>
