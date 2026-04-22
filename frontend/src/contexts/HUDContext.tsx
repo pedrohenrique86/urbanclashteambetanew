@@ -20,12 +20,15 @@ interface IHUDContext {
   goBackPanel: () => void;
   clearPanels: () => void;
   hasOpenPanel: boolean;
+  isMobileDrawerOpen: boolean;
+  setMobileDrawerOpen: (open: boolean) => void;
 }
 
 const HUDContext = createContext<IHUDContext | undefined>(undefined);
 
 export const HUDProvider = ({ children }: { children: ReactNode }) => {
   const [panelStack, setPanelStack] = useState<HUDPanel[]>([]);
+  const [isMobileDrawerOpen, setMobileDrawerOpen] = useState(false);
 
   const openUserPanel = useCallback((id: string) => {
     if (!id) return;
@@ -62,6 +65,8 @@ export const HUDProvider = ({ children }: { children: ReactNode }) => {
       goBackPanel,
       clearPanels,
       hasOpenPanel: panelStack.length > 0,
+      isMobileDrawerOpen,
+      setMobileDrawerOpen,
     };
   }, [
     panelStack,
@@ -70,6 +75,8 @@ export const HUDProvider = ({ children }: { children: ReactNode }) => {
     closePanel,
     goBackPanel,
     clearPanels,
+    isMobileDrawerOpen,
+    setMobileDrawerOpen,
   ]);
 
   return <HUDContext.Provider value={value}>{children}</HUDContext.Provider>;

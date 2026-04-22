@@ -8,6 +8,7 @@ import React, {
   startTransition,
 } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
+import { useHUD } from "../../contexts/HUDContext";
 import {
   ChevronUpIcon,
   GlobeAltIcon,
@@ -86,11 +87,18 @@ const MobileHUDTimer: React.FC = () => {
 };
 
 export const MobileAppDrawer: React.FC = () => {
+  const { currentPanel, closePanel, clearPanels, hasOpenPanel, setMobileDrawerOpen } = useHUD();
   const navigate = useNavigate();
   const location = useLocation();
   const { logout } = useAuth();
 
   const [isOpen, setIsOpen] = useState(false);
+
+  // Sincroniza estado global do Drawer para outros componentes (ex: ocultar scroll topo)
+  useEffect(() => {
+    setMobileDrawerOpen(isOpen);
+  }, [isOpen, setMobileDrawerOpen]);
+
   const [isEditMode, setIsEditMode] = useState(false);
 
   const [drawerDragY, setDrawerDragY] = useState(0);

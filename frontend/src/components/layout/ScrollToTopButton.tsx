@@ -1,6 +1,7 @@
 import React, { useState, useEffect, RefObject } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { ChevronUp } from "lucide-react";
+import { useHUD } from "../../contexts/HUDContext";
 
 interface ScrollToTopButtonProps {
   scrollableRef?: RefObject<HTMLDivElement>;
@@ -8,6 +9,7 @@ interface ScrollToTopButtonProps {
 
 export default function ScrollToTopButton({ scrollableRef }: ScrollToTopButtonProps) {
   const [isVisible, setIsVisible] = useState(false);
+  const { isMobileDrawerOpen } = useHUD();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -36,7 +38,7 @@ export default function ScrollToTopButton({ scrollableRef }: ScrollToTopButtonPr
 
   return (
     <AnimatePresence>
-      {isVisible && (
+      {isVisible && !isMobileDrawerOpen && (
         <motion.button
           initial={{ opacity: 0, scale: 0.8, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}

@@ -77,3 +77,27 @@ button {
 .font-exo {
   font-family: 'Exo 2', sans-serif !important;
 }
+
+/* SÊNIOR: ESTRUTURA UNIVERSAL RESPONSIVA */
+.urban-container {
+  width: 100%;
+  max-width: 1600px; /* Limite saudável para conteúdos de jogo */
+  margin-left: auto;
+  margin-right: auto;
+  position: relative;
+}
+
+/* RESET DE SEGURANÇA: Impede que qualquer elemento estoure a largura da tela */
+img, video, canvas, svg, input, select, textarea {
+  max-width: 100% !important;
+  box-sizing: border-box;
+}
+
+iframe {
+  max-width: 100%;
+}
+
+/* Utilitário para ocultar scroll horizontal por erro de conteúdo */
+.no-x-scroll {
+  overflow-x: hidden;
+}
