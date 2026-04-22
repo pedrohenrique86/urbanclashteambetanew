@@ -24,6 +24,16 @@ const GlobalLayout: React.FC<GlobalLayoutProps> = ({ children }) => {
   const { userProfile, handleLogout } = useUserProfileContext();
   const { currentPanel, closePanel, clearPanels, hasOpenPanel } = useHUD();
 
+  // SÊNIOR: Lógica de exibição do Blocker (Oculta se estiver na página de destino do status)
+  const status = userProfile?.status || 'Operacional';
+  const path = location.pathname;
+  const hideBlocker = (
+    (status === 'Operacional') ||
+    (status === 'Isolamento' && path === '/isolation') ||
+    (status === 'Recondicionamento' && path === '/recovery-base') ||
+    (status === 'Aprimoramento' && path === '/training')
+  );
+
   const scrollableContainerRef = useRef<HTMLDivElement>(null);
 
   const pagesWithoutNav = [
@@ -89,7 +99,7 @@ const GlobalLayout: React.FC<GlobalLayoutProps> = ({ children }) => {
     return (
       <div className={`min-h-screen font-exo text-white ${hasDynamicBg ? "" : themeClasses.bg} flex flex-col relative`}>
         <DynamicBackground />
-        <StatusBlocker />
+        {!hideBlocker && <StatusBlocker />}
         <main className="flex-1 relative z-10 overflow-y-auto">
           {children}
         </main>
@@ -100,13 +110,13 @@ const GlobalLayout: React.FC<GlobalLayoutProps> = ({ children }) => {
 
   const isDashboard = location.pathname === "/dashboard";
   const hasDynamicBackground = !!PAGE_BACKGROUNDS[location.pathname];
-
+  
   return (
     <div
       className={`h-screen font-exo text-white ${hasDynamicBackground ? "" : themeClasses.bg} overflow-hidden flex flex-col`}
     >
       <DynamicBackground />
-      <StatusBlocker />
+      {!hideBlocker && <StatusBlocker />}
       <div
         className={`flex flex-1 overflow-hidden ${isDashboard ? "bg-black/20" : ""
           }`}

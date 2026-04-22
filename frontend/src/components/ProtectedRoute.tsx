@@ -59,6 +59,12 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, requiresFacti
   ];
 
   const status = userProfile?.status || 'Operacional';
+  
+  // Whitelist contextual: Libera apenas a página relacionada ao status restrito
+  if (status === 'Isolamento') whitelist.push('/isolation');
+  if (status === 'Recondicionamento') whitelist.push('/recovery-base');
+  if (status === 'Aprimoramento') whitelist.push('/training');
+
   const isWhitelisted = whitelist.some(p => location.pathname === p || location.pathname.startsWith(p + '/'));
 
   if (status !== 'Operacional' && !isWhitelisted) {

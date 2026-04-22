@@ -44,6 +44,8 @@ import GameClockDisplay from "./GameClockDisplay";
 import AdminMenu from "../admin/AdminMenu";
 import { Tooltip } from "react-tooltip";
 import { FACTION_ALIAS_MAP_FRONTEND } from "../../utils/faction";
+import { useUserProfileContext } from "../../contexts/UserProfileContext";
+import { LockClosedIcon as LockIcon } from "@heroicons/react/20/solid";
 
 // Tipagem para os itens de menu e sub-menu
 interface SubMenuItem {
@@ -94,6 +96,11 @@ export const navItems: NavItem[] = [
         name: "Isolamento",
         path: "/isolation",
         icon: <LockClosedIcon className="w-4 h-4" />,
+      },
+      {
+        name: "Treinamento",
+        path: "/training",
+        icon: <AcademicCapIcon className="w-4 h-4" />,
       },
     ],
   },
@@ -152,11 +159,6 @@ export const navItems: NavItem[] = [
         name: "Zona Social",
         path: "/social-zone",
         icon: <ChatBubbleLeftRightIcon className="w-4 h-4" />,
-      },
-      {
-        name: "Treinamento",
-        path: "/training",
-        icon: <AcademicCapIcon className="w-4 h-4" />,
       },
       {
         name: "Identidade Digital",
@@ -225,6 +227,29 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
   handleLogout,
   isAdmin,
 }) => {
+  const { userProfile } = useUserProfileContext();
+  const playerStatus = userProfile?.status || 'Operacional';
+
+  const isPathBlocked = useCallback((path: string) => {
+    if (playerStatus === 'Operacional') return false;
+
+    const whitelist = [
+      '/dashboard',
+      '/digital-identity',
+      '/social-zone',
+      '/clan',
+      '/vip-access',
+      '/season',
+      '/ranking'
+    ];
+
+    if (playerStatus === 'Isolamento') whitelist.push('/isolation');
+    if (playerStatus === 'Recondicionamento') whitelist.push('/recovery-base');
+    if (playerStatus === 'Aprimoramento') whitelist.push('/training');
+
+    return !whitelist.some(p => path === p || path.startsWith(p + '/'));
+  }, [playerStatus]);
+
   const [isCollapsed, setIsCollapsed] = useState(() => {
     try {
       const saved = localStorage.getItem("sidebar_collapsed");
@@ -445,34 +470,55 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
                       exit="hidden"
                       className={`flex flex-col w-full items-center ${isCollapsed ? "px-0 py-1 gap-1" : "items-start pl-12 pr-4"}`}
                     >
-                      {item.subItems.map((subItem) => {
-                        const isActive = location.pathname.startsWith(
-                          subItem.path,
-                        );
-                        return (
-                          <motion.li
-                            key={subItem.path}
-                            variants={subMenuItemVariants}
-                            className="w-full"
-                          >
-                            <Link
-                              to={subItem.path}
-                              onClick={() => {
-                                if (onMobileClose) onMobileClose();
-                              }}
-                              className={`w-full flex items-center transition-colors duration-200 ${isCollapsed ? 'justify-center py-1' : 'gap-2 py-1'} text-[11px] md:text-xs leading-tight rounded-md ${isActive
-                                ? "text-purple-400"
-                                : "text-slate-400 hover:text-white"
-                                }`}
-                              data-tooltip-id="sidebar-tooltip"
-                              data-tooltip-content={isCollapsed ? subItem.name : undefined}
-                            >
-                              <div className="flex-shrink-0">{subItem.icon}</div>
+                        {item.subItems.map((subItem) => {
+                          const isActive = location.pathname.startsWith(subItem.path);
+                          const isBlocked = isPathBlocked(subItem.path);
+                          
+                          const content = (
+                            <>
+                              <div className={`flex-shrink-0 ${isBlocked ? 'opacity-30' : ''}`}>
+                                {isBlocked ? <LockIcon className="w-3 h-3 text-zinc-700" /> : subItem.icon}
+                              </div>
                               {!isCollapsed && <span className="line-clamp-2">{subItem.name}</span>}
-                            </Link>
-                          </motion.li>
-                        );
-                      })}
+                            </>
+                          );
+
+                          const className = `w-full flex items-center transition-colors duration-200 ${isCollapsed ? 'justify-center py-1' : 'gap-2 py-1'} text-[11px] md:text-xs leading-tight rounded-md ${
+                            isBlocked 
+                              ? "text-zinc-600 cursor-not-allowed line-through decoration-zinc-700 select-none" 
+                              : isActive ? "text-purple-400" : "text-slate-400 hover:text-white"
+                          }`;
+
+                          return (
+                            <motion.li
+                              key={subItem.path}
+                              variants={subMenuItemVariants}
+                              className="w-full"
+                            >
+                              {isBlocked ? (
+                                <div 
+                                  className={className}
+                                  data-tooltip-id="sidebar-tooltip"
+                                  data-tooltip-content={isCollapsed ? subItem.name : "Sistema Indisponível"}
+                                >
+                                  {content}
+                                </div>
+                              ) : (
+                                <Link
+                                  to={subItem.path}
+                                  onClick={() => {
+                                    if (onMobileClose) onMobileClose();
+                                  }}
+                                  className={className}
+                                  data-tooltip-id="sidebar-tooltip"
+                                  data-tooltip-content={isCollapsed ? subItem.name : undefined}
+                                >
+                                  {content}
+                                </Link>
+                              )}
+                            </motion.li>
+                          );
+                        })}
                     </motion.ul>
                   )}
                 </AnimatePresence>

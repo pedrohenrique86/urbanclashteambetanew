@@ -1,4 +1,39 @@
 const topics = new Map(); // Armazena clientes por tópico
+let redisPublisher = null;
+let redisSubscriber = null;
+
+/**
+ * SÊNIOR: Inicializa a ponte Redis Pub/Sub para que o SSE funcione 
+ * entre múltiplos processos (ex: scripts CLI -> Servidor Web)
+ */
+async function initRedisBridge() {
+  const redis = require("redis");
+  const url = process.env.REDIS_URL || "redis://localhost:6379";
+
+  try {
+    // Client para publicar
+    redisPublisher = redis.createClient({ url });
+    await redisPublisher.connect();
+
+    // Client para ouvir
+    redisSubscriber = redis.createClient({ url });
+    await redisSubscriber.connect();
+
+    // Link: Qualquer mensagem no canal 'SSE_BRIDGE' é repassada para os clientes locais
+    await redisSubscriber.subscribe("SSE_BRIDGE", (message) => {
+      try {
+        const { topic, event, data } = JSON.parse(message);
+        _localPublish(topic, event, data);
+      } catch (err) {
+        console.error("[SSE-Bridge] Erro ao processar mensagem Redis:", err.message);
+      }
+    });
+
+    console.log("✅ SSE-Bridge (Redis Pub/Sub) Ativado.");
+  } catch (err) {
+    console.error("⚠️ Falha ao iniciar SSE-Bridge (Redis indisponível):", err.message);
+  }
+}
 
 function subscribe(client, topic) {
   if (!topics.has(topic)) {
@@ -16,31 +51,42 @@ function unsubscribe(client, topic) {
   }
 }
 
-function publish(topic, event, data) {
-  if (!topics.has(topic)) {
-    return;
-  }
+/** 
+ * Envia para os clientes conectados NESTE processo.
+ * Usado internamente pelo listener do Redis.
+ */
+function _localPublish(topic, event, data) {
+  if (!topics.has(topic)) return;
 
-  const message = `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`;
+  const msg = `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`;
   const clients = topics.get(topic);
 
   clients.forEach((client) => {
     try {
-      client.write(message);
+      client.write(msg);
     } catch (e) {
-      console.warn(
-        `Falha ao enviar evento SSE para um cliente no tópico ${topic}:`,
-        e.message,
-      );
-      // A remoção do cliente será tratada pelo evento 'close' da requisição
+      // Remoção automática via evento 'close' da req
     }
   });
 }
 
-// Manter a função de broadcast legada, se necessário, ou refatorá-la para usar o novo sistema
+/**
+ * SÊNIOR: Publica um evento. 
+ * Se o Redis estiver ativo, envia para a ponte (alcança todos os processos).
+ * Se não, tenta enviar apenas localmente.
+ */
+function publish(topic, event, data) {
+  if (redisPublisher && redisPublisher.isOpen) {
+    redisPublisher.publish("SSE_BRIDGE", JSON.stringify({ topic, event, data }))
+      .catch(err => console.error("[SSE] Erro ao publicar no Redis:", err.message));
+  } else {
+    // Fallback: se Redis cair, pelo menos funciona no mesmo processo
+    _localPublish(topic, event, data);
+  }
+}
+
 function broadcast(event, data) {
   const message = `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`;
-  // Iterar sobre todos os tópicos e todos os clientes (menos eficiente)
   const allClients = new Set();
   for (const clientSet of topics.values()) {
     for (const client of clientSet) {
@@ -52,14 +98,19 @@ function broadcast(event, data) {
     try {
       client.write(message);
     } catch (e) {
-      console.warn("Falha ao enviar broadcast SSE para um cliente:", e.message);
+      // Falha silenciosa
     }
   });
+}
+
+// Inicia a ponte automaticamente se estiver em modo servidor
+if (process.env.NODE_ENV !== "test") {
+  initRedisBridge();
 }
 
 module.exports = {
   subscribe,
   unsubscribe,
   publish,
-  broadcast, // Manter se o broadcast geral ainda for usado em algum lugar
+  broadcast,
 };
