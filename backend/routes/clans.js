@@ -1,7 +1,7 @@
 const express = require("express");
 const { body, validationResult } = require("express-validator");
 const { query, transaction } = require("../config/database");
-const { authenticateToken } = require("../middleware/auth");
+const { authenticateToken, requireOperational } = require("../middleware/auth");
 const redisClient = require("../config/redisClient");
 const { getGameState } = require("../services/gameStateService");
 const { FACTION_ALIAS_MAP, resolveFaction } = require("../utils/faction");

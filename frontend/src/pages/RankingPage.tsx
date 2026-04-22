@@ -14,7 +14,8 @@ import {
   Crosshair,
   Crown,
   Activity,
-  Check
+  Check,
+  TrendingUp
 } from "lucide-react";
 
 // --- Tactical UI Components ---
@@ -108,6 +109,10 @@ const PlayerRankingItem = React.memo(function PlayerRankingItem({ player, config
               ) : player.status === 'Recondicionamento' ? (
                  <div className="flex items-center gap-1 text-[8px] font-black text-yellow-500 uppercase animate-pulse drop-shadow-[0_0_5px_rgba(234,179,8,0.5)]">
                     <Activity className="w-2 h-2" /> RECOND
+                 </div>
+              ) : player.status === 'Aprimoramento' ? (
+                 <div className="flex items-center gap-1 text-[8px] font-black text-cyan-400 uppercase animate-pulse drop-shadow-[0_0_5px_rgba(6,182,212,0.5)]">
+                    <TrendingUp className="w-2 h-2" /> APRIM
                  </div>
               ) : (
                  <div className="flex items-center gap-1 text-[8px] font-black text-green-500/60 uppercase">

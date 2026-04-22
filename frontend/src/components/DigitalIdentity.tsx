@@ -105,6 +105,18 @@ const StatusBanner = ({ status, endsAt }: { status?: string; endsAt?: string | n
           animate: 'animate-[glitch_2s_infinite]',
           iconText: '🔒'
         };
+      case 'Aprimoramento':
+        return {
+          bg: 'bg-cyan-500/20',
+          border: 'border-cyan-500/70',
+          text: 'text-cyan-300',
+          label: 'APRIMORAMENTO',
+          subtitle: 'Unidade em evolução ativa',
+          icon: TrendingUp,
+          glow: 'shadow-[0_0_20px_rgba(6,182,212,0.4)]',
+          animate: 'animate-pulse',
+          iconText: null
+        };
       case 'Recondicionamento':
         return {
           bg: 'bg-yellow-500/20',

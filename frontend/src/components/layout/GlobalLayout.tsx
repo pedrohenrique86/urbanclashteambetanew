@@ -12,6 +12,7 @@ import DigitalIdentityModal from "../DigitalIdentityModal";
 import ClanIdentityModal from "../ClanIdentityModal";
 import { DynamicBackground } from "./DynamicBackground";
 import { PAGE_BACKGROUNDS } from "../../constants/backgrounds";
+import StatusBlocker from "../StatusBlocker";
 
 interface GlobalLayoutProps {
   children: React.ReactNode;
@@ -88,6 +89,7 @@ const GlobalLayout: React.FC<GlobalLayoutProps> = ({ children }) => {
     return (
       <div className={`min-h-screen font-exo text-white ${hasDynamicBg ? "" : themeClasses.bg} flex flex-col relative`}>
         <DynamicBackground />
+        <StatusBlocker />
         <main className="flex-1 relative z-10 overflow-y-auto">
           {children}
         </main>
@@ -104,6 +106,7 @@ const GlobalLayout: React.FC<GlobalLayoutProps> = ({ children }) => {
       className={`h-screen font-exo text-white ${hasDynamicBackground ? "" : themeClasses.bg} overflow-hidden flex flex-col`}
     >
       <DynamicBackground />
+      <StatusBlocker />
       <div
         className={`flex flex-1 overflow-hidden ${isDashboard ? "bg-black/20" : ""
           }`}

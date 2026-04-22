@@ -176,10 +176,48 @@ const invalidateAllSessions = async (userId) => {
   return true;
 };
 
+// Middleware para verificar se o jogador está com status 'Operacional'
+const requireOperational = async (req, res, next) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ error: "Autenticação requerida" });
+    }
+
+    // Admins pulam a verificação de status
+    if (req.user.is_admin) {
+      return next();
+    }
+
+    const { query } = require("../config/database");
+    const result = await query(
+      "SELECT status FROM user_profiles WHERE user_id = $1",
+      [req.user.id]
+    );
+
+    if (result.rows.length === 0) return next();
+
+    const status = result.rows[0].status;
+    if (status !== 'Operacional') {
+      return res.status(403).json({
+        error: "Ação bloqueada",
+        message: `Status atual: ${status}. Unidade bloqueada para ações externas.`,
+        status: status,
+        code: "STATUS_LOCK"
+      });
+    }
+
+    next();
+  } catch (error) {
+    console.error("❌ Erro na verificação de status operacional:", error.message);
+    next();
+  }
+};
+
 module.exports = {
   authenticateToken,
   optionalAuth,
   requireAdmin,
+  requireOperational,
   requireOwnership,
   generateToken,
   createSession,

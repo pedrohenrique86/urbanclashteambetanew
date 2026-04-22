@@ -97,11 +97,12 @@ const _memDirtyRanking = new Set();  // userId → mudança de XP/nível (para r
 const _versionMap = new Map();       // userId → number
 
 // ─── Status Constants ─────────────────────────────────────────────────────────────
-const ALLOWED_STATUSES = ['Operacional', 'Isolamento', 'Recondicionamento'];
+const ALLOWED_STATUSES = ['Operacional', 'Isolamento', 'Recondicionamento', 'Aprimoramento'];
 const VALID_TRANSITIONS = {
-  'Operacional':     ['Isolamento', 'Recondicionamento'],
-  'Isolamento':      ['Operacional'],
-  'Recondicionamento': ['Operacional']
+  'Operacional':       ['Isolamento', 'Recondicionamento', 'Aprimoramento'],
+  'Isolamento':        ['Operacional'],
+  'Recondicionamento': ['Operacional'],
+  'Aprimoramento':     ['Operacional']
 };
 
 function _nextVersion(userId) {
