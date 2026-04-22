@@ -143,24 +143,18 @@ export const useRankingCache = (): UseRankingCacheReturn => {
     loadRankingsRef.current({ isInitialLoad: true });
 
     const scheduleNextRefresh = () => {
-      apiClient.getServerTime().then(({ serverTime }) => {
+      // Usamos a hora local para calcular o próximo ciclo de 10 min.
+      // O SSE já lidará com atualizações precisas; este timer é apenas um fallback.
+      const now = new Date();
+      const delay = (10 - (now.getMinutes() % 10)) * 60 * 1000 - now.getSeconds() * 1000 - now.getMilliseconds();
+      
+      timeoutRef.current = setTimeout(() => {
         if (!mountedRef.current) return;
-        const now = new Date(serverTime);
-        const delay = (10 - (now.getMinutes() % 10)) * 60 * 1000 - now.getSeconds() * 1000 - now.getMilliseconds();
-        
-        timeoutRef.current = setTimeout(() => {
-          if (!mountedRef.current) return;
-          forceRefreshRef.current();
-          intervalRef.current = setInterval(() => {
-            if (mountedRef.current) forceRefreshRef.current();
-          }, CACHE_DURATION);
-        }, Math.max(0, delay));
-      }).catch(() => {
-        if (!mountedRef.current) return;
+        forceRefreshRef.current();
         intervalRef.current = setInterval(() => {
           if (mountedRef.current) forceRefreshRef.current();
         }, CACHE_DURATION);
-      });
+      }, Math.max(0, delay));
     };
 
     scheduleNextRefresh();

@@ -206,6 +206,18 @@ interface DashboardSidebarProps {
   isAdmin?: boolean;
 }
 
+const GameClockDisplayWrapper: React.FC<{ isCollapsed: boolean }> = ({ isCollapsed }) => {
+  const { remainingTime, status, serverTime } = useGameClock();
+  return (
+    <GameClockDisplay
+      remainingTime={remainingTime}
+      status={status}
+      serverTime={serverTime}
+      isCollapsed={isCollapsed}
+    />
+  );
+};
+
 const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
   onMobileClose,
   username,
@@ -213,7 +225,6 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
   handleLogout,
   isAdmin,
 }) => {
-  const { remainingTime, status, serverTime } = useGameClock();
   const [isCollapsed, setIsCollapsed] = useState(() => {
     try {
       const saved = localStorage.getItem("sidebar_collapsed");
@@ -536,10 +547,7 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
 
       {/* Game Clock Display (Desktop Only) */}
       <div className="hidden md:block absolute bottom-0 left-0 right-0 w-full px-2 pb-0 pt-1">
-        <GameClockDisplay
-          remainingTime={remainingTime}
-          status={status}
-          serverTime={serverTime}
+        <GameClockDisplayWrapper
           isCollapsed={isCollapsed}
         />
       </div>
