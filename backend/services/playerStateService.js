@@ -112,6 +112,13 @@ function _parseState(raw) {
       if (!isNaN(n)) out[field] = n;
     }
   }
+
+  // SÊNIOR: Derivação Dinâmica em Tempo Real
+  // Nunca salva current_xp ou xp_required no Redis/DB.
+  const xpStatus = gameLogic.deriveXpStatus(out.total_xp, out.level);
+  out.current_xp  = xpStatus.currentXp;
+  out.xp_required = xpStatus.xpRequired;
+
   return out;
 }
 
@@ -160,13 +167,27 @@ async function _checkAndResetAP(userId, redisKey) {
  */
 function _buildPatch(updates, newState) {
   const patch = {};
+  let xpOrLevelChanged = false;
+
   for (const redisKey of Object.keys(updates)) {
     const sseKey = FIELD_TO_SSE[redisKey];
     if (!sseKey) continue;
-    // Usa o valor resolvido do Redis (pós-HINCRBY) — não o delta
+    
+    if (redisKey === "total_xp" || redisKey === "level") {
+      xpOrLevelChanged = true;
+    }
+
     const val = newState[redisKey];
     if (val !== undefined) patch[sseKey] = Number(val);
   }
+
+  // SÊNIOR: Se XP ou Level mudou, injeta os campos derivados no Patch SSE
+  if (xpOrLevelChanged) {
+    const xpStatus = gameLogic.deriveXpStatus(newState.total_xp, newState.level);
+    patch.currentXp  = xpStatus.currentXp;
+    patch.xpRequired = xpStatus.xpRequired;
+  }
+
   return patch;
 }
 
@@ -346,16 +367,23 @@ async function updatePlayerState(userId, updates) {
     let newState = await getPlayerState(userId);
     if (!newState) return null;
 
-    // ── 4. Lógica de LEVEL UP Automática ─────────────────────────────────────────
+    // ── 4. Lógica de LEVEL UP Automática (Robustez Sênior) ────────────────────────
     const correctLevel = gameLogic.calculateLevelFromXp(newState.total_xp);
+    
+    // Suporta múltiplos level-ups (ex: ganha 1000 XP de uma vez)
     if (correctLevel > newState.level) {
+      console.log(`[playerState] 🆙 Level UP detectado para ${userId}: ${newState.level} -> ${correctLevel}`);
+      
       await redisClient.hSetAsync(redisKey, {
         level: String(correctLevel),
         is_dirty: "1",
         is_dirty_at: String(Date.now())
       });
-      newState = await getPlayerState(userId); // Recarrega estado com novo nível
-      hasCritical = true; // Força atualização de ranking
+      
+      // Recarrega estado com os campos de XP recalculados para o novo nível
+      newState = await getPlayerState(userId); 
+      hasCritical = true; 
+      hasSSEChange = true; // Garante que o patch via SSE leve o novo level/xp status
     }
 
     // ── 5. Emite PATCH mínimo via SSE ────────────────────────────────────────────

@@ -7,12 +7,14 @@
 
 /**
  * Retorna o XP necessário para passar do nível atual para o próximo.
+ * Baseado na nova curva de progressão solicitada.
  */
 function getXpRequiredForNextLevel(level) {
-  if (level <= 5) return 100;
-  if (level <= 15) return 200;
-  if (level <= 30) return 500;
-  return 1000;
+  const lvl = Number(level) || 1;
+  if (lvl <= 5) return 100;
+  if (lvl <= 15) return 150;
+  if (lvl <= 30) return 300;
+  return 500;
 }
 
 /**
@@ -29,12 +31,17 @@ function getTotalXpUntilLevel(targetLevel) {
 
 /**
  * Deriva o estado de XP atual baseado no total acumulado e no nível.
- * Retorna { currentXpInLevel, xpRequiredForNext }
+ * Retorna { currentXp, xpRequired }
+ * 
+ * Sênior Note: Essa é a função SSOT (Single Source of Truth) para o frontend.
  */
 function deriveXpStatus(totalXp, level) {
-  const xpAtStartOfLevel = getTotalXpUntilLevel(level);
-  const currentXpInLevel = Math.max(0, totalXp - xpAtStartOfLevel);
-  const xpRequiredForNext = getXpRequiredForNextLevel(level);
+  const tXp = Math.max(0, Number(totalXp) || 0);
+  const lvl = Math.max(1, Number(level) || 1);
+
+  const xpAtStartOfLevel = getTotalXpUntilLevel(lvl);
+  const currentXpInLevel = Math.max(0, tXp - xpAtStartOfLevel);
+  const xpRequiredForNext = getXpRequiredForNextLevel(lvl);
   
   return {
     currentXp: currentXpInLevel,
@@ -44,11 +51,11 @@ function deriveXpStatus(totalXp, level) {
 
 /**
  * Calcula qual deveria ser o nível do jogador baseado no XP total.
- * Útil para validação e correção automática.
+ * Suporta múltiplos level-ups instantâneos.
  */
 function calculateLevelFromXp(totalXp) {
   let level = 1;
-  let remainingXp = totalXp;
+  let remainingXp = Math.max(0, Number(totalXp) || 0);
   
   while (true) {
     const required = getXpRequiredForNextLevel(level);

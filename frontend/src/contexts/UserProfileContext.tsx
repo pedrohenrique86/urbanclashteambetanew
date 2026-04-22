@@ -87,9 +87,13 @@ function mergePlayerStateIntoProfile(
 
   if (patch.level !== undefined) next.level = patch.level;
   if (patch.xp !== undefined) {
-    next.xp         = patch.xp;
-    next.current_xp = patch.xp;
+    next.xp = patch.xp;
   }
+
+  // SÊNIOR: Campos derivados injetados via Patch
+  if (patch.currentXp !== undefined)  next.current_xp = patch.currentXp;
+  if (patch.xpRequired !== undefined) next.xp_required = patch.xpRequired;
+
   if (patch.energy !== undefined) next.energy = patch.energy;
   if (patch.maxEnergy !== undefined) next.max_energy = patch.maxEnergy;
   if (patch.actionPoints !== undefined) next.action_points = patch.actionPoints;
@@ -129,7 +133,7 @@ export const UserProfileProvider = ({ children }: { children: ReactNode }) => {
         email: currentUser.email,
         faction: profileData.faction || null,
         level: profileData.level || 1,
-        xp: profileData.xp || 0,
+        xp: profileData.total_xp || profileData.xp || 0,
         energy: profileData.energy || 100,
         gold: profileData.gold || 0,
         gems: profileData.gems || 0,
@@ -149,7 +153,7 @@ export const UserProfileProvider = ({ children }: { children: ReactNode }) => {
         money: Number(profileData.money) || 0,
 
         user_id: currentUser.id,
-        current_xp: Number(profileData.xp) || 0,
+        current_xp: Number(profileData.current_xp) || 0,
         resources: Number(profileData.gold) || 0,
         wins: Number(profileData.wins) || 0,
         losses: Number(profileData.losses) || 0,

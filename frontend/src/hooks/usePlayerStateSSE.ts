@@ -24,6 +24,8 @@ import { tokenStorage } from "../lib/api";
 export interface PlayerStatePatch {
   level?         : number;
   xp?            : number;
+  currentXp?     : number;
+  xpRequired?    : number;
   energy?        : number;
   maxEnergy?     : number;
   actionPoints?  : number;
