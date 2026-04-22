@@ -211,9 +211,10 @@ export default function DigitalIdentityPage({
           <div className="h-10 w-10 animate-spin rounded-full border-b-2 border-orange-500" />
         </div>
       )}
-
+      
+      {/* Sincronização em tempo real do status se for o perfil do próprio usuário */}
       <DigitalIdentity
-        player={playerData}
+        player={isOwnProfile && userProfile ? { ...playerData, status: userProfile.status || playerData.status, status_ends_at: userProfile.status_ends_at || playerData.status_ends_at } : playerData}
         onClose={handleClose}
         isOwnProfile={isOwnProfile}
         isEditing={isEditing}

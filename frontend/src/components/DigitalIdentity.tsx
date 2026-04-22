@@ -157,6 +157,10 @@ const StatusBanner = ({ status, endsAt }: { status?: string; endsAt?: string | n
   const [displayTime, setDisplayTime] = useState(timeRemaining);
 
   useEffect(() => {
+    setDisplayTime(timeRemaining);
+  }, [timeRemaining, status]);
+
+  useEffect(() => {
     if (!endsAt) return;
     const interval = setInterval(() => {
       const diff = new Date(endsAt).getTime() - Date.now();

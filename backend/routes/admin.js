@@ -88,4 +88,37 @@ router.post("/pause", authenticateToken, isAdmin, async (req, res) => {
   }
 });
 
+// POST /api/admin/set-player-status - Altera status de qualquer jogador (Override)
+router.post("/set-player-status", authenticateToken, isAdmin, async (req, res) => {
+  const { userId, username, status, duration } = req.body;
+  
+  try {
+    const { query } = require("../config/database");
+    let targetId = userId;
+
+    // Se passou username, resolve para ID
+    if (!targetId && username) {
+      const result = await query("SELECT id FROM users WHERE username = $1", [username]);
+      if (result.rows.length === 0) return res.status(404).json({ error: "Usuário não encontrado." });
+      targetId = result.rows[0].id;
+    }
+
+    if (!targetId || !status) {
+      return res.status(400).json({ error: "userId/username e status são obrigatórios." });
+    }
+
+    const playerStateService = require("../services/playerStateService");
+    const newState = await playerStateService.setPlayerStatus(targetId, status, duration || null);
+    
+    res.json({
+      success: true,
+      message: `Status de ${username || targetId} alterado para ${status}.`,
+      state: newState
+    });
+  } catch (error) {
+    console.error("Erro ao alterar status via Admin:", error.message);
+    res.status(500).json({ error: error.message || "Erro ao alterar status." });
+  }
+});
+
 module.exports = router;
