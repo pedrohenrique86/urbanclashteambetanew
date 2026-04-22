@@ -188,19 +188,32 @@ const requireOperational = async (req, res, next) => {
       return next();
     }
 
-    const { query } = require("../config/database");
-    const result = await query(
-      "SELECT status FROM user_profiles WHERE user_id = $1",
-      [req.user.id]
-    );
+    // Whitelist de endpoints permitidos mesmo em status restrito (Leitura e Comunicação)
+    const whitelist = [
+      '/subscription',     // SSE
+      '/state/subscribe',  // SSE State
+      '/ranking',          // Ranking global
+      '/profile',          // Perfil do jogador
+      '/events',           // Eventos de clã/sistema
+      '/messages',         // Chat/Mensagens
+      '/clan',            // Informações de clã
+      '/season',           // Temporada
+      '/vip'               // Acesso VIP
+    ];
 
-    if (result.rows.length === 0) return next();
+    const isWhitelisted = whitelist.some(path => req.path.includes(path));
+    if (isWhitelisted) return next();
 
-    const status = result.rows[0].status;
+    const playerStateService = require("../services/playerStateService");
+    const state = await playerStateService.getPlayerState(req.user.id);
+    
+    // getPlayerState já executa o "Lazy Reset" se o tempo expirou
+    const status = state?.status || 'Operacional';
+
     if (status !== 'Operacional') {
       return res.status(403).json({
         error: "Ação bloqueada",
-        message: `Status atual: ${status}. Unidade bloqueada para ações externas.`,
+        message: `Status atual: ${status}. Unidade bloqueada para ações de gameplay.`,
         status: status,
         code: "STATUS_LOCK"
       });

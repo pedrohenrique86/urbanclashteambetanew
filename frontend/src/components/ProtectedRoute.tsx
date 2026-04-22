@@ -42,11 +42,29 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, requiresFacti
   }
   
   // DECISÃO 3: JÁ TEM FACÇÃO, MAS TENTA ACESSAR A SELEÇÃO
-  // Se o usuário já tem uma facção, não o deixamos voltar para a página de seleção.
   if (userProfile?.faction && location.pathname === '/faction-selection') {
     return <Navigate to="/dashboard" replace />;
   }
 
+  // DECISÃO 4: BLOQUEIO DE STATUS (Route Guard Global)
+  // Whitelist de páginas acessíveis mesmo com restrição
+  const whitelist = [
+    '/dashboard',
+    '/digital-identity',
+    '/social-zone',
+    '/clan',
+    '/vip-access',
+    '/season',
+    '/ranking'
+  ];
+
+  const status = userProfile?.status || 'Operacional';
+  const isWhitelisted = whitelist.some(p => location.pathname === p || location.pathname.startsWith(p + '/'));
+
+  if (status !== 'Operacional' && !isWhitelisted) {
+    console.warn(`[RouteGuard] Acesso negado: ${location.pathname} bloqueado para status: ${status}`);
+    return <Navigate to="/dashboard" state={{ from: location, statusBlock: true }} replace />;
+  }
 
   // Se todas as verificações passaram, renderiza o conteúdo da rota.
   return <>{children}</>;

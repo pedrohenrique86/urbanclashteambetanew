@@ -12,10 +12,18 @@ const StatusBlocker: React.FC = () => {
     const status = userProfile?.status || 'Operacional';
     const endsAt = userProfile?.status_ends_at;
 
-    const allowedPaths = ['/social-zone', '/clan'];
-    const isAllowedPath = allowedPaths.includes(location.pathname);
+    const whitelist = [
+        '/dashboard',
+        '/digital-identity',
+        '/social-zone',
+        '/clan',
+        '/vip-access',
+        '/season',
+        '/ranking'
+    ];
+    const isWhitelisted = whitelist.some(p => location.pathname === p || location.pathname.startsWith(p + '/'));
 
-    const isBlocked = status !== 'Operacional' && !isAllowedPath;
+    const isBlocked = status !== 'Operacional' && !isWhitelisted;
 
     const config = useMemo(() => {
         switch (status) {
@@ -107,12 +115,15 @@ const StatusBlocker: React.FC = () => {
                             <config.icon className={`w-8 h-8 ${config.color}`} />
                         </div>
 
-                        <div>
-                            <h1 className={`text-3xl font-black font-orbitron tracking-[0.3em] ${config.color} uppercase drop-shadow-[0_0_10px_currentColor]`}>
+                        <div className="space-y-1">
+                            <h2 className={`text-zinc-500 text-[10px] font-black uppercase tracking-[0.4em]`}>
+                                ACESSO RESTRITO
+                            </h2>
+                            <h1 className={`text-4xl font-black font-orbitron tracking-[0.2em] ${config.color} uppercase drop-shadow-[0_0_15px_currentColor]`}>
                                 {config.label}
                             </h1>
-                            <p className="text-[10px] text-white/50 font-black uppercase tracking-widest mt-2 italic">
-                                {config.subtitle}
+                            <p className="text-[8px] text-white/40 font-bold uppercase tracking-[0.15em] pt-1">
+                                &gt; {config.subtitle}
                             </p>
                         </div>
 
@@ -124,26 +135,24 @@ const StatusBlocker: React.FC = () => {
                             </div>
                         )}
 
-                        <div className="pt-6 border-t border-white/10 flex flex-col gap-3">
-                            <p className="text-[9px] text-zinc-500 font-bold uppercase tracking-widest leading-relaxed">
-                                Acesso negado aos sistemas centrais.<br />
-                                Comunicação via canais seguros autorizada.
+                        <div className="pt-8 border-t border-white/5 flex flex-col gap-4">
+                            <p className="text-[8px] text-zinc-600 font-bold uppercase tracking-[0.2em] leading-relaxed">
+                                Unidade indisponível para operações de campo.<br />
+                                Acesse os sistemas de suporte autorizados abaixo.
                             </p>
                             
-                            <div className="grid grid-cols-2 gap-4 mt-4">
+                            <div className="grid grid-cols-2 gap-3 mt-2">
                                 <button 
-                                    onClick={() => navigate('/social-zone')}
-                                    className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all group"
+                                    onClick={() => navigate('/dashboard')}
+                                    className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-white/[0.03] border border-white/10 hover:bg-white/[0.08] transition-all group"
                                 >
-                                    <MessageSquare className="w-4 h-4 text-cyan-400" />
-                                    <span className="text-[10px] font-black uppercase tracking-widest">ZONA SOCIAL</span>
+                                    <span className="text-[9px] font-black uppercase tracking-widest">DASHBOARD</span>
                                 </button>
                                 <button 
-                                    onClick={() => navigate('/clan')}
-                                    className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all group"
+                                    onClick={() => navigate('/ranking')}
+                                    className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-white/[0.03] border border-white/10 hover:bg-white/[0.08] transition-all group"
                                 >
-                                    <Users className="w-4 h-4 text-purple-400" />
-                                    <span className="text-[10px] font-black uppercase tracking-widest">CLÃ</span>
+                                    <span className="text-[9px] font-black uppercase tracking-widest">RANKING</span>
                                 </button>
                             </div>
                         </div>
