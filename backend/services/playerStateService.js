@@ -409,20 +409,21 @@ async function updatePlayerState(userId, updates) {
     // ── 4. Lógica de LEVEL UP Automática (Robustez Sênior) ────────────────────────
     const correctLevel = gameLogic.calculateLevelFromXp(newState.total_xp);
     
-    // Suporta múltiplos level-ups (ex: ganha 1000 XP de uma vez)
     if (correctLevel > newState.level) {
       console.log(`[playerState] 🆙 Level UP detectado para ${userId}: ${newState.level} -> ${correctLevel}`);
       
-      await redisClient.hSetAsync(redisKey, {
+      const levelUpdates = {
         level: String(correctLevel),
         is_dirty: "1",
         is_dirty_at: String(Date.now())
-      });
+      };
+
+      await redisClient.hSetAsync(redisKey, levelUpdates);
       
-      // Recarrega estado com os campos de XP recalculados para o novo nível
+      // Recarrega o estado final para o PATCH SSE levar os valores DERIVADOS corretos (currentXp, xpRequired)
       newState = await getPlayerState(userId); 
       hasCritical = true; 
-      hasSSEChange = true; // Garante que o patch via SSE leve o novo level/xp status
+      hasSSEChange = true;
     }
 
     // ── 5. Emite PATCH mínimo via SSE ────────────────────────────────────────────
