@@ -46,19 +46,19 @@ export default function ScrollToTopButton({ scrollableRef }: ScrollToTopButtonPr
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           onClick={scrollToTop}
-          className="fixed bottom-[6px] md:bottom-12 right-2 md:right-4 z-[9995] flex flex-col items-center gap-0 md:gap-1 group cursor-pointer"
+          className="fixed bottom-[8px] md:bottom-12 right-2 md:right-8 z-[9995] flex flex-col items-center gap-0 md:gap-1 group cursor-pointer"
         >
           {/* Tactical Container */}
-          <div className="relative w-10 h-10 md:w-10 md:h-10 flex items-center justify-center scale-75 md:scale-100">
-            {/* Cyberpunk Shape & Glow - More discreet on mobile */}
-            <div className="absolute inset-0 bg-zinc-950/40 md:bg-zinc-950/90 backdrop-blur-xl border border-white/10 md:border-orange-500/40 rounded-lg transform rotate-45 group-hover:border-orange-500 group-hover:shadow-[0_0_20px_rgba(249,115,22,0.4)] transition-all duration-300" />
+          <div className="relative w-7 h-7 md:w-8 md:h-8 flex items-center justify-center scale-90 md:scale-100">
+            {/* Cyberpunk Shape & Glow */}
+            <div className="absolute inset-0 bg-zinc-950/60 md:bg-zinc-950/90 backdrop-blur-xl border border-white/20 md:border-orange-500/40 rounded-lg transform rotate-45 group-hover:border-orange-500 transition-all duration-300" />
             
             {/* Icon */}
-            <ChevronUp className="relative z-10 w-5 h-5 text-white/50 md:text-orange-500 group-hover:text-orange-400 group-hover:-translate-y-0.5 transition-all duration-300" strokeWidth={3} />
+            <ChevronUp className="relative z-10 w-3 h-3 md:w-4 md:h-4 text-white/70 md:text-orange-500 group-hover:text-orange-400 group-hover:-translate-y-0.5 transition-all duration-300" strokeWidth={3} />
           </div>
 
-          {/* Label - Hidden on mobile */}
-          <span className="hidden md:block text-[8px] font-orbitron font-black tracking-[0.25em] text-orange-500/80 group-hover:text-orange-500 transition-colors uppercase">
+          {/* Label - Ultra Compact for Desktop */}
+          <span className="hidden md:block text-[6px] font-orbitron font-black tracking-[0.15em] text-orange-500/40 group-hover:text-orange-500 transition-colors uppercase">
             TOPO
           </span>
         </motion.button>
