@@ -97,11 +97,11 @@ const _memDirtyRanking = new Set();  // userId → mudança de XP/nível (para r
 const _versionMap = new Map();       // userId → number
 
 // ─── Status Constants ─────────────────────────────────────────────────────────────
-const ALLOWED_STATUSES = ['livre', 'preso', 'recuperacao'];
+const ALLOWED_STATUSES = ['Operacional', 'Isolamento', 'Recondicionamento'];
 const VALID_TRANSITIONS = {
-  'livre': ['preso', 'recuperacao'],
-  'preso': ['livre'],
-  'recuperacao': ['livre']
+  'Operacional':     ['Isolamento', 'Recondicionamento'],
+  'Isolamento':      ['Operacional'],
+  'Recondicionamento': ['Operacional']
 };
 
 function _nextVersion(userId) {
@@ -131,11 +131,16 @@ function _parseState(raw) {
   out.xp_required = xpStatus.xpRequired;
 
   // SÊNIOR: Lazy Reset do Status (Zero-Cron)
-  // Se o status tiver expiração e o tempo passou, reseta para livre
-  if (out.status && out.status !== 'livre' && out.status_ends_at) {
+  // Se o status tiver expiração e o tempo passou, reseta para Operacional
+  const LEGACY_MAP = { 'livre': 'Operacional', 'preso': 'Isolamento', 'recuperacao': 'Recondicionamento' };
+  if (out.status && LEGACY_MAP[out.status]) {
+    out.status = LEGACY_MAP[out.status];
+  }
+
+  if (out.status && out.status !== 'Operacional' && out.status_ends_at) {
     const endsAt = new Date(out.status_ends_at).getTime();
     if (!isNaN(endsAt) && Date.now() >= endsAt) {
-      console.log(`[status] ⏳ Expiração detectada para ${out.user_id}: ${out.status} -> livre`);
+      console.log(`[status] ⏳ Expiração detectada para ${out.user_id}: ${out.status} -> Operacional`);
       // O reset real acontece no getPlayerState para garantir que seja persistido
       out._status_expired = true;
     }
@@ -328,8 +333,8 @@ async function getPlayerState(userId) {
     // SÊNIOR: Executa Lazy Reset de Status se necessário
     if (parsed && parsed._status_expired) {
       delete parsed._status_expired;
-      setPlayerStatus(userId, 'livre').catch(e => console.error("[statusReset] Falha:", e.message));
-      parsed.status = 'livre';
+      setPlayerStatus(userId, 'Operacional').catch(e => console.error("[statusReset] Falha:", e.message));
+      parsed.status = 'Operacional';
       parsed.status_ends_at = null;
     }
 
@@ -596,7 +601,7 @@ async function setPlayerStatus(userId, newStatus, durationSeconds = null) {
   if (!currentState) throw new Error("👤 Jogador não encontrado.");
 
   // Validação de Transição
-  const currentStatus = currentState.status || 'livre';
+  const currentStatus = currentState.status || 'Operacional';
   if (currentStatus !== newStatus) {
     const validNext = VALID_TRANSITIONS[currentStatus] || [];
     if (!validNext.includes(newStatus)) {

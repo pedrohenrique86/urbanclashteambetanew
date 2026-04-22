@@ -163,7 +163,7 @@ export const UserProfileProvider = ({ children }: { children: ReactNode }) => {
         wins: Number(profileData.wins) || 0,
         losses: Number(profileData.losses) || 0,
         streak: Number(profileData.streak) || 0,
-        status: profileData.status || 'livre',
+        status: profileData.status || 'Operacional',
         status_ends_at: profileData.status_ends_at || null,
       };
     },

@@ -93,35 +93,41 @@ const formatDate = (dateStr?: string) => {
 const StatusBanner = ({ status, endsAt }: { status?: string; endsAt?: string | null }) => {
   const config = useMemo(() => {
     switch (status) {
-      case 'preso':
+      case 'Isolamento':
         return {
           bg: 'bg-red-500/20',
-          border: 'border-red-500/50',
+          border: 'border-red-500/70',
           text: 'text-red-400',
-          label: 'PRESO',
-          icon: Shield, // Using Shield as base or could use lock if imported
-          glow: 'shadow-[0_0_15px_rgba(239,68,68,0.3)]',
-          animate: 'animate-pulse'
+          label: 'ISOLAMENTO',
+          subtitle: 'Unidade em contenção',
+          icon: Shield, // Shield used as lock base or custom lock if available
+          glow: 'shadow-[0_0_20px_rgba(239,68,68,0.4)]',
+          animate: 'animate-[glitch_2s_infinite]',
+          iconText: '🔒'
         };
-      case 'recuperacao':
+      case 'Recondicionamento':
         return {
           bg: 'bg-yellow-500/20',
           border: 'border-yellow-500/50',
           text: 'text-yellow-400',
-          label: 'RECUPERAÇÃO',
+          label: 'RECONDICIONAMENTO',
+          subtitle: 'Sistema de recuperação ativo',
           icon: Activity,
           glow: 'shadow-[0_0_15px_rgba(234,179,8,0.3)]',
-          animate: 'animate-pulse'
+          animate: 'animate-pulse',
+          iconText: null
         };
       default:
         return {
-          bg: 'bg-green-500/10',
-          border: 'border-green-500/30',
+          bg: 'bg-green-600/15',
+          border: 'border-green-500/40',
           text: 'text-green-400',
-          label: 'LIVRE',
+          label: 'OPERACIONAL',
+          subtitle: 'Unidade ativa em campo',
           icon: Check,
-          glow: 'shadow-[0_0_10px_rgba(34,197,94,0.1)]',
-          animate: ''
+          glow: 'shadow-[0_0_12px_rgba(34,197,94,0.2)]',
+          animate: '',
+          iconText: null
         };
     }
   }, [status]);
@@ -155,20 +161,29 @@ const StatusBanner = ({ status, endsAt }: { status?: string; endsAt?: string | n
   }, [endsAt]);
 
   return (
-    <div className={`mt-3 flex items-center gap-3 px-4 py-2 rounded-xl border ${config.border} ${config.bg} ${config.glow} ${config.animate} transition-all duration-500`}>
-       <div className={`w-5 h-5 rounded-lg flex items-center justify-center bg-black/40 border ${config.border}`}>
-          <config.icon className={`w-3 h-3 ${config.text}`} />
-       </div>
-       <div className="flex flex-col">
-          <span className={`text-[10px] font-black font-orbitron ${config.text} tracking-[0.2em] leading-none uppercase`}>
-            {config.label}
-          </span>
-          {displayTime && (
-            <span className="text-[7px] text-white/40 font-mono mt-1">EM_COOLDOWN: {displayTime}</span>
+    <div className={`mt-3 flex items-center gap-3 px-4 py-2.5 rounded-xl border-2 ${config.border} ${config.bg} ${config.glow} ${config.animate} transition-all duration-500 relative group`}>
+       <div className={`w-6 h-6 rounded-lg flex items-center justify-center bg-black/60 border ${config.border} shadow-inner`}>
+          {config.iconText ? (
+            <span className="text-[10px]">{config.iconText}</span>
+          ) : (
+            <config.icon className={`w-3.5 h-3.5 ${config.text}`} />
           )}
        </div>
-       {status === 'preso' && (
-         <div className="ml-auto w-1 h-1 rounded-full bg-red-500 animate-ping shadow-[0_0_8px_red]" />
+       <div className="flex flex-col">
+          <div className="flex items-center gap-2">
+            <span className={`text-[10px] font-black font-orbitron ${config.text} tracking-[0.25em] leading-none uppercase`}>
+              {config.label}
+            </span>
+          </div>
+          <span className="text-[7px] text-white/50 font-black uppercase tracking-[0.1em] mt-1 italic">{config.subtitle}</span>
+          {displayTime && (
+            <span className="text-[7px] text-zinc-400 font-mono mt-1 flex items-center gap-1">
+              <History className="w-2 h-2" /> RESTANTE: {displayTime}
+            </span>
+          )}
+       </div>
+       {status === 'Isolamento' && (
+         <div className="ml-auto w-2 h-2 rounded-full bg-red-600 animate-ping shadow-[0_0_10px_red]" />
        )}
     </div>
   );

@@ -487,7 +487,20 @@ async function runPlayerStatusMigrations() {
     await query(`CREATE INDEX IF NOT EXISTS idx_status_logs_composite ON player_status_logs(user_id, ended_at);`);
     await query(`CREATE INDEX IF NOT EXISTS idx_status_logs_started_at ON player_status_logs(started_at);`);
 
-    console.log("✅ Migrações de Status concluídas com sucesso.");
+    // Migração de nomes (livre -> Operacional, preso -> Isolamento, recuperacao -> Recondicionamento)
+    await transaction(async (client) => {
+      await client.query(`
+        UPDATE user_profiles SET status = 'Operacional' WHERE status = 'livre';
+        UPDATE user_profiles SET status = 'Isolamento' WHERE status = 'preso';
+        UPDATE user_profiles SET status = 'Recondicionamento' WHERE status = 'recuperacao';
+        
+        UPDATE player_status_logs SET status = 'Operacional' WHERE status = 'livre';
+        UPDATE player_status_logs SET status = 'Isolamento' WHERE status = 'preso';
+        UPDATE player_status_logs SET status = 'Recondicionamento' WHERE status = 'recuperacao';
+      `);
+    });
+
+    console.log("✅ Migrações de Status do Jogador (Nomenclatura Oficial) verificadas.");
   } catch (error) {
     console.error("❌ Erro nas migrações de Status:", error.message);
   }

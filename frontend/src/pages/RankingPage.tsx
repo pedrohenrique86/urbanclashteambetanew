@@ -101,17 +101,17 @@ const PlayerRankingItem = React.memo(function PlayerRankingItem({ player, config
          <div className="hidden sm:flex flex-col items-center w-20">
             <span className="text-[7px] text-zinc-600 font-black uppercase tracking-widest mb-1 text-center">STATUS</span>
             <div className="flex items-center justify-center">
-              {player.status === 'preso' ? (
+              {player.status === 'Isolamento' ? (
                  <div className="flex items-center gap-1 text-[8px] font-black text-red-500 uppercase animate-pulse drop-shadow-[0_0_5px_rgba(239,68,68,0.5)]">
-                    <Shield className="w-2 h-2" /> PRESO
+                    <Shield className="w-2 h-2" /> ISOLAMENTO
                  </div>
-              ) : player.status === 'recuperacao' ? (
+              ) : player.status === 'Recondicionamento' ? (
                  <div className="flex items-center gap-1 text-[8px] font-black text-yellow-500 uppercase animate-pulse drop-shadow-[0_0_5px_rgba(234,179,8,0.5)]">
-                    <Activity className="w-2 h-2" /> RECUP
+                    <Activity className="w-2 h-2" /> RECOND
                  </div>
               ) : (
                  <div className="flex items-center gap-1 text-[8px] font-black text-green-500/60 uppercase">
-                    <Check className="w-2 h-2" /> LIVRE
+                    <Check className="w-2 h-2" /> OPERACIONAL
                  </div>
               )}
             </div>
