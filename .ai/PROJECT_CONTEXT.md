@@ -27,7 +27,7 @@ Para garantir um ambiente de desenvolvimento consistente e eficiente, o projeto 
 - **Estilização:** Tailwind CSS
 - **Roteamento:** React Router DOM
 - **Requisições HTTP:** Axios
-- **Comunicação em Tempo Real:** Socket.IO Client
+- **Comunicação em Tempo Real:** Server-Sent Events (SSE) e Socket.IO Client
 - **Linting:** ESLint
 - **Ícones:** Lucide React, React Icons
 
@@ -39,7 +39,7 @@ Para garantir um ambiente de desenvolvimento consistente e eficiente, o projeto 
 - **Cliente PostgreSQL:** pg
 - **Migrations:** node-pg-migrate
 - **Autenticação:** JSON Web Token (JWT)
-- **Comunicação em Tempo Real:** Socket.IO
+- **Comunicação em Tempo Real:** Server-Sent Events (SSE) e Socket.IO
 - **Cache:** Redis (com `@upstash/redis`)
 - **Validação de Requisições:** express-validator
 - **Segurança:** Helmet, CORS, express-rate-limit
@@ -62,6 +62,8 @@ urbanclashteam/
 │   ├── migrations/
 │   ├── node_modules/
 │   ├── routes/
+│   ├── scripts/
+│   ├── utils/
 │   ├── .env
 │   ├── server.js
 │   └── package.json
@@ -99,7 +101,8 @@ urbanclashteam/
 - **Interação:** Mecanismos para interação entre membros do mesmo clã.
 
 ### Funcionalidades em Tempo Real
-- **Eventos com Socket.IO:** Utilização de WebSockets para comunicação instantânea de eventos, como atualizações de estado e notificações.
+- **Eventos Direcionais com SSE:** Utilização de Server-Sent Events (SSE) para stream leve e unidirecional de dados do servidor para o cliente (ex: atualizações contínuas de estado do jogador).
+- **Eventos Bidirecionais com Socket.IO:** Utilização de WebSockets para comunicação instantânea e bidirecional de eventos gerais e notificações.
 - **Gerenciamento de Estado Volátil com Redis:** Uso de Redis para armazenar dados de acesso rápido e estado temporário, como sessões de usuários online.
 
 ---

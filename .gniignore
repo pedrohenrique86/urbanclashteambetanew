@@ -1,0 +1,46 @@
+# =========================================================================
+# .gniignore - Arquivos e diretórios ignorados pelo Gemini Code Assist
+# =========================================================================
+# O objetivo deste arquivo é otimizar o consumo de tokens e a velocidade
+# do agente, impedindo que ele leia ou indexe arquivos inúteis.
+
+# Dependências (Extremamente pesados)
+node_modules/
+backend/node_modules/
+frontend/node_modules/
+
+# Arquivos de Lock (Extremamente longos e irrelevantes para lógica)
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Compilados e Builds
+dist/
+build/
+out/
+.tscache/
+*.min.js
+*.min.css
+
+# Logs e Cobertura de Testes
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+coverage/
+
+# Variáveis de Ambiente (Prevenção de leitura de segredos)
+.env
+.env.local
+.env.development
+.env.production
+
+# Banco de Dados e Dumps
+*.sql
+*.sqlite
+
+# Diretórios de Controle e IDEs
+.git/
+.vscode/
+.idea/
+.husky/

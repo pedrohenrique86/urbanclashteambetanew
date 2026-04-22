@@ -17,7 +17,7 @@
 
 - **Migrações de Schema:** As migrações do banco de dados são gerenciadas pela biblioteca `node-pg-migrate`, garantindo um versionamento explícito e controlado do schema da base de dados.
 
-- **Comunicação em Tempo Real:** WebSockets são implementados com a biblioteca `socket.io` para funcionalidades que exigem comunicação bidirecional e instantânea, como notificações e atualizações de estado do jogo.
+- **Comunicação em Tempo Real Híbrida:** A aplicação utiliza uma abordagem híbrida. **Server-Sent Events (SSE)** são empregados para streams leves e unidirecionais do servidor para o cliente (ex: atualizações de estado do jogador), garantindo eficiência de banda. **WebSockets (`socket.io`)** são reservados para interações que exigem comunicação bidirecional de baixa latência e broadcast global.
 
 - **Cache e Dados Voláteis:** Redis é utilizado como um armazenamento de dados em memória, principalmente para sessões e dados de acesso rápido. A integração é feita via `@upstash/redis`.
 
@@ -82,6 +82,8 @@ Para que o assistente (Gemini Code Assist) entenda rapidamente a espinha dorsal 
 | `backend/middleware/auth.js` | Middleware de autenticação que valida o token JWT. |
 | `backend/routes/` | Diretório que contém todos os arquivos de rota da API (ex: `authRoutes.js`, `clansRoutes.js`). |
 | `backend/services/` | Diretório que contém a lógica de negócio desacoplada das rotas. |
+| `backend/utils/` | Diretório de utilitários puros e lógicas de jogo padronizadas (ex: `gameLogic.js`). |
+| `backend/scripts/` | Diretório com scripts de validação, manutenção e debug (ex: `check-schema.js`). |
 | `backend/migrations/` | Pasta com as migrações do banco de dados, gerenciadas por `node-pg-migrate`. |
 
 ### Frontend
