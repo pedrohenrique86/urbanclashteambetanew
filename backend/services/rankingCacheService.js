@@ -25,8 +25,8 @@ const { FACTION_ALIAS_MAP } = require("../utils/faction");
 const gameLogic = require("../utils/gameLogic");
 
 // ─── Constantes ────────────────────────────────────────────────────────────────
-const RANKINGS_USERS_PREFIX   = "rankings:users:";
-const RANKINGS_CLANS_PREFIX   = "rankings:clans:";
+const RANKINGS_USERS_PREFIX   = "ranking:users:";
+const RANKINGS_CLANS_PREFIX   = "ranking:clans:";
 const RANKINGS_TTL_SECONDS    = 700;   // ~11.7 min — maior que o ciclo
 const STANDARD_LIMIT          = 26;
 const LOCK_TTL_MS             = 30_000;
