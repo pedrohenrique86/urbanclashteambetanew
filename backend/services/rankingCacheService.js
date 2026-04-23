@@ -112,8 +112,12 @@ async function buildRankingFromZSet(faction) {
 
   let entries = [];
   if (!Array.isArray(zsetMembers) || zsetMembers.length === 0) {
+    console.log("[ranking] ℹ️ ZSET de ranking está vazio no Redis.");
     return [];
   }
+
+  // Debug do formato (ajuda a identificar a raiz na VM)
+  console.log(`[ranking] 🔍 Processando ${zsetMembers.length} membros do ZSET. Primeiro item:`, JSON.stringify(zsetMembers[0]));
 
   // Detecta formato Upstash (array plano) vs node-redis (array de objetos)
   if (typeof zsetMembers[0] === "string") {
@@ -122,14 +126,16 @@ async function buildRankingFromZSet(faction) {
       entries.push({ userId: zsetMembers[i], score: Number(zsetMembers[i + 1]) });
     }
   } else if (zsetMembers[0] && typeof zsetMembers[0] === "object") {
-    // node-redis: [{ value, score }]
-    entries = zsetMembers.map((e) => ({ userId: e.value || e.member, score: Number(e.score) }));
+    // node-redis (v4): [{ value, score }] ou format alternativo [{ member, score }]
+    entries = zsetMembers.map((e) => ({ 
+      userId: e.value || e.member || e.id, 
+      score: Number(e.score) 
+    })).filter(e => e.userId); // Remove entradas inválidas
   }
 
+  console.log(`[ranking] 📊 ${entries.length} entradas normalizadas para hidratação.`);
+
   // ─── 1.5 Validação de Existência (Ghost Cleanup) ──────────────────────────
-  // Como engenheiro sênior, garantimos que usuários deletados no PostgreSQL
-  // sejam removidos do Redis durante o ciclo de 10 minutos.
-  // Fazemos uma única query em lote para performance.
   const candidateIds = entries.map((e) => e.userId);
   if (candidateIds.length > 0) {
     try {
@@ -137,19 +143,12 @@ async function buildRankingFromZSet(faction) {
       const { rows } = await query(`SELECT id FROM users WHERE id IN (${placeholders})`, candidateIds);
       const existingIds = new Set(rows.map((r) => r.id));
 
-      const invalidIds = candidateIds.filter((id) => !existingIds.has(id));
-      if (invalidIds.length > 0) {
-        console.log(`[ranking] 👻 ${invalidIds.length} usuários removidos da 'users' detectados. Limpando...`);
-        for (const ghostId of invalidIds) {
-          // Remove do Redis (Hash e ZSET) para não aparecer no próximo ciclo
-          await playerStateService.deletePlayerState(ghostId).catch(() => {});
-        }
-        // Filtra da lista atual que será processada para o snapshot
+      if (existingIds.size < entries.length) {
+        console.log(`[ranking] 👻 Detectados usuários removidos do banco. Filtrando...`);
         entries = entries.filter((e) => existingIds.has(e.userId));
       }
     } catch (dbErr) {
       console.error("[ranking] ❌ Falha na validação de usuários fantasma:", dbErr.message);
-      // Se o banco falhar, mantemos a lista para não quebrar o ranking
     }
   }
 
