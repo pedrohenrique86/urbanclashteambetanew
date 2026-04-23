@@ -51,6 +51,7 @@ const DB_PERSIST_FIELDS = new Set([
   "money",
   "victories", "defeats", "winning_streak",
   "status", "status_ends_at",
+  "training_ends_at", "daily_training_count", "last_training_reset", "active_training_type",
 ]);
 
 // ─── Dirty TIPO 2: campos voláteis (NÃO persistem no safety-net, só via debounce
@@ -84,6 +85,10 @@ const FIELD_TO_SSE = {
   winning_streak    : "winningStreak",
   status            : "status",
   status_ends_at    : "statusEndsAt",
+  training_ends_at  : "trainingEndsAt",
+  daily_training_count: "dailyTrainingCount",
+  last_training_reset: "lastTrainingReset",
+  active_training_type: "activeTrainingType",
 };
 
 // ─── Campos numéricos no Redis Hash ──────────────────────────────────────────────
@@ -180,6 +185,28 @@ async function _checkAndResetAP(userId, redisKey) {
     // Marcar reset do dia com TTL de 48h
     await redisClient.setAsync(lockKey, "1", "EX", 172800);
     
+    return true;
+  }
+  return false;
+}
+
+/**
+ * Lazy Reset de Treinamentos Diários.
+ */
+async function _checkAndResetTrainingCount(userId, redisKey) {
+  const dateKey = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' });
+  const lockKey = `training_reset:${userId}:${dateKey}`;
+
+  const alreadyReset = await redisClient.getAsync(lockKey);
+  if (!alreadyReset) {
+    await redisClient.hSetAsync(redisKey, {
+      daily_training_count: "0",
+      last_training_reset: dateKey,
+      is_dirty: "1",
+      is_dirty_at: String(Date.now())
+    });
+
+    await redisClient.setAsync(lockKey, "1", "EX", 172800);
     return true;
   }
   return false;
@@ -326,8 +353,9 @@ async function getPlayerState(userId) {
   const raw = await redisClient.hGetAllAsync(redisKey);
 
   if (raw && Object.keys(raw).length > 0) {
-    // Executa Lazy Reset de AP em background (não bloqueia a leitura)
+    // Executa Lazy Resets em background
     _checkAndResetAP(userId, redisKey).catch(e => console.error("[apReset] Falha:", e.message));
+    _checkAndResetTrainingCount(userId, redisKey).catch(e => console.error("[trainingReset] Falha:", e.message));
     
     const parsed = _parseState(raw);
     
@@ -398,8 +426,9 @@ async function updatePlayerState(userId, updates) {
 
     await pipeline.exec();
 
-    // ── 2. Garante que AP está atualizado (Lazy Reset) ───────────────────────────
+    // ── 2. Garante que AP e Treinos estão atualizados (Lazy Reset) ───────────────
     await _checkAndResetAP(userId, redisKey);
+    await _checkAndResetTrainingCount(userId, redisKey);
 
     // ── 3. Renova TTL e lê estado ────────────────────────────────────────────────
     await redisClient.expireAsync(redisKey, PLAYER_TTL_SECONDS);

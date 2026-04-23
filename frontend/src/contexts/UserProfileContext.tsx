@@ -53,6 +53,10 @@ export interface UserProfile {
   money?: number;
   status?: string;
   status_ends_at?: string | null;
+  training_ends_at?: string | null;
+  daily_training_count?: number;
+  last_training_reset?: string;
+  active_training_type?: string | null;
 }
 
 export interface IUserProfileContext {
@@ -114,6 +118,11 @@ function mergePlayerStateIntoProfile(
  
   if (patch.status !== undefined) next.status = patch.status;
   if (patch.statusEndsAt !== undefined) next.status_ends_at = patch.statusEndsAt;
+  
+  if (patch.trainingEndsAt !== undefined) next.training_ends_at = patch.trainingEndsAt;
+  if (patch.dailyTrainingCount !== undefined) next.daily_training_count = patch.dailyTrainingCount;
+  if (patch.lastTrainingReset !== undefined) next.last_training_reset = patch.lastTrainingReset;
+  if (patch.activeTrainingType !== undefined) next.active_training_type = patch.activeTrainingType;
 
   return next;
 }
@@ -165,6 +174,10 @@ export const UserProfileProvider = ({ children }: { children: ReactNode }) => {
         streak: Number(profileData.streak) || 0,
         status: profileData.status || 'Operacional',
         status_ends_at: profileData.status_ends_at || null,
+        training_ends_at: profileData.training_ends_at || null,
+        daily_training_count: Number(profileData.daily_training_count) || 0,
+        last_training_reset: profileData.last_training_reset,
+        active_training_type: profileData.active_training_type || null,
       };
     },
     [],

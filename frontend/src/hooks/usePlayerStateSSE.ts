@@ -39,6 +39,10 @@ export interface PlayerStatePatch {
   winningStreak? : number;
   status?        : string;
   statusEndsAt?  : string | null;
+  trainingEndsAt?  : string | null;
+  dailyTrainingCount?: number;
+  lastTrainingReset?: string;
+  activeTrainingType?: string | null;
 }
 
 /**
