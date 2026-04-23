@@ -120,21 +120,6 @@ async function tableExists(tableName) {
   }
 }
 
-// Função para limpar sessões expiradas
-async function cleanExpiredSessions() {
-  try {
-    const result = await query(
-      "DELETE FROM user_sessions WHERE expires_at < NOW()",
-    );
-    if (result.rowCount > 0) {
-      console.log(
-        `🧹 Limpeza de sessões: ${result.rowCount} sessões expiradas removidas do banco`,
-      );
-    }
-  } catch (error) {
-    console.error("❌ Erro ao limpar sessões expiradas:", error.message);
-  }
-}
 
 // Função para limpar mensagens de chat antigas (24h)
 async function cleanExpiredChatMessages() {
@@ -156,7 +141,6 @@ async function cleanExpiredChatMessages() {
 async function runMaintenanceOperations() {
   console.log("🧹 Iniciando operações de manutenção (Sessões e Chat)...");
   await Promise.allSettled([
-    cleanExpiredSessions(),
     cleanExpiredChatMessages()
   ]);
   console.log("✅ Operações de manutenção concluídas.");
@@ -512,7 +496,6 @@ module.exports = {
   transaction,
   connectDB,
   tableExists,
-  cleanExpiredSessions,
   cleanExpiredChatMessages,
   closePool,
   seedClans,

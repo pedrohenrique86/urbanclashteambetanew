@@ -1,92 +1,61 @@
-# ⚙️ CODE MODE — Execução de Código com Fallback Seguro (Gemini)
+# ⚡ CODE MODE — Protocolo de Elite (Gemini x UrbanClash)
 
-Este arquivo define como o Gemini Code Assist deve se comportar ao gerar ou modificar código.
-
----
-
-## 🎯 OBJETIVO
-
-- **Entrega de Código Funcional:** Gerar código que seja diretamente aplicável e alinhado com as tecnologias do projeto (React/TypeScript no frontend, Node.js/Express no backend).
-- **Autonomia com Segurança:** Utilizar o modo de execução para aplicar alterações de forma autônoma, sempre que possível, mas com mecanismos de fallback para garantir a integridade do código.
-- **Consistência Arquitetural:** Seguir rigorosamente as decisões definidas no `DECISIONS.md` para manter a consistência do monorepo.
+Este arquivo define o DNA operacional do Gemini no projeto UrbanClash Team. Ele deve ser seguido rigorosamente para garantir que a IA atue como um desenvolvedor sênior, focado em execução e fidelidade técnica.
 
 ---
 
-## 🧠 MODO DE OPERAÇÃO: FOCO NA EXECUÇÃO
-
-O Gemini deve operar em **modo de execução**, priorizando a aplicação de código sobre a explicação.
-
-1.  **Analisar:** Entender a solicitação e consultar os arquivos de contexto (`PROJECT_CONTEXT.md`, `DECISIONS.md`).
-2.  **Executar:** Aplicar as alterações diretamente nos arquivos do projeto.
-3.  **Confirmar:** Informar o que foi feito de forma concisa.
+## 🎯 1. MISSÃO E IDENTIDADE
+- **Foco:** Execução sobre explicação. Entregue código, não promessas.
+- **Padrão:** AAA Gaming Aesthetic. Todo componente de UI deve parecer parte de um HUD tático de alto nível.
+- **Arquitetura:** Monorepo (Node/Express + React/Vite/TS).
 
 ---
 
-## 🚫 REGRAS ESTRITAS (NÃO FAZER)
+## 🚀 2. PROTOCOLO DE EXECUÇÃO (AGENT FIRST)
 
-- **Não parar na análise:** Nunca explicar o que vai ser feito sem efetivamente fazer.
-- **Não enviar código parcial:** Sempre fornecer o bloco de código completo para substituição, a menos que a ferramenta de `diff` seja usada.
-- **Não ignorar o workspace:** Nunca aplicar uma alteração sem especificar claramente se é no `frontend` ou `backend`.
-- **Não inventar arquitetura:** Seguir os padrões de serviços, componentes e rotas já estabelecidos no `DECISIONS.md`.
-
----
-
-## ✅ OBRIGATÓRIO
-
-1. Entregar uma solução completa (aplicada ou em fallback)
-2. Garantir que o código pode ser usado imediatamente
-3. Trabalhar com arquivos reais do projeto (usar `@` para referenciar)
-4. Seguir a arquitetura definida em `.ai`
+O Gemini opera em modo autônomo. O fluxo obrigatório para cada tarefa é:
+1.  **Check Context:** Ler arquivos na pasta `.ai/` e `skills/` (AUTOMÁTICO).
+2.  **Verify Schema:** Verificar tabelas no banco (Postgres) ou estados no Redis antes de criar queries.
+3.  **Apply Changes:** Usar ferramentas de edição de arquivo para aplicar o código diretamente.
+4.  **Verification:** Confirmar se o código respeita o TypeScript estrito e as regras de linting.
 
 ---
 
-## ⚡ MODO HÍBRIDO (PADRÃO)
+## 🔥 3. EXECUTOR TOTAL (SEM COPIAR E COLAR)
 
-**Prioridade 1:** Usar **Agent Mode** para aplicar as alterações diretamente nos arquivos.  
-**Prioridade 2:** Se o Agent Mode não estiver disponível ou falhar, fornecer **código completo** para substituição manual.
+A missão primordial do Gemini é **aplicar as alterações**. O envio de código para o usuário "colar manualmente" é considerado uma falha no processo de assistência.
+- **Ação Direta:** Use `replace_file_content` ou `write_to_file` para cada mudança.
+- **Resiliência:** Se a aplicação de um `diff` falhar, tente aplicar o arquivo inteiro ou corrigir o erro de ferramenta imediatamente.
+- **Último Recurso:** Apenas se o ambiente impedir fisicamente a escrita (ex: erro de permissão do sistema), forneça o código com o caminho absoluto, mas sempre reportando o erro técnico que impediu a automação.
 
 ---
 
-## 🔥 FALLBACK OBRIGATÓRIO: CÓDIGO COMPLETO
+## 🛠️ 4. DIRETRIZES TÉCNICAS INEGOCIÁVEIS
 
-Se a aplicação automática de código falhar por qualquer motivo (erro da ferramenta, arquivo não encontrado, etc.), o Gemini deve **imediatamente** fornecer o código completo do arquivo, pronto para ser copiado e colado.
+### 🖥️ Backend (Node.js ESM)
+- **Zero ORM:** Use apenas o driver `pg`. Queries parametrizadas (`$1, $2`) são mandatórias.
+- **ESM Strict:** Todo import local **PRECISA** ter a extensão `.js` (ex: `import { db } from './db.js';`).
+- **Services Pattern:** Lógica de negócio fica em `services/`, rotas apenas gerenciam req/res.
 
-O formato deve ser claro e indicar o caminho completo do arquivo no monorepo.
+### 🎨 Frontend (React + Tailwind + TS)
+- **Gaming UI:** Seguir a estética HUD (Glassmorphism, Neon, Blur, Orbitron font).
+- **Data Fetching:** SWR é o padrão ouro. Não use `useEffect` para fetch de dados se o SWR puder resolver.
+- **Path Aliases:** Sempre use `@/components/`, `@/lib/`, etc.
+- **Lucide Icons:** Use `lucide-react` para ícones consistentes.
 
-### Exemplo para um Componente React (Frontend):
+---
 
-```tsx c:/Users/Administrador/Documents/urbanclashteambetanew/frontend/src/components/common/Button.tsx
-import React from 'react';
+## 🛡️ 5. REGRAS DE SEGURANÇA E QUALIDADE
+- **Idempotência:** Migrações e seeds devem usar `IF NOT EXISTS` ou verificações prévias para nunca quebrarem em execuções repetidas.
+- **Type Safety:** `"strict": true` no TS. Proibido usar `any`. Se o tipo for desconhecido, crie a Interface ou use `unknown`.
+- **Limpeza:** Remova códigos mortos, comentários de debug e variáveis não utilizadas.
 
-interface ButtonProps {
-  children: React.ReactNode;
-  onClick: () => void;
-}
+---
 
-const Button: React.FC<ButtonProps> = ({ children, onClick }) => {
-  return (
-    <button onClick={onClick} className="bg-blue-500 text-white p-2 rounded">
-      {children}
-    </button>
-  );
-};
+## 🏁 6. CHECKLIST PRÉ-ENTREGA
+- [ ] O código foi **efetivamente aplicado** nos arquivos do workspace?
+- [ ] O backend incluiu `.js` nos imports?
+- [ ] A UI tem hover effects e micro-animações "gaming"?
+- [ ] O código respeita a tipagem estrita do TypeScript?
 
-export default Button;
-```
-
-### Exemplo para um Serviço (Backend):
-
-```javascript c:/Users/Administrador/Documents/urbanclashteambetanew/backend/services/playerService.js
-import db from '../config/database.js';
-
-const getPlayerById = async (id) => {
-  const { rows } = await db.query('SELECT * FROM players WHERE id = $1', [id]);
-  return rows[0];
-};
-
-export default {
-  getPlayerById,
-};
-```
-
-> **Nota:** O caminho do arquivo deve ser **absoluto e correto**, e a linguagem (`tsx`, `javascript`, etc.) deve ser especificada.
+> **Nota:** Este modo de operação transforma o Gemini em um braço executor do usuário, eliminando a barreira do "copy-paste".
