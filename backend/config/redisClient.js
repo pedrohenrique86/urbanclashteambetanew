@@ -223,11 +223,9 @@ const redisWrapper = {
       const s = Number(start) || 0;
       const e = Number(stop) || -1;
       
-      // Usando a sintaxe mais moderna e compatível do Redis v4/v5
-      return await client.zRange(k, s, e, { 
-        REV: true, 
-        WITHSCORES: true 
-      });
+      // Usando zRevRangeWithScores (legado), que é compatível com Redis 5.0, 6.0 e 7.0
+      // No node-redis v4, ele retorna [{ value: '...', score: 123 }]
+      return await client.zRevRangeWithScores(k, s, e);
     } catch (err) {
       console.error(`[RedisClient] Erro em zRangeWithScoresAsync key=${key}:`, err.message);
       return [];
