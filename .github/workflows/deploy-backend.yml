@@ -1,50 +1,56 @@
-name: Deploy Backend to Oracle
+name: Unified Deploy (Frontend & Backend)
 
 on:
   push:
     branches: [ main ]
-    paths:
-      - 'backend/**'
-      - 'Dockerfile.backend'
-      - '.github/workflows/deploy-backend.yml'
+  workflow_dispatch: # Permite rodar manualmente se precisar
 
 jobs:
-  deploy:
+  # --- DEPLOY DO BACKEND NA ORACLE ---
+  deploy-backend:
+    name: 🚀 Deploy Backend (Oracle VPS)
     runs-on: ubuntu-latest
     steps:
-      - name: Deploy to Oracle VPS via SSH
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: SSH into Oracle and Update Container
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.ORACLE_HOST }}
           username: ${{ secrets.ORACLE_USERNAME }}
           key: ${{ secrets.ORACLE_SSH_KEY }}
           script: |
-            # Entrar na pasta do projeto
             cd ~/urbanclashteambetanew
-            
-            # Atualizar o código
             git pull origin main
-            
-            # Construir a nova imagem
             sudo docker build -f Dockerfile.backend -t urbanclash-backend .
-            
-            # Parar e remover o container antigo se ele existir
             sudo docker stop urbanclash-backend || true
             sudo docker rm urbanclash-backend || true
-            
-            # Iniciar o novo container com as variáveis do GitHub Secrets
             sudo docker run -d \
               --name urbanclash-backend \
-              -p 3001:3001 \
+              -p 80:3001 \
               -e DATABASE_URL="${{ secrets.DATABASE_URL }}" \
               -e REDIS_URL="${{ secrets.REDIS_URL }}" \
               -e JWT_SECRET="${{ secrets.JWT_SECRET }}" \
               -e GOOGLE_CLIENT_ID="${{ secrets.GOOGLE_CLIENT_ID }}" \
               -e GOOGLE_CLIENT_SECRET="${{ secrets.GOOGLE_CLIENT_SECRET }}" \
               -e RESEND_API_KEY="${{ secrets.RESEND_API_KEY }}" \
+              -e FRONTEND_URL="${{ secrets.FRONTEND_URL }}" \
+              -e BACKEND_URL="${{ secrets.BACKEND_URL }}" \
               -e FROM_EMAIL="no-reply@urbanclash.com" \
-              -e FRONTEND_URL="https://www.urbanclashteam.com" \
-              -e BACKEND_URL="https://api.urbanclashteam.com" \
               -e NODE_ENV=production \
               --restart always \
               urbanclash-backend
+
+  # --- MONITORAMENTO DO DEPLOY DO FRONTEND NO CLOUDFLARE ---
+  deploy-frontend:
+    name: 🌐 Monitor Frontend (Cloudflare Pages)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Wait for Cloudflare Pages Deployment
+        uses: WalshyDev/cf-pages-await@v1
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          project: urbanclashteambetanew
+          # Ele vai ficar vigiando o deploy automático que o Cloudflare já faz
