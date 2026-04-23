@@ -256,6 +256,7 @@ function getFactionStats(faction) {
       attack          : 8,
       defense         : 3,
       focus           : 5,
+      luck            : 0,
       intimidation    : 35.0,
       discipline      : 0.0,
       // critical_chance: pontos brutos acumulados — começa em 0, cresce nos treinos
@@ -273,6 +274,7 @@ function getFactionStats(faction) {
       attack          : 5,
       defense         : 6,
       focus           : 6,
+      luck            : 0,
       intimidation    : 0.0,
       discipline      : 40.0,
       critical_chance : 0,
@@ -285,6 +287,7 @@ function getFactionStats(faction) {
     attack          : 0,
     defense         : 0,
     focus           : 0,
+    luck            : 0,
     intimidation    : 0.0,
     discipline      : 0.0,
     critical_chance : 0,
@@ -409,6 +412,7 @@ router.post("/profile", authenticateToken, async (req, res) => {
         focus,
         intimidation,
         discipline,
+        luck,
         critical_chance,
         critical_damage,
         money,
@@ -420,7 +424,7 @@ router.post("/profile", authenticateToken, async (req, res) => {
       VALUES (
         $1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
         $11, $12, $13, $14, $15, $16, $17, $18, $19, $20,
-        $21
+        $21, $22
       )
       `,
       [
@@ -438,6 +442,7 @@ router.post("/profile", authenticateToken, async (req, res) => {
         factionStats.focus,
         factionStats.intimidation,
         factionStats.discipline,
+        factionStats.luck,
         factionStats.critical_chance,
         factionStats.critical_damage,
         factionStats.money,

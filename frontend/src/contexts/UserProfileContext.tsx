@@ -45,8 +45,11 @@ export interface UserProfile {
   attack?: number;
   defense?: number;
   focus?: number;
+  luck?: number;
   intimidation?: number;
   discipline?: number;
+  crit_chance_pct?: number;
+  crit_damage_mult?: number;
   max_energy?: number;
   xp_required?: number;
   action_points?: number;
@@ -106,6 +109,9 @@ function mergePlayerStateIntoProfile(
   if (patch.attack !== undefined) next.attack = patch.attack;
   if (patch.defense !== undefined) next.defense = patch.defense;
   if (patch.focus !== undefined) next.focus = patch.focus;
+  if (patch.luck !== undefined) next.luck = patch.luck;
+  if (patch.critChance !== undefined) next.crit_chance_pct = patch.critChance;
+  if (patch.critDamage !== undefined) next.crit_damage_mult = patch.critDamage;
   if (patch.cash !== undefined) next.money = patch.cash;
   if (patch.intimidation !== undefined) next.intimidation = patch.intimidation;
   if (patch.discipline !== undefined) next.discipline = patch.discipline;
@@ -159,8 +165,11 @@ export const UserProfileProvider = ({ children }: { children: ReactNode }) => {
         attack: Number(profileData.attack) || 0,
         defense: Number(profileData.defense) || 0,
         focus: Number(profileData.focus) || 0,
+        luck: Number(profileData.luck) || 0,
         intimidation: Number(profileData.intimidation) || 0,
         discipline: Number(profileData.discipline) || 0,
+        crit_chance_pct: Number(profileData.crit_chance_pct) || 0,
+        crit_damage_mult: Number(profileData.crit_damage_mult) || 0,
         max_energy: Number(profileData.max_energy) || 100,
         xp_required: Number(profileData.xp_required) || 0,
         action_points: Number(profileData.action_points) || 0,

@@ -45,7 +45,7 @@ const RANKING_FIELDS = new Set(["total_xp", "level"]);
 // Subconjunto de DB_PERSIST_FIELDS — apenas dados de progressão permanente
 const DB_PERSIST_FIELDS = new Set([
   "total_xp", "level",
-  "attack", "defense", "focus",
+  "attack", "defense", "focus", "luck",
   "critical_chance", "critical_damage",
   "intimidation", "discipline",
   "money",
@@ -75,6 +75,7 @@ const FIELD_TO_SSE = {
   attack            : "attack",
   defense           : "defense",
   focus             : "focus",
+  luck              : "luck",
   critical_damage   : "critDamage",
   critical_chance   : "critChance",
   money             : "cash",

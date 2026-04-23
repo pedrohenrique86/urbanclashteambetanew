@@ -60,6 +60,7 @@ const TopBar: React.FC<TopBarProps> = ({ userProfile }) => {
     { label: "FOC", value: userProfile?.focus ?? "-", className: "text-pink-400", glowColor: "#ec4899", tooltip: "Foco" },
     { label: "CRIT DMG", value: combat.criticalDamage?.toFixed?.(1) ?? "-", className: "text-rose-400", glowColor: "#f43f5e", tooltip: "Dano Crítico" },
     { label: "CRIT%", value: `${combat.criticalChance?.toFixed?.(0) ?? 0}%`, className: "text-yellow-400", glowColor: "#eab308", tooltip: "Chance Crítico" },
+    { label: "LUCK", value: `${Number(userProfile?.luck ?? 0).toFixed(2)}%`, className: "text-emerald-400", glowColor: "#34d399", tooltip: "Sorte (Bônus de Loot & Drop)" },
     { label: "Cash", value: `$${(userProfile?.money ?? 0).toLocaleString("pt-BR")}`, className: "text-lime-400", glowColor: "#84cc16", tooltip: "Dinheiro" },
   ], [userProfile, xpText, energyText, xpPercentage, energyPercentage, combat]);
 

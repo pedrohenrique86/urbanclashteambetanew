@@ -57,6 +57,7 @@ export interface UserProfile {
   action_points?: number;
   attack?: number;
   focus?: number;
+  luck?: number;
   critical_damage?: number;
   created_at?: string;
   updated_at?: string;

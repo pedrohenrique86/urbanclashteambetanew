@@ -277,6 +277,78 @@ const StatisticsPanel = React.memo(({ user }: { user: any }) => (
   </DashboardPanel>
 ));
 
+// --- Painel de Poder de Combate (Power Solo/War) ---
+const PowerPanel = React.memo(({ user }: { user: any }) => {
+  const atk = user.attack || 0;
+  const def = user.defense || 0;
+  const foc = user.focus || 0;
+  const level = user.level || 1;
+  const critChance = user.crit_chance_pct || 0;
+  const critMult = user.crit_damage_mult || 0;
+  const specialValue = user.intimidation || user.discipline || 0;
+
+  // Cálculos baseados no backend
+  const powerSolo = Math.floor(
+    atk * 10 + def * 15 + foc * 8 + level * 50 + critChance * 2 + critMult * 10
+  );
+  const powerWar = Math.floor(powerSolo + specialValue * 10);
+
+  return (
+    <DashboardPanel
+      title="PODER DE COMBATE"
+      icon={<ShieldCheckIcon className="w-6 h-6 text-yellow-400" />}
+      className="border-yellow-500/30 shadow-[0_0_15px_rgba(234,179,8,0.1)]"
+    >
+      <div className="flex flex-col justify-around h-full p-2 space-y-4">
+        {/* Power Solo */}
+        <div className="relative group flex justify-between items-center bg-black/40 p-3 rounded-xl border border-white/5">
+          <div>
+            <p className="text-xs text-slate-400 uppercase tracking-widest font-bold">Power Solo</p>
+            <p className="text-2xl font-orbitron font-black text-white">{powerSolo.toLocaleString()}</p>
+          </div>
+          <div className="w-8 h-8 rounded-full bg-zinc-800 flex items-center justify-center text-zinc-400 cursor-help">
+            ?
+          </div>
+          {/* Tooltip Hover */}
+          <div className="absolute bottom-full right-0 mb-2 w-64 bg-zinc-900 border border-zinc-700 text-xs text-slate-300 p-3 rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 pointer-events-none">
+            <h4 className="font-bold text-white mb-2 border-b border-zinc-700 pb-1">Cálculo Power Solo</h4>
+            <ul className="space-y-1 font-mono">
+              <li>ATK ({atk}) × 10 = {atk * 10}</li>
+              <li>DEF ({def}) × 15 = {def * 15}</li>
+              <li>FOC ({foc}) × 8 = {foc * 8}</li>
+              <li>CRIT% ({critChance}%) × 2 = {Math.floor(critChance * 2)}</li>
+              <li>CRITx ({critMult}x) × 10 = {Math.floor(critMult * 10)}</li>
+              <li>NÍVEL ({level}) × 50 = {level * 50}</li>
+            </ul>
+            <div className="mt-2 text-yellow-400 border-t border-zinc-700 pt-1 font-bold">Total: {powerSolo}</div>
+          </div>
+        </div>
+
+        {/* Power War */}
+        <div className="relative group flex justify-between items-center bg-black/40 p-3 rounded-xl border border-yellow-500/20">
+          <div>
+            <p className="text-xs text-yellow-500/80 uppercase tracking-widest font-bold">Power War</p>
+            <p className="text-2xl font-orbitron font-black text-yellow-400 drop-shadow-[0_0_8px_rgba(234,179,8,0.5)]">{powerWar.toLocaleString()}</p>
+          </div>
+          <div className="w-8 h-8 rounded-full bg-yellow-500/20 flex items-center justify-center text-yellow-500 cursor-help">
+            ?
+          </div>
+          {/* Tooltip Hover */}
+          <div className="absolute bottom-full right-0 mb-2 w-64 bg-zinc-900 border border-yellow-500/50 text-xs text-slate-300 p-3 rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 pointer-events-none">
+            <h4 className="font-bold text-yellow-400 mb-2 border-b border-yellow-500/30 pb-1">Cálculo Power War</h4>
+            <p className="mb-2 text-[10px]">O poder verdadeiro revelado apenas no PvP. Utiliza os bônus ocultos de sua facção.</p>
+            <ul className="space-y-1 font-mono">
+              <li>Power Solo Base: {powerSolo}</li>
+              <li>Habilidade ({specialValue}%) × 10 = {Math.floor(specialValue * 10)}</li>
+            </ul>
+            <div className="mt-2 text-yellow-400 border-t border-yellow-500/30 pt-1 font-bold">Total PVP: {powerWar}</div>
+          </div>
+        </div>
+      </div>
+    </DashboardPanel>
+  );
+});
+
 // --- Página Principal do Dashboard ---
 export default function DashboardPage() {
   const { userProfile } = useUserProfile();
@@ -289,8 +361,9 @@ export default function DashboardPage() {
 
   return (
     <div className="flex justify-center p-6">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full max-w-2xl">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 w-full max-w-6xl">
         <LevelPanel user={userProfile} />
+        <PowerPanel user={userProfile} />
         <ResourcesPanel user={userProfile} />
         <FactionPanel user={userProfile} />
         <StatisticsPanel user={userProfile} />
