@@ -222,7 +222,12 @@ const redisWrapper = {
       const k = String(key);
       const s = Number(start) || 0;
       const e = Number(stop) || -1;
-      return await client.zRangeWithScores(k, s, e, { REV: true });
+      
+      // Usando a sintaxe mais moderna e compatível do Redis v4/v5
+      return await client.zRange(k, s, e, { 
+        REV: true, 
+        WITHSCORES: true 
+      });
     } catch (err) {
       console.error(`[RedisClient] Erro em zRangeWithScoresAsync key=${key}:`, err.message);
       return [];
