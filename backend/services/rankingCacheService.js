@@ -153,11 +153,18 @@ async function buildRankingFromZSet(faction) {
     }
   }
 
-  // 2. Hidrata perfis do Redis Hash (sem bater no banco)
   const hydratedPlayers = [];
   for (const { userId } of entries) {
-    const state = await playerStateService.getPlayerState(userId);
-    if (!state) continue;
+    // Tenta pegar do Redis. Se não houver, o getPlayerState JÁ TEM o fallback
+    // para carregar do Banco de Dados (loadPlayerState).
+    let state = await playerStateService.getPlayerState(userId);
+    
+    // Se ainda assim for null, significa que o user_id no ZSET é órfão (não existe mais na user_profiles)
+    if (!state) {
+      console.warn(`[ranking] ⚠️ Jogador ${userId} está no ZSET mas não foi encontrado no Banco. Removendo...`);
+      await playerStateService.deletePlayerState(userId).catch(() => {});
+      continue;
+    }
 
     // Filtra por facção se necessário
     if (faction) {
