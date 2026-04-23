@@ -17,10 +17,15 @@ if (!["up", "down"].includes(action)) {
 }
 
 const envVarName = target === "dev" ? "DATABASE_URL_DEV" : "DATABASE_URL_PROD";
-const databaseUrl = process.env[envVarName];
+let databaseUrl = process.env[envVarName];
+
+// Fallback para DATABASE_URL (padrão do Render) se estiver em prod
+if (!databaseUrl && target === "prod") {
+  databaseUrl = process.env.DATABASE_URL;
+}
 
 if (!databaseUrl) {
-  console.error(`A variável ${envVarName} não está definida no arquivo .env`);
+  console.error(`A variável ${envVarName} (ou DATABASE_URL) não está definida.`);
   process.exit(1);
 }
 
