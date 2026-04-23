@@ -287,11 +287,11 @@ const PowerPanel = React.memo(({ user }: { user: any }) => {
   const critMult = user.crit_damage_mult || 0;
   const specialValue = user.intimidation || user.discipline || 0;
 
-  // Cálculos baseados no backend
+  // Cálculos baseados no backend - ESCALA REALISTA DE INÍCIO
   const powerSolo = Math.floor(
-    atk * 10 + def * 15 + foc * 8 + level * 50 + critChance * 2 + critMult * 10
+    atk * 1 + def * 1 + foc * 0.5 + level * 5 + critChance * 0.2 + critMult * 1
   );
-  const powerWar = Math.floor(powerSolo + specialValue * 10);
+  const powerWar = Math.floor(powerSolo + specialValue * 1);
 
   return (
     <DashboardPanel
@@ -313,12 +313,12 @@ const PowerPanel = React.memo(({ user }: { user: any }) => {
           <div className="absolute bottom-full right-0 mb-2 w-64 bg-zinc-900 border border-zinc-700 text-xs text-slate-300 p-3 rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 pointer-events-none">
             <h4 className="font-bold text-white mb-2 border-b border-zinc-700 pb-1">Cálculo Power Solo</h4>
             <ul className="space-y-1 font-mono">
-              <li>ATK ({atk}) × 10 = {atk * 10}</li>
-              <li>DEF ({def}) × 15 = {def * 15}</li>
-              <li>FOC ({foc}) × 8 = {foc * 8}</li>
-              <li>CRIT% ({critChance}%) × 2 = {Math.floor(critChance * 2)}</li>
-              <li>CRITx ({critMult}x) × 10 = {Math.floor(critMult * 10)}</li>
-              <li>NÍVEL ({level}) × 50 = {level * 50}</li>
+              <li>ATK ({atk}) × 1 = {atk * 1}</li>
+              <li>DEF ({def}) × 1 = {def * 1}</li>
+              <li>FOC ({foc}) × 0.5 = {foc * 0.5}</li>
+              <li>CRIT% ({critChance}%) × 0.2 = {(critChance * 0.2).toFixed(1)}</li>
+              <li>CRITx ({critMult}x) × 1 = {critMult * 1}</li>
+              <li>NÍVEL ({level}) × 5 = {level * 5}</li>
             </ul>
             <div className="mt-2 text-yellow-400 border-t border-zinc-700 pt-1 font-bold">Total: {powerSolo}</div>
           </div>
@@ -339,7 +339,7 @@ const PowerPanel = React.memo(({ user }: { user: any }) => {
             <p className="mb-2 text-[10px]">O poder verdadeiro revelado apenas no PvP. Utiliza os bônus ocultos de sua facção.</p>
             <ul className="space-y-1 font-mono">
               <li>Power Solo Base: {powerSolo}</li>
-              <li>Habilidade ({specialValue}%) × 10 = {Math.floor(specialValue * 10)}</li>
+              <li>Habilidade ({specialValue}%) × 1 = {specialValue * 1}</li>
             </ul>
             <div className="mt-2 text-yellow-400 border-t border-yellow-500/30 pt-1 font-bold">Total PVP: {powerWar}</div>
           </div>
