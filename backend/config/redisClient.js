@@ -220,12 +220,12 @@ const redisWrapper = {
     if (!key || !isReady) return [];
     try {
       const k = String(key);
-      const s = Number(start) || 0;
-      const e = Number(stop) || -1;
+      const s = String(start || 0);
+      const e = String(stop || -1);
       
-      // Usando zRevRangeWithScores (legado), que é compatível com Redis 5.0, 6.0 e 7.0
-      // No node-redis v4, ele retorna [{ value: '...', score: 123 }]
-      return await client.zRevRangeWithScores(k, s, e);
+      // sendCommand é o método mais compatível: funciona em Redis 5, 6 e 7
+      // Retorna um array plano: [member1, score1, member2, score2...]
+      return await client.sendCommand(['ZREVRANGE', k, s, e, 'WITHSCORES']);
     } catch (err) {
       console.error(`[RedisClient] Erro em zRangeWithScoresAsync key=${key}:`, err.message);
       return [];
