@@ -1,0 +1,50 @@
+name: Deploy Backend to Oracle
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'backend/**'
+      - 'Dockerfile.backend'
+      - '.github/workflows/deploy-backend.yml'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to Oracle VPS via SSH
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.ORACLE_HOST }}
+          username: ${{ secrets.ORACLE_USERNAME }}
+          key: ${{ secrets.ORACLE_SSH_KEY }}
+          script: |
+            # Entrar na pasta do projeto
+            cd ~/urbanclashteambetanew
+            
+            # Atualizar o código
+            git pull origin main
+            
+            # Construir a nova imagem
+            sudo docker build -f Dockerfile.backend -t urbanclash-backend .
+            
+            # Parar e remover o container antigo se ele existir
+            sudo docker stop urbanclash-backend || true
+            sudo docker rm urbanclash-backend || true
+            
+            # Iniciar o novo container com as variáveis do GitHub Secrets
+            sudo docker run -d \
+              --name urbanclash-backend \
+              -p 3001:3001 \
+              -e DATABASE_URL="${{ secrets.DATABASE_URL }}" \
+              -e REDIS_URL="${{ secrets.REDIS_URL }}" \
+              -e JWT_SECRET="${{ secrets.JWT_SECRET }}" \
+              -e GOOGLE_CLIENT_ID="${{ secrets.GOOGLE_CLIENT_ID }}" \
+              -e GOOGLE_CLIENT_SECRET="${{ secrets.GOOGLE_CLIENT_SECRET }}" \
+              -e RESEND_API_KEY="${{ secrets.RESEND_API_KEY }}" \
+              -e FROM_EMAIL="no-reply@urbanclash.com" \
+              -e FRONTEND_URL="https://www.urbanclashteam.com" \
+              -e BACKEND_URL="https://api.urbanclashteam.com" \
+              -e NODE_ENV=production \
+              --restart always \
+              urbanclash-backend
