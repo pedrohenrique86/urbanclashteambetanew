@@ -9,28 +9,22 @@
     "predev": "docker-compose -f ../docker-compose.yml up -d redis",
     "dev": "wait-on tcp:6379 && nodemon server.js",
     "test": "jest",
-
     "migrate": "node-pg-migrate",
     "migrate:create": "npm run migrate -- create",
     "migrate:up": "npm run migrate -- up",
     "migrate:down": "npm run migrate -- down",
-
     "migrate:up:dev": "node scripts/run-migrate.js dev up",
     "migrate:down:dev": "node scripts/run-migrate.js dev down",
     "migrate:up:prod": "node scripts/run-migrate.js prod up",
     "migrate:down:prod": "node scripts/run-migrate.js prod down",
-
     "migrate:up:all": "npm run migrate:up:dev && npm run migrate:up:prod",
     "migrate:down:all": "npm run migrate:down:prod && npm run migrate:down:dev",
-
     "migrate:create:random": "node scripts/create-migration-random.js",
-
     "seed:dev": "node scripts/run-seed.js dev",
     "seed:prod": "node scripts/run-seed.js prod",
     "seed:all": "npm run seed:dev && npm run seed:prod"
   },
   "dependencies": {
-    "@upstash/redis": "^1.37.0",
     "axios": "^1.6.8",
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",

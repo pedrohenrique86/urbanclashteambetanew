@@ -1,43 +1,40 @@
-const { Redis } = require("@upstash/redis");
 const redis = require("redis");
 
 let client = null;
 let isReady = false;
-let isUpstash = false;
 
-// Expõe para playerStateService usar ZSET sem duplicar lógica local/Upstash
+// Mantemos as funções que eram expostas, para não quebrar dependências.
+// isUpstash agora sempre retorna false, já que migramos para local.
 function getRawClient() { return client; }
-function getIsUpstash() { return isUpstash; }
+function getIsUpstash() { return false; }
 
 async function initRedis() {
   try {
-    if (
-      process.env.UPSTASH_REDIS_REST_URL &&
-      process.env.UPSTASH_REDIS_REST_TOKEN
-    ) {
-      // Configuração para Upstash (produção)
-      client = new Redis({
-        url: process.env.UPSTASH_REDIS_REST_URL,
-        token: process.env.UPSTASH_REDIS_REST_TOKEN,
-      });
-      isUpstash = true;
-      isReady = true;
-      console.log("✅ Redis (Upstash) OK");
-    } else {
-      // Configuração para Redis local (desenvolvimento)
-      const localClient = redis.createClient({
-        url: process.env.REDIS_URL || "redis://localhost:6379",
-      });
+    const localClient = redis.createClient({
+      url: process.env.REDIS_URL || "redis://127.0.0.1:6379",
+      password: process.env.REDIS_PASSWORD || undefined, // caso necessite de requirepass
+    });
 
-      localClient.on("error", (err) => {
-        console.error("[RedisClient] Erro na conexão do client Local:", err.message);
-      });
+    localClient.on("error", (err) => {
+      console.error("[RedisClient] Erro na conexão do client Local:", err.message);
+    });
 
-      await localClient.connect();
-      client = localClient;
+    localClient.on("ready", () => {
+      console.log("✅ Redis (Local) Pronto");
       isReady = true;
-      console.log("✅ Redis (Local) OK");
-    }
+    });
+
+    localClient.on("reconnecting", () => {
+      console.log("[RedisClient] Reconectando ao Redis...");
+      isReady = false;
+    });
+
+    await localClient.connect();
+    client = localClient;
+    // O evento 'ready' atualiza isReady para true. 
+    // Em alguns casos pode ser necessário marcar aqui também
+    isReady = true; 
+    console.log("✅ Redis (Local) OK");
   } catch (err) {
     console.error(`[RedisClient] Redis indisponível durante inicialização:`, err.message);
     client = null;
@@ -72,15 +69,9 @@ const redisWrapper = {
       const key = String(k);
       const val = String(v ?? "");
 
-      if (isUpstash) {
-        return m === "EX" && t
-          ? await client.set(key, val, { ex: t })
-          : await client.set(key, val);
-      } else {
-        return m === "EX" && t
-          ? await client.setEx(key, t, val)
-          : await client.set(key, val);
-      }
+      return m === "EX" && t
+        ? await client.setEx(key, t, val)
+        : await client.set(key, val);
     } catch (err) {
       console.error(`[RedisClient] Erro em setAsync key=${k}:`, err.message);
       return null;
@@ -110,23 +101,13 @@ const redisWrapper = {
         for (const [objKey, objVal] of Object.entries(f)) {
           normalizedObj[String(objKey)] = String(objVal ?? "");
         }
-
-        if (isUpstash) {
-          return await client.hset(key, normalizedObj);
-        } else {
-          return await client.hSet(key, normalizedObj);
-        }
+        return await client.hSet(key, normalizedObj);
       }
       
       // 2. Caso f seja field/value individual
       const field = String(f);
       const value = String(v ?? "");
-      
-      if (isUpstash) {
-        return await client.hset(key, field, value);
-      } else {
-        return await client.hSet(key, field, value);
-      }
+      return await client.hSet(key, field, value);
     } catch (err) {
       console.error(`[RedisClient] Erro em hSetAsync key=${k}:`, err.message);
       return null;
@@ -140,8 +121,6 @@ const redisWrapper = {
     try {
       const key = String(k);
       const field = String(f);
-
-      if (isUpstash) return await client.hget(key, field);
       return await client.hGet(key, field);
     } catch (err) {
       console.error(`[RedisClient] Erro em hGetAsync key=${k} field=${f}:`, err.message);
@@ -153,7 +132,6 @@ const redisWrapper = {
     if (!k || !isReady) return null;
     try {
       const key = String(k);
-      if (isUpstash) return await client.hgetall(key);
       return await client.hGetAll(key);
     } catch (err) {
       console.error(`[RedisClient] Erro em hGetAllAsync key=${k}:`, err.message);
@@ -175,7 +153,6 @@ const redisWrapper = {
     if (!k || !isReady) return [];
     try {
       const key = String(k);
-      if (isUpstash) return await client.lrange(key, start, stop);
       return await client.lRange(key, start, stop);
     } catch (err) {
       console.error(`[RedisClient] Erro em lRangeAsync key=${k}:`, err.message);
@@ -188,13 +165,8 @@ const redisWrapper = {
     try {
       const key = String(k);
       const val = String(v ?? "");
-      if (isUpstash) {
-        const result = await client.set(key, val, { nx: true, px: exMs });
-        return result === "OK" || result === true ? true : null;
-      } else {
-        const result = await client.set(key, val, { NX: true, PX: exMs });
-        return result === "OK" ? true : null;
-      }
+      const result = await client.set(key, val, { NX: true, PX: exMs });
+      return result === "OK" ? true : null;
     } catch (err) {
       console.error(`[RedisClient] Erro em setNXAsync key=${k}:`, err.message);
       return null;
@@ -202,49 +174,27 @@ const redisWrapper = {
   },
 
   scanIterator: (options) => {
-    if (!isReady || isUpstash) {
+    if (!isReady) {
       async function* empty() { yield* []; }
       return empty();
     }
     return client.scanIterator(options);
   },
 
-  // Suporte a pipeline (usado em playerStateService.js)
+  // Suporte a pipeline
   pipeline: () => {
     if (!isReady) throw new Error("RedisClient não está pronto para pipeline");
-    if (isUpstash) {
-      const p = client.pipeline();
-      // Mapeia métodos camelCase usados em node-redis para lowercase do Upstash
-      const proxy = {
-        hIncrBy: (k, f, v) => { p.hincrby(k, f, v); return proxy; },
-        hSet: (k, f, v) => { p.hset(k, f, v); return proxy; },
-        lpush: (k, v) => { p.lpush(k, v); return proxy; },
-        ltrim: (k, s, st) => { p.ltrim(k, s, st); return proxy; },
-        expire: (k, t) => { p.expire(k, t); return proxy; },
-        exec: async () => await p.exec(),
-      };
-      return proxy;
-    } else {
-      return client.multi();
-    }
+    return client.multi();
   },
 
   chatHistoryPipeline: async (historyKey, messageJson, maxLength, ttlSeconds) => {
     if (!historyKey || !isReady) return null;
     try {
-      if (isUpstash) {
-        const p = client.pipeline();
-        p.lpush(historyKey, messageJson);
-        p.ltrim(historyKey, 0, maxLength - 1);
-        p.expire(historyKey, ttlSeconds);
-        return await p.exec();
-      } else {
-        const p = client.multi();
-        p.lPush(historyKey, messageJson);
-        p.lTrim(historyKey, 0, maxLength - 1);
-        p.expire(historyKey, ttlSeconds);
-        return await p.exec();
-      }
+      const p = client.multi();
+      p.lPush(historyKey, messageJson);
+      p.lTrim(historyKey, 0, maxLength - 1);
+      p.expire(historyKey, ttlSeconds);
+      return await p.exec();
     } catch (err) {
       console.error(`[RedisClient] Erro no chatHistoryPipeline key=${historyKey}:`, err.message);
       return null;
@@ -253,54 +203,35 @@ const redisWrapper = {
 
   // ─── ZSET (Sorted Set) — para ranking ──────────────────────────────────────
 
-  /**
-   * Adiciona/atualiza membro no Sorted Set com o score dado.
-   */
   zAddAsync: async (key, score, member) => {
     if (!key || !isReady) return null;
     try {
       const k = String(key);
       const s = Number(score);
       const m = String(member);
-      if (isUpstash) {
-        return await client.zadd(k, { score: s, member: m });
-      } else {
-        return await client.zAdd(k, { score: s, value: m });
-      }
+      return await client.zAdd(k, { score: s, value: m });
     } catch (err) {
       console.error(`[RedisClient] Erro em zAddAsync key=${key}:`, err.message);
       return null;
     }
   },
 
-  /**
-   * Retorna membros do ZSET em ordem de score descendente com scores.
-   * @returns {Array} [{value/member, score}, ...]
-   */
   zRangeWithScoresAsync: async (key, start, stop) => {
     if (!key || !isReady) return [];
     try {
       const k = String(key);
-      if (isUpstash) {
-        return await client.zrange(k, start, stop, { rev: true, withScores: true });
-      } else {
-        return await client.zRangeWithScores(k, start, stop, { REV: true });
-      }
+      return await client.zRangeWithScores(k, start, stop, { REV: true });
     } catch (err) {
       console.error(`[RedisClient] Erro em zRangeWithScoresAsync key=${key}:`, err.message);
       return [];
     }
   },
 
-  /**
-   * Remove um membro do Sorted Set.
-   */
   zRemAsync: async (key, member) => {
     if (!key || !isReady) return null;
     try {
       const k = String(key);
       const m = String(member);
-      if (isUpstash) return await client.zrem(k, m);
       return await client.zRem(k, m);
     } catch (err) {
       console.error(`[RedisClient] Erro em zRemAsync key=${key} member=${member}:`, err.message);
@@ -308,7 +239,7 @@ const redisWrapper = {
     }
   },
 
-  // Expõe referências internas para playerStateService usar ZSET
+  // Expõe referências internas
   getRawClient,
   getIsUpstash,
 };
@@ -319,4 +250,3 @@ redisWrapper.hgetAsync = redisWrapper.hGetAsync;
 redisWrapper.hgetallAsync = redisWrapper.hGetAllAsync;
 
 module.exports = redisWrapper;
-
