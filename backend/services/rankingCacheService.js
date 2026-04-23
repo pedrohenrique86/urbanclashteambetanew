@@ -119,18 +119,23 @@ async function buildRankingFromZSet(faction) {
   // Debug do formato (ajuda a identificar a raiz na VM)
   console.log(`[ranking] 🔍 Processando ${zsetMembers.length} membros do ZSET. Primeiro item:`, JSON.stringify(zsetMembers[0]));
 
-  // Detecta formato Upstash (array plano) vs node-redis (array de objetos)
+  // Detecta formato Upstash (array plano) vs node-redis (array de objetos) vs Object Map
   if (typeof zsetMembers[0] === "string") {
     // Upstash: [member, score, member, score, ...]
     for (let i = 0; i < zsetMembers.length; i += 2) {
       entries.push({ userId: zsetMembers[i], score: Number(zsetMembers[i + 1]) });
     }
-  } else if (zsetMembers[0] && typeof zsetMembers[0] === "object") {
-    // node-redis (v4): [{ value, score }] ou format alternativo [{ member, score }]
+  } else if (Array.isArray(zsetMembers) && zsetMembers[0] && typeof zsetMembers[0] === "object") {
+    // node-redis (v4): [{ value, score }]
     entries = zsetMembers.map((e) => ({ 
       userId: e.value || e.member || e.id, 
       score: Number(e.score) 
-    })).filter(e => e.userId); // Remove entradas inválidas
+    })).filter(e => e.userId);
+  } else if (zsetMembers && typeof zsetMembers === "object") {
+    // Caso o Redis retorne um Objeto/Mapa: { "id1": 100, "id2": 200 }
+    for (const [id, sc] of Object.entries(zsetMembers)) {
+      entries.push({ userId: id, score: Number(sc) });
+    }
   }
 
   console.log(`[ranking] 📊 ${entries.length} entradas normalizadas para hidratação.`);
@@ -314,11 +319,10 @@ async function warmupRankings() {
     clanStateService.persistDirtyClanStates(),
   ]);
 
-  // 3: Atualiza snapshots (fonte: ZSET para users, banco para clãs)
-  await Promise.allSettled([
-    refreshUsersRanking(),
-    refreshClansRanking(),
-  ]);
+  // 3: Atualiza snapshots
+  // Na carga inicial (warmup), forçamos o refresh para garantir que o Redis seja populado
+  await refreshUsersRanking(); 
+  await refreshClansRanking();
 
   // 4: Limpa dirty tracking de ranking
   playerStateService._clearRankingDirty();
