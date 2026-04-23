@@ -21,7 +21,7 @@ import { motion, AnimatePresence } from "framer-motion";
  */
 
 // Estilo de chanfro militar
-const MILITARY_CLIP = { clipPath: "polygon(0 0, calc(100% - 15px) 0, 100% 15px, 100% 100%, 15px 100%, 0 calc(100% - 15px))" };
+const MILITARY_CLIP = { clipPath: "polygon(8px 0%, 100% 0%, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0% 100%, 0% 8px)" };
 
 const TRAINING_OPTIONS = [
   {
@@ -31,7 +31,7 @@ const TRAINING_OPTIONS = [
     duration: 20,
     costs: { ap: 400, cash: 100, energy: 15 },
     gains: { atk: 1, def: 1, foc: 3, xp: 40 },
-    icon: <CursorArrowRaysIcon className="w-8 h-8 text-cyan-400" />,
+    icon: <CursorArrowRaysIcon className="w-8 h-8 text-cyan-400 group-hover:text-cyan-300 transition-colors" />,
     role: "ESPECIALISTA EM FOCO",
     color: "cyan"
   },
@@ -42,9 +42,9 @@ const TRAINING_OPTIONS = [
     duration: 50,
     costs: { ap: 1000, cash: 300, energy: 35 },
     gains: { atk: 5, def: 5, foc: 2, xp: 110 },
-    icon: <ShieldCheckIcon className="w-8 h-8 text-blue-400" />,
+    icon: <ShieldCheckIcon className="w-8 h-8 text-violet-400 group-hover:text-violet-300 transition-colors" />,
     role: "EQUILÍBRIO TÁTICO",
-    color: "blue"
+    color: "violet"
   },
   {
     id: "grande",
@@ -53,9 +53,9 @@ const TRAINING_OPTIONS = [
     duration: 100,
     costs: { ap: 2400, cash: 800, energy: 70 },
     gains: { atk: 12, def: 4, foc: 2, xp: 280 },
-    icon: <TrophyIcon className="w-8 h-8 text-orange-400" />,
+    icon: <TrophyIcon className="w-8 h-8 text-fuchsia-400 group-hover:text-fuchsia-300 transition-colors" />,
     role: "FORÇA BRUTA",
-    color: "orange"
+    color: "fuchsia"
   }
 ];
 
@@ -128,21 +128,24 @@ export default function TrainingPage() {
   const trainingsLeft = 8 - (userProfile?.daily_training_count || 0);
 
   return (
-    <div className="min-h-screen p-4 md:p-8 bg-[#0a0c0f] text-slate-300 font-sans selection:bg-cyan-500/30">
+    <div className="min-h-screen p-4 md:p-8 bg-slate-950 relative text-slate-300 font-sans selection:bg-cyan-500/30">
+      {/* GRID BACKGROUND */}
+      <div className="fixed inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:32px_32px] pointer-events-none"></div>
+
       {/* HUD DECORATION - CORNERS */}
-      <div className="fixed inset-0 pointer-events-none border-[12px] border-white/5 opacity-20 m-4 hidden md:block">
-        <div className="absolute top-0 left-0 w-8 h-8 border-t-2 border-l-2 border-white/40"></div>
-        <div className="absolute top-0 right-0 w-8 h-8 border-t-2 border-r-2 border-white/40"></div>
-        <div className="absolute bottom-0 left-0 w-8 h-8 border-b-2 border-l-2 border-white/40"></div>
-        <div className="absolute bottom-0 right-0 w-8 h-8 border-b-2 border-r-2 border-white/40"></div>
+      <div className="fixed inset-0 pointer-events-none border-[1px] border-cyan-500/10 opacity-30 m-4 hidden md:block z-0">
+        <div className="absolute top-0 left-0 w-16 h-16 border-t-2 border-l-2 border-cyan-500/50"></div>
+        <div className="absolute top-0 right-0 w-16 h-16 border-t-2 border-r-2 border-cyan-500/50"></div>
+        <div className="absolute bottom-0 left-0 w-16 h-16 border-b-2 border-l-2 border-cyan-500/50"></div>
+        <div className="absolute bottom-0 right-0 w-16 h-16 border-b-2 border-r-2 border-cyan-500/50"></div>
       </div>
 
       {/* HEADER */}
-      <header className="max-w-6xl mx-auto mb-12 relative">
-        <div className="absolute -left-4 top-1/2 -translate-y-1/2 w-1 h-12 bg-cyan-500 shadow-[0_0_15px_rgba(6,182,212,0.8)]"></div>
+      <header className="max-w-6xl mx-auto mb-12 relative z-10">
+        <div className="absolute -left-4 top-1/2 -translate-y-1/2 w-1 h-12 bg-cyan-500 shadow-[0_0_15px_rgba(34,211,238,0.8)]"></div>
         <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}>
-          <h1 className="text-4xl md:text-6xl font-orbitron font-black tracking-widest text-white uppercase">
-            Military <span className="text-cyan-500">Training</span> HUB
+          <h1 className="text-4xl md:text-6xl font-orbitron font-black tracking-widest text-white uppercase" style={{ textShadow: "2px 0px 0px rgba(34,211,238,0.7), -2px 0px 0px rgba(139,92,246,0.7)" }}>
+            Military <span className="text-cyan-400">Training</span> HUB
           </h1>
           <div className="flex items-center gap-4 mt-2">
             <span className="text-[10px] font-mono bg-white/10 px-2 py-0.5 text-slate-400">SEC_LEVEL: 4</span>
@@ -157,11 +160,11 @@ export default function TrainingPage() {
       <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8">
         
         {/* SIDEBAR: STATUS */}
-        <div className="lg:col-span-4 space-y-6">
+        <div className="lg:col-span-4 space-y-6 relative z-10">
           
           {/* DAILY LIMIT CARD */}
           <div 
-            className="bg-slate-900/60 backdrop-blur-xl border border-white/10 p-6 relative group overflow-hidden"
+            className="bg-slate-900/60 backdrop-blur-2xl border border-cyan-500/20 shadow-[0_0_30px_rgba(34,211,238,0.08)] p-6 relative group overflow-hidden"
             style={MILITARY_CLIP}
           >
             <div className="absolute top-0 right-0 p-2 opacity-20 group-hover:opacity-40 transition-opacity">
@@ -197,12 +200,12 @@ export default function TrainingPage() {
                 initial={{ opacity: 0, scale: 0.98 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.98 }}
-                className="bg-slate-900 border-2 border-cyan-500/50 p-6 shadow-[0_0_30px_rgba(6,182,212,0.15)] relative"
+                className="bg-slate-900/80 backdrop-blur-2xl border border-violet-500/30 p-6 shadow-[0_0_40px_rgba(139,92,246,0.15),inset_0_0_20px_rgba(139,92,246,0.05)] relative"
                 style={MILITARY_CLIP}
               >
                 {/* Corner Markers */}
-                <div className="absolute top-2 left-2 w-3 h-3 border-t-2 border-l-2 border-cyan-500/50"></div>
-                <div className="absolute top-2 right-2 w-3 h-3 border-t-2 border-r-2 border-cyan-500/50"></div>
+                <div className="absolute top-2 left-2 w-3 h-3 border-t-2 border-l-2 border-violet-500/50"></div>
+                <div className="absolute top-2 right-2 w-3 h-3 border-t-2 border-r-2 border-violet-500/50"></div>
                 
                 <div className="flex items-start justify-between mb-8">
                   <div>
@@ -211,8 +214,8 @@ export default function TrainingPage() {
                       {TRAINING_OPTIONS.find(o => o.id === userProfile?.active_training_type)?.role}
                     </p>
                   </div>
-                  <div className="bg-cyan-500/20 p-2 border border-cyan-500/30 animate-pulse">
-                    <ClockIcon className="w-6 h-6 text-cyan-400" />
+                  <div className="bg-violet-500/20 p-2 border border-violet-500/30 animate-pulse">
+                    <ClockIcon className="w-6 h-6 text-violet-400" />
                   </div>
                 </div>
 
@@ -243,7 +246,7 @@ export default function TrainingPage() {
                 key="idle"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                className="bg-black/20 border-2 border-white/5 border-dashed p-10 flex flex-col items-center justify-center text-center opacity-60"
+                className="bg-slate-900/40 backdrop-blur-xl border-2 border-white/5 border-dashed p-10 flex flex-col items-center justify-center text-center opacity-60"
                 style={MILITARY_CLIP}
               >
                 <div className="w-16 h-16 rounded-full border border-white/10 flex items-center justify-center mb-4">
@@ -258,17 +261,17 @@ export default function TrainingPage() {
         </div>
 
         {/* MAIN: TRAINING OPTIONS */}
-        <div className="lg:col-span-8 space-y-4">
+        <div className="lg:col-span-8 space-y-4 relative z-10">
           {TRAINING_OPTIONS.map((opt, idx) => (
             <motion.div
               key={opt.id}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 * idx }}
-              className={`group relative bg-slate-900/40 border-2 transition-all duration-300
-                ${opt.id === 'grande' ? 'border-orange-500/20 hover:border-orange-500/40' : 
-                  opt.id === 'medio' ? 'border-blue-500/20 hover:border-blue-500/40' : 
-                  'border-cyan-500/20 hover:border-cyan-500/40'}`}
+              className={`group relative bg-slate-900/60 backdrop-blur-2xl border transition-all duration-300 hover:-translate-y-1 shadow-[0_0_30px_rgba(34,211,238,0.08)] hover:shadow-[0_0_40px_rgba(34,211,238,0.15)]
+                ${opt.id === 'grande' ? 'border-fuchsia-500/30 hover:border-fuchsia-400/60' : 
+                  opt.id === 'medio' ? 'border-violet-500/30 hover:border-violet-400/60' : 
+                  'border-cyan-500/30 hover:border-cyan-400/60'}`}
               style={MILITARY_CLIP}
             >
               <div className="p-6 md:p-8 flex flex-col md:flex-row gap-8 items-stretch">
@@ -278,7 +281,7 @@ export default function TrainingPage() {
                     {opt.icon}
                   </div>
                   <span className={`text-[10px] font-black text-center uppercase tracking-tighter
-                    ${opt.id === 'grande' ? 'text-orange-500' : opt.id === 'medio' ? 'text-blue-500' : 'text-cyan-500'}`}>
+                    ${opt.id === 'grande' ? 'text-fuchsia-400' : opt.id === 'medio' ? 'text-violet-400' : 'text-cyan-400'}`}>
                     {opt.role}
                   </span>
                 </div>
@@ -336,28 +339,30 @@ export default function TrainingPage() {
                   <button
                     onClick={() => handleStart(opt.id)}
                     disabled={isTraining || loading !== null || trainingsLeft <= 0}
-                    className={`w-full py-4 font-orbitron font-black text-sm tracking-[0.3em] transition-all relative overflow-hidden group
+                    className={`w-full py-4 font-orbitron font-black text-sm tracking-[0.3em] transition-all duration-150 relative overflow-hidden group
                       ${isTraining || trainingsLeft <= 0 
-                        ? 'bg-slate-800 text-slate-600 cursor-not-allowed grayscale' 
-                        : 'bg-white text-black hover:bg-cyan-500 hover:text-white active:scale-[0.99]'
+                        ? 'bg-slate-800/80 text-slate-500 cursor-not-allowed border border-slate-700/50 backdrop-blur-md' 
+                        : 'bg-cyan-500/10 border border-cyan-400/50 text-cyan-300 hover:bg-cyan-500/20 hover:border-cyan-400 hover:shadow-[0_0_20px_rgba(34,211,238,0.3)] active:translate-y-px active:shadow-[0_0_10px_rgba(34,211,238,0.2)]'
                       }`}
                     style={MILITARY_CLIP}
                   >
-                    <span className="relative z-10">
-                      {loading === opt.id ? 'INITIALIZING...' : 
+                    <span className="relative z-10 flex items-center justify-center gap-2">
+                      {loading === opt.id ? (
+                         <>
+                           <div className="w-4 h-4 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin"></div>
+                           INITIALIZING...
+                         </>
+                       ) : 
                        isTraining ? 'LOCKDOWN: ACTIVE_SESSION' : 
                        trainingsLeft <= 0 ? 'LIMIT_REACHED' : 'ENGAGE_TRAINING'}
                     </span>
-                    {!(isTraining || trainingsLeft <= 0) && (
-                      <div className="absolute inset-0 bg-cyan-600 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
-                    )}
                   </button>
                 </div>
               </div>
 
               {/* Decorative side bar for the card */}
               <div className={`absolute left-0 top-0 bottom-0 w-1 
-                ${opt.id === 'grande' ? 'bg-orange-500' : opt.id === 'medio' ? 'bg-blue-500' : 'bg-cyan-500'}`}>
+                ${opt.id === 'grande' ? 'bg-fuchsia-500 shadow-[0_0_10px_rgba(217,70,239,0.8)]' : opt.id === 'medio' ? 'bg-violet-500 shadow-[0_0_10px_rgba(139,92,246,0.8)]' : 'bg-cyan-500 shadow-[0_0_10px_rgba(34,211,238,0.8)]'}`}>
               </div>
             </motion.div>
           ))}
@@ -365,7 +370,7 @@ export default function TrainingPage() {
       </div>
 
       {/* FOOTER - TECHNICAL INFO */}
-      <footer className="max-w-6xl mx-auto mt-20 pt-8 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-4 opacity-40 grayscale hover:grayscale-0 transition-all">
+      <footer className="max-w-6xl mx-auto mt-20 pt-8 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-4 opacity-40 grayscale hover:grayscale-0 transition-all relative z-10">
         <div className="flex items-center gap-6">
           <div className="flex flex-col">
              <span className="text-[8px] font-black tracking-widest uppercase">Encryption</span>
