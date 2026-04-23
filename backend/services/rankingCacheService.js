@@ -319,10 +319,11 @@ async function warmupRankings() {
     clanStateService.persistDirtyClanStates(),
   ]);
 
-  // 3: Atualiza snapshots
-  // Na carga inicial (warmup), forçamos o refresh para garantir que o Redis seja populado
-  await refreshUsersRanking(); 
-  await refreshClansRanking();
+  // 3: Atualiza snapshots (fonte: ZSET para users, banco para clãs)
+  await Promise.allSettled([
+    refreshUsersRanking(),
+    refreshClansRanking(),
+  ]);
 
   // 4: Limpa dirty tracking de ranking
   playerStateService._clearRankingDirty();
