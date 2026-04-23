@@ -8,14 +8,14 @@ export interface CombatStats {
   effectiveDamageReduction: number;
 }
 
-// Função para explicar o cálculo da chance crítica
-export const getCriticalChanceExplanation = (focus: number): string => {
-  return `Chance Crítico = Foco * 2`;
+export const getCriticalChanceExplanation = (): string => {
+  return `Base (5%) + (Foco × 0.08) + (Disciplina × 0.1) + Treinos (Cap 60%)`;
 };
 
-// Função para explicar o cálculo do dano crítico
-export const getCriticalDamageExplanation = (attack: number, focus: number): string => {
-  return `Dano Crítico = Ataque + (Foco / 2)\nBônus = +2% de Dano Crítico acima de Foco 50`;
+export const getCriticalDamageExplanation = (factionName: string): string => {
+  const isRenegado = factionName === 'renegados' || factionName === 'gangsters';
+  const base = isRenegado ? '2.50x' : '2.30x';
+  return `Multiplicador de Dano no acerto crítico.\nBase da Facção (${base}) + Treinos`;
 };
 
 export const calculateCombatStats = (userProfile: any) => {
@@ -31,39 +31,43 @@ export const calculateCombatStats = (userProfile: any) => {
     };
   }
 
-  // Obter valores diretamente do perfil do usuário sem valores padrão
-  const attack = userProfile.attack;
-  const defense = userProfile.defense;
-  const focus = userProfile.focus;
+  const attack = userProfile.attack || 0;
+  const defense = userProfile.defense || 0;
+  const focus = userProfile.focus || 0;
+  const discipline = userProfile.discipline || 0;
   
-  // Nova lógica de chance crítica:
-  // Se foco >= 50: crítico sempre acerta (100%)
-  // Se foco < 50: foco * 2 = % (ex: 25*2 = 50%)
-  const criticalChance = focus >= 50 ? 100 : focus * 2;
+  // A UI processa os pontos brutos (accumulators) que vêm do banco.
+  const rawCrit = userProfile.critical_chance || 0;
+  const rawDmg = userProfile.critical_damage || 0;
+
+  // Lógica de Chance Crítica (Sincronizado com backend gameLogic.js)
+  // 5% Base + Foco(0.08) + Disciplina(0.1) + Pontos Brutos de Treino
+  let criticalChance = 5.0 + (focus * 0.08) + (discipline * 0.10) + rawCrit;
+  if (criticalChance > 60.0) criticalChance = 60.0; // Hardcap 60%
+
+  // Lógica de Multiplicador de Dano Crítico (Sincronizado com backend gameLogic.js)
+  const rawFaction = typeof userProfile.faction === 'string' 
+    ? userProfile.faction 
+    : (userProfile.faction?.name || '');
+  const factionName = rawFaction.toLowerCase().trim();
+  const canonical = factionName === 'gangsters' ? 'renegados' : factionName === 'guardas' ? 'guardioes' : factionName;
+
+  let baseMult = 2.0;
+  if (canonical === 'renegados') baseMult = 2.5;
+  else if (canonical === 'guardioes') baseMult = 2.3;
   
-  // Nova lógica de dano crítico:
-  // Base: Ataque + (Foco ÷ 2)
-  // Se foco >= 50: cada ponto acima de 50 adiciona +2% ao dano crítico
-  let criticalDamage = attack + (focus / 2);
-  if (focus >= 50) {
-    const extraFocus = focus - 50;
-    const bonusPercentage = extraFocus * 2; // +2% por ponto acima de 50
-    criticalDamage = criticalDamage * (1 + bonusPercentage / 100);
-  }
-  
-  // Aplicar bônus de facção
+  // Transforma os raw points de dano (ex: 50) em multiplicador (ex: +0.50x)
+  const criticalDamage = baseMult + (rawDmg / 100);
+
   let effectiveDefense = defense;
   let effectiveDamageReduction = 0;
   
-  // Garantir que estamos usando apenas os valores plurais das facções
-  const faction = userProfile.faction;
-  
-  if (faction === 'gangsters') {
-    // Gangsters: Intimidação = -35% defesa inimiga
+  if (canonical === 'renegados') {
+    // Legacy Gangsters logic representation
     effectiveDefense = defense;
-  } else if (faction === 'guardas') {
-    // Guardas: Disciplina = -40% dano recebido
-    effectiveDamageReduction = 0.4; // 40% de redução de dano
+  } else if (canonical === 'guardioes') {
+    // Softcap reduction is now used in backend: DEF / (DEF + 200)
+    effectiveDamageReduction = defense / (defense + 200);
   }
   
   return {

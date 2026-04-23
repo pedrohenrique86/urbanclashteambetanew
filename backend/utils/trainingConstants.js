@@ -1,6 +1,14 @@
 /**
- * Configurações de Treinamento - Rebalanceadas (Protocolo de Elite)
- * Foco em identidade clara para cada tipo de treino.
+ * Configurações de Treinamento - Rebalanceadas (Protocolo de Elite v2)
+ *
+ * IDENTIDADES DE BUILD:
+ *   pequeno → Sniper/Precisão: FOC alto + CRIT% acumulado (gains crit_chance)
+ *   medio   → Versátil: ATK+DEF equilibrado + CRIT DMG moderado
+ *   grande  → Bruiser: ATK máximo + CRIT DMG bruto (pouco CRIT%)
+ *
+ * NOTA: critical_chance e critical_damage aqui são PONTOS BRUTOS acumulados.
+ * A % real de crit é calculada dinamicamente em gameLogic.calcCritChance().
+ * Isso permite rebalancear a fórmula sem migração de dados no banco.
  */
 
 const TRAINING_TYPES = {
@@ -17,6 +25,8 @@ const TRAINING_TYPES = {
       attack: 1,
       defense: 1,
       focus: 3,
+      critical_chance: 0.3,   // Sniper: acumula mais CRIT% por treino
+      critical_damage: 0.5,   // Precisão não é força bruta
       xp: 40,
     },
   },
@@ -33,6 +43,8 @@ const TRAINING_TYPES = {
       attack: 5,
       defense: 5,
       focus: 2,
+      critical_chance: 0.15,  // Versátil: equilíbrio entre crit% e crit dmg
+      critical_damage: 1.0,
       xp: 110,
     },
   },
@@ -49,6 +61,8 @@ const TRAINING_TYPES = {
       attack: 12,
       defense: 4,
       focus: 2,
+      critical_chance: 0.05,  // Bruiser: força bruta, não precisão
+      critical_damage: 1.8,   // Quando acerta, dói muito
       xp: 280,
     },
   },

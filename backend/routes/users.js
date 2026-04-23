@@ -244,52 +244,54 @@ function getFactionStats(faction) {
     victories: 0,
     defeats: 0,
     winning_streak: 0,
+    status: 'Operacional',
   };
 
   // Aceita tanto os valores legados (gangsters/guardas) quanto os novos (renegados/guardioes)
   const canonical = FACTION_ALIAS_MAP[String(faction).toLowerCase().trim()];
 
   if (canonical === "renegados") {
-    const focus = 5;
-    const attack = 8;
     return {
       ...baseStats,
-      attack,
-      defense: 3,
-      focus,
-      intimidation: 35.0,
-      discipline: 0.0,
-      critical_chance: focus * 2,
-      critical_damage: attack + focus / 2,
+      attack          : 8,
+      defense         : 3,
+      focus           : 5,
+      intimidation    : 35.0,
+      discipline      : 0.0,
+      // critical_chance: pontos brutos acumulados — começa em 0, cresce nos treinos
+      // A % real é calculada via gameLogic.calcCritChance() (inclui FOC e DISC)
+      critical_chance : 0,
+      // critical_damage: pontos brutos — base real é CRIT_DMG_BASE_RENEGADO (150)
+      // A % extra bruta acumulada nos treinos, base fixa é da facceão
+      critical_damage : 0,
     };
   }
 
   if (canonical === "guardioes") {
-    const focus = 6;
-    const attack = 5;
     return {
       ...baseStats,
-      attack,
-      defense: 6,
-      focus,
-      intimidation: 0.0,
-      discipline: 40.0,
-      critical_chance: focus * 2,
-      critical_damage: attack + focus / 2,
+      attack          : 5,
+      defense         : 6,
+      focus           : 6,
+      intimidation    : 0.0,
+      discipline      : 40.0,
+      critical_chance : 0,
+      critical_damage : 0,
     };
   }
 
   return {
     ...baseStats,
-    attack: 0,
-    defense: 0,
-    focus: 0,
-    intimidation: 0.0,
-    discipline: 0.0,
-    critical_chance: 0.0,
-    critical_damage: 150.0,
+    attack          : 0,
+    defense         : 0,
+    focus           : 0,
+    intimidation    : 0.0,
+    discipline      : 0.0,
+    critical_chance : 0,
+    critical_damage : 0,
   };
 }
+
 
 // =========================
 // GET /api/users/profile
@@ -332,6 +334,10 @@ router.get("/profile", authenticateToken, async (req, res) => {
       victories: parseInt(profile.victories, 10) || 0,
       defeats: parseInt(profile.defeats, 10) || 0,
       winning_streak: parseInt(profile.winning_streak, 10) || 0,
+      // SÊNIOR: Valores DERIVADOS calculados em tempo real — nunca persistidos
+      // Estes são os valores REAIS que o combate usa
+      crit_chance_pct : gameLogic.calcCritChance(profile),
+      crit_damage_mult: gameLogic.calcCritDamageMultiplier(profile),
     };
 
     const gameState = await getGameState();
@@ -408,11 +414,13 @@ router.post("/profile", authenticateToken, async (req, res) => {
         money,
         victories,
         defeats,
-        winning_streak
+        winning_streak,
+        status
       )
       VALUES (
         $1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
-        $11, $12, $13, $14, $15, $16, $17, $18, $19, $20
+        $11, $12, $13, $14, $15, $16, $17, $18, $19, $20,
+        $21
       )
       `,
       [
@@ -436,6 +444,7 @@ router.post("/profile", authenticateToken, async (req, res) => {
         factionStats.victories,
         factionStats.defeats,
         factionStats.winning_streak,
+        factionStats.status,
       ],
     );
 

@@ -22,7 +22,7 @@ export default function FactionSelectionPage() {
   const { user } = useAuth();
 
   const { userProfile: profile, loading: profileLoading } = useUserProfile();
-  const { refreshProfile } = useUserProfileContext();
+  const { refreshProfile, processProfileData, setUserProfile } = useUserProfileContext();
 
   const handleFactionSelect = async () => {
     if (profileLoading) {
@@ -46,24 +46,40 @@ export default function FactionSelectionPage() {
         throw new Error("Usuário não autenticado.");
       }
 
+      let newProfileData = null;
+
+      // Só cria/atualiza se ainda não tem facção
       if (!profile?.faction) {
         try {
-          await api.post("/users/profile", {
+          const res = await api.post("/users/profile", {
             faction: selectedFaction,
             username: user.user_metadata?.username || user.email?.split("@")[0] || "Recruta",
           });
+          newProfileData = res.data;
         } catch (creationError: any) {
           const isDuplicateProfile = creationError.response?.status === 409;
           if (isDuplicateProfile) {
-            await api.put(`/users/${user.id}/profile`, { faction: selectedFaction });
+            // Perfil já existe — só atualiza a facção
+            const putRes = await api.put(`/users/${user.id}/profile`, { faction: selectedFaction });
+            newProfileData = putRes.data.profile;
           } else {
             throw creationError;
           }
         }
       }
-      await refreshProfile();
+
+      // 1. Atualiza o estado global IMEDIATAMENTE com os dados retornados pela API.
+      // Isso evita qualquer "race condition" com o refreshProfile / fetch deduplication.
+      if (newProfileData) {
+        const processed = processProfileData(newProfileData, user);
+        setUserProfile(processed);
+      } else {
+        // Fallback apenas por segurança
+        await refreshProfile();
+      }
+
       hideLoading();
-      navigate("/dashboard");
+      navigate("/dashboard", { replace: true });
     } catch (error: any) {
       console.error("❌ Erro:", error);
       setError(error.message || "Erro ao processar escolha.");

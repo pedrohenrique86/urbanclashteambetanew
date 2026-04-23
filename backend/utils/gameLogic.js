@@ -1,9 +1,48 @@
 /**
  * gameLogic.js
- * 
+ *
  * Centraliza as regras de negócio de progressão e economia do jogo.
  * Evita duplicação de lógica entre serviços e rotas.
+ *
+ * ATRIBUTOS:
+ *   ATK    → dano base (ATK × ATK_MULTIPLIER)
+ *   DEF    → redução de dano (softcap: DEF / (DEF + DEF_SOFTCAP))
+ *   FOC    → acumulador de CRIT% via calcCritChance()
+ *   DISC   → bônus de CRIT% via calcCritChance()
+ *   CRIT%  → pontos brutos acumulados (não a % final)
+ *   CRITDMG→ pontos brutos acumulados (não o multiplicador final)
  */
+
+// ─── Constantes de combate ─────────────────────────────────────────────────────
+const COMBAT = {
+  ATK_MULTIPLIER        : 10,    // dano_base = ATK × ATK_MULTIPLIER
+  DEF_SOFTCAP           : 200,   // redução = DEF / (DEF + DEF_SOFTCAP)
+
+  // CRIT CHANCE: % real = BASE + FOC×FOC_FACTOR + DISC_FACTOR - accumulated raw points
+  CRIT_BASE             : 5,     // % inicial antes de qualquer atributo
+  CRIT_FOC_FACTOR       : 0.08,  // cada ponto de FOC → +0.08% crit
+  CRIT_DISC_FACTOR      : 0.10,  // cada 10 pontos de DISC → +1% crit
+  CRIT_RAW_FACTOR       : 1.0,   // pontos brutos de critical_chance → 1:1 com %
+  CRIT_CAP              : 60,    // cap de 60% — preventé broken builds
+
+  // CRIT DAMAGE: multiplicador = 1 + (base + raw) / 100
+  CRIT_DMG_BASE_RENEGADO: 150,   // Renegados: mais letais em crit
+  CRIT_DMG_BASE_GUARDIAO: 130,   // Guardiões: mais técnicos, menos explosivos
+  CRIT_DMG_GENERIC_BASE : 140,   // fallback para facceões futuras
+  CRIT_DMG_RAW_FACTOR   : 1.0,   // pontos brutos de critical_damage → 1:1 com %
+
+  // COMBATE 1x1
+  XP_WIN_BASE           : 100,   // XP base por vitória em 1x1
+  XP_LOSE_BASE          : 20,    // XP por derrota (não punir totalmente)
+  XP_WIN_ATK_DIFF_FACTOR: 0.5,   // bônus de XP proporcional à diferença de ATK
+};
+
+// ─── Constantes de progressão XP ─────────────────────────────────────────────
+const XP_SCALING = {
+  LEVEL_FACTOR  : 0.05,  // xp_ganho × (1 + level × LEVEL_FACTOR)
+  DAILY_CAP_TRAIN: 5000, // máx XP por dia via treino por segurança
+};
+
 
 /**
  * Retorna o XP necessário para passar do nível atual para o próximo.
@@ -69,9 +108,132 @@ function calculateLevelFromXp(totalXp) {
   return level;
 }
 
+// ─── Novas funções de combate e CRIT ──────────────────────────────────────────
+
+/**
+ * Calcula a chance de crítico REAL (em %) de um jogador.
+ * Usa os pontos brutos acumulados (critical_chance), FOC e DISC.
+ *
+ * @param {object} player - { focus, discipline, critical_chance, faction }
+ * @returns {number} - % de chance crítica entre 0 e CRIT_CAP
+ */
+function calcCritChance(player) {
+  const foc      = Math.max(0, Number(player.focus)            || 0);
+  const disc     = Math.max(0, Number(player.discipline)       || 0);
+  const rawCrit  = Math.max(0, Number(player.critical_chance)  || 0);
+
+  const chance = COMBAT.CRIT_BASE
+    + foc    * COMBAT.CRIT_FOC_FACTOR
+    + disc   * COMBAT.CRIT_DISC_FACTOR
+    + rawCrit * COMBAT.CRIT_RAW_FACTOR;
+
+  return Math.min(COMBAT.CRIT_CAP, Math.round(chance * 100) / 100);
+}
+
+/**
+ * Calcula o multiplicador de dano crítico de um jogador.
+ * Ex: 150 pontos base + 50 raw = 200 → multiplicador 3.0× (200% de bônus).
+ *
+ * @param {object} player - { faction, critical_damage }
+ * @returns {number} - multiplicador (ex: 2.5 significa dano_crit = base × 2.5)
+ */
+function calcCritDamageMultiplier(player) {
+  const rawDmg = Math.max(0, Number(player.critical_damage) || 0);
+  const faction = String(player.faction || '').toLowerCase();
+
+  let base;
+  if (faction === 'renegados' || faction === 'gangsters') {
+    base = COMBAT.CRIT_DMG_BASE_RENEGADO;
+  } else if (faction === 'guardioes' || faction === 'guardas') {
+    base = COMBAT.CRIT_DMG_BASE_GUARDIAO;
+  } else {
+    base = COMBAT.CRIT_DMG_GENERIC_BASE;
+  }
+
+  const totalPct = base + rawDmg * COMBAT.CRIT_DMG_RAW_FACTOR;
+  return Math.round((1 + totalPct / 100) * 100) / 100; // ex: 150% → 2.50×
+}
+
+/**
+ * Resolve um combate 1x1 entre dois jogadores.
+ * Retorna { attackerDamage, defenderDamage, attackerCrit, defenderCrit }
+ *
+ * FÓRMULA:
+ *   dano_base    = ATK × ATK_MULTIPLIER
+ *   def_reduzida = DEF_inimigo × (1 - Intimidação_atacante)
+ *   redução_def  = def_reduzida / (def_reduzida + DEF_SOFTCAP)
+ *   dano_final   = dano_base × (1 - redução_def)
+ *   se crit:     dano_final × multiplicador_crit_mitigado
+ *                (multiplicador_crit_mitigado reduz o dano bônus crítico usando Disciplina_defensor)
+ *
+ * @param {object} attacker - estado completo do atacante
+ * @param {object} defender - estado completo do defensor
+ * @returns {object}
+ */
+function resolveCombatHit(attacker, defender) {
+  const atkBase    = Math.max(0, Number(attacker.attack)  || 0);
+  const defValue   = Math.max(0, Number(defender.defense) || 0);
+  const intimidation = Math.max(0, Number(attacker.intimidation) || 0) / 100; // ex: 35% -> 0.35
+  const discipline   = Math.max(0, Number(defender.discipline) || 0) / 100;   // ex: 40% -> 0.40
+
+  const damageRaw    = atkBase * COMBAT.ATK_MULTIPLIER;
+  
+  // Habilidade Renegado: Intimidação (reduz a defesa do alvo)
+  const defEffective = Math.max(0, defValue * (1 - intimidation));
+  const defReduction = defEffective / (defEffective + COMBAT.DEF_SOFTCAP);
+  const damageAfterDef = Math.round(damageRaw * (1 - defReduction));
+
+  const critChancePct  = calcCritChance(attacker);
+  const isCrit         = Math.random() * 100 < critChancePct;
+  let critMultiplier   = isCrit ? calcCritDamageMultiplier(attacker) : 1;
+
+  // Habilidade Guardião: Disciplina (reduz o dano bônus crítico recebido)
+  if (isCrit && discipline > 0) {
+    // Multiplicador extra (acima de 1.0). Ex: 2.5 vira 1.5 extra.
+    const bonusCritMultiplier = critMultiplier - 1;
+    // Reduz o bônus pela disciplina. Ex: 1.5 * (1 - 0.4) = 0.9
+    const mitigatedBonus = bonusCritMultiplier * (1 - discipline);
+    critMultiplier = 1 + mitigatedBonus;
+  }
+
+  const finalDamage    = Math.round(damageAfterDef * critMultiplier);
+
+  return {
+    damage       : Math.max(1, finalDamage), // dano mínimo de 1
+    isCrit,
+    critChancePct,
+    critMultiplier: Math.round(critMultiplier * 100) / 100,
+    rawDamage    : damageRaw,
+    defReduction : Math.round(defReduction * 100) / 100,
+  };
+}
+
+/**
+ * Escala o XP de treino pelo nível atual do jogador.
+ * Jogadores de alto nível ganham mais XP por treino — mantendo a progressão engajante.
+ *
+ * @param {number} baseXp   - XP base do tipo de treino (ex: 40, 110, 280)
+ * @param {number} level    - nível atual do jogador
+ * @returns {number} - XP ajustado (inteiro)
+ */
+function scaleXpByLevel(baseXp, level) {
+  const lvl    = Math.max(1, Number(level) || 1);
+  const base   = Math.max(0, Number(baseXp) || 0);
+  const scaled = Math.round(base * (1 + lvl * XP_SCALING.LEVEL_FACTOR));
+  return scaled;
+}
+
 module.exports = {
   getXpRequiredForNextLevel,
   getTotalXpUntilLevel,
   deriveXpStatus,
-  calculateLevelFromXp
+  calculateLevelFromXp,
+  // Novas funções de combate e CRIT
+  calcCritChance,
+  calcCritDamageMultiplier,
+  resolveCombatHit,
+  scaleXpByLevel,
+  // Constantes exportadas para uso em rotas/serviços
+  COMBAT,
+  XP_SCALING,
 };

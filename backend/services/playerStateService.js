@@ -329,7 +329,7 @@ async function loadPlayerState(userId) {
     stateForRedis.is_dirty_at    = "";   // timestamp da última vez que ficou dirty
 
     await redisClient.hSetAsync(redisKey, stateForRedis);
-    await redisClient.expireAsync(redisKey, PLAYER_TTL_SECONDS);
+    await redisClient.expireAsync(redisKey, PLAYER_STATE_TTL);
 
     const score = _calcRankingScore(playerState);
     await _zaddRanking(userId, score);

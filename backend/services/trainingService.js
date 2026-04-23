@@ -1,5 +1,6 @@
 const playerStateService = require("./playerStateService.js");
 const { TRAINING_TYPES, MAX_DAILY_TRAININGS, TRAINING_HUMOR } = require("../utils/trainingConstants.js");
+const gameLogic = require("../utils/gameLogic");
 
 /**
  * trainingService.js
@@ -84,14 +85,19 @@ class TrainingService {
     const training = TRAINING_TYPES[state.active_training_type];
     if (!training) throw new Error("Configuração de treino não encontrada.");
 
-    // Aplica ganhos
+    // XP escalado pelo nível atual do jogador
+    const scaledXp = gameLogic.scaleXpByLevel(training.gains.xp, state.level);
+
+    // Aplica ganhos — inclui CRIT acumulado + XP escalado
     const updates = {
-      attack: training.gains.attack,
-      defense: training.gains.defense,
-      focus: training.gains.focus,
-      total_xp: training.gains.xp,
+      attack           : training.gains.attack,
+      defense          : training.gains.defense,
+      focus            : training.gains.focus,
+      critical_chance  : training.gains.critical_chance  || 0,
+      critical_damage  : training.gains.critical_damage  || 0,
+      total_xp         : scaledXp,
       daily_training_count: 1, // Incrementa contador
-      training_ends_at: "",    // Limpa estado
+      training_ends_at : "",   // Limpa estado
       active_training_type: "",
     };
 
@@ -99,7 +105,12 @@ class TrainingService {
 
     return {
       message: TRAINING_HUMOR[Math.floor(Math.random() * TRAINING_HUMOR.length)],
-      gains: training.gains,
+      gains: {
+        ...training.gains,
+        xp            : scaledXp,        // XP real ganho (escalado)
+        xp_base       : training.gains.xp, // XP base original (para UI mostrar bônus)
+        level_bonus_pct: Math.round(Number(state.level || 1) * gameLogic.XP_SCALING.LEVEL_FACTOR * 100),
+      },
       player: newState,
     };
   }
