@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useUserProfile } from "../hooks/useUserProfile";
 import { trainingService } from "../services/trainingService";
 import { useToast } from "../contexts/ToastContext";
@@ -10,16 +10,19 @@ import {
   AcademicCapIcon,
   ShieldCheckIcon,
   TrophyIcon,
-  CursorArrowRaysIcon
+  CursorArrowRaysIcon,
+  ExclamationTriangleIcon
 } from "@heroicons/react/24/outline";
 import { motion, AnimatePresence } from "framer-motion";
 
 /**
- * TRAINING PAGE - AAA Gaming Aesthetic
- * UrbanClash Team - Tactical HUD Style
+ * TRAINING PAGE - AAA Military Cyberpunk Aesthetic
+ * UrbanClash Team - Tactical Elite HUD
  */
 
-// Constantes de treinamento (espelhadas do backend para evitar delay de fetch)
+// Estilo de chanfro militar
+const MILITARY_CLIP = { clipPath: "polygon(0 0, calc(100% - 15px) 0, 100% 15px, 100% 100%, 15px 100%, 0 calc(100% - 15px))" };
+
 const TRAINING_OPTIONS = [
   {
     id: "pequeno",
@@ -29,7 +32,8 @@ const TRAINING_OPTIONS = [
     costs: { ap: 400, cash: 100, energy: 15 },
     gains: { atk: 1, def: 1, foc: 3, xp: 40 },
     icon: <CursorArrowRaysIcon className="w-8 h-8 text-cyan-400" />,
-    role: "ESPECIALISTA EM FOCO"
+    role: "ESPECIALISTA EM FOCO",
+    color: "cyan"
   },
   {
     id: "medio",
@@ -39,7 +43,8 @@ const TRAINING_OPTIONS = [
     costs: { ap: 1000, cash: 300, energy: 35 },
     gains: { atk: 5, def: 5, foc: 2, xp: 110 },
     icon: <ShieldCheckIcon className="w-8 h-8 text-blue-400" />,
-    role: "EQUILÍBRIO TÁTICO"
+    role: "EQUILÍBRIO TÁTICO",
+    color: "blue"
   },
   {
     id: "grande",
@@ -49,7 +54,8 @@ const TRAINING_OPTIONS = [
     costs: { ap: 2400, cash: 800, energy: 70 },
     gains: { atk: 12, def: 4, foc: 2, xp: 280 },
     icon: <TrophyIcon className="w-8 h-8 text-orange-400" />,
-    role: "FORÇA BRUTA"
+    role: "FORÇA BRUTA",
+    color: "orange"
   }
 ];
 
@@ -59,18 +65,13 @@ export default function TrainingPage() {
   const [loading, setLoading] = useState<string | null>(null);
   const [timeLeft, setTimeLeft] = useState<number | null>(null);
 
-  // Humor seco cyberpunk
-  const subtitle = "Treine duro, sobreviva mais um dia e finja que isso tudo foi escolha sua.";
+  const subtitle = "UNIDADE EM PRONTIDÃO. EFICIÊNCIA É A ÚNICA MÉTRICA QUE IMPORTA.";
 
-  // Formatação de tempo (countdown)
   const formatTime = (seconds: number) => {
     const h = Math.floor(seconds / 3600);
     const m = Math.floor((seconds % 3600) / 60);
     const s = seconds % 60;
-    
-    if (h > 0) return `${h}h ${m}m ${s}s`;
-    if (m > 0) return `${m}m ${s}s`;
-    return `${s}s`;
+    return `${h > 0 ? h + 'H ' : ''}${m > 0 ? m + 'M ' : ''}${s}S`;
   };
 
   const handleStart = useCallback(async (type: string) => {
@@ -98,27 +99,20 @@ export default function TrainingPage() {
       );
       await refreshProfile();
     } catch (err: any) {
-      // Se der erro de "nenhum treino", apenas dá refresh pra sincronizar
       await refreshProfile();
     } finally {
       setLoading(null);
     }
   }, [loading, showToast, refreshProfile]);
 
-  // Cálculo de tempo restante
   const updateCountdown = useCallback(() => {
     if (!userProfile?.training_ends_at) {
       setTimeLeft(null);
       return;
     }
-
     const endsAt = new Date(userProfile.training_ends_at).getTime();
-    const now = Date.now();
-    const remaining = Math.max(0, Math.floor((endsAt - now) / 1000));
-
+    const remaining = Math.max(0, Math.floor((endsAt - Date.now()) / 1000));
     setTimeLeft(remaining);
-
-    // Se acabou o tempo e ainda consta como ativo, tenta completar
     if (remaining === 0 && userProfile.active_training_type) {
       handleComplete();
     }
@@ -134,84 +128,114 @@ export default function TrainingPage() {
   const trainingsLeft = 8 - (userProfile?.daily_training_count || 0);
 
   return (
-    <div className="min-h-screen p-4 md:p-8 text-slate-200">
+    <div className="min-h-screen p-4 md:p-8 bg-[#0a0c0f] text-slate-300 font-sans selection:bg-cyan-500/30">
+      {/* HUD DECORATION - CORNERS */}
+      <div className="fixed inset-0 pointer-events-none border-[12px] border-white/5 opacity-20 m-4 hidden md:block">
+        <div className="absolute top-0 left-0 w-8 h-8 border-t-2 border-l-2 border-white/40"></div>
+        <div className="absolute top-0 right-0 w-8 h-8 border-t-2 border-r-2 border-white/40"></div>
+        <div className="absolute bottom-0 left-0 w-8 h-8 border-b-2 border-l-2 border-white/40"></div>
+        <div className="absolute bottom-0 right-0 w-8 h-8 border-b-2 border-r-2 border-white/40"></div>
+      </div>
+
       {/* HEADER */}
-      <header className="max-w-6xl mx-auto mb-10 text-center md:text-left">
-        <motion.h1 
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="text-4xl md:text-5xl font-orbitron font-black tracking-tighter text-white mb-2"
-          style={{ textShadow: "0 0 20px rgba(255,255,255,0.3)" }}
-        >
-          CENTRO DE <span className="text-cyan-500">TREINAMENTO</span>
-        </motion.h1>
-        <motion.p 
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.2 }}
-          className="text-slate-400 italic font-medium"
-        >
-          &quot;{subtitle}&quot;
-        </motion.p>
+      <header className="max-w-6xl mx-auto mb-12 relative">
+        <div className="absolute -left-4 top-1/2 -translate-y-1/2 w-1 h-12 bg-cyan-500 shadow-[0_0_15px_rgba(6,182,212,0.8)]"></div>
+        <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}>
+          <h1 className="text-4xl md:text-6xl font-orbitron font-black tracking-widest text-white uppercase">
+            Military <span className="text-cyan-500">Training</span> HUB
+          </h1>
+          <div className="flex items-center gap-4 mt-2">
+            <span className="text-[10px] font-mono bg-white/10 px-2 py-0.5 text-slate-400">SEC_LEVEL: 4</span>
+            <span className="text-[10px] font-mono text-cyan-500/70 animate-pulse tracking-widest">● SYSTEM_ONLINE</span>
+            <p className="text-slate-500 text-xs font-mono hidden md:block uppercase tracking-tighter">
+              {subtitle}
+            </p>
+          </div>
+        </motion.div>
       </header>
 
-      <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8">
         
-        {/* LADO ESQUERDO: STATUS & ACTIVE */}
-        <div className="lg:col-span-1 space-y-6">
+        {/* SIDEBAR: STATUS */}
+        <div className="lg:col-span-4 space-y-6">
           
           {/* DAILY LIMIT CARD */}
-          <div className="bg-black/40 backdrop-blur-md border border-white/10 rounded-2xl p-6 shadow-2xl relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-cyan-500/5 blur-3xl rounded-full -mr-16 -mt-16"></div>
-            <h3 className="text-sm font-orbitron text-slate-400 mb-4 flex items-center gap-2">
-              <BoltIcon className="w-4 h-4" /> LIMITE DIÁRIO
-            </h3>
-            <div className="flex items-end gap-2">
-              <span className="text-5xl font-black text-white">{trainingsLeft}</span>
-              <span className="text-slate-500 mb-2 font-bold uppercase text-xs tracking-widest">Sessões restantes hoje</span>
+          <div 
+            className="bg-slate-900/60 backdrop-blur-xl border border-white/10 p-6 relative group overflow-hidden"
+            style={MILITARY_CLIP}
+          >
+            <div className="absolute top-0 right-0 p-2 opacity-20 group-hover:opacity-40 transition-opacity">
+              <ExclamationTriangleIcon className="w-12 h-12 text-white" />
             </div>
-            <div className="mt-4 w-full bg-white/5 h-1.5 rounded-full overflow-hidden">
-              <motion.div 
-                initial={{ width: 0 }}
-                animate={{ width: `${(trainingsLeft / 8) * 100}%` }}
-                className="h-full bg-cyan-500 shadow-[0_0_10px_rgba(6,182,212,0.5)]"
-              ></motion.div>
+            <h3 className="text-[10px] font-orbitron text-cyan-500 mb-6 flex items-center gap-2 tracking-[0.3em]">
+              <div className="w-2 h-2 bg-cyan-500 shadow-[0_0_8px_rgba(6,182,212,1)]"></div> LIMIT_CAPACITY
+            </h3>
+            <div className="flex items-center gap-4">
+              <div className="flex-1">
+                <div className="flex items-end gap-2 mb-2">
+                  <span className="text-6xl font-black text-white font-orbitron leading-none">{trainingsLeft}</span>
+                  <span className="text-slate-500 font-bold uppercase text-[10px] tracking-widest mb-1">UNITS_AVAIL</span>
+                </div>
+                <div className="w-full bg-white/5 h-2 overflow-hidden border border-white/5">
+                  <motion.div 
+                    initial={{ width: 0 }}
+                    animate={{ width: `${(trainingsLeft / 8) * 100}%` }}
+                    className="h-full bg-cyan-500 shadow-[0_0_15px_rgba(6,182,212,0.6)] relative"
+                  >
+                    <div className="absolute inset-0 bg-[repeating-linear-gradient(45deg,transparent,transparent_5px,rgba(0,0,0,0.2)_5px,rgba(0,0,0,0.2)_10px)]"></div>
+                  </motion.div>
+                </div>
+              </div>
             </div>
           </div>
 
-          {/* ACTIVE TRAINING CARD */}
+          {/* ACTIVE STATUS */}
           <AnimatePresence mode="wait">
             {isTraining ? (
               <motion.div 
                 key="active"
-                initial={{ opacity: 0, scale: 0.95 }}
+                initial={{ opacity: 0, scale: 0.98 }}
                 animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.95 }}
-                className="bg-cyan-500/10 backdrop-blur-md border border-cyan-500/30 rounded-2xl p-6 shadow-[0_0_50px_rgba(6,182,212,0.15)]"
+                exit={{ opacity: 0, scale: 0.98 }}
+                className="bg-slate-900 border-2 border-cyan-500/50 p-6 shadow-[0_0_30px_rgba(6,182,212,0.15)] relative"
+                style={MILITARY_CLIP}
               >
-                <div className="flex items-center gap-3 mb-6">
-                  <div className="w-12 h-12 rounded-xl bg-cyan-500/20 flex items-center justify-center animate-pulse">
-                    <ClockIcon className="w-7 h-7 text-cyan-400" />
-                  </div>
+                {/* Corner Markers */}
+                <div className="absolute top-2 left-2 w-3 h-3 border-t-2 border-l-2 border-cyan-500/50"></div>
+                <div className="absolute top-2 right-2 w-3 h-3 border-t-2 border-r-2 border-cyan-500/50"></div>
+                
+                <div className="flex items-start justify-between mb-8">
                   <div>
-                    <h3 className="font-orbitron text-white text-lg leading-tight uppercase">Treino em Curso</h3>
-                    <p className="text-cyan-400/70 text-xs font-bold tracking-widest uppercase">
-                      {userProfile?.active_training_type === 'pequeno' ? 'Pequeno' : 
-                       userProfile?.active_training_type === 'medio' ? 'Médio' : 'Grande'}
+                    <h3 className="font-orbitron text-white text-xl font-black uppercase tracking-widest">Engaged</h3>
+                    <p className="text-cyan-400 text-[10px] font-mono uppercase tracking-[0.2em] mt-1">
+                      {TRAINING_OPTIONS.find(o => o.id === userProfile?.active_training_type)?.role}
                     </p>
+                  </div>
+                  <div className="bg-cyan-500/20 p-2 border border-cyan-500/30 animate-pulse">
+                    <ClockIcon className="w-6 h-6 text-cyan-400" />
                   </div>
                 </div>
 
-                <div className="text-center py-4 bg-black/40 rounded-xl border border-white/5 mb-4">
-                  <p className="text-xs text-slate-500 font-bold uppercase tracking-[0.3em] mb-1">Tempo Restante</p>
-                  <p className="text-4xl font-mono font-black text-cyan-400 tracking-tighter">
+                <div className="bg-black/60 p-6 border border-white/5 mb-6 text-center">
+                  <span className="text-[10px] text-slate-500 font-mono block mb-2 uppercase">Time_to_Completion</span>
+                  <p className="text-5xl font-orbitron font-black text-white tracking-tighter">
                     {formatTime(timeLeft || 0)}
                   </p>
                 </div>
 
-                <div className="text-xs text-slate-400 flex justify-between px-1 italic">
-                  <span>Iniciado: {new Date(new Date(userProfile?.training_ends_at || 0).getTime() - (userProfile?.active_training_type === 'pequeno' ? 30 : userProfile?.active_training_type === 'medio' ? 60 : 120) * 60000).toLocaleTimeString()}</span>
-                  <span>Término: {new Date(userProfile?.training_ends_at || 0).toLocaleTimeString()}</span>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="bg-white/5 p-2 border border-white/5">
+                    <span className="text-[8px] text-slate-500 block uppercase">Start_Log</span>
+                    <span className="text-[10px] text-slate-300 font-mono">
+                      {new Date(new Date(userProfile?.training_ends_at || 0).getTime() - (TRAINING_OPTIONS.find(o => o.id === userProfile?.active_training_type)?.duration || 0) * 60000).toLocaleTimeString()}
+                    </span>
+                  </div>
+                  <div className="bg-white/5 p-2 border border-white/5">
+                    <span className="text-[8px] text-slate-500 block uppercase">ETA_Log</span>
+                    <span className="text-[10px] text-slate-300 font-mono">
+                      {new Date(userProfile?.training_ends_at || 0).toLocaleTimeString()}
+                    </span>
+                  </div>
                 </div>
               </motion.div>
             ) : (
@@ -219,118 +243,143 @@ export default function TrainingPage() {
                 key="idle"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                className="bg-black/20 border border-white/5 border-dashed rounded-2xl p-10 flex flex-col items-center justify-center text-center"
+                className="bg-black/20 border-2 border-white/5 border-dashed p-10 flex flex-col items-center justify-center text-center opacity-60"
+                style={MILITARY_CLIP}
               >
-                <AcademicCapIcon className="w-12 h-12 text-slate-700 mb-4" />
-                <p className="text-slate-500 font-medium text-sm">Nenhum treino ativo.<br/>Selecione um programa ao lado.</p>
+                <div className="w-16 h-16 rounded-full border border-white/10 flex items-center justify-center mb-4">
+                   <AcademicCapIcon className="w-8 h-8 text-slate-700" />
+                </div>
+                <p className="text-slate-500 font-mono text-[10px] uppercase tracking-widest leading-relaxed">
+                  Status: Inativo<br/>Aguardando Instruções
+                </p>
               </motion.div>
             )}
           </AnimatePresence>
         </div>
 
-        {/* LADO DIREITO: OPÇÕES DE TREINO */}
-        <div className="lg:col-span-2 grid grid-cols-1 md:grid-cols-1 gap-4">
+        {/* MAIN: TRAINING OPTIONS */}
+        <div className="lg:col-span-8 space-y-4">
           {TRAINING_OPTIONS.map((opt, idx) => (
             <motion.div
               key={opt.id}
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 * idx }}
-              className={`group relative bg-black/40 backdrop-blur-md border ${opt.id === 'grande' ? 'border-orange-500/20' : 'border-white/10'} rounded-2xl p-6 transition-all hover:bg-white/5 hover:border-white/20`}
+              className={`group relative bg-slate-900/40 border-2 transition-all duration-300
+                ${opt.id === 'grande' ? 'border-orange-500/20 hover:border-orange-500/40' : 
+                  opt.id === 'medio' ? 'border-blue-500/20 hover:border-blue-500/40' : 
+                  'border-cyan-500/20 hover:border-cyan-500/40'}`}
+              style={MILITARY_CLIP}
             >
-              <div className="flex flex-col md:flex-row gap-6 items-start">
-                <div className="w-16 h-16 rounded-2xl bg-white/5 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform shadow-inner">
-                  {opt.icon}
+              <div className="p-6 md:p-8 flex flex-col md:flex-row gap-8 items-stretch">
+                {/* ICON & ROLE */}
+                <div className="flex flex-col items-center justify-center gap-4 bg-black/40 p-6 border border-white/5 w-full md:w-40">
+                  <div className="p-4 bg-white/5 group-hover:scale-110 transition-transform shadow-inner border border-white/5">
+                    {opt.icon}
+                  </div>
+                  <span className={`text-[10px] font-black text-center uppercase tracking-tighter
+                    ${opt.id === 'grande' ? 'text-orange-500' : opt.id === 'medio' ? 'text-blue-500' : 'text-cyan-500'}`}>
+                    {opt.role}
+                  </span>
                 </div>
-                
-                <div className="flex-1 space-y-4">
-                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-2">
-                      <div>
-                        <div className="flex items-center gap-2 mb-1">
-                          <h3 className="text-xl font-orbitron font-bold text-white tracking-wide">{opt.name}</h3>
-                          <span className={`text-[10px] font-black px-2 py-0.5 rounded border ${
-                            opt.id === 'pequeno' ? 'border-cyan-500/50 text-cyan-400 bg-cyan-500/5' : 
-                            opt.id === 'medio' ? 'border-blue-500/50 text-blue-400 bg-blue-500/5' : 
-                            'border-orange-500/50 text-orange-400 bg-orange-500/5'
-                          }`}>
-                            {opt.role}
-                          </span>
-                        </div>
-                        <p className="text-slate-400 text-sm">{opt.description}</p>
-                      </div>
-                      <div className="flex items-center gap-2 bg-white/5 px-3 py-1.5 rounded-lg border border-white/5 h-fit">
-                        <ClockIcon className="w-4 h-4 text-slate-400" />
-                        <span className="text-white font-bold">{opt.duration}m</span>
+
+                <div className="flex-1 flex flex-col justify-between space-y-6">
+                  <div>
+                    <div className="flex items-start justify-between gap-4 mb-2">
+                      <h3 className="text-2xl font-orbitron font-black text-white tracking-widest uppercase">{opt.name}</h3>
+                      <div className="flex items-center gap-2 bg-white/5 px-3 py-1 border border-white/10 font-mono text-xs">
+                        <ClockIcon className="w-4 h-4 text-slate-500" />
+                        <span className="text-white">{opt.duration}M</span>
                       </div>
                     </div>
+                    <p className="text-slate-400 text-sm font-medium leading-relaxed italic border-l-2 border-white/10 pl-4">
+                      {opt.description}
+                    </p>
+                  </div>
 
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-white/5">
                     {/* COSTS */}
-                    <div className="col-span-2 md:col-span-2 flex flex-wrap gap-2">
-                      <div className="flex items-center gap-1.5 bg-red-500/10 border border-red-500/20 px-2 py-1 rounded-md">
-                        <BoltIcon className="w-3 h-3 text-red-400" />
+                    <div className="flex flex-wrap gap-2 items-center">
+                      <span className="text-[9px] text-slate-500 font-black uppercase tracking-widest w-full mb-1">Resource_Cost:</span>
+                      <div className="bg-red-500/10 border border-red-500/30 px-2 py-1 flex items-center gap-2">
+                        <BoltIcon className="w-3 h-3 text-red-500" />
                         <span className="text-xs font-bold text-red-200">-{opt.costs.ap} AP</span>
                       </div>
-                      <div className="flex items-center gap-1.5 bg-green-500/10 border border-green-500/20 px-2 py-1 rounded-md">
-                        <BanknotesIcon className="w-3 h-3 text-green-400" />
-                        <span className="text-xs font-bold text-green-200">-${opt.costs.cash}</span>
+                      <div className="bg-green-500/10 border border-green-500/30 px-2 py-1 flex items-center gap-2">
+                        <BanknotesIcon className="w-3 h-3 text-green-500" />
+                        <span className="text-xs font-bold text-green-200">${opt.costs.cash}</span>
                       </div>
-                      <div className="flex items-center gap-1.5 bg-yellow-500/10 border border-yellow-500/20 px-2 py-1 rounded-md">
-                        <FireIcon className="w-3 h-3 text-yellow-400" />
+                      <div className="bg-yellow-500/10 border border-yellow-500/30 px-2 py-1 flex items-center gap-2">
+                        <FireIcon className="w-3 h-3 text-yellow-500" />
                         <span className="text-xs font-bold text-yellow-200">-{opt.costs.energy}%</span>
                       </div>
                     </div>
+
                     {/* GAINS */}
-                    <div className="col-span-2 md:col-span-2 flex flex-wrap gap-2 justify-end">
-                      <span className="text-[10px] text-slate-500 uppercase font-black self-center mr-1">Ganhos:</span>
-                      <div className={`border px-2 py-1 rounded-md text-[11px] font-bold ${opt.id === 'grande' ? 'border-orange-500/50 bg-orange-500/10' : 'border-white/10 bg-white/5'}`}>
-                        <span className="text-cyan-400">+{opt.gains.atk}</span> ATK
-                      </div>
-                      <div className={`border px-2 py-1 rounded-md text-[11px] font-bold ${opt.id === 'medio' ? 'border-blue-500/50 bg-blue-500/10' : 'border-white/10 bg-white/5'}`}>
-                        <span className="text-cyan-400">+{opt.gains.def}</span> DEF
-                      </div>
-                      <div className={`border px-2 py-1 rounded-md text-[11px] font-bold ${opt.id === 'pequeno' ? 'border-cyan-500/50 bg-cyan-500/10' : 'border-white/10 bg-white/5'}`}>
-                        <span className="text-cyan-400">+{opt.gains.foc}</span> FOC
-                      </div>
-                      <div className="bg-white/5 border border-white/10 px-2 py-1 rounded-md text-[11px] font-bold">
-                        <span className="text-cyan-400">+{opt.gains.xp}</span> XP
-                      </div>
+                    <div className="flex flex-wrap gap-2 items-center md:justify-end">
+                       <span className="text-[9px] text-slate-500 font-black uppercase tracking-widest w-full mb-1 md:text-right">Projected_Yield:</span>
+                       <div className="bg-white/5 border border-white/10 px-2 py-1 text-[11px] font-bold">
+                         <span className="text-cyan-400">+{opt.gains.atk}</span> ATK
+                       </div>
+                       <div className="bg-white/5 border border-white/10 px-2 py-1 text-[11px] font-bold">
+                         <span className="text-cyan-400">+{opt.gains.def}</span> DEF
+                       </div>
+                       <div className="bg-white/5 border border-white/10 px-2 py-1 text-[11px] font-bold">
+                         <span className="text-cyan-400">+{opt.gains.foc}</span> FOC
+                       </div>
+                       <div className="bg-white/5 border border-white/10 px-2 py-1 text-[11px] font-bold">
+                         <span className="text-cyan-400">+{opt.gains.xp}</span> XP
+                       </div>
                     </div>
                   </div>
 
                   <button
                     onClick={() => handleStart(opt.id)}
                     disabled={isTraining || loading !== null || trainingsLeft <= 0}
-                    className={`w-full py-3 rounded-xl font-orbitron font-bold text-sm tracking-widest transition-all
+                    className={`w-full py-4 font-orbitron font-black text-sm tracking-[0.3em] transition-all relative overflow-hidden group
                       ${isTraining || trainingsLeft <= 0 
-                        ? 'bg-white/5 text-slate-600 cursor-not-allowed' 
-                        : 'bg-white text-black hover:bg-cyan-400 hover:shadow-[0_0_20px_rgba(34,211,238,0.4)] active:scale-[0.98]'
+                        ? 'bg-slate-800 text-slate-600 cursor-not-allowed grayscale' 
+                        : 'bg-white text-black hover:bg-cyan-500 hover:text-white active:scale-[0.99]'
                       }`}
+                    style={MILITARY_CLIP}
                   >
-                    {loading === opt.id ? (
-                      <div className="flex items-center justify-center gap-2">
-                        <div className="w-4 h-4 border-2 border-black/20 border-t-black rounded-full animate-spin"></div>
-                        INICIANDO...
-                      </div>
-                    ) : isTraining ? (
-                      'BLOQUEADO: TREINO EM CURSO'
-                    ) : trainingsLeft <= 0 ? (
-                      'LIMITE DIÁRIO ATINGIDO'
-                    ) : (
-                      'INICIAR TREINAMENTO'
+                    <span className="relative z-10">
+                      {loading === opt.id ? 'INITIALIZING...' : 
+                       isTraining ? 'LOCKDOWN: ACTIVE_SESSION' : 
+                       trainingsLeft <= 0 ? 'LIMIT_REACHED' : 'ENGAGE_TRAINING'}
+                    </span>
+                    {!(isTraining || trainingsLeft <= 0) && (
+                      <div className="absolute inset-0 bg-cyan-600 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
                     )}
                   </button>
                 </div>
+              </div>
+
+              {/* Decorative side bar for the card */}
+              <div className={`absolute left-0 top-0 bottom-0 w-1 
+                ${opt.id === 'grande' ? 'bg-orange-500' : opt.id === 'medio' ? 'bg-blue-500' : 'bg-cyan-500'}`}>
               </div>
             </motion.div>
           ))}
         </div>
       </div>
 
-      {/* FOOTER DECORATION */}
-      <div className="mt-20 flex justify-center opacity-20 pointer-events-none">
-        <div className="w-px h-20 bg-gradient-to-b from-transparent via-white to-transparent"></div>
-      </div>
+      {/* FOOTER - TECHNICAL INFO */}
+      <footer className="max-w-6xl mx-auto mt-20 pt-8 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-4 opacity-40 grayscale hover:grayscale-0 transition-all">
+        <div className="flex items-center gap-6">
+          <div className="flex flex-col">
+             <span className="text-[8px] font-black tracking-widest uppercase">Encryption</span>
+             <span className="text-[10px] font-mono">AES-256_ACTIVE</span>
+          </div>
+          <div className="flex flex-col">
+             <span className="text-[8px] font-black tracking-widest uppercase">Coordinates</span>
+             <span className="text-[10px] font-mono">34.0522° N, 118.2437° W</span>
+          </div>
+        </div>
+        <div className="text-[10px] font-mono uppercase tracking-[0.5em]">
+          UrbanClash Tactical Interface v4.0.2
+        </div>
+      </footer>
     </div>
   );
 }

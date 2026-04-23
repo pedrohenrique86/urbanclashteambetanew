@@ -35,7 +35,7 @@
 
 - **Frontend - Gerenciamento de Estado e Dados:** O estado local é gerenciado por hooks nativos do React (`useState`, `useEffect`). Para o fetching de dados do servidor, `swr` é o padrão, oferecendo uma estratégia eficiente de "stale-while-revalidate" para cache e revalidação automática.
 
-- **Frontend - Estilização:** A estilização é feita primariamente com Tailwind CSS, permitindo um desenvolvimento rápido e consistente. As configurações de tema (cores, fontes) estão centralizadas em `tailwind.config.js`.
+- **Frontend - Estilização:** A estilização é feita primariamente com Tailwind CSS. O tema segue a diretriz **Military Cyberpunk**, utilizando paletas táticas (Olive, Charcoal, Sand), fontes Orbitron/Stencil, e elementos visuais robustos (chanfros, scanlines, listras de aviso).
 
 - **Frontend - Path Aliasing:** Para evitar imports relativos complexos (como `../../../`), foram configurados aliases de caminho no `vite.config.ts` e `tsconfig.json`, permitindo imports mais limpos (ex: `@/components/*`).
 

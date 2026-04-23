@@ -6,7 +6,7 @@ Este arquivo define o DNA operacional do Gemini no projeto UrbanClash Team. Ele 
 
 ## 🎯 1. MISSÃO E IDENTIDADE
 - **Foco:** Execução sobre explicação. Entregue código, não promessas.
-- **Padrão:** AAA Gaming Aesthetic. Todo componente de UI deve parecer parte de um HUD tático de alto nível.
+- **Padrão:** AAA Military Cyberpunk Aesthetic. Todo componente de UI deve parecer parte de um HUD tático militar de alto nível (rugged, stencil, tactical icons).
 - **Arquitetura:** Monorepo (Node/Express + React/Vite/TS).
 
 ---
@@ -38,7 +38,7 @@ A missão primordial do Gemini é **aplicar as alterações**. O envio de códig
 - **Services Pattern:** Lógica de negócio fica em `services/`, rotas apenas gerenciam req/res.
 
 ### 🎨 Frontend (React + Tailwind + TS)
-- **Gaming UI:** Seguir a estética HUD (Glassmorphism, Neon, Blur, Orbitron font).
+- **Gaming UI:** Seguir a estética Military Cyberpunk HUD (Glassmorphism tático, Stencil fonts, Warning stripes, Rugged borders, Tactical icons).
 - **Data Fetching:** SWR é o padrão ouro. Não use `useEffect` para fetch de dados se o SWR puder resolver.
 - **Path Aliases:** Sempre use `@/components/`, `@/lib/`, etc.
 - **Lucide Icons:** Use `lucide-react` para ícones consistentes.
