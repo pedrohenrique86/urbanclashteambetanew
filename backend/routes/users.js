@@ -414,7 +414,6 @@ router.post("/profile", authenticateToken, async (req, res) => {
         $1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
         $11, $12, $13, $14, $15, $16, $17, $18, $19, $20
       )
-      RETURNING *
       `,
       [
         user.id,
@@ -440,10 +439,12 @@ router.post("/profile", authenticateToken, async (req, res) => {
       ],
     );
 
+    const insertedProfile = await query(`SELECT * FROM user_profiles WHERE user_id = $1`, [user.id]);
+
     await invalidatePlayerCache(user.id);
     await refreshUserRankingCaches();
 
-    res.status(201).json(result.rows[0]);
+    res.status(201).json(insertedProfile.rows[0]);
   } catch (error) {
     if (error.code === "23505") {
       return res.status(409).json({ error: "Perfil já existe ou username em uso" });
@@ -510,19 +511,20 @@ router.put(
         UPDATE user_profiles
         SET ${updateFields.join(", ")}, updated_at = CURRENT_TIMESTAMP
         WHERE user_id = $${paramCount}
-        RETURNING *
         `,
         updateValues,
       );
 
-      if (result.rows.length === 0) {
+      if (result.rowCount === 0) {
         return res.status(404).json({ error: "Perfil não encontrado" });
       }
+
+      const updatedProfile = await query(`SELECT * FROM user_profiles WHERE user_id = $1`, [req.user.id]);
 
       await invalidatePlayerCache(req.user.id);
       await refreshUserRankingCaches();
 
-      res.json(result.rows[0]);
+      res.json(updatedProfile.rows[0]);
     } catch (error) {
       console.error("❌ Erro ao atualizar perfil do usuário:", error.message);
       res.status(500).json({ error: "Erro interno do servidor" });
@@ -719,7 +721,6 @@ router.put(
             VALUES (
               $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14
             )
-            RETURNING *
             `,
             [
               id,
@@ -739,7 +740,8 @@ router.put(
             ],
           );
 
-          return insertResult.rows[0];
+          const insertedResult = await client.query(`SELECT * FROM user_profiles WHERE user_id = $1`, [id]);
+          return insertedResult.rows[0];
         }
 
         const updateFields = [];
@@ -792,12 +794,12 @@ router.put(
           UPDATE user_profiles
           SET ${updateFields.join(", ")}, updated_at = CURRENT_TIMESTAMP
           WHERE user_id = $${paramCount}
-          RETURNING *
           `,
           updateValues,
         );
 
-        return updateResult.rows[0];
+        const updatedResult = await client.query(`SELECT * FROM user_profiles WHERE user_id = $1`, [id]);
+        return updatedResult.rows[0];
       });
 
       await invalidatePlayerCache(id);
@@ -903,15 +905,10 @@ router.get("/:id/clans", async (req, res) => {
     const clansResult = await query(
       `
       SELECT 
-        c.id, c.name, c.description, c.faction, mc.member_count, c.max_members,
+        c.id, c.name, c.description, c.faction, c.member_count, c.max_members,
         cm.role, cm.joined_at
       FROM clans c
       INNER JOIN clan_members cm ON c.id = cm.clan_id
-      LEFT JOIN LATERAL (
-        SELECT COUNT(*)::int AS member_count
-        FROM clan_members
-        WHERE clan_id = c.id
-      ) mc ON true
       WHERE cm.user_id = $1
       ORDER BY cm.joined_at DESC
       `,

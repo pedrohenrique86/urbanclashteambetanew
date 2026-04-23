@@ -160,11 +160,13 @@ router.post(
 
       // Criar usuário e perfil em uma transação
       const result = await transaction(async (client) => {
-        // Inserir usuário
-        const userResult = await client.query(
-          `INSERT INTO users (email, username, password_hash, email_confirmation_token, birth_date, country) 
-         VALUES ($1, $2, $3, $4, $5, $6) RETURNING id, email, username, birth_date, country`,
+        const userId = crypto.randomUUID();
+
+        await client.query(
+          `INSERT INTO users (id, email, username, password_hash, email_confirmation_token, birth_date, country) 
+         VALUES ($1, $2, $3, $4, $5, $6, $7)`,
           [
+            userId,
             email,
             username,
             passwordHash,
@@ -174,6 +176,7 @@ router.post(
           ],
         );
 
+        const userResult = await client.query(`SELECT id, email, username, birth_date, country FROM users WHERE id = $1`, [userId]);
         const user = userResult.rows[0];
 
         // Perfil será criado quando o usuário escolher a facção
@@ -463,15 +466,16 @@ router.post("/google/callback", async (req, res) => {
         );
         // Usuário com este email já existe, vincular a conta Google
         // E também atualizar o país se ele estiver nulo, usando o valor determinado
-        const updateResult = await query(
+        await query(
           `UPDATE users SET 
            google_id = $1, 
            is_email_confirmed = TRUE,
            country = COALESCE(users.country, $3)
-           WHERE id = $2 RETURNING *`,
+           WHERE id = $2`,
           [google_id, user.id, country],
         );
-        user = updateResult.rows[0]; // Atualiza o objeto user com os dados do BD
+        const updatedUser = await query(`SELECT * FROM users WHERE id = $1`, [user.id]);
+        user = updatedUser.rows[0];
         console.log(
           `DEBUG: 12. Conta vinculada. País atualizado para ${user.country} se era nulo.`,
         );
@@ -500,11 +504,13 @@ router.post("/google/callback", async (req, res) => {
           }
         }
 
-        const newUserResult = await query(
-          `INSERT INTO users (username, email, google_id, is_email_confirmed, country)
-           VALUES ($1, $2, $3, true, $4) RETURNING *`,
-          [uniqueUsername, email, google_id, country],
+        const newUserId = crypto.randomUUID();
+        await query(
+          `INSERT INTO users (id, username, email, google_id, is_email_confirmed, country)
+           VALUES ($1, $2, $3, $4, true, $5)`,
+          [newUserId, uniqueUsername, email, google_id, country],
         );
+        const newUserResult = await query(`SELECT * FROM users WHERE id = $1`, [newUserId]);
         user = newUserResult.rows[0];
         console.log("DEBUG: 14. Novo usuário criado:", user);
       }
@@ -512,13 +518,13 @@ router.post("/google/callback", async (req, res) => {
       // Usuário já existe e logou com Google antes. Apenas atualiza o país se necessário.
       if (country && !user.country) {
         console.log("DEBUG: Usuário existente sem país, atualizando.");
-        const updateResult = await query(
+        await query(
           `UPDATE users 
            SET country = $2
-           WHERE id = $1
-           RETURNING *`,
+           WHERE id = $1`,
           [user.id, country]
         );
+        const updateResult = await query(`SELECT * FROM users WHERE id = $1`, [user.id]);
         user = updateResult.rows[0];
         console.log("DEBUG: País do usuário existente atualizado:", user);
       }

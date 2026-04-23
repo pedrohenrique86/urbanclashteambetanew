@@ -63,12 +63,12 @@ async function seedInitialGameState() {
         game_duration: "1728000", // 20 dias em segundos
       };
 
-      const promises = Object.entries(defaultConfig).map(([key, value]) =>
-        query(
-          `INSERT INTO game_config (key, value) VALUES ($1, $2) ON CONFLICT (key) DO NOTHING`,
-          [key, value],
-        ),
-      );
+      const promises = Object.entries(defaultConfig).map(async ([key, value]) => {
+        const check = await query(`SELECT key FROM game_config WHERE key = $1`, [key]);
+        if (check.rows.length === 0) {
+          await query(`INSERT INTO game_config (key, value) VALUES ($1, $2)`, [key, value]);
+        }
+      });
 
       await Promise.all(promises);
       console.log("✅ Tabela 'game_config' semeada com sucesso.");
@@ -201,20 +201,26 @@ async function getGameStatus() {
 
 async function updateGameConfig(key, value) {
   try {
-    const result = await query(
-      `INSERT INTO game_config (key, value, updated_at)
-       VALUES ($1, $2, NOW())
-       ON CONFLICT (key) DO UPDATE 
-       SET value = $2, updated_at = NOW()
-       RETURNING *`,
+    let result = await query(
+      `UPDATE game_config SET value = $2, updated_at = NOW() WHERE key = $1`,
       [key, String(value)],
     );
+
+    if (result.rowCount === 0) {
+      await query(
+        `INSERT INTO game_config (key, value, updated_at) VALUES ($1, $2, NOW())`,
+        [key, String(value)],
+      );
+    }
+    
+    // Select the inserted/updated row explicitly instead of RETURNING *
+    const rowResult = await query(`SELECT * FROM game_config WHERE key = $1`, [key]);
 
     await invalidateAndBroadcastState();
 
     return {
       success: true,
-      config: result.rows[0],
+      config: rowResult.rows[0],
       key,
       value,
     };
@@ -230,15 +236,17 @@ async function scheduleGame(startTime, durationSeconds = 20 * 24 * 60 * 60) {
 
   try {
     await query("BEGIN");
-    await query(
-      `INSERT INTO game_config (key, value, updated_at) VALUES 
-       ('game_start_time', $1, NOW()),
-       ('game_duration', $2, NOW()),
-       ('is_countdown_active', 'false', NOW())
-       ON CONFLICT (key) DO UPDATE 
-       SET value = EXCLUDED.value, updated_at = NOW()`,
-      [startTimeStr, String(durationSeconds)],
-    );
+    // UPSERT agnóstico para múltiplos valores
+    for (const [k, v] of [
+      ['game_start_time', startTimeStr],
+      ['game_duration', String(durationSeconds)],
+      ['is_countdown_active', 'false']
+    ]) {
+      const upd = await query(`UPDATE game_config SET value = $1, updated_at = NOW() WHERE key = $2`, [v, k]);
+      if (upd.rowCount === 0) {
+        await query(`INSERT INTO game_config (key, value, updated_at) VALUES ($1, $2, NOW())`, [k, v]);
+      }
+    }
     await query("COMMIT");
     await invalidateAndBroadcastState(); // CORRIGIDO
 
@@ -263,15 +271,16 @@ async function startGame(startTime, durationSeconds = 20 * 24 * 60 * 60) {
 
   try {
     await query("BEGIN");
-    await query(
-      `INSERT INTO game_config (key, value, updated_at) VALUES 
-       ('game_start_time', $1, NOW()),
-       ('game_duration', $2, NOW()),
-       ('is_countdown_active', 'true', NOW())
-       ON CONFLICT (key) DO UPDATE 
-       SET value = EXCLUDED.value, updated_at = NOW()`,
-      [startTimeStr, String(durationSeconds)],
-    );
+    for (const [k, v] of [
+      ['game_start_time', startTimeStr],
+      ['game_duration', String(durationSeconds)],
+      ['is_countdown_active', 'true']
+    ]) {
+      const upd = await query(`UPDATE game_config SET value = $1, updated_at = NOW() WHERE key = $2`, [v, k]);
+      if (upd.rowCount === 0) {
+        await query(`INSERT INTO game_config (key, value, updated_at) VALUES ($1, $2, NOW())`, [k, v]);
+      }
+    }
     await query("COMMIT");
     await invalidateAndBroadcastState(); // CORRIGIDO
 
@@ -291,13 +300,15 @@ async function startGame(startTime, durationSeconds = 20 * 24 * 60 * 60) {
 async function stopGame() {
   try {
     await query("BEGIN");
-    await query(
-      `INSERT INTO game_config (key, value, updated_at) VALUES 
-       ('is_countdown_active', 'false', NOW()),
-       ('is_paused', 'false', NOW())
-       ON CONFLICT (key) DO UPDATE 
-       SET value = EXCLUDED.value, updated_at = NOW()`,
-    );
+    for (const [k, v] of [
+      ['is_countdown_active', 'false'],
+      ['is_paused', 'false']
+    ]) {
+      const upd = await query(`UPDATE game_config SET value = $1, updated_at = NOW() WHERE key = $2`, [v, k]);
+      if (upd.rowCount === 0) {
+        await query(`INSERT INTO game_config (key, value, updated_at) VALUES ($1, $2, NOW())`, [k, v]);
+      }
+    }
     await query("DELETE FROM game_config WHERE key = 'game_start_time'");
     await query("COMMIT");
     await invalidateAndBroadcastState(); // CORRIGIDO
@@ -393,11 +404,10 @@ async function checkAutoStart() {
       console.log(
         `⏰ Auto-start: Horário ${startTime.toISOString()} alcançado. Ativando countdown...`,
       );
-      await query(
-        `INSERT INTO game_config (key, value, updated_at)
-         VALUES ('is_countdown_active', 'true', NOW())
-         ON CONFLICT (key) DO UPDATE SET value = 'true', updated_at = NOW()`,
-      );
+      const updCount = await query(`UPDATE game_config SET value = 'true', updated_at = NOW() WHERE key = 'is_countdown_active'`);
+      if (updCount.rowCount === 0) {
+         await query(`INSERT INTO game_config (key, value, updated_at) VALUES ('is_countdown_active', 'true', NOW())`);
+      }
       await invalidateAndBroadcastState(); // CORRIGIDO
       console.log("🎮 Jogo iniciado automaticamente!");
       return true;

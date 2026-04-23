@@ -168,8 +168,9 @@ router.get("/", async (req, res) => {
     }
 
     const orderBy =
-      sortField === "member_count" ? "mc.member_count" : `c.${sortField}`;
+      sortField === "member_count" ? "c.member_count" : `c.${sortField}`;
 
+    // Substituído LEFT JOIN LATERAL por leitura direta da coluna 'member_count' otimizada
     const clansResult = await query(
       `
       SELECT 
@@ -177,16 +178,11 @@ router.get("/", async (req, res) => {
         c.name,
         c.description,
         c.faction,
-        mc.member_count,
+        c.member_count,
         c.max_members,
         c.is_recruiting,
         c.created_at
       FROM clans c
-      LEFT JOIN LATERAL (
-        SELECT COUNT(*)::int AS member_count
-        FROM clan_members cm
-        WHERE cm.clan_id = c.id
-      ) mc ON true
       ${whereClause}
       ORDER BY ${orderBy} ${sortOrder}
       LIMIT $${paramCount++} OFFSET $${paramCount++}
@@ -196,13 +192,8 @@ router.get("/", async (req, res) => {
 
     const countResult = await query(
       `
-      SELECT COUNT(*) as total
+      SELECT CAST(COUNT(*) AS INTEGER) as total
       FROM clans c
-      LEFT JOIN LATERAL (
-        SELECT COUNT(*)::int AS member_count
-        FROM clan_members cm
-        WHERE cm.clan_id = c.id
-      ) mc ON true
       ${whereClause}
       `,
       queryParams,
@@ -255,16 +246,11 @@ router.get("/by-faction/:faction", async (req, res) => {
         c.name,
         c.description,
         c.faction,
-        mc.member_count,
+        c.member_count,
         c.max_members,
         c.is_recruiting,
         c.created_at
       FROM clans c
-      LEFT JOIN LATERAL (
-        SELECT COUNT(*)::int AS member_count
-        FROM clan_members cm
-        WHERE cm.clan_id = c.id
-      ) mc ON true
       WHERE c.faction = $1
       ORDER BY c.name ASC
       `,
@@ -318,27 +304,42 @@ router.get("/:id", async (req, res) => {
   try {
     const { id } = req.params;
 
-    const clanResult = await query(
-      `
-      SELECT 
-        c.*,
-        mc.member_count
-      FROM clans c
-      LEFT JOIN LATERAL (
-        SELECT COUNT(*)::int AS member_count
-        FROM clan_members cm
-        WHERE cm.clan_id = c.id
-      ) mc ON true
-      WHERE c.id = $1
-      `,
-      [id],
-    );
-
-    if (clanResult.rows.length === 0) {
-      return res.status(404).json({ error: "Clã não encontrado" });
+    // Adicionado Caching via Redis para leitura de clã (reduz carga no PostgreSQL)
+    const cacheKey = `clan_profile:${id}`;
+    let cachedClan = null;
+    if (redisClient.client.isReady) {
+      const rawCache = await redisClient.getAsync(cacheKey);
+      if (rawCache) cachedClan = JSON.parse(rawCache);
     }
 
-    const clan = parseClanCount(clanResult.rows[0]);
+    let clanResultData = cachedClan;
+    let membersResultData = null;
+
+    if (!clanResultData) {
+      const clanResult = await query(
+        `
+        SELECT 
+          c.*,
+          c.member_count
+        FROM clans c
+        WHERE c.id = $1
+        `,
+        [id],
+      );
+
+      if (clanResult.rows.length === 0) {
+        return res.status(404).json({ error: "Clã não encontrado" });
+      }
+      
+      clanResultData = parseClanCount(clanResult.rows[0]);
+      
+      if (redisClient.client.isReady) {
+         // Expira cache de perfil em 10 minutos (curto prazo para infos em tempo real)
+         await redisClient.setAsync(cacheKey, JSON.stringify(clanResultData), "EX", 600);
+      }
+    }
+
+    const clan = clanResultData;
 
     const membersResult = await query(
       `
@@ -483,17 +484,16 @@ router.post("/", authenticateToken, createClanValidation, async (req, res) => {
       return res.status(409).json({ error: "Nome do clã já está em uso" });
     }
 
-    const result = await transaction(async (client) => {
-      const clanResult = await client.query(
-        `
-        INSERT INTO clans (name, description, faction, faction_id, max_members)
-        VALUES ($1, $2, $3, $4, $5)
-        RETURNING id
-        `,
-        [name, description, reqCanonical, reqFactionId, max_members],
-      );
+    const clanId = require("crypto").randomUUID();
 
-      const clanId = clanResult.rows[0].id;
+    const result = await transaction(async (client) => {
+      await client.query(
+        `
+        INSERT INTO clans (id, name, description, faction, faction_id, max_members, member_count)
+        VALUES ($1, $2, $3, $4, $5, $6, $7)
+        `,
+        [clanId, name, description, reqCanonical, reqFactionId, max_members, 1],
+      );
 
       await client.query(
         `
@@ -512,13 +512,8 @@ router.post("/", authenticateToken, createClanValidation, async (req, res) => {
         `
         SELECT
           c.*,
-          mc.member_count
+          c.member_count
         FROM clans c
-        LEFT JOIN LATERAL (
-          SELECT COUNT(*)::int AS member_count
-          FROM clan_members cm
-          WHERE cm.clan_id = c.id
-        ) mc ON true
         WHERE c.id = $1
         `,
         [clanId],
@@ -560,13 +555,8 @@ router.put("/:id", authenticateToken, updateClanValidation, async (req, res) => 
       `
       SELECT
         c.*,
-        mc.member_count
+        c.member_count
       FROM clans c
-      LEFT JOIN LATERAL (
-        SELECT COUNT(*)::int AS member_count
-        FROM clan_members cm
-        WHERE cm.clan_id = c.id
-      ) mc ON true
       WHERE c.id = $1
       `,
       [id],
@@ -623,14 +613,17 @@ router.put("/:id", authenticateToken, updateClanValidation, async (req, res) => 
       UPDATE clans
       SET ${updateFields.join(", ")}, updated_at = CURRENT_TIMESTAMP
       WHERE id = $${paramCount}
-      RETURNING *
       `,
       updateValues,
     );
 
+    // Refresh e invalida cache (já que removemos o RETURNING * por portabilidade)
+    const updatedResult = await query(`SELECT * FROM clans WHERE id = $1`, [id]);
+    if (redisClient.client.isReady) await redisClient.delAsync(`clan_profile:${id}`);
+
     res.json({
       message: "Clã atualizado com sucesso",
-      clan: result.rows[0],
+      clan: updatedResult.rows[0],
     });
   } catch (error) {
     console.error("❌ Erro ao atualizar clã:", error.message);
@@ -692,6 +685,11 @@ router.post("/:id/join", authenticateToken, async (req, res) => {
         [clanId, userId],
       );
 
+      await client.query(
+        "UPDATE clans SET member_count = member_count + 1 WHERE id = $1",
+        [clanId]
+      );
+
       return { status: 200, message: "Você entrou no clã com sucesso" };
     });
 
@@ -700,6 +698,7 @@ router.post("/:id/join", authenticateToken, async (req, res) => {
     }
 
     await redisClient.delAsync(`playerState:${userId}`);
+    await redisClient.delAsync(`clan_profile:${clanId}`); // Invalida cache de clã
 
     // Atualiza contagem no Cache (Redis) - Sincroniza em lote a cada 10 min
     await clanStateService.updateClanState(clanId, { member_count: 1 });
@@ -769,6 +768,11 @@ router.post("/:id/leave", authenticateToken, async (req, res) => {
         [userId],
       );
 
+      await client.query(
+        "UPDATE clans SET member_count = member_count - 1 WHERE id = $1 AND member_count > 0",
+        [clanId]
+      );
+
       return { status: 200, message: "Você saiu do clã com sucesso." };
     });
 
@@ -777,6 +781,7 @@ router.post("/:id/leave", authenticateToken, async (req, res) => {
     }
 
     await redisClient.delAsync(`playerState:${userId}`);
+    await redisClient.delAsync(`clan_profile:${clanId}`); // Invalida cache
 
     // Atualiza contagem no Cache (Redis)
     await clanStateService.updateClanState(clanId, { member_count: -1 });
@@ -806,8 +811,8 @@ router.post("/:id/vote-kick/:targetUserId", authenticateToken, async (req, res) 
 
     const result = await transaction(async (client) => {
       const membersCheck = await client.query(
-        `SELECT user_id, role FROM clan_members WHERE clan_id = $1 AND user_id = ANY($2::uuid[])`,
-        [clanId, [voterId, targetUserId]],
+        `SELECT user_id, role FROM clan_members WHERE clan_id = $1 AND user_id IN ($2, $3)`,
+        [clanId, voterId, targetUserId],
       );
 
       const voterInfo = membersCheck.rows.find((m) => m.user_id === voterId);
@@ -855,8 +860,10 @@ router.post("/:id/vote-kick/:targetUserId", authenticateToken, async (req, res) 
           [clanId, targetUserId],
         );
         
-        // Atualiza contagem no Cache (Redis) se foi expulso
-        await clanStateService.updateClanState(clanId, { member_count: -1 });
+        await client.query(
+          `UPDATE clans SET member_count = member_count - 1 WHERE id = $1 AND member_count > 0`,
+          [clanId]
+        );
 
         await client.query(
           `UPDATE user_profiles SET clan_id = NULL, updated_at = CURRENT_TIMESTAMP WHERE user_id = $1`,
@@ -879,6 +886,7 @@ router.post("/:id/vote-kick/:targetUserId", authenticateToken, async (req, res) 
 
     if (result.status === 200 && result.body.message.includes("expulso")) {
       await redisClient.delAsync(`playerState:${targetUserId}`);
+      await redisClient.delAsync(`clan_profile:${clanId}`);
     }
 
     return res.status(result.status).json(result.body);
@@ -936,6 +944,11 @@ router.post("/:id/kick/:userId", authenticateToken, async (req, res) => {
         [targetUserId],
       );
 
+      await client.query(
+        "UPDATE clans SET member_count = member_count - 1 WHERE id = $1 AND member_count > 0",
+        [id]
+      );
+
       return { success: true };
     });
 
@@ -944,6 +957,8 @@ router.post("/:id/kick/:userId", authenticateToken, async (req, res) => {
     }
 
     await redisClient.delAsync(`playerState:${targetUserId}`);
+    await redisClient.delAsync(`clan_profile:${id}`);
+    await clanStateService.updateClanState(id, { member_count: -1 });
 
     res.json({ message: "Membro expulso com sucesso." });
   } catch (error) {

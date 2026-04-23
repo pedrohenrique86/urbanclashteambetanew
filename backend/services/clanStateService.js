@@ -14,8 +14,7 @@ async function loadClanState(clanId) {
     const result = await query(
       `
       SELECT 
-        c.id, c.points, c.faction, c.max_members,
-        (SELECT COUNT(*)::int FROM clan_members WHERE clan_id = c.id) as member_count
+        c.id, c.points, c.faction, c.max_members, c.member_count
       FROM clans c
       WHERE c.id = $1
       `,

@@ -79,15 +79,11 @@ async function fetchClansFromDB() {
     `SELECT
        c.id, c.name, c.faction,
        c.season_score AS score,
-       mc.member_count,
+       c.member_count,
        c.created_at, c.updated_at,
-       ROW_NUMBER() OVER (ORDER BY c.season_score DESC, mc.member_count DESC) AS rank
+       ROW_NUMBER() OVER (ORDER BY c.season_score DESC, c.member_count DESC) AS rank
      FROM clans c
-     LEFT JOIN LATERAL (
-       SELECT COUNT(*)::int AS member_count
-       FROM clan_members cm WHERE cm.clan_id = c.id
-     ) mc ON true
-     ORDER BY c.season_score DESC, mc.member_count DESC
+     ORDER BY c.season_score DESC, c.member_count DESC
      LIMIT $1`,
     [STANDARD_LIMIT],
   );
@@ -137,7 +133,8 @@ async function buildRankingFromZSet(faction) {
   const candidateIds = entries.map((e) => e.userId);
   if (candidateIds.length > 0) {
     try {
-      const { rows } = await query("SELECT id FROM users WHERE id = ANY($1)", [candidateIds]);
+      const placeholders = candidateIds.map((_, i) => `$${i + 1}`).join(',');
+      const { rows } = await query(`SELECT id FROM users WHERE id IN (${placeholders})`, candidateIds);
       const existingIds = new Set(rows.map((r) => r.id));
 
       const invalidIds = candidateIds.filter((id) => !existingIds.has(id));
