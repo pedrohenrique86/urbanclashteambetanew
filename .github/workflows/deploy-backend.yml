@@ -21,24 +21,10 @@ jobs:
           username: ${{ secrets.ORACLE_USERNAME }}
           key: ${{ secrets.ORACLE_SSH_KEY }}
           script: |
-            cd ~/urbanclashteambetanew
+            cd ~/urbanclashteambetanew/backend
             git pull origin main
-            sudo docker build -f Dockerfile.backend -t urbanclash-backend .
-            sudo docker stop urbanclash-backend || true
-            sudo docker rm urbanclash-backend || true
-            sudo docker run -d \
-              --name urbanclash-backend \
-              -p 80:3001 \
-              -e DATABASE_URL="${{ secrets.DATABASE_URL }}" \
-              -e REDIS_URL="${{ secrets.REDIS_URL }}" \
-              -e JWT_SECRET="${{ secrets.JWT_SECRET }}" \
-              -e GOOGLE_CLIENT_ID="${{ secrets.GOOGLE_CLIENT_ID }}" \
-              -e GOOGLE_CLIENT_SECRET="${{ secrets.GOOGLE_CLIENT_SECRET }}" \
-              -e RESEND_API_KEY="${{ secrets.RESEND_API_KEY }}" \
-              -e FRONTEND_URL="${{ secrets.FRONTEND_URL }}" \
-              -e BACKEND_URL="${{ secrets.BACKEND_URL }}" \
-              -e FROM_EMAIL="no-reply@urbanclash.com" \
-              -e NODE_ENV=production \
-              --restart always \
-              urbanclash-backend
+            npm install
+            npm run migrate:up:prod
+            pm2 restart urbanclash-api || pm2 start server.js --name "urbanclash-api"
+            pm2 save
 
