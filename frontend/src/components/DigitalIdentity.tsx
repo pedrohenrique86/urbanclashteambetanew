@@ -23,6 +23,7 @@ import {
   TrendingUp,
   Award
 } from "lucide-react";
+import { getFactionRank } from "../utils/leveling";
 
 interface PublicPlayer {
   id: string;
@@ -300,6 +301,12 @@ const DigitalIdentity = React.memo(
                  <div className="flex flex-col min-w-0">
                     <div className="flex items-center gap-2 mb-1">
                         <h2 className="text-xl sm:text-2xl font-black font-orbitron text-white uppercase italic tracking-tighter break-words leading-tight drop-shadow-[0_0_8px_rgba(255,255,255,0.4)]">{player.display_name || player.username}</h2>
+                    </div>
+                    {/* Prestige Rank Title */}
+                    <div className="mb-2">
+                       <p className={`text-[11px] sm:text-xs font-black font-orbitron italic tracking-widest ${factionTheme.primary} uppercase leading-none`}>
+                          {getFactionRank(player.level, player.faction)}
+                       </p>
                     </div>
                     <div className="flex items-center gap-2">
                        <span className={`text-[9px] font-black font-orbitron tracking-widest uppercase ${player.clan_name ? factionTheme.primary : "text-yellow-400"}`}>{player.clan_name || "SOLO"}</span>

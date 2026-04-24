@@ -1,6 +1,7 @@
 import React, { useEffect } from "react";
 import { useUserProfile } from "../hooks/useUserProfile";
 import { getDisplayName } from "../utils/displayNames";
+import { getFactionRank } from "../utils/leveling";
 import {
   BoltIcon,
   BanknotesIcon,
@@ -94,36 +95,82 @@ const CircularProgressBar: React.FC<{ progress: number; isGangster: boolean }> =
 };
 
 const LevelPanel = React.memo(({ user }: { user: any }) => {
-  const progress = user.xp_needed ? (user.xp / user.xp_needed) * 100 : 0;
   const factionNameStr = typeof user?.faction === 'string' 
     ? user.faction 
     : (user?.faction as any)?.name ?? "GANGSTERS";
   const canonicalFaction = FACTION_ALIAS_MAP_FRONTEND[factionNameStr.toLowerCase().trim()] || "gangsters";
   const isGangster = canonicalFaction === "gangsters";
+  
+  const currentLevel = user.level || 1;
+  const rankName = getFactionRank(currentLevel, canonicalFaction);
+
+  // Lógica de Faixas de Patente para o Progresso
+  const thresholds = [1, 51, 151, 301, 501, 701, 901, 1001];
+  let currentTierIdx = 0;
+  for (let i = 0; i < thresholds.length - 1; i++) {
+    if (currentLevel >= thresholds[i] && currentLevel < thresholds[i+1]) {
+      currentTierIdx = i;
+      break;
+    }
+  }
+  if (currentLevel >= 901) currentTierIdx = 6;
+
+  const startLevel = thresholds[currentTierIdx];
+  const endLevel = thresholds[currentTierIdx + 1];
+  const nextRankName = getFactionRank(endLevel, canonicalFaction);
+  
+  // Cálculo do progresso dentro da patente atual
+  const progressToNextRank = currentLevel >= 901 
+    ? 100 
+    : ((currentLevel - startLevel) / (endLevel - startLevel)) * 100;
 
   return (
     <DashboardPanel
-      title="NÍVEL"
+      title="PRESTÍGIO MILITAR"
       icon={<BoltIcon className={`w-6 h-6 ${isGangster ? "text-orange-400" : "text-blue-400"}`} />}
     >
-      <div className="flex flex-col sm:flex-row items-center justify-center sm:justify-around text-center sm:text-left h-full gap-4 p-2">
-        <CircularProgressBar progress={progress} isGangster={isGangster} />
-        <div className="text-slate-300 space-y-1 text-sm">
-          <p>
-            <span className="font-bold text-white">
-              {user.xp} / {user.xp_needed} XP
+      <div className="flex flex-col sm:flex-row items-center justify-center sm:justify-around text-center sm:text-left h-full gap-6 p-2">
+        <CircularProgressBar progress={progressToNextRank} isGangster={isGangster} />
+        
+        <div className="flex-1 space-y-4">
+          {/* Patente Atual */}
+          <div>
+            <span className={`text-[10px] font-orbitron uppercase tracking-[0.3em] ${isGangster ? 'text-orange-500/60' : 'text-blue-400/60'}`}>
+              Patente Atual
             </span>
-          </p>
-          <p>
-            Total:{" "}
-            <span className="font-bold text-white">
-              {user.total_xp ?? 0} XP
-            </span>
-          </p>
-          <p>
-            Progresso:{" "}
-            <span className="font-bold text-white">{user.level}</span>
-          </p>
+            <p className={`text-xl sm:text-2xl font-black font-orbitron leading-tight ${isGangster ? 'text-orange-400 drop-shadow-[0_0_12px_rgba(234,88,12,0.5)]' : 'text-blue-400 drop-shadow-[0_0_12px_rgba(37,99,235,0.5)]'}`}>
+              {rankName}
+            </p>
+          </div>
+
+          {/* Próxima Patente (se não for a última) */}
+          {currentLevel < 901 && (
+            <div className="pt-2 border-t border-white/5">
+              <span className="text-[9px] font-orbitron uppercase tracking-widest text-slate-500">
+                Objetivo: Próxima Promoção
+              </span>
+              <p className="text-sm font-bold text-slate-300 font-orbitron opacity-80">
+                {nextRankName}
+              </p>
+              <div className="flex items-center gap-2 mt-1">
+                <div className="flex-1 h-1 bg-white/5 rounded-full overflow-hidden">
+                  <div 
+                    className={`h-full transition-all duration-1000 ${isGangster ? 'bg-orange-500' : 'bg-blue-500'}`}
+                    style={{ width: `${progressToNextRank}%` }}
+                  />
+                </div>
+                <span className="text-[10px] font-mono text-slate-500">{Math.floor(progressToNextRank)}%</span>
+              </div>
+            </div>
+          )}
+
+          {currentLevel >= 901 && (
+            <div className="pt-2 border-t border-white/5">
+              <span className="text-[10px] font-orbitron text-yellow-500 animate-pulse uppercase tracking-[0.2em]">
+                ● NÍVEL MÁXIMO ALCANÇADO
+              </span>
+            </div>
+          )}
         </div>
       </div>
     </DashboardPanel>

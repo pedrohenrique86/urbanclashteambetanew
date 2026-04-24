@@ -259,9 +259,37 @@ function scaleXpByLevel(baseXp, level) {
   return scaled;
 }
 
+/**
+ * Retorna o Título de Prestígio baseado no nível e facção.
+ */
+function getFactionRank(level, faction) {
+  const lvl = Number(level) || 1;
+  const fac = String(faction || '').toLowerCase();
+  const isRenegado = fac === 'renegados' || fac === 'gangsters';
+
+  if (isRenegado) {
+    if (lvl <= 50)   return "Desordeiro das Ruas";
+    if (lvl <= 150)  return "Brutamontes Neon";
+    if (lvl <= 300)  return "Senhor da Guerra Cibernético";
+    if (lvl <= 500)  return "Executor Sombrio";
+    if (lvl <= 700)  return "Saqueador Aumentado";
+    if (lvl <= 900)  return "Destruidor de Dados";
+    return "Renegado Supremo";
+  } else {
+    if (lvl <= 50)   return "Cadete Executor";
+    if (lvl <= 150)  return "Vingador Neon";
+    if (lvl <= 300)  return "Guardião Circuito";
+    if (lvl <= 500)  return "Comandante Cibernético";
+    if (lvl <= 700)  return "Punidor Aegis";
+    if (lvl <= 900)  return "Paladino Destruidor";
+    return "Sentinela Dominante";
+  }
+}
+
 module.exports = {
   getXpRequiredForNextLevel,
   calculateDynamicLevel,
+  getFactionRank,
   getTotalXpUntilLevel,
   deriveXpStatus,
   calculateLevelFromXp,

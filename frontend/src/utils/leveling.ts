@@ -9,23 +9,41 @@ export interface LevelInfo {
 }
 
 /**
- * Get XP requirement for a specific level
- * @param level - The level to get XP requirement for
- * @returns XP required for that level
+ * Get XP requirement for a specific level (Synchronized with Backend)
  */
 const getXPRequirementForLevel = (level: number): number => {
-  if (level <= 5) return 100;
-  if (level <= 50) return 150;
-  if (level <= 100) return 200;
-  if (level <= 150) return 250;
-  
-  // Para níveis acima de 150, grupos de 50 com aumento de 50 XP
-  const group = Math.floor((level - 151) / 50);
-  return 300 + (group * 50);
+  return 100 + (Math.floor(level / 5) * 10);
 };
 
 /**
- * Calculate the level based on XP using the new progressive formula
+ * Get Prestige Rank Title based on Level and Faction
+ */
+export const getFactionRank = (level: number, faction: string): string => {
+  const lvl = level || 1;
+  const fac = (faction || '').toLowerCase().trim();
+  const isRenegado = fac === 'renegados' || fac === 'gangsters';
+
+  if (isRenegado) {
+    if (lvl <= 50)   return "Desordeiro das Ruas";
+    if (lvl <= 150)  return "Brutamontes Neon";
+    if (lvl <= 300)  return "Senhor da Guerra Cibernético";
+    if (lvl <= 500)  return "Executor Sombrio";
+    if (lvl <= 700)  return "Saqueador Aumentado";
+    if (lvl <= 900)  return "Destruidor de Dados";
+    return "Renegado Supremo";
+  } else {
+    if (lvl <= 50)   return "Cadete Executor";
+    if (lvl <= 150)  return "Vingador Neon";
+    if (lvl <= 300)  return "Guardião Circuito";
+    if (lvl <= 500)  return "Comandante Cibernético";
+    if (lvl <= 700)  return "Punidor Aegis";
+    if (lvl <= 900)  return "Paladino Destruidor";
+    return "Sentinela Dominante";
+  }
+};
+
+/**
+ * Calculate the level based on XP using the synchronized formula
  * @param xp - Current experience points
  * @returns Level information object
  */
@@ -43,7 +61,6 @@ export const calculateLevel = (xp: number): LevelInfo => {
   let level = 1;
   let totalXP = 0;
   
-  // Calculate level using new XP requirements
   for (;;) {
     const xpForCurrentLevel = getXPRequirementForLevel(level);
     if (totalXP + xpForCurrentLevel > xp) {
@@ -51,6 +68,7 @@ export const calculateLevel = (xp: number): LevelInfo => {
     }
     totalXP += xpForCurrentLevel;
     level++;
+    if (level >= 5000) break; // Safety
   }
 
   const xpForCurrentLevel = getXPRequirementForLevel(level);
@@ -69,25 +87,18 @@ export const calculateLevel = (xp: number): LevelInfo => {
 
 /**
  * Calculate total XP required to reach a specific level
- * @param targetLevel - The level to calculate XP for
- * @returns Total XP required
  */
 export const getXPForLevel = (targetLevel: number): number => {
   if (targetLevel <= 1) return 0;
-
   let totalXP = 0;
-
   for (let level = 1; level < targetLevel; level++) {
     totalXP += getXPRequirementForLevel(level);
   }
-
   return totalXP;
 };
 
 /**
  * Get XP required for the next level from current XP
- * @param currentXP - Current experience points
- * @returns XP needed for next level
  */
 export const getXPForNextLevel = (currentXP: number): number => {
   const levelInfo = calculateLevel(currentXP);

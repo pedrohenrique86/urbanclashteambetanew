@@ -13,6 +13,8 @@ interface PlayerRankingItemProps {
   forceFaction?: string;
 }
 
+import { getFactionRank } from "../utils/leveling";
+
 export default React.memo(function PlayerRankingItem({
   player,
   bgColor,
@@ -59,8 +61,14 @@ export default React.memo(function PlayerRankingItem({
               {player.username}
             </span>
           </div>
-          <div className="flex items-center gap-1.5 min-w-0">
-            <span className="text-[7px] sm:text-[8px] font-mono text-gray-500 uppercase tracking-tighter flex-shrink-0">SEC_ID_{player.id.substring(0,4)}</span>
+          
+          {/* Rank Title */}
+          <span className={`text-[7px] sm:text-[9px] font-black italic tracking-tighter ${isGuard ? 'text-blue-400/80' : 'text-orange-500/80'} uppercase leading-none`}>
+            {getFactionRank(player.level, factionName)}
+          </span>
+
+          <div className="flex items-center gap-1.5 min-w-0 mt-0.5">
+            <span className="text-[7px] sm:text-[8px] font-mono text-gray-500 uppercase tracking-tighter flex-shrink-0">ID_{player.id.substring(0,4)}</span>
             <>
               <span className="text-[7px] sm:text-[8px] text-zinc-700">|</span>
               <span className={`text-[7px] sm:text-[8px] font-black font-orbitron ${player.clan_name ? accentColor : 'text-yellow-400'} uppercase tracking-tighter truncate`}>{player.clan_name || "SOLO"}</span>

@@ -17,6 +17,7 @@ import {
   Check,
   TrendingUp
 } from "lucide-react";
+import { getFactionRank } from "../utils/leveling";
 
 // --- Tactical UI Components ---
 
@@ -77,10 +78,16 @@ const PlayerRankingItem = React.memo(function PlayerRankingItem({ player, config
         <div className="flex flex-col min-w-0">
           <div className="flex items-center gap-2">
             {player.country && <img src={`https://flagcdn.com/w20/${player.country.toLowerCase()}.png`} className="w-3.5 h-auto opacity-50" alt="" />}
-            <span className="text-sm sm:text-base font-orbitron font-bold text-white truncate uppercase tracking-tight">{player.username}</span>
+            <span className="text-sm sm:text-base font-orbitron font-bold text-white truncate uppercase tracking-tight leading-none">{player.username}</span>
           </div>
-          <div className="flex items-center gap-2">
-            <span className={`text-[8px] sm:text-[10px] font-black tracking-[0.2em] ${isGuard ? 'text-blue-400/70' : 'text-orange-500/70'} uppercase leading-none`}>
+          
+          {/* Rank Title */}
+          <span className={`text-[9px] sm:text-[11px] font-black italic tracking-tight ${isGuard ? 'text-blue-400/90' : 'text-orange-500/90'} uppercase leading-none mt-1`}>
+            {getFactionRank(player.level, factionName)}
+          </span>
+
+          <div className="flex items-center gap-2 mt-1.5">
+            <span className={`text-[8px] sm:text-[10px] font-black tracking-[0.2em] ${isGuard ? 'text-blue-400/50' : 'text-orange-500/50'} uppercase leading-none`}>
               ID: {player.id.slice(0, 8)}
             </span>
             <>
