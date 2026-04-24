@@ -24,13 +24,39 @@ jobs:
             cd ~/urbanclashteambetanew
             git fetch origin
             git reset --hard origin/main
-            # Atualiza configuração do Nginx
+
+            # Cria pasta de logs se não existir
+            mkdir -p backend/logs
+
+            # Mata processos travados nas portas 3001 e 3002
+            for PORT in 3001 3002; do
+              PID=$(lsof -ti tcp:$PORT 2>/dev/null || true)
+              if [ -n "$PID" ]; then
+                echo "Matando processo $PID na porta $PORT"
+                kill -9 $PID 2>/dev/null || true
+                sleep 1
+              fi
+            done
+
+            # Atualiza configuração do Nginx (porta 3001)
             sudo cp config/nginx/urbanclash.conf /etc/nginx/sites-available/urbanclash
             sudo nginx -t && sudo systemctl reload nginx
+
             cd backend
-            npm install
+            npm install --omit=dev
             npm run migrate:up:prod || true
-            pm2 restart urbanclash-api || pm2 start server.js --name "urbanclash-api"
+
+            # Para instância anterior e reinicia com PM2 na porta 3001
+            pm2 delete urbanclash-backend 2>/dev/null || true
+            pm2 start server.js \
+              --name "urbanclash-backend" \
+              --node-args="--max-old-space-size=512" \
+              --log ~/urbanclashteambetanew/backend/logs/pm2-combined.log \
+              --error ~/urbanclashteambetanew/backend/logs/pm2-error.log \
+              --output ~/urbanclashteambetanew/backend/logs/pm2-out.log \
+              --time \
+              --restart-delay=3000 \
+              --max-restarts=10
             pm2 save
 
   # --- DEPLOY DO FRONTEND NO CLOUDFLARE ---
