@@ -1,4 +1,15 @@
 const { Pool } = require("pg");
+const path = require("path");
+// 1. Carrega o .env padrão
+require("dotenv").config({ path: path.join(__dirname, "../.env") });
+
+// 2. Se for produção, sobrepõe com .env.production
+if (process.env.NODE_ENV === "production") {
+  require("dotenv").config({ 
+    path: path.join(__dirname, "../.env.production"),
+    override: true 
+  });
+}
 
 // Configuração do pool de conexões PostgreSQL
 const isProduction = process.env.NODE_ENV === "production";

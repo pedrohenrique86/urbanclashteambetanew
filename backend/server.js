@@ -1,6 +1,14 @@
-// Carrega as variáveis de ambiente do arquivo .env ANTES de qualquer outro código.
-// Esta deve ser a primeira linha para garantir que todas as configurações estejam disponíveis.
+// 1. Carrega o .env padrão para detectar o ambiente inicial
 require("dotenv").config();
+
+// 2. Se for produção, carrega o .env.production com OVERRIDE para garantir prioridade
+if (process.env.NODE_ENV === "production") {
+  const path = require("path");
+  require("dotenv").config({ 
+    path: path.join(__dirname, ".env.production"),
+    override: true 
+  });
+}
 
 const express = require("express");
 
@@ -8,7 +16,6 @@ const timeRoutes = require("./routes/time");
 const adminRoutes = require("./routes/admin");
 // const gameRoutes = require("./routes/game"); // Replaced by Socket.IO
 // const cors = require("cors"); // Removido para implementação manual de diagnóstico
-const path = require("path");
 const helmet = require("helmet");
 const morgan = require("morgan");
 const rateLimit = require("express-rate-limit");
