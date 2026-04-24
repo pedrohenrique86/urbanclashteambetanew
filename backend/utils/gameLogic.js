@@ -60,8 +60,10 @@ function calculateDynamicLevel(user) {
 
   // 1. Nível Base por XP (Fórmula de degraus que criamos)
   // Como o XP é acumulado, este valor nunca cai.
+  // 1. Nível Base por XP (Fórmula de degraus)
+  // Usamos o total_xp para garantir que o nível base reflita o progresso histórico.
   let xpLevel = 1;
-  let remainingXp = Number(user.xp) || 0;
+  let remainingXp = Number(user.total_xp || user.xp) || 0;
   while (true) {
     let req = 100 + (Math.floor(xpLevel / 5) * 10);
     if (remainingXp >= req) {
@@ -74,13 +76,14 @@ function calculateDynamicLevel(user) {
   }
 
   // 2. Bônus por Atributos (ATK + DEF + FOC)
-  // Cada 10 pontos totais = +1 Nível
+  // Cada 25 pontos totais = +1 Nível de Prestígio (Equilibrado para 20 dias)
   const totalStats = (Number(user.attack) || 0) + (Number(user.defense) || 0) + (Number(user.focus) || 0);
-  const statsBonus = Math.floor(totalStats / 10);
+  const statsBonus = Math.floor(totalStats / 25);
 
   // 3. Bônus por Riqueza (Dinheiro em mãos)
-  // Cada $10.000 = +1 Nível
-  const moneyBonus = Math.floor((Number(user.money) || 0) / 10000);
+  // Cada $100.000 = +1 Nível de Prestígio
+  // Isso torna o dinheiro um bônus, não a fonte principal de nível.
+  const moneyBonus = Math.floor((Number(user.money) || 0) / 100000);
 
   // Nível Total = Base + Atributos + Dinheiro
   return xpLevel + statsBonus + moneyBonus;
