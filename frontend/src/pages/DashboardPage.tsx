@@ -297,7 +297,7 @@ const PowerPanel = React.memo(({ user }: { user: any }) => {
     <DashboardPanel
       title="PODER DE COMBATE"
       icon={<ShieldCheckIcon className="w-6 h-6 text-yellow-400" />}
-      className="border-yellow-500/30 shadow-[0_0_15px_rgba(234,179,8,0.1)]"
+      className="border-yellow-500/30 shadow-[0_0_15px_rgba(234,179,8,0.1)] relative z-10 hover:z-50"
     >
       <div className="flex flex-col justify-around h-full p-2 space-y-4">
         {/* Power Solo */}
@@ -309,18 +309,14 @@ const PowerPanel = React.memo(({ user }: { user: any }) => {
           <div className="w-8 h-8 rounded-full bg-zinc-800 flex items-center justify-center text-zinc-400 cursor-help">
             ?
           </div>
-          {/* Tooltip Hover */}
-          <div className="absolute bottom-full right-0 mb-2 w-64 bg-zinc-900 border border-zinc-700 text-xs text-slate-300 p-3 rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 pointer-events-none">
-            <h4 className="font-bold text-white mb-2 border-b border-zinc-700 pb-1">Cálculo Power Solo</h4>
-            <ul className="space-y-1 font-mono">
-              <li>ATK ({atk}) × 1 = {atk * 1}</li>
-              <li>DEF ({def}) × 1 = {def * 1}</li>
-              <li>FOC ({foc}) × 0.5 = {foc * 0.5}</li>
-              <li>CRIT% ({critChance}%) × 0.2 = {(critChance * 0.2).toFixed(1)}</li>
-              <li>CRITx ({critMult}x) × 1 = {critMult * 1}</li>
-              <li>NÍVEL ({level}) × 2 = {level * 2}</li>
-            </ul>
-            <div className="mt-2 text-yellow-400 border-t border-zinc-700 pt-1 font-bold">Total: {powerSolo}</div>
+          {/* Tooltip Hover - Simplificado e para baixo */}
+          <div className="absolute top-full right-0 mt-2 w-64 bg-zinc-900/95 backdrop-blur-md border border-zinc-700 text-[11px] text-slate-300 p-3 rounded-lg shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-[100] pointer-events-none">
+            <p className="font-bold text-white border-b border-zinc-700 pb-1 mb-2 text-center">Fórmula Power Solo</p>
+            <p className="text-center leading-relaxed">
+              (ATK + DEF + FOC×0.5 + NVL×2)<br/>
+              + (CRIT%×0.2 + CRITx×1)
+            </p>
+            <div className="mt-2 text-yellow-400 font-black text-center text-sm border-t border-zinc-800 pt-1">Total: {powerSolo}</div>
           </div>
         </div>
 
@@ -333,15 +329,11 @@ const PowerPanel = React.memo(({ user }: { user: any }) => {
           <div className="w-8 h-8 rounded-full bg-yellow-500/20 flex items-center justify-center text-yellow-500 cursor-help">
             ?
           </div>
-          {/* Tooltip Hover */}
-          <div className="absolute bottom-full right-0 mb-2 w-64 bg-zinc-900 border border-yellow-500/50 text-xs text-slate-300 p-3 rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 pointer-events-none">
-            <h4 className="font-bold text-yellow-400 mb-2 border-b border-yellow-500/30 pb-1">Cálculo Power War</h4>
-            <p className="mb-2 text-[10px]">O poder verdadeiro revelado apenas no PvP. Utiliza os bônus ocultos de sua facção.</p>
-            <ul className="space-y-1 font-mono">
-              <li>Power Solo Base: {powerSolo}</li>
-              <li>Habilidade ({specialValue}%) × 1 = {specialValue * 1}</li>
-            </ul>
-            <div className="mt-2 text-yellow-400 border-t border-yellow-500/30 pt-1 font-bold">Total PVP: {powerWar}</div>
+          {/* Tooltip Hover - Simplificado e para baixo */}
+          <div className="absolute top-full right-0 mt-2 w-64 bg-zinc-900/95 backdrop-blur-md border border-yellow-500/30 text-[11px] text-slate-300 p-3 rounded-lg shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-[100] pointer-events-none">
+            <p className="font-bold text-yellow-400 border-b border-yellow-500/20 pb-1 mb-2 text-center">Fórmula Power War</p>
+            <p className="text-center leading-relaxed">Power Solo + Bônus de Facção ({specialValue}%)</p>
+            <div className="mt-2 text-yellow-400 font-black text-center text-sm text-shadow-glow border-t border-yellow-500/10 pt-1">Total War: {powerWar}</div>
           </div>
         </div>
       </div>
