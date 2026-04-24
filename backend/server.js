@@ -88,12 +88,11 @@ const PORT = process.env.PORT || 3001;
 // Middleware de segurança (configurado para não conflitar com CORS)
 app.use(helmet({ crossOriginResourcePolicy: { policy: "cross-origin" } }));
 
-// O Socket.IO pode reutilizar a mesma configuração de CORS simplificada.
 const io = new Server(server, {
   cors: corsOptions,
   pingTimeout: 20000,
   pingInterval: 25000,
-  transports: ["websocket"], // Garante que o servidor também priorize websocket
+  transports: ["websocket"],
 });
 
 // Rate limiting

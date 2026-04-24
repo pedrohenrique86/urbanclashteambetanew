@@ -49,6 +49,7 @@ class SocketService {
         transports: ["websocket"],
       });
 
+
       this.socket.on("connect", () => {
         console.log("🔌 Conectado ao servidor Socket.IO:", this.socket?.id);
       });
