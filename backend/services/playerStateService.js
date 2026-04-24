@@ -38,8 +38,8 @@ const DEBOUNCE_MS           = 3000;        // debounce primário antes do DB
 const PERSIST_BATCH_SIZE    = 50;          // máx players por lote no safety-net
 const SAFETY_STALENESS_MS   = 12_000;      // safety-net só persiste dirty > 12s
 
-// ─── Campos que afetam o ranking (ZSET) ──────────────────────────────────────────
-const RANKING_FIELDS = new Set(["total_xp", "level"]);
+// ─── Campos que afetam o ranking (ZSET) e o Nível Dinâmico ────────────────────────
+const RANKING_FIELDS = new Set(["total_xp", "level", "attack", "defense", "focus", "money"]);
 
 // ─── Dirty TIPO 1: campos que DEVEM ser persistidos no banco ─────────────────────
 // Subconjunto de DB_PERSIST_FIELDS — apenas dados de progressão permanente
@@ -436,11 +436,11 @@ async function updatePlayerState(userId, updates) {
     let newState = await getPlayerState(userId);
     if (!newState) return null;
 
-    // ── 4. Lógica de LEVEL UP Automática (Robustez Sênior) ────────────────────────
-    const correctLevel = gameLogic.calculateLevelFromXp(newState.total_xp);
+    // ── 4. Lógica de NÍVEL DINÂMICO (Prestígio) ──────────────────────────────────
+    const correctLevel = gameLogic.calculateDynamicLevel(newState);
     
-    if (correctLevel > newState.level) {
-      console.log(`[playerState] 🆙 Level UP detectado para ${userId}: ${newState.level} -> ${correctLevel}`);
+    if (correctLevel !== Number(newState.level)) {
+      console.log(`[playerState] 📊 Ajuste de Nível detectado para ${userId}: ${newState.level} -> ${correctLevel}`);
       
       const levelUpdates = {
         level: String(correctLevel),
@@ -450,7 +450,7 @@ async function updatePlayerState(userId, updates) {
 
       await redisClient.hSetAsync(redisKey, levelUpdates);
       
-      // Recarrega o estado final para o PATCH SSE levar os valores DERIVADOS corretos (currentXp, xpRequired)
+      // Recarrega o estado final para o PATCH SSE levar os valores corretos
       newState = await getPlayerState(userId); 
       hasCritical = true; 
       hasSSEChange = true;

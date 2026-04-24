@@ -48,10 +48,47 @@ const XP_SCALING = {
  * Retorna o XP necessário para passar do nível atual para o próximo.
  * Baseado na nova curva de progressão solicitada.
  */
+/**
+ * Calcula o Nível Total (Prestígio) de forma dinâmica.
+ * O nível é a soma de:
+ * 1. Nível de XP (Fixo/Permanente)
+ * 2. Bônus de Atributos (Volátil - Peso 10:1)
+ * 3. Bônus de Riqueza (Volátil - Peso 10000:1)
+ */
+function calculateDynamicLevel(user) {
+  if (!user) return 1;
+
+  // 1. Nível Base por XP (Fórmula de degraus que criamos)
+  // Como o XP é acumulado, este valor nunca cai.
+  let xpLevel = 1;
+  let remainingXp = Number(user.xp) || 0;
+  while (true) {
+    let req = 100 + (Math.floor(xpLevel / 5) * 10);
+    if (remainingXp >= req) {
+      remainingXp -= req;
+      xpLevel++;
+    } else {
+      break;
+    }
+    if (xpLevel >= 5000) break; // Trava de segurança
+  }
+
+  // 2. Bônus por Atributos (ATK + DEF + FOC)
+  // Cada 10 pontos totais = +1 Nível
+  const totalStats = (Number(user.attack) || 0) + (Number(user.defense) || 0) + (Number(user.focus) || 0);
+  const statsBonus = Math.floor(totalStats / 10);
+
+  // 3. Bônus por Riqueza (Dinheiro em mãos)
+  // Cada $10.000 = +1 Nível
+  const moneyBonus = Math.floor((Number(user.money) || 0) / 10000);
+
+  // Nível Total = Base + Atributos + Dinheiro
+  return xpLevel + statsBonus + moneyBonus;
+}
+
+// Mantemos esta apenas para saber quanto XP falta para o PRÓXIMO NÍVEL DE XP (visual)
 function getXpRequiredForNextLevel(level) {
   const lvl = Number(level) || 1;
-  // ESCALA 1000: Degraus de 10 em 10 a cada 5 níveis (Visual Limpo)
-  // Nível 1-5: 100 XP | Nível 1000: 2100 XP
   return 100 + (Math.floor(lvl / 5) * 10);
 }
 
@@ -224,6 +261,7 @@ function scaleXpByLevel(baseXp, level) {
 
 module.exports = {
   getXpRequiredForNextLevel,
+  calculateDynamicLevel,
   getTotalXpUntilLevel,
   deriveXpStatus,
   calculateLevelFromXp,
