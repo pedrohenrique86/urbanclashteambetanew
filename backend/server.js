@@ -60,36 +60,11 @@ const app = express();
 // Ex: /images/banner.png acessará o arquivo em public/images/banner.png
 app.use(express.static(path.join(__dirname, "public")));
 
-// Aplica o CORS manualmente para diagnóstico robusto
+// O CORS agora é gerenciado 100% pelo Nginx para evitar conflitos de headers duplos.
 app.use((req, res, next) => {
-  const origin = req.headers.origin;
-  
-  // Sênior: Sempre adiciona Vary: Origin quando lidamos com múltiplas origens permitidas
-  res.setHeader("Vary", "Origin");
-
-  if (origin && allowedOrigins.includes(origin)) {
-    res.setHeader("Access-Control-Allow-Origin", origin);
-  } else if (!origin && process.env.NODE_ENV === "development") {
-    // Permite requisições sem origin (ex: Postman) apenas em dev
-    res.setHeader("Access-Control-Allow-Origin", "*");
-  }
-
-  res.setHeader(
-    "Access-Control-Allow-Methods",
-    "GET, POST, PUT, DELETE, OPTIONS",
-  );
-  res.setHeader(
-    "Access-Control-Allow-Headers",
-    "Content-Type, Authorization, If-None-Match, Cache-Control, Pragma, X-Requested-With, Accept, Origin",
-  );
-  res.setHeader("Access-Control-Allow-Credentials", "true");
-  res.setHeader("Access-Control-Max-Age", "86400");
-
-  // Intercepta e responde às requisições preflight (OPTIONS)
   if (req.method === "OPTIONS") {
     return res.sendStatus(204);
   }
-
   next();
 });
 
