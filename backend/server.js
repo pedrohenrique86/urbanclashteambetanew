@@ -36,10 +36,21 @@ const allowedOrigins = [
 ].filter(Boolean); // Filtra valores nulos ou indefinidos
 
 const corsOptions = {
-  origin: allowedOrigins, // Usa a lista de origens permitidas diretamente.
+  origin: allowedOrigins,
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization"],
+  allowedHeaders: [
+    "Content-Type", 
+    "Authorization", 
+    "X-Requested-With", 
+    "Accept", 
+    "Origin", 
+    "Cache-Control", 
+    "Pragma",
+    "If-None-Match"
+  ],
+  exposedHeaders: ["ETag"],
+  maxAge: 86400,
 };
 
 const app = express();
@@ -69,9 +80,10 @@ app.use((req, res, next) => {
   );
   res.setHeader(
     "Access-Control-Allow-Headers",
-    "Content-Type, Authorization, If-None-Match, Cache-Control, Pragma",
+    "Content-Type, Authorization, If-None-Match, Cache-Control, Pragma, X-Requested-With, Accept, Origin",
   );
   res.setHeader("Access-Control-Allow-Credentials", "true");
+  res.setHeader("Access-Control-Max-Age", "86400");
 
   // Intercepta e responde às requisições preflight (OPTIONS)
   if (req.method === "OPTIONS") {
