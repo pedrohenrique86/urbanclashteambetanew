@@ -49,19 +49,27 @@ const app = express();
 // Ex: /images/banner.png acessará o arquivo em public/images/banner.png
 app.use(express.static(path.join(__dirname, "public")));
 
-// Aplica o CORS manualmente para diagnóstico
+// Aplica o CORS manualmente para diagnóstico robusto
 app.use((req, res, next) => {
   const origin = req.headers.origin;
-  if (allowedOrigins.includes(origin)) {
+  
+  // Sênior: Sempre adiciona Vary: Origin quando lidamos com múltiplas origens permitidas
+  res.setHeader("Vary", "Origin");
+
+  if (origin && allowedOrigins.includes(origin)) {
     res.setHeader("Access-Control-Allow-Origin", origin);
+  } else if (!origin && process.env.NODE_ENV === "development") {
+    // Permite requisições sem origin (ex: Postman) apenas em dev
+    res.setHeader("Access-Control-Allow-Origin", "*");
   }
+
   res.setHeader(
     "Access-Control-Allow-Methods",
     "GET, POST, PUT, DELETE, OPTIONS",
   );
   res.setHeader(
     "Access-Control-Allow-Headers",
-    "Content-Type, Authorization, If-None-Match",
+    "Content-Type, Authorization, If-None-Match, Cache-Control, Pragma",
   );
   res.setHeader("Access-Control-Allow-Credentials", "true");
 
@@ -83,6 +91,9 @@ app.use(helmet({ crossOriginResourcePolicy: { policy: "cross-origin" } }));
 // O Socket.IO pode reutilizar a mesma configuração de CORS simplificada.
 const io = new Server(server, {
   cors: corsOptions,
+  pingTimeout: 20000,
+  pingInterval: 25000,
+  transports: ["websocket"], // Garante que o servidor também priorize websocket
 });
 
 // Rate limiting
@@ -205,4 +216,14 @@ process.on("SIGINT", async () => {
   console.log("🛑 Recebido SIGINT, encerrando servidor...");
   await closePool();
   process.exit(0);
+});
+
+// Tratamento de erros globais para evitar crashes silenciosos em produção
+process.on("uncaughtException", (err) => {
+  console.error("❌ CRASH: Uncaught Exception:", err);
+  // Em produção, talvez queiramos um restart controlado
+});
+
+process.on("unhandledRejection", (reason, promise) => {
+  console.error("❌ CRASH: Unhandled Rejection at:", promise, "reason:", reason);
 });

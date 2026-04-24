@@ -43,8 +43,8 @@ class SocketService {
   connect(): Socket {
     if (!this.socket) {
       this.socket = io(VITE_API_URL, {
-        reconnectionAttempts: 10,
-        reconnectionDelay: 1000,
+        reconnectionAttempts: 20,
+        reconnectionDelay: 2000,
         path: "/socket.io/",
         transports: ["websocket"],
       });

@@ -432,7 +432,7 @@ async function updatePlayerState(userId, updates) {
     await _checkAndResetTrainingCount(userId, redisKey);
 
     // ── 3. Renova TTL e lê estado ────────────────────────────────────────────────
-    await redisClient.expireAsync(redisKey, PLAYER_TTL_SECONDS);
+    await redisClient.expireAsync(redisKey, PLAYER_STATE_TTL);
     let newState = await getPlayerState(userId);
     if (!newState) return null;
 

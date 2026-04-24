@@ -123,7 +123,17 @@ router.get("/rankings/subscribe", (req, res) => {
     })}\n\n`,
   );
 
+  // Keep-alive: envia comentário SSE a cada 25s para evitar timeout de proxies
+  const pingInterval = setInterval(() => {
+    try {
+      res.write(": ping\n\n");
+    } catch (_) {
+      clearInterval(pingInterval);
+    }
+  }, 25_000);
+
   req.on("close", () => {
+    clearInterval(pingInterval);
     sseService.unsubscribe(res, "ranking");
   });
 });
