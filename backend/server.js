@@ -73,7 +73,20 @@ const server = http.createServer(app);
 const PORT = process.env.PORT || 3001;
 
 // Middleware de segurança (configurado para não conflitar com CORS)
-app.use(helmet({ crossOriginResourcePolicy: { policy: "cross-origin" } }));
+// Middleware de segurança otimizado para o jogo
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: "cross-origin" },
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "*.cloudflareinsights.com"],
+      connectSrc: ["'self'", "https://api.urbanclashteam.com", "wss://api.urbanclashteam.com", "https://*.urbanclashteam.com"],
+      imgSrc: ["'self'", "data:", "https:", "http:"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      upgradeInsecureRequests: [],
+    },
+  },
+}));
 
 const io = new Server(server, {
   cors: corsOptions,
