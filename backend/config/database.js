@@ -21,6 +21,10 @@ const databaseUrl = process.env.DATABASE_URL ||
                    (isProduction ? process.env.DATABASE_URL_PROD : process.env.DATABASE_URL_DEV);
 
 if (databaseUrl) {
+  const dbHost = databaseUrl.split('@')[1]?.split('/')[0] || 'unknown';
+  console.log(`🔌 [Database] Conectando ao host: ${dbHost}`);
+  console.log(`🚀 [Database] Ambiente: ${process.env.NODE_ENV || 'não definido'}`);
+
   // Configuração para produção ou desenvolvimento com Neon/Cloud (requer SSL)
   poolConfig = {
     connectionString: databaseUrl,
