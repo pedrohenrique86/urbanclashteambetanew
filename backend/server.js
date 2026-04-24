@@ -1,9 +1,9 @@
 // 1. Carrega o .env padrão para detectar o ambiente inicial
+const path = require("path");
 require("dotenv").config();
 
 // 2. Se for produção, carrega o .env.production com OVERRIDE para garantir prioridade
 if (process.env.NODE_ENV === "production") {
-  const path = require("path");
   require("dotenv").config({ 
     path: path.join(__dirname, ".env.production"),
     override: true 
