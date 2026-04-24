@@ -11,12 +11,14 @@ async function initRedisBridge() {
   const url = process.env.REDIS_URL || "redis://localhost:6379";
 
   try {
+    const password = process.env.REDIS_PASSWORD || undefined;
+
     // Client para publicar
-    redisPublisher = redis.createClient({ url });
+    redisPublisher = redis.createClient({ url, password });
     await redisPublisher.connect();
 
     // Client para ouvir
-    redisSubscriber = redis.createClient({ url });
+    redisSubscriber = redis.createClient({ url, password });
     await redisSubscriber.connect();
 
     // Link: Qualquer mensagem no canal 'SSE_BRIDGE' é repassada para os clientes locais
