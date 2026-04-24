@@ -59,7 +59,7 @@ jobs:
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          projectName: urbanclashteam # <-- AJUSTE se o nome for diferente no Cloudflare
+          projectName: urbanclashteambetanew # Corrigido para bater com o repositório
           directory: frontend/dist
           gitHubToken: ${{ secrets.GITHUB_TOKEN }}
 
