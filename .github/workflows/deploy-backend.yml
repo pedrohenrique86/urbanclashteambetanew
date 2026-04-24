@@ -50,7 +50,7 @@ jobs:
       - name: Install & Build
         run: |
           cd frontend
-          npm ci
+          npm install
           npm run build
         env:
           VITE_API_URL: https://api.urbanclashteam.com
