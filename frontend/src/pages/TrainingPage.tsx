@@ -29,8 +29,8 @@ const TRAINING_OPTIONS = [
     name: "TREINO TÉCNICO",
     description: "Foco em precisão e disciplina. A melhor escolha para maximizar o FOCO (FOC).",
     duration: 20,
-    costs: { ap: 400, cash: 100, energy: 15 },
-    gains: { atk: 1, def: 1, foc: 3, xp: 40 },
+    costs: { ap: 100, cash: 100, energy: 15 },
+    gains: { atk: 1, def: 1, foc: 3, xp: 120 },
     icon: <CursorArrowRaysIcon className="w-8 h-8 text-cyan-400 group-hover:text-cyan-300 transition-colors" />,
     role: "ESPECIALISTA EM FOCO",
     color: "cyan"
@@ -40,8 +40,8 @@ const TRAINING_OPTIONS = [
     name: "SIMULAÇÃO TÁTICA",
     description: "Desenvolvimento versátil. Equilíbrio perfeito entre ATAQUE (ATK) e DEFESA (DEF).",
     duration: 50,
-    costs: { ap: 1000, cash: 300, energy: 35 },
-    gains: { atk: 5, def: 5, foc: 2, xp: 110 },
+    costs: { ap: 250, cash: 300, energy: 35 },
+    gains: { atk: 5, def: 5, foc: 2, xp: 350 },
     icon: <ShieldCheckIcon className="w-8 h-8 text-violet-400 group-hover:text-violet-300 transition-colors" />,
     role: "EQUILÍBRIO TÁTICO",
     color: "violet"
@@ -51,8 +51,8 @@ const TRAINING_OPTIONS = [
     name: "PROTOCOLO DE ASSALTO",
     description: "Intensidade máxima. Foco total em poder de ATAQUE (ATK) bruto e XP.",
     duration: 100,
-    costs: { ap: 2400, cash: 800, energy: 70 },
-    gains: { atk: 12, def: 4, foc: 2, xp: 280 },
+    costs: { ap: 500, cash: 800, energy: 70 },
+    gains: { atk: 12, def: 4, foc: 2, xp: 800 },
     icon: <TrophyIcon className="w-8 h-8 text-fuchsia-400 group-hover:text-fuchsia-300 transition-colors" />,
     role: "FORÇA BRUTA",
     color: "fuchsia"
