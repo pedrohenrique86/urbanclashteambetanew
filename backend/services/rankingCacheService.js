@@ -92,6 +92,40 @@ async function fetchClansFromDB() {
 
 // ─── Ranking de Jogadores — baseado em ZSET ────────────────────────────────────
 
+async function fetchUsersFromDB(faction) {
+  let queryStr = `
+    SELECT 
+      p.user_id AS id, p.username, p.display_name, p.avatar_url, 
+      p.level, p.total_xp, p.faction, p.victories, p.defeats, 
+      p.winning_streak, p.status, p.status_ends_at,
+      c.name AS clan_name
+    FROM user_profiles p
+    LEFT JOIN clan_members cm ON cm.user_id = p.user_id
+    LEFT JOIN clans c ON cm.clan_id = c.id
+  `;
+  const params = [];
+  if (faction && faction !== 'all') {
+    const canonical = FACTION_ALIAS_MAP[String(faction).toLowerCase().trim()] || faction;
+    queryStr += ` WHERE p.faction = $1`;
+    params.push(canonical);
+  }
+  queryStr += ` ORDER BY p.level DESC, p.total_xp DESC LIMIT $${params.length + 1}`;
+  params.push(STANDARD_LIMIT);
+
+  const result = await query(queryStr, params);
+  return result.rows.map((r, i) => {
+    const xpStatus = gameLogic.deriveXpStatus(r.total_xp, r.level);
+    return {
+      ...r,
+      total_xp: Number(r.total_xp || 0),
+      level: Number(r.level || 1),
+      current_xp: xpStatus.currentXp,
+      xp_required: xpStatus.xpRequired,
+      rank: i + 1
+    };
+  });
+}
+
 /**
  * Reconstrói o snapshot de ranking de jogadores a partir do ZSET Redis.
  * Lê os top-N membros do ZSET (já ordenados por score desc),
@@ -211,7 +245,7 @@ async function buildRankingFromZSet(faction) {
  * Chamado a cada 10 minutos.
  */
 async function refreshUsersRanking() {
-  const factions = ["gangsters", "guardas", null]; // null = todos
+  const factions = ["renegados", "guardioes", "gangsters", "guardas", null]; // null = todos
 
   for (const faction of factions) {
     const factionKey  = faction || "all";
@@ -266,6 +300,15 @@ async function refreshClansRanking() {
  * Nunca bloqueia a resposta HTTP — sempre retorna dados disponíveis.
  */
 async function ensureFreshRanking(type, faction) {
+  if (!redisClient.client.isReady) {
+    console.warn(`[ranking] ⚠️ Redis offline. Servindo ${type} direto do banco.`);
+    if (type === "users") {
+      return { data: await fetchUsersFromDB(faction), etag: "fallback", timestamp: Date.now() };
+    } else {
+      return { data: await fetchClansFromDB(), etag: "fallback", timestamp: Date.now() };
+    }
+  }
+
   const cacheKey = type === "users" ? getUsersCacheKey(faction || "all") : getClansCacheKey();
   const cached   = await getCachedData(cacheKey);
 
