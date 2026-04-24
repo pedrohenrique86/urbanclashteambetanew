@@ -287,9 +287,9 @@ const PowerPanel = React.memo(({ user }: { user: any }) => {
   const critMult = user.crit_damage_mult || 0;
   const specialValue = user.intimidation || user.discipline || 0;
 
-  // Cálculos baseados no backend - ESCALA REALISTA DE INÍCIO
+  // Cálculos baseados no backend - ESCALA 1000 NÍVEIS
   const powerSolo = Math.floor(
-    atk * 1 + def * 1 + foc * 0.5 + level * 5 + critChance * 0.2 + critMult * 1
+    atk * 1 + def * 1 + foc * 0.5 + level * 2 + critChance * 0.2 + critMult * 1
   );
   const powerWar = Math.floor(powerSolo + specialValue * 1);
 
@@ -318,7 +318,7 @@ const PowerPanel = React.memo(({ user }: { user: any }) => {
               <li>FOC ({foc}) × 0.5 = {foc * 0.5}</li>
               <li>CRIT% ({critChance}%) × 0.2 = {(critChance * 0.2).toFixed(1)}</li>
               <li>CRITx ({critMult}x) × 1 = {critMult * 1}</li>
-              <li>NÍVEL ({level}) × 5 = {level * 5}</li>
+              <li>NÍVEL ({level}) × 2 = {level * 2}</li>
             </ul>
             <div className="mt-2 text-yellow-400 border-t border-zinc-700 pt-1 font-bold">Total: {powerSolo}</div>
           </div>

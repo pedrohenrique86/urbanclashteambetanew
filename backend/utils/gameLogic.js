@@ -39,8 +39,8 @@ const COMBAT = {
 
 // ─── Constantes de progressão XP ─────────────────────────────────────────────
 const XP_SCALING = {
-  LEVEL_FACTOR  : 0.05,  // xp_ganho × (1 + level × LEVEL_FACTOR)
-  DAILY_CAP_TRAIN: 5000, // máx XP por dia via treino por segurança
+  LEVEL_FACTOR  : 0.005, // 0.5% de bônus por nível (Nível 1000 = 6x bônus de XP)
+  DAILY_CAP_TRAIN: 100000, // Suporta escala 1000
 };
 
 
@@ -50,10 +50,9 @@ const XP_SCALING = {
  */
 function getXpRequiredForNextLevel(level) {
   const lvl = Number(level) || 1;
-  if (lvl <= 5) return 100;
-  if (lvl <= 15) return 150;
-  if (lvl <= 30) return 300;
-  return 500;
+  // ESCALA 1000: Degraus de 10 em 10 a cada 5 níveis (Visual Limpo)
+  // Nível 1-5: 100 XP | Nível 1000: 2100 XP
+  return 100 + (Math.floor(lvl / 5) * 10);
 }
 
 /**

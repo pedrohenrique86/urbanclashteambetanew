@@ -17,7 +17,7 @@ const TRAINING_TYPES = {
     description: "Foco em precisão, controle e disciplina. Ideal para refinar o FOC.",
     durationMinutes: 20,
     costs: {
-      actionPoints: 400,
+      actionPoints: 100,
       money: 100,
       energy: 15,
     },
@@ -25,9 +25,9 @@ const TRAINING_TYPES = {
       attack: 1,
       defense: 1,
       focus: 3,
-      critical_chance: 0.3,   // Sniper: acumula mais CRIT% por treino
-      critical_damage: 0.5,   // Precisão não é força bruta
-      xp: 40,
+      critical_chance: 0.3,
+      critical_damage: 0.5,
+      xp: 120,
     },
   },
   medio: {
@@ -35,7 +35,7 @@ const TRAINING_TYPES = {
     description: "Treinamento equilibrado que desenvolve ATK e DEF de forma versátil.",
     durationMinutes: 50,
     costs: {
-      actionPoints: 1000,
+      actionPoints: 250,
       money: 300,
       energy: 35,
     },
@@ -43,9 +43,9 @@ const TRAINING_TYPES = {
       attack: 5,
       defense: 5,
       focus: 2,
-      critical_chance: 0.15,  // Versátil: equilíbrio entre crit% e crit dmg
+      critical_chance: 0.15,
       critical_damage: 1.0,
-      xp: 110,
+      xp: 350,
     },
   },
   grande: {
@@ -53,7 +53,7 @@ const TRAINING_TYPES = {
     description: "Exercícios de alto impacto para maximizar o poder de ATK bruto.",
     durationMinutes: 100,
     costs: {
-      actionPoints: 2400,
+      actionPoints: 500,
       money: 800,
       energy: 70,
     },
@@ -61,9 +61,9 @@ const TRAINING_TYPES = {
       attack: 12,
       defense: 4,
       focus: 2,
-      critical_chance: 0.05,  // Bruiser: força bruta, não precisão
-      critical_damage: 1.8,   // Quando acerta, dói muito
-      xp: 280,
+      critical_chance: 0.05,
+      critical_damage: 1.8,
+      xp: 800,
     },
   },
 };
