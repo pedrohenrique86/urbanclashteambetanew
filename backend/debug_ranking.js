@@ -1,9 +1,8 @@
-const path = require("path");
-require("dotenv").config({ path: path.join(__dirname, "backend", ".env") });
+require("dotenv").config(); // Carrega o .env local da pasta backend
 
-const { query } = require("./backend/config/database");
-const rankingService = require("./backend/services/rankingCacheService");
-const redisClient = require("./backend/config/redisClient");
+const { query } = require("./config/database");
+const rankingService = require("./services/rankingCacheService");
+const redisClient = require("./config/redisClient");
 
 async function debug() {
   console.log("--- DIAGNÓSTICO DE RANKING ---");
