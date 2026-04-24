@@ -13,7 +13,30 @@ interface PlayerRankingItemProps {
   forceFaction?: string;
 }
 
-import { getFactionRank } from "../utils/leveling";
+import { Star, Award, Crown } from "lucide-react";
+import { getFactionRank, getRankIcon } from "../utils/leveling";
+
+const MiniRankBadge = ({ level, isGuard }: { level: number, isGuard: boolean }) => {
+  const iconData = getRankIcon(level);
+  const colorClass = isGuard ? "text-blue-400" : "text-orange-500";
+  
+  if (iconData.type === 'stars') {
+    const count = iconData.count || 0;
+    return (
+      <div className="flex gap-0.5 items-center mr-1">
+        {Array.from({ length: count }).map((_, i) => (
+          <Star key={i} className={`w-2 h-2 fill-current ${colorClass}`} />
+        ))}
+      </div>
+    );
+  }
+
+  if (iconData.id === 'elite') {
+    return <Award className={`w-3 h-3 mr-1 ${colorClass} animate-pulse`} />;
+  }
+
+  return <Crown className={`w-3 h-3 mr-1 text-yellow-400 animate-bounce`} />;
+};
 
 export default React.memo(function PlayerRankingItem({
   player,
@@ -62,10 +85,13 @@ export default React.memo(function PlayerRankingItem({
             </span>
           </div>
           
-          {/* Rank Title */}
-          <span className={`text-[7px] sm:text-[9px] font-black italic tracking-tighter ${isGuard ? 'text-blue-400/80' : 'text-orange-500/80'} uppercase leading-none`}>
-            {getFactionRank(player.level, factionName)}
-          </span>
+          {/* Rank Title with Stars/Emblem */}
+          <div className="flex items-center">
+            <MiniRankBadge level={player.level} isGuard={isGuard} />
+            <span className={`text-[7px] sm:text-[9px] font-black italic tracking-tighter ${isGuard ? 'text-blue-400/80' : 'text-orange-500/80'} uppercase leading-none`}>
+              {getFactionRank(player.level, factionName)}
+            </span>
+          </div>
 
           <div className="flex items-center gap-1.5 min-w-0 mt-0.5">
             <span className="text-[7px] sm:text-[8px] font-mono text-gray-500 uppercase tracking-tighter flex-shrink-0">ID_{player.id.substring(0,4)}</span>

@@ -43,6 +43,20 @@ export const getFactionRank = (level: number, faction: string): string => {
 };
 
 /**
+ * Get Rank Icon data (Stars or Emblem type)
+ */
+export const getRankIcon = (level: number) => {
+  const lvl = level || 1;
+  if (lvl <= 50)  return { type: 'stars', count: 1 };
+  if (lvl <= 150) return { type: 'stars', count: 2 };
+  if (lvl <= 300) return { type: 'stars', count: 3 };
+  if (lvl <= 500) return { type: 'stars', count: 4 };
+  if (lvl <= 700) return { type: 'stars', count: 5 };
+  if (lvl <= 900) return { type: 'emblem', id: 'elite' };
+  return { type: 'emblem', id: 'supremo' };
+};
+
+/**
  * Calculate the level based on XP using the synchronized formula
  * @param xp - Current experience points
  * @returns Level information object

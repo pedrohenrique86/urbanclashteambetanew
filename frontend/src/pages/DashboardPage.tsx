@@ -1,13 +1,16 @@
 import React, { useEffect } from "react";
 import { useUserProfile } from "../hooks/useUserProfile";
 import { getDisplayName } from "../utils/displayNames";
-import { getFactionRank } from "../utils/leveling";
+import { getFactionRank, getRankIcon } from "../utils/leveling";
 import {
   BoltIcon,
   BanknotesIcon,
   ShieldCheckIcon,
   ChartBarIcon,
+  TrophyIcon as EmblemIcon,
+  AcademicCapIcon as CrownIcon,
 } from "@heroicons/react/24/outline";
+import { StarIcon as StarSolid } from "@heroicons/react/24/solid";
 import { FACTION_ALIAS_MAP_FRONTEND } from "../utils/faction";
 
 // --- Componente de Painel Genérico ---
@@ -94,6 +97,34 @@ const CircularProgressBar: React.FC<{ progress: number; isGangster: boolean }> =
   );
 };
 
+const RankBadge = ({ level, isGangster }: { level: number; isGangster: boolean }) => {
+  const iconData = getRankIcon(level);
+  const colorClass = isGangster ? "text-orange-500" : "text-blue-500";
+  const glowClass = isGangster ? "drop-shadow-[0_0_5px_rgba(234,88,12,0.6)]" : "drop-shadow-[0_0_5px_rgba(37,99,235,0.6)]";
+
+  if (iconData.type === 'stars') {
+    const count = iconData.count || 0;
+    return (
+      <div className="flex gap-0.5 mb-1">
+        {Array.from({ length: count }).map((_, i) => (
+          <StarSolid key={i} className={`w-3 h-3 ${colorClass} ${glowClass}`} />
+        ))}
+      </div>
+    );
+  }
+
+  if (iconData.id === 'elite') {
+    return <EmblemIcon className={`w-6 h-6 mb-1 ${colorClass} ${glowClass} animate-pulse`} />;
+  }
+
+  return (
+    <div className="relative mb-1">
+      <CrownIcon className={`w-8 h-8 text-yellow-400 drop-shadow-[0_0_15px_rgba(234,179,8,0.8)] animate-bounce`} />
+      <div className="absolute inset-0 bg-yellow-400/20 blur-xl rounded-full animate-pulse" />
+    </div>
+  );
+};
+
 const LevelPanel = React.memo(({ user }: { user: any }) => {
   const factionNameStr = typeof user?.faction === 'string' 
     ? user.faction 
@@ -135,6 +166,7 @@ const LevelPanel = React.memo(({ user }: { user: any }) => {
         <div className="flex-1 space-y-4">
           {/* Patente Atual */}
           <div>
+            <RankBadge level={currentLevel} isGangster={isGangster} />
             <span className={`text-[10px] font-orbitron uppercase tracking-[0.3em] ${isGangster ? 'text-orange-500/60' : 'text-blue-400/60'}`}>
               Patente Atual
             </span>

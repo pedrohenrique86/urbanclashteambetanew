@@ -23,7 +23,34 @@ import {
   TrendingUp,
   Award
 } from "lucide-react";
-import { getFactionRank } from "../utils/leveling";
+import { getFactionRank, getRankIcon } from "../utils/leveling";
+
+const RankBadgeIdentity = ({ level, isGangster }: { level: number, isGangster: boolean }) => {
+  const iconData = getRankIcon(level);
+  const colorClass = isGangster ? "text-orange-500" : "text-blue-500";
+  
+  if (iconData.type === 'stars') {
+    const count = iconData.count || 0;
+    return (
+      <div className="flex gap-1 items-center mr-2">
+        {Array.from({ length: count }).map((_, i) => (
+          <Star key={i} className={`w-3 h-3 fill-current ${colorClass}`} />
+        ))}
+      </div>
+    );
+  }
+
+  if (iconData.id === 'elite') {
+    return <Award className={`w-5 h-5 mr-2 ${colorClass} animate-pulse`} />;
+  }
+
+  return (
+     <div className="relative mr-2">
+       <Trophy className={`w-6 h-6 text-yellow-400 drop-shadow-[0_0_10px_rgba(234,179,8,0.5)] animate-bounce`} />
+       <div className="absolute inset-0 bg-yellow-400/10 blur-md rounded-full animate-pulse" />
+     </div>
+  );
+};
 
 interface PublicPlayer {
   id: string;
@@ -303,7 +330,11 @@ const DigitalIdentity = React.memo(
                         <h2 className="text-xl sm:text-2xl font-black font-orbitron text-white uppercase italic tracking-tighter break-words leading-tight drop-shadow-[0_0_8px_rgba(255,255,255,0.4)]">{player.display_name || player.username}</h2>
                     </div>
                     {/* Prestige Rank Title */}
-                    <div className="mb-2">
+                    <div className="mb-2 flex items-center">
+                       <RankBadgeIdentity 
+                          level={player.level} 
+                          isGangster={(player.faction || "").toLowerCase().includes("gangster") || (player.faction || "").toLowerCase().includes("renegado")} 
+                       />
                        <p className={`text-[11px] sm:text-xs font-black font-orbitron italic tracking-widest ${factionTheme.primary} uppercase leading-none`}>
                           {getFactionRank(player.level, player.faction)}
                        </p>
