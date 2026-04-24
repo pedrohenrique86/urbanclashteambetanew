@@ -32,7 +32,7 @@ jobs:
 
   # --- DEPLOY DO FRONTEND NO CLOUDFLARE ---
   deploy-frontend:
-    name: 🌐 Deploy Frontend (Cloudflare Pages)
+    name: 🌐 Deploy Frontend (Cloudflare)
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
@@ -44,22 +44,18 @@ jobs:
           node-version: 20
           cache: 'npm'
 
-      - name: Install Dependencies
+      - name: Install & Build
         run: |
           npm install --prefix frontend
-
-      - name: Build Frontend
-        run: |
           npm run build --prefix frontend
         env:
           VITE_API_URL: https://api.urbanclashteam.com
 
-      - name: Deploy to Cloudflare Pages
-        uses: cloudflare/pages-action@v1
+      - name: Deploy to Cloudflare
+        uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          projectName: urbanclashteambetanew # Corrigido para bater com o repositório
-          directory: frontend/dist
-          gitHubToken: ${{ secrets.GITHUB_TOKEN }}
+          workingDirectory: frontend
+          command: deploy
 
