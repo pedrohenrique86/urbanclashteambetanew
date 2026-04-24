@@ -3,7 +3,7 @@ name: Unified Deploy (Frontend & Backend)
 on:
   push:
     branches: [ main ]
-  workflow_dispatch: # Permite rodar manualmente se precisar
+  workflow_dispatch:
 
 jobs:
   # --- DEPLOY DO BACKEND NA ORACLE ---
@@ -14,17 +14,52 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: SSH into Oracle and Update Container
+      - name: SSH into Oracle and Update
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.ORACLE_HOST }}
           username: ${{ secrets.ORACLE_USERNAME }}
           key: ${{ secrets.ORACLE_SSH_KEY }}
           script: |
-            cd ~/urbanclashteambetanew/backend
-            git pull origin main
+            cd ~/urbanclashteambetanew
+            git fetch origin
+            git reset --hard origin/main
+            cd backend
             npm install
-            npm run migrate:up:prod
+            npm run migrate:up:prod || true
             pm2 restart urbanclash-api || pm2 start server.js --name "urbanclash-api"
             pm2 save
+
+  # --- DEPLOY DO FRONTEND NO CLOUDFLARE ---
+  deploy-frontend:
+    name: 🌐 Deploy Frontend (Cloudflare Pages)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: |
+          npm install --prefix frontend
+
+      - name: Build Frontend
+        run: |
+          npm run build --prefix frontend
+        env:
+          VITE_API_URL: https://api.urbanclashteam.com
+
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/pages-action@v1
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          projectName: urbanclashteam # <-- AJUSTE se o nome for diferente no Cloudflare
+          directory: frontend/dist
+          gitHubToken: ${{ secrets.GITHUB_TOKEN }}
 
