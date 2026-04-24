@@ -14,6 +14,7 @@ interface UserProfile {
   defense?: number;
   focus?: number;
   money?: number;
+  faction?: string;
 }
 
 interface UserInfoCardProps {
@@ -136,7 +137,7 @@ const UserInfoCard: React.FC<UserInfoCardProps> = ({
           {/* Linha 5 */}
           <div
             className={`bg-gray-800/20 rounded p-1 text-center border-r border-t ${themeClasses.border} cursor-help`}
-            title={getCriticalChanceExplanation(userProfile?.focus || 0)}
+            title={getCriticalChanceExplanation()}
           >
             <div className={`${themeClasses.textSecondary} text-xs`}>
               Chance Crítico
@@ -147,10 +148,7 @@ const UserInfoCard: React.FC<UserInfoCardProps> = ({
           </div>
           <div
             className={`bg-gray-800/20 rounded p-1 text-center border-t ${themeClasses.border} cursor-help`}
-            title={getCriticalDamageExplanation(
-              userProfile?.attack || 0,
-              userProfile?.focus || 0,
-            )}
+            title={getCriticalDamageExplanation(userProfile?.faction || "")}
           >
             <div className={`${themeClasses.textSecondary} text-xs`}>
               Dano Crítico
@@ -264,7 +262,7 @@ const UserInfoCard: React.FC<UserInfoCardProps> = ({
         {/* Linha 5 */}
         <div
           className="stat-item bg-gray-800/50 rounded-lg p-3 text-center cursor-help hover:bg-gray-700/50 transition-colors"
-          title={getCriticalChanceExplanation(userProfile?.focus || 0)}
+          title={getCriticalChanceExplanation()}
         >
           <div className={`${themeClasses.textSecondary} text-xs mb-1`}>
             Chance Crítica
@@ -276,10 +274,7 @@ const UserInfoCard: React.FC<UserInfoCardProps> = ({
 
         <div
           className="stat-item bg-gray-800/50 rounded-lg p-3 text-center cursor-help hover:bg-gray-700/50 transition-colors"
-          title={getCriticalDamageExplanation(
-            userProfile?.attack || 0,
-            userProfile?.focus || 0,
-          )}
+          title={getCriticalDamageExplanation(userProfile?.faction || "")}
         >
           <div className={`${themeClasses.textSecondary} text-xs mb-1`}>
             Dano Crítico

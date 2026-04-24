@@ -242,7 +242,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               </div>
               <div
                 className={`${themeClasses.text} flex justify-between cursor-help hover:bg-gray-700/30 rounded transition-colors`}
-                title={getCriticalChanceExplanation(userProfile?.focus || 0)}
+                title={getCriticalChanceExplanation()}
               >
                 <span className="text-cyan-400">CH.C</span>
                 <span className="font-bold">
@@ -256,10 +256,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               </div>
               <div
                 className={`${themeClasses.text} flex justify-between cursor-help hover:bg-gray-700/30 rounded transition-colors`}
-                title={getCriticalDamageExplanation(
-                  userProfile?.attack || 0,
-                  userProfile?.focus || 0,
-                )}
+                title={getCriticalDamageExplanation(userProfile?.faction || "")}
               >
                 <span className="text-pink-400">DA.C</span>
                 <span className="font-bold">
