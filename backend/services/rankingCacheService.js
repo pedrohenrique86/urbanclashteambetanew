@@ -301,12 +301,8 @@ async function refreshClansRanking() {
  */
 async function ensureFreshRanking(type, faction) {
   if (!redisClient.client.isReady) {
-    console.warn(`[ranking] ⚠️ Redis offline. Servindo ${type} direto do banco.`);
-    if (type === "users") {
-      return { data: await fetchUsersFromDB(faction), etag: "fallback", timestamp: Date.now() };
-    } else {
-      return { data: await fetchClansFromDB(), etag: "fallback", timestamp: Date.now() };
-    }
+    console.warn(`[ranking] ⚠️ Redis offline. Retornando vazio conforme solicitado.`);
+    return { data: [], etag: "empty", timestamp: Date.now() };
   }
 
   const cacheKey = type === "users" ? getUsersCacheKey(faction || "all") : getClansCacheKey();
@@ -340,18 +336,11 @@ async function ensureFreshRanking(type, faction) {
   } else {
     await refreshClansRanking();
   }
-
   const finalCache = await getCachedData(cacheKey);
   if (finalCache) return finalCache;
 
-  // Fallback: Se outro processo pegou o lock e ainda está processando, o cache estará null.
-  // Evitamos retornar null (o que causa 503 e CORS error no frontend) buscando direto no banco.
-  console.warn(`[ranking] ⚠️ Cache nulo após refresh. Servindo fallback direto do banco para ${type} (${faction || 'all'}).`);
-  if (type === "users") {
-    return { data: await fetchUsersFromDB(faction), etag: "fallback", timestamp: Date.now() };
-  } else {
-    return { data: await fetchClansFromDB(), etag: "fallback", timestamp: Date.now() };
-  }
+  console.warn(`[ranking] ⚠️ Cache nulo e lock ocupado. Retornando vazio provisoriamente (SSE atualizará em instantes).`);
+  return { data: [], etag: "empty", timestamp: Date.now() };
 }
 
 // ─── Ciclo de 10 minutos ────────────────────────────────────────────────────────
