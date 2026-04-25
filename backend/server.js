@@ -11,11 +11,11 @@ if (process.env.NODE_ENV === "production") {
 }
 
 const express = require("express");
+const cors = require("cors");
 
 const timeRoutes = require("./routes/time");
 const adminRoutes = require("./routes/admin");
 // const gameRoutes = require("./routes/game"); // Replaced by Socket.IO
-// const cors = require("cors"); // Removido para implementação manual de diagnóstico
 const helmet = require("helmet");
 const morgan = require("morgan");
 const rateLimit = require("express-rate-limit");
@@ -67,13 +67,8 @@ const app = express();
 // Ex: /images/banner.png acessará o arquivo em public/images/banner.png
 app.use(express.static(path.join(__dirname, "public")));
 
-// O CORS agora é gerenciado 100% pelo Nginx para evitar conflitos de headers duplos.
-app.use((req, res, next) => {
-  if (req.method === "OPTIONS") {
-    return res.sendStatus(204);
-  }
-  next();
-});
+// CORS gerenciado pelo Express para máxima confiabilidade
+app.use(cors(corsOptions));
 
 app.set("trust proxy", 1); // Confia no proxy da Render para o rate limiting funcionar
 const server = http.createServer(app);
