@@ -127,130 +127,124 @@ async function fetchUsersFromDB(faction) {
 }
 
 /**
- * Reconstrói o snapshot de ranking de jogadores a partir do ZSET Redis.
- * Lê os top-N membros do ZSET (já ordenados por score desc),
- * depois hidrata os dados de perfil do Redis Hash de cada jogador.
- *
- * NÃO batemos no banco para montar este ranking.
- *
- * @param {string|null} faction  "gangsters" | "guardas" | null (todos)
- * @returns {Promise<Array>}
- */
-async function buildRankingFromZSet(faction) {
-  // 1. Pega top-N do ZSET (score descendente)
-  const zsetMembers = await playerStateService._zrangeRankingWithScores(0, 99);
-  // zsetMembers formato local: [{ value: userId, score }, ...]
-  // zsetMembers formato Upstash: [userId1, score1, userId2, score2, ...]
-  // O wrapper já normaliza — dependendo do ambiente, pode vir de formas diferentes.
-  // Vamos normalizar aqui:
-
-  let entries = [];
-  if (!Array.isArray(zsetMembers) || zsetMembers.length === 0) {
-    console.log("[ranking] ℹ️ ZSET de ranking está vazio no Redis.");
-    return [];
-  }
-
-  // Debug do formato (ajuda a identificar a raiz na VM)
-  console.log(`[ranking] 🔍 Processando ${zsetMembers.length} membros do ZSET. Primeiro item:`, JSON.stringify(zsetMembers[0]));
-
-  // Detecta formato Upstash (array plano) vs node-redis (array de objetos) vs Object Map
-  if (typeof zsetMembers[0] === "string") {
-    // Upstash: [member, score, member, score, ...]
-    for (let i = 0; i < zsetMembers.length; i += 2) {
-      entries.push({ userId: zsetMembers[i], score: Number(zsetMembers[i + 1]) });
-    }
-  } else if (Array.isArray(zsetMembers) && zsetMembers[0] && typeof zsetMembers[0] === "object") {
-    // node-redis (v4): [{ value, score }]
-    entries = zsetMembers.map((e) => ({ 
-      userId: e.value || e.member || e.id, 
-      score: Number(e.score) 
-    })).filter(e => e.userId);
-  } else if (zsetMembers && typeof zsetMembers === "object") {
-    // Caso o Redis retorne um Objeto/Mapa: { "id1": 100, "id2": 200 }
-    for (const [id, sc] of Object.entries(zsetMembers)) {
-      entries.push({ userId: id, score: Number(sc) });
-    }
-  }
-
-  console.log(`[ranking] 📊 ${entries.length} entradas normalizadas para hidratação.`);
-
-  // ─── 1.5 Validação de Existência (Ghost Cleanup) ──────────────────────────
-  const candidateIds = entries.map((e) => e.userId);
-  if (candidateIds.length > 0) {
-    try {
-      const placeholders = candidateIds.map((_, i) => `$${i + 1}`).join(',');
-      const { rows } = await query(`SELECT id FROM users WHERE id IN (${placeholders})`, candidateIds);
-      const existingIds = new Set(rows.map((r) => r.id));
-
-      if (existingIds.size < entries.length) {
-        console.log(`[ranking] 👻 Detectados usuários removidos do banco. Filtrando...`);
-        entries = entries.filter((e) => existingIds.has(e.userId));
-      }
-    } catch (dbErr) {
-      console.error("[ranking] ❌ Falha na validação de usuários fantasma:", dbErr.message);
-    }
-  }
-
-  const hydratedPlayers = [];
-  for (const { userId } of entries) {
-    // Tenta pegar do Redis. Se não houver, o getPlayerState JÁ TEM o fallback
-    // para carregar do Banco de Dados (loadPlayerState).
-    let state = await playerStateService.getPlayerState(userId);
-    
-    // Se ainda assim for null, significa que o user_id no ZSET é órfão (não existe mais na user_profiles)
-    if (!state) {
-      console.warn(`[ranking] ⚠️ Jogador ${userId} está no ZSET mas não foi encontrado no Banco. Removendo...`);
-      await playerStateService.deletePlayerState(userId).catch(() => {});
-      continue;
-    }
-
-    // Filtra por facção se necessário
-    if (faction) {
-      const canonical = FACTION_ALIAS_MAP[String(faction).toLowerCase().trim()] || faction;
-      if (state.faction !== canonical) continue;
-    }
-
-    const level = Number(state.level || 0);
-    const total_xp = Number(state.total_xp || 0);
-    const xpStatus = gameLogic.deriveXpStatus(total_xp, level);
-
-    hydratedPlayers.push({
-      id          : state.user_id || userId,
-      username    : state.username    || "",
-      country     : state.country     || "",
-      display_name: state.display_name || state.username || "",
-      avatar_url  : state.avatar_url  || null,
-      level       : level,
-      total_xp    : total_xp,
-      current_xp  : xpStatus.currentXp,
-      xp_required : xpStatus.xpRequired,
-      faction     : state.faction     || "",
-      victories   : Number(state.victories || 0),
-      defeats     : Number(state.defeats || 0),
-      winning_streak: Number(state.winning_streak || 0),
-      clan_name   : state.clan_name   || null,
-      status      : state.status      || 'livre',
-      status_ends_at: state.status_ends_at || null,
-    });
-
-    if (hydratedPlayers.length >= STANDARD_LIMIT) break;
-  }
-
-  // 3. Adiciona rank numérico
-  return hydratedPlayers.map((p, i) => ({ ...p, rank: i + 1 }));
-}
-
-/**
  * Atualiza o snapshot de ranking de jogadores no Redis e emite SSE.
- * Chamado a cada 10 minutos.
+ * Chamado a cada 10 minutos. Lê o ZSET uma única vez, hidrata os top-N, e distribui entre os caches das facções.
  */
 let usersRefreshPromise = null;
 async function refreshUsersRanking() {
   if (usersRefreshPromise) return usersRefreshPromise;
 
   usersRefreshPromise = (async () => {
-    const factions = ["renegados", "guardioes", "gangsters", "guardas", null]; // null = todos
+    // 1. Pega top-N do ZSET (score descendente)
+    // Aumentamos para 199 (200 membros) para garantir chance de ter pelo menos 26 de cada facção
+    const zsetMembers = await playerStateService._zrangeRankingWithScores(0, 199);
+    
+    // Se o ZSET estiver vazio, usa fallback do banco de dados separadamente para cada facção
+    if (!Array.isArray(zsetMembers) || zsetMembers.length === 0) {
+      console.log("[ranking] ℹ️ ZSET de ranking está vazio no Redis. Fazendo fallback para o Banco de Dados.");
+      
+      const factions = ["renegados", "guardioes", "gangsters", "guardas", null]; // null = todos
+      for (const faction of factions) {
+        const factionKey  = faction || "all";
+        const cacheKey    = getUsersCacheKey(factionKey);
+        const lockKey     = `lock:refresh:${cacheKey}`;
+        
+        const acquired = await acquireLock(lockKey);
+        if (!acquired) continue;
 
+        try {
+          const fallbackData = await fetchUsersFromDB(faction);
+          await setCachedData(cacheKey, fallbackData);
+          sseService.publish("ranking", `ranking:snapshot:users:${factionKey}`, fallbackData);
+          console.log(`[ranking] ✅ Snapshot de jogadores [${factionKey}] atualizado (fallback DB) (${fallbackData.length} entries).`);
+        } catch(e) {
+          console.error(`[ranking] ❌ Erro ao atualizar ranking fallback [${factionKey}]:`, e.message);
+        } finally {
+          await releaseLock(lockKey);
+        }
+      }
+
+      // Dispara a inicialização do ZSET em background para os próximos ciclos
+      initializeRankingZSet().catch(err => console.error("[ranking] Erro ao inicializar ZSET no fallback:", err));
+      return;
+    }
+
+    // 2. Normaliza os dados do Redis
+    let entries = [];
+    if (typeof zsetMembers[0] === "string") {
+      // Upstash: [member, score, member, score, ...]
+      for (let i = 0; i < zsetMembers.length; i += 2) {
+        entries.push({ userId: zsetMembers[i], score: Number(zsetMembers[i + 1]) });
+      }
+    } else if (Array.isArray(zsetMembers) && zsetMembers[0] && typeof zsetMembers[0] === "object") {
+      // node-redis (v4): [{ value, score }]
+      entries = zsetMembers.map((e) => ({ 
+        userId: e.value || e.member || e.id, 
+        score: Number(e.score) 
+      })).filter(e => e.userId);
+    } else if (zsetMembers && typeof zsetMembers === "object") {
+      // Caso o Redis retorne um Objeto/Mapa: { "id1": 100, "id2": 200 }
+      for (const [id, sc] of Object.entries(zsetMembers)) {
+        entries.push({ userId: id, score: Number(sc) });
+      }
+    }
+
+    console.log(`[ranking] 🔍 Processando ${entries.length} membros globais do ZSET.`);
+
+    // 3. Validação de Existência (Ghost Cleanup) - Executado APENAS UMA VEZ
+    const candidateIds = entries.map((e) => e.userId);
+    if (candidateIds.length > 0) {
+      try {
+        const placeholders = candidateIds.map((_, i) => `$${i + 1}`).join(',');
+        const { rows } = await query(`SELECT id FROM users WHERE id IN (${placeholders})`, candidateIds);
+        const existingIds = new Set(rows.map((r) => r.id));
+
+        if (existingIds.size < entries.length) {
+          console.log(`[ranking] 👻 Detectados usuários removidos do banco. Filtrando...`);
+          entries = entries.filter((e) => existingIds.has(e.userId));
+        }
+      } catch (dbErr) {
+        console.error("[ranking] ❌ Falha na validação de usuários fantasma:", dbErr.message);
+      }
+    }
+
+    // 4. Hidratação dos perfis via Redis Hash (APENAS UMA VEZ)
+    const hydratedAll = [];
+    for (const { userId } of entries) {
+      let state = await playerStateService.getPlayerState(userId);
+      
+      if (!state) {
+        console.warn(`[ranking] ⚠️ Jogador ${userId} está no ZSET mas não foi encontrado no Banco. Removendo...`);
+        await playerStateService.deletePlayerState(userId).catch(() => {});
+        continue;
+      }
+
+      const level = Number(state.level || 0);
+      const total_xp = Number(state.total_xp || 0);
+      const xpStatus = gameLogic.deriveXpStatus(total_xp, level);
+
+      hydratedAll.push({
+        id          : state.user_id || userId,
+        username    : state.username    || "",
+        country     : state.country     || "",
+        display_name: state.display_name || state.username || "",
+        avatar_url  : state.avatar_url  || null,
+        level       : level,
+        total_xp    : total_xp,
+        current_xp  : xpStatus.currentXp,
+        xp_required : xpStatus.xpRequired,
+        faction     : state.faction     || "",
+        victories   : Number(state.victories || 0),
+        defeats     : Number(state.defeats || 0),
+        winning_streak: Number(state.winning_streak || 0),
+        clan_name   : state.clan_name   || null,
+        status      : state.status      || 'livre',
+        status_ends_at: state.status_ends_at || null,
+      });
+    }
+
+    // 5. Distribuição por facção e atualização dos caches
+    const factions = ["renegados", "guardioes", "gangsters", "guardas", null]; // null = todos
     for (const faction of factions) {
       const factionKey  = faction || "all";
       const cacheKey    = getUsersCacheKey(factionKey);
@@ -260,9 +254,16 @@ async function refreshUsersRanking() {
       if (!acquired) continue;
 
       try {
-        const rows  = await buildRankingFromZSet(faction);
-        const entry = await setCachedData(cacheKey, rows);
+        let rows = hydratedAll;
+        if (faction) {
+          const canonical = FACTION_ALIAS_MAP[String(faction).toLowerCase().trim()] || faction;
+          rows = hydratedAll.filter(p => p.faction === canonical);
+        }
+        
+        // Aplica o limite por facção e adiciona o rank numérico
+        rows = rows.slice(0, STANDARD_LIMIT).map((p, i) => ({ ...p, rank: i + 1 }));
 
+        const entry = await setCachedData(cacheKey, rows);
         const eventName = `ranking:snapshot:users:${factionKey}`;
         sseService.publish("ranking", eventName, rows);
 
@@ -415,8 +416,8 @@ function startPeriodicRefresh() {
     `(${new Date(Date.now() + firstDelay).toLocaleTimeString("pt-BR")})`,
   );
 
-  // Executa IMEDIATAMENTE no startup para não deixar o cache vazio
-  warmupRankings().catch(err => console.error("[ranking] Erro no warmup inicial:", err.message));
+  // Execução imediata foi removida daqui pois o server.js já executa o warmup de forma controlada (await warmupRankings())
+  // antes de chamar o startPeriodicRefresh().
 
   // ✅ FIX: todos os callbacks de timer são wrapped em .catch() para evitar
   // UnhandledPromiseRejection que derruba o processo (causa do falso erro CORS)

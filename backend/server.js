@@ -23,6 +23,7 @@ const rateLimit = require("express-rate-limit");
 const authRoutes = require("./routes/auth");
 const { router: userRoutes } = require("./routes/users");
 const { router: clanRoutes } = require("./routes/clans");
+const publicRoutes = require("./routes/public");
 const trainingRoutes = require("./routes/training");
 const { connectDB, closePool, seedClans } = require("./config/database");
 const { redisReadyPromise } = require("./config/redisClient");
@@ -115,6 +116,7 @@ app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true }));
 
 // Rotas - agora usam gameStateService com Redis
+app.use("/api/public", publicRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/clans", clanRoutes);

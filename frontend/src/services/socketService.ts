@@ -42,7 +42,12 @@ class SocketService {
    */
   connect(): Socket {
     if (!this.socket) {
-      this.socket = io(VITE_API_URL, {
+      // Remove o sufixo /api da URL para evitar o erro de "Invalid namespace"
+      // O Socket.IO entende qualquer path na URL (ex: http://localhost:3001/api)
+      // como sendo um "namespace" (/api), que não existe no backend.
+      const socketUrl = (VITE_API_URL || "").replace(/\/api\/?$/, "");
+
+      this.socket = io(socketUrl, {
         reconnectionAttempts: 20,
         reconnectionDelay: 2000,
         path: "/socket.io/",
