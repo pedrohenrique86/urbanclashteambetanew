@@ -418,9 +418,14 @@ function startPeriodicRefresh() {
   // Executa IMEDIATAMENTE no startup para não deixar o cache vazio
   warmupRankings().catch(err => console.error("[ranking] Erro no warmup inicial:", err.message));
 
+  // ✅ FIX: todos os callbacks de timer são wrapped em .catch() para evitar
+  // UnhandledPromiseRejection que derruba o processo (causa do falso erro CORS)
   setTimeout(() => {
-    warmupRankings();
-    setInterval(warmupRankings, INTERVAL_MS);
+    warmupRankings().catch(err => console.error("[ranking] Erro no ciclo agendado:", err.message));
+    setInterval(
+      () => warmupRankings().catch(err => console.error("[ranking] Erro no ciclo periódico:", err.message)),
+      INTERVAL_MS
+    );
   }, firstDelay);
 }
 
