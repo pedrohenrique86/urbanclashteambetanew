@@ -244,52 +244,74 @@ async function buildRankingFromZSet(faction) {
  * Atualiza o snapshot de ranking de jogadores no Redis e emite SSE.
  * Chamado a cada 10 minutos.
  */
+let usersRefreshPromise = null;
 async function refreshUsersRanking() {
-  const factions = ["renegados", "guardioes", "gangsters", "guardas", null]; // null = todos
+  if (usersRefreshPromise) return usersRefreshPromise;
 
-  for (const faction of factions) {
-    const factionKey  = faction || "all";
-    const cacheKey    = getUsersCacheKey(factionKey);
-    const lockKey     = `lock:refresh:${cacheKey}`;
+  usersRefreshPromise = (async () => {
+    const factions = ["renegados", "guardioes", "gangsters", "guardas", null]; // null = todos
 
-    const acquired = await acquireLock(lockKey);
-    if (!acquired) continue;
+    for (const faction of factions) {
+      const factionKey  = faction || "all";
+      const cacheKey    = getUsersCacheKey(factionKey);
+      const lockKey     = `lock:refresh:${cacheKey}`;
 
-    try {
-      const rows  = await buildRankingFromZSet(faction);
-      const entry = await setCachedData(cacheKey, rows);
+      const acquired = await acquireLock(lockKey);
+      if (!acquired) continue;
 
-      const eventName = `ranking:snapshot:users:${factionKey}`;
-      sseService.publish("ranking", eventName, rows);
+      try {
+        const rows  = await buildRankingFromZSet(faction);
+        const entry = await setCachedData(cacheKey, rows);
 
-      console.log(`[ranking] ✅ Snapshot de jogadores [${factionKey}] atualizado (${rows.length} entries).`);
-    } catch (err) {
-      console.error(`[ranking] ❌ Erro ao atualizar ranking [${factionKey}]:`, err.message);
-    } finally {
-      await releaseLock(lockKey);
+        const eventName = `ranking:snapshot:users:${factionKey}`;
+        sseService.publish("ranking", eventName, rows);
+
+        console.log(`[ranking] ✅ Snapshot de jogadores [${factionKey}] atualizado (${rows.length} entries).`);
+      } catch (err) {
+        console.error(`[ranking] ❌ Erro ao atualizar ranking [${factionKey}]:`, err.message);
+      } finally {
+        await releaseLock(lockKey);
+      }
     }
+  })();
+
+  try {
+    await usersRefreshPromise;
+  } finally {
+    usersRefreshPromise = null;
   }
 }
 
 /**
  * Atualiza o snapshot de ranking de clãs no Redis e emite SSE.
  */
+let clansRefreshPromise = null;
 async function refreshClansRanking() {
-  const cacheKey = getClansCacheKey();
-  const lockKey  = `lock:refresh:${cacheKey}`;
+  if (clansRefreshPromise) return clansRefreshPromise;
 
-  const acquired = await acquireLock(lockKey);
-  if (!acquired) return;
+  clansRefreshPromise = (async () => {
+    const cacheKey = getClansCacheKey();
+    const lockKey  = `lock:refresh:${cacheKey}`;
+
+    const acquired = await acquireLock(lockKey);
+    if (!acquired) return;
+
+    try {
+      const rows  = await fetchClansFromDB();
+      await setCachedData(cacheKey, rows);
+      sseService.publish("ranking", "ranking:snapshot:clans", rows);
+      console.log(`[ranking] ✅ Snapshot de clãs atualizado (${rows.length} entries).`);
+    } catch (err) {
+      console.error("[ranking] ❌ Erro ao atualizar ranking de clãs:", err.message);
+    } finally {
+      await releaseLock(lockKey);
+    }
+  })();
 
   try {
-    const rows  = await fetchClansFromDB();
-    await setCachedData(cacheKey, rows);
-    sseService.publish("ranking", "ranking:snapshot:clans", rows);
-    console.log(`[ranking] ✅ Snapshot de clãs atualizado (${rows.length} entries).`);
-  } catch (err) {
-    console.error("[ranking] ❌ Erro ao atualizar ranking de clãs:", err.message);
+    await clansRefreshPromise;
   } finally {
-    await releaseLock(lockKey);
+    clansRefreshPromise = null;
   }
 }
 
@@ -392,6 +414,9 @@ function startPeriodicRefresh() {
     `[ranking] ⏱️ Próximo ciclo em ${Math.round(firstDelay / 1000)}s ` +
     `(${new Date(Date.now() + firstDelay).toLocaleTimeString("pt-BR")})`,
   );
+
+  // Executa IMEDIATAMENTE no startup para não deixar o cache vazio
+  warmupRankings().catch(err => console.error("[ranking] Erro no warmup inicial:", err.message));
 
   setTimeout(() => {
     warmupRankings();
