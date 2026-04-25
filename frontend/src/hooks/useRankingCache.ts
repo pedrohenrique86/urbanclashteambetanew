@@ -177,8 +177,7 @@ export const useRankingCache = (): UseRankingCacheReturn => {
     const connect = () => {
       if (!mountedRef.current) return;
       
-      const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3001/api";
-      const url = `${apiUrl}/public/rankings/subscribe`;
+      const url = apiClient.getApiUrl("/public/rankings/subscribe");
       // Não enviamos credenciais para permitir acesso 100% público
       eventSource = new EventSource(url);
 

@@ -116,11 +116,11 @@ export const fetchClanRankings = async (opts?: {
  */
 export const fetchAllRankings = async (force?: boolean) => {
   try {
-    const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3001/api";
+    const url = apiClient.getApiUrl("/public/rankings");
     const cacheBuster = force ? `?t=${Date.now()}` : "";
     
     // Fetch inicial rápido para garantir que o usuário veja algo antes do SSE
-    const response = await fetch(`${apiUrl}/public/rankings${cacheBuster}`, {
+    const response = await fetch(`${url}${cacheBuster}`, {
       method: "GET",
       // Não enviamos credenciais para evitar problemas de CORS com usuários deslogados
       headers: {
