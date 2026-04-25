@@ -39,10 +39,18 @@ class ApiClient {
   }
 
   public getApiUrl(endpoint: string = "") {
-    const baseUrl = this.getBaseUrl();
-    // Garante que o endpoint comece com /api
+    let baseUrl = this.getBaseUrl();
+    if (baseUrl.endsWith('/')) {
+      baseUrl = baseUrl.slice(0, -1);
+    }
+    
+    // Se a baseUrl não terminar com /api, adicionamos
+    if (!baseUrl.endsWith('/api')) {
+      baseUrl = `${baseUrl}/api`;
+    }
+    
     const finalEndpoint = endpoint.startsWith("/") ? endpoint : `/${endpoint}`;
-    return `${baseUrl}/api${finalEndpoint}`;
+    return `${baseUrl}${finalEndpoint}`;
   }
 
   private async request(endpoint: string, options: RequestInit = {}) {

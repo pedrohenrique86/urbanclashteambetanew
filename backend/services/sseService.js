@@ -15,10 +15,17 @@ async function initRedisBridge() {
 
     // Client para publicar
     redisPublisher = redis.createClient({ url, password });
-    await redisPublisher.connect();
+    redisPublisher.on("error", (err) => {
+      // Ignora erros de socket fechado que ocorrem durante reconexão
+    });
 
     // Client para ouvir
     redisSubscriber = redis.createClient({ url, password });
+    redisSubscriber.on("error", (err) => {
+      // Ignora erros de socket fechado
+    });
+
+    await redisPublisher.connect();
     await redisSubscriber.connect();
 
     // Link: Qualquer mensagem no canal 'SSE_BRIDGE' é repassada para os clientes locais
@@ -34,6 +41,8 @@ async function initRedisBridge() {
     console.log("✅ SSE-Bridge (Redis Pub/Sub) Ativado.");
   } catch (err) {
     console.error("⚠️ Falha ao iniciar SSE-Bridge (Redis indisponível):", err.message);
+    console.log("🔄 Tentando reconectar SSE-Bridge em 5 segundos...");
+    setTimeout(initRedisBridge, 5000);
   }
 }
 
@@ -111,6 +120,7 @@ if (process.env.NODE_ENV !== "test") {
 }
 
 module.exports = {
+  initRedisBridge,
   subscribe,
   unsubscribe,
   publish,

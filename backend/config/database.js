@@ -56,7 +56,7 @@ const pool = new Pool({
   ...poolConfig,
   max: 20,
   idleTimeoutMillis: 600000, // 10 minutos
-  connectionTimeoutMillis: 10000, // 10 segundos
+  connectionTimeoutMillis: 30000, // Aumentado para 30s por causa do NeonDB (cold start)
   allowExitOnIdle: process.env.NODE_ENV !== "production", // Permite que o processo saia se apenas o pool estiver ativo (útil em dev)
 });
 
@@ -75,6 +75,9 @@ async function connectDB() {
     
     // Executa migrações críticas
     await runPlayerStatusMigrations();
+    
+    // Inicia a primeira operação de manutenção após conectar
+    runMaintenanceOperations();
     
     return true;
   } catch (error) {
@@ -161,8 +164,8 @@ async function runMaintenanceOperations() {
   console.log("✅ Operações de manutenção concluídas.");
 }
 
-// Executa limpeza imediata no carregamento do módulo e agenda repetição horária
-runMaintenanceOperations();
+// Executa limpeza imediata APENAS após conexão bem sucedida no connectDB
+// Mas mantém o agendamento horário
 setInterval(runMaintenanceOperations, 60 * 60 * 1000);
 
 // Graceful shutdown function (to be called from server.js)
