@@ -40,6 +40,10 @@ jobs:
 
             # Atualiza configuração do Nginx (porta 3001)
             sudo cp config/nginx/urbanclash.conf /etc/nginx/sites-available/urbanclash
+            # Garante que o symlink em sites-enabled existe e aponta para o arquivo correto
+            sudo ln -sf /etc/nginx/sites-available/urbanclash /etc/nginx/sites-enabled/urbanclash
+            # Remove qualquer arquivo default que possa conflitar
+            sudo rm -f /etc/nginx/sites-enabled/default
             sudo nginx -t && sudo systemctl reload nginx
 
             cd backend
