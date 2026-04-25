@@ -27,7 +27,7 @@ const gameLogic = require("../utils/gameLogic");
 // ─── Constantes ────────────────────────────────────────────────────────────────
 const RANKINGS_USERS_PREFIX   = "ranking:users:";
 const RANKINGS_CLANS_PREFIX   = "ranking:clans:";
-const RANKINGS_TTL_SECONDS    = 700;   // ~11.7 min — maior que o ciclo
+const RANKINGS_TTL_SECONDS    = 86400;   // 24 horas (evita dogpile effect de 10 em 10 min)
 const STANDARD_LIMIT          = 26;
 const LOCK_TTL_MS             = 30_000;
 
@@ -341,7 +341,17 @@ async function ensureFreshRanking(type, faction) {
     await refreshClansRanking();
   }
 
-  return await getCachedData(cacheKey);
+  const finalCache = await getCachedData(cacheKey);
+  if (finalCache) return finalCache;
+
+  // Fallback: Se outro processo pegou o lock e ainda está processando, o cache estará null.
+  // Evitamos retornar null (o que causa 503 e CORS error no frontend) buscando direto no banco.
+  console.warn(`[ranking] ⚠️ Cache nulo após refresh. Servindo fallback direto do banco para ${type} (${faction || 'all'}).`);
+  if (type === "users") {
+    return { data: await fetchUsersFromDB(faction), etag: "fallback", timestamp: Date.now() };
+  } else {
+    return { data: await fetchClansFromDB(), etag: "fallback", timestamp: Date.now() };
+  }
 }
 
 // ─── Ciclo de 10 minutos ────────────────────────────────────────────────────────
