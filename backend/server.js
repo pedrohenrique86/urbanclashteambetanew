@@ -220,11 +220,39 @@ process.on("SIGINT", async () => {
 });
 
 // Tratamento de erros globais para evitar crashes silenciosos em produção
+// ✅ FIX: absorve erros conhecidos do Redis (SocketClosedUnexpectedlyError, ECONNREFUSED)
+// que antes derrubavam o processo e causavam o falso erro CORS no frontend.
+const KNOWN_REDIS_ERRORS = [
+  "SocketClosedUnexpectedlyError",
+  "ECONNREFUSED",
+  "Connection timeout",
+  "NOAUTH",
+];
+
 process.on("uncaughtException", (err) => {
-  console.error("❌ CRASH: Uncaught Exception:", err);
-  // Em produção, talvez queiramos um restart controlado
+  const isRedisError = KNOWN_REDIS_ERRORS.some(
+    (msg) => err.message?.includes(msg) || err.name?.includes(msg)
+  );
+
+  if (isRedisError) {
+    // Não derruba o processo — Redis vai reconectar automaticamente
+    console.warn("⚠️ [Redis] Erro de conexão absorvido (não fatal):", err.message);
+    return;
+  }
+
+  // Erro genuinamente inesperado → deixa o PM2 reiniciar limpo
+  console.error("❌ CRASH FATAL: Uncaught Exception:", err);
+  process.exit(1);
 });
 
 process.on("unhandledRejection", (reason, promise) => {
+  const msg = reason?.message || String(reason);
+  const isRedisError = KNOWN_REDIS_ERRORS.some((e) => msg.includes(e));
+
+  if (isRedisError) {
+    console.warn("⚠️ [Redis] Rejeição absorvida (não fatal):", msg);
+    return;
+  }
+
   console.error("❌ CRASH: Unhandled Rejection at:", promise, "reason:", reason);
 });
