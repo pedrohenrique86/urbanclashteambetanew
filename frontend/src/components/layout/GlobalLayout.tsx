@@ -27,11 +27,12 @@ const GlobalLayout: React.FC<GlobalLayoutProps> = ({ children }) => {
   // SÊNIOR: Lógica de exibição do Blocker (Oculta se estiver na página de destino do status)
   const status = userProfile?.status || 'Operacional';
   const path = location.pathname;
+
   const hideBlocker = (
     (status === 'Operacional') ||
+    (status === 'Aprimoramento') || // Usuário solicitou remover overlay para treino
     (status === 'Isolamento' && path === '/isolation') ||
-    (status === 'Recondicionamento' && path === '/recovery-base') ||
-    (status === 'Aprimoramento' && path === '/training')
+    (status === 'Recondicionamento' && path === '/recovery-base')
   );
 
   const scrollableContainerRef = useRef<HTMLDivElement>(null);

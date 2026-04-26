@@ -68,7 +68,15 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, requiresFacti
   const isWhitelisted = whitelist.some(p => location.pathname === p || location.pathname.startsWith(p + '/'));
 
   if (status !== 'Operacional' && !isWhitelisted) {
-    console.warn(`[RouteGuard] Acesso negado: ${location.pathname} bloqueado para status: ${status}`);
+    if (import.meta.env.DEV) {
+      console.warn(`[RouteGuard] Acesso negado: ${location.pathname} bloqueado para status: ${status}`);
+    }
+    
+    // Se for Aprimoramento, redireciona para a página de treino
+    if (status === 'Aprimoramento') {
+      return <Navigate to="/training" state={{ from: location, statusBlock: true }} replace />;
+    }
+
     return <Navigate to="/dashboard" state={{ from: location, statusBlock: true }} replace />;
   }
 

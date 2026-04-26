@@ -23,7 +23,7 @@ const StatusBlocker: React.FC = () => {
     ];
     const isWhitelisted = whitelist.some(p => location.pathname === p || location.pathname.startsWith(p + '/'));
 
-    const isBlocked = status !== 'Operacional' && !isWhitelisted;
+    const isBlocked = status !== 'Operacional' && status !== 'Aprimoramento' && !isWhitelisted;
 
     const config = useMemo(() => {
         switch (status) {
@@ -46,16 +46,6 @@ const StatusBlocker: React.FC = () => {
                     subtitle: 'Sistema de recuperação ativo',
                     icon: Activity,
                     glow: 'shadow-[0_0_30px_rgba(234,179,8,0.2)]'
-                };
-            case 'Aprimoramento':
-                return {
-                    color: 'text-cyan-400',
-                    border: 'border-cyan-500/50',
-                    bg: 'bg-cyan-500/10',
-                    label: 'APRIMORAMENTO',
-                    subtitle: 'Unidade em evolução ativa',
-                    icon: TrendingUp,
-                    glow: 'shadow-[0_0_30px_rgba(6,182,212,0.3)]'
                 };
             default:
                 return null;

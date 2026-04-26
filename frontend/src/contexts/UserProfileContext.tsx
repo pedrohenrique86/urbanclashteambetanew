@@ -308,9 +308,22 @@ export const UserProfileProvider = ({ children }: { children: ReactNode }) => {
   const isProfileLoading =
     loading || (user !== null && fetchedForUser.current !== user.id);
 
+  // SÊNIOR: Lógica para injetar status Aprimoramento se houver treino ativo
+  const effectiveProfile = useMemo(() => {
+    if (!userProfile) return null;
+    const isTraining = userProfile.training_ends_at && new Date(userProfile.training_ends_at).getTime() > Date.now();
+    
+    // Se o backend enviar 'Operacional' mas o cronômetro de treino ainda corre,
+    // forçamos o status para 'Aprimoramento' para as guardas de rota agirem.
+    if (isTraining && userProfile.status === 'Operacional') {
+      return { ...userProfile, status: 'Aprimoramento' };
+    }
+    return userProfile;
+  }, [userProfile]);
+
   const contextValue = useMemo(
     () => ({
-      userProfile,
+      userProfile: effectiveProfile,
       loading: isProfileLoading,
       fetchProfile,
       refreshProfile,
@@ -319,7 +332,7 @@ export const UserProfileProvider = ({ children }: { children: ReactNode }) => {
       handleLogout,
     }),
     [
-      userProfile,
+      effectiveProfile,
       isProfileLoading,
       fetchProfile,
       refreshProfile,
