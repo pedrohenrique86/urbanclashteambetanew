@@ -200,8 +200,7 @@ const TopBar: React.FC<TopBarProps> = ({ userProfile }) => {
         style={{ zIndex: 9999 }}
         className="!bg-slate-900/98 !backdrop-blur-2xl !rounded-2xl !border !border-rose-500/40 !shadow-[0_0_30px_rgba(0,0,0,0.8)] !p-0 !max-w-[280px] !opacity-100"
         render={() => {
-           const fac = userFaction;
-           const isRenegado = fac === 'renegados' || fac === 'gangsters';
+           const isRenegado = userFaction === 'gangsters';
            return (
               <div className="p-4 space-y-3 font-orbitron text-[11px]">
                  <div className="flex items-center gap-2 border-b border-white/10 pb-2">
