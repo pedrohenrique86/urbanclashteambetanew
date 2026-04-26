@@ -246,11 +246,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
               >
                 <span className="text-cyan-400">CH.C</span>
                 <span className="font-bold">
-                  {formatValue(
+                  {(
                     combatStats?.criticalChance ||
-                      userProfile?.critical_chance ||
-                      0,
-                  )}
+                    userProfile?.critical_chance ||
+                    0
+                  ).toFixed(0)}
                   %
                 </span>
               </div>
@@ -260,7 +260,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               >
                 <span className="text-pink-400">DA.C</span>
                 <span className="font-bold">
-                  {formatValue(combatStats?.criticalDamage || 0)}
+                  {(combatStats?.criticalDamage || 0).toFixed(1)}
                 </span>
               </div>
             </div>
