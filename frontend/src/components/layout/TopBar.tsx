@@ -29,7 +29,7 @@ const TopBar: React.FC<TopBarProps> = ({ userProfile }) => {
   const energyCurrent = Math.floor(userProfile?.energy ?? 0);
   const energyMax = Math.floor(userProfile?.max_energy ?? 100);
   const energyPercentage = Math.min(100, (energyCurrent / energyMax) * 100);
-  const energyText = `${energyCurrent}/${energyMax}`;
+  const energyText = `${Math.floor(energyPercentage)}%`;
 
   const combat = useMemo(() => calculateCombatStats(userProfile), [userProfile]);
 
