@@ -13,6 +13,8 @@ import ClanIdentityModal from "../ClanIdentityModal";
 import { DynamicBackground } from "./DynamicBackground";
 import { PAGE_BACKGROUNDS } from "../../constants/backgrounds";
 import StatusBlocker from "../StatusBlocker";
+import { useToast } from "../../contexts/ToastContext";
+import { trainingService } from "../../services/trainingService";
 
 interface GlobalLayoutProps {
   children: React.ReactNode;
@@ -21,8 +23,10 @@ interface GlobalLayoutProps {
 const GlobalLayout: React.FC<GlobalLayoutProps> = ({ children }) => {
   const location = useLocation();
   const { themeClasses } = useTheme();
-  const { userProfile, handleLogout } = useUserProfileContext();
+  const { userProfile, handleLogout, refreshProfile } = useUserProfileContext();
   const { currentPanel, closePanel, clearPanels, hasOpenPanel } = useHUD();
+  const { showToast } = useToast();
+  const completingRef = useRef(false);
 
   // SÊNIOR: Lógica de exibição do Blocker (Oculta se estiver na página de destino do status)
   const status = userProfile?.status || 'Operacional';
@@ -50,6 +54,49 @@ const GlobalLayout: React.FC<GlobalLayoutProps> = ({ children }) => {
   const shouldShowNav = !pagesWithoutNav.some(
     (p) => location.pathname === p || location.pathname.startsWith("/auth/"),
   );
+
+  // SÊNIOR: Efeito global de conclusão de treinamento. Conclui em background onde quer que o jogador esteja.
+  useEffect(() => {
+    if (!userProfile?.training_ends_at || !userProfile?.active_training_type) {
+      completingRef.current = false; // Reset da trava de conclusão quando não houver treino ativo
+      return;
+    }
+    const endsAtMs = new Date(userProfile.training_ends_at).getTime();
+    if (isNaN(endsAtMs)) return;
+
+    const tick = async () => {
+      // 1 segundo de tolerância adicionado ao clock skew
+      const remaining = Math.max(0, Math.floor((endsAtMs - Date.now() + 1000) / 1000));
+      if (remaining === 0 && !completingRef.current) {
+        completingRef.current = true;
+        try {
+          const res = await trainingService.completeTraining();
+          showToast(
+            `${res.message} [ +${res.gains.attack} ATK, +${res.gains.defense} DEF, +${res.gains.focus} FOC, +${res.gains.xp} XP ]`,
+            "success",
+            7000
+          );
+          // O perfil será atualizado via SSE e na próxima rodada este useEffect limpará o completingRef
+        } catch (err: any) {
+          const httpStatus = err.response?.status;
+          console.warn("[GlobalLayout] Treino background erro/ignorado:", err.response?.data?.error || err.message);
+          
+          if (httpStatus === 400 || httpStatus === 404) {
+             // Erro 400 frequentemente indica "O treinamento ainda não terminou" (skew) ou "Nenhum ativo"
+             // Caso já tenha concluído, forcamos um refresh pra sincronizar a interface se o SSE falhou.
+             setTimeout(() => { refreshProfile().finally(() => { completingRef.current = false; }) }, 5000);
+          } else {
+             // Para outros erros (ex: 500, network), liberamos rapidamente
+             setTimeout(() => { completingRef.current = false; }, 3000);
+          }
+        }
+      }
+    };
+
+    tick();
+    const timer = setInterval(tick, 2000);
+    return () => clearInterval(timer);
+  }, [userProfile?.training_ends_at, userProfile?.active_training_type, showToast, refreshProfile]);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {

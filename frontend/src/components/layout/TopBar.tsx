@@ -65,7 +65,7 @@ const TopBar: React.FC<TopBarProps> = ({ userProfile }) => {
   const metrics = useMemo(() => [
     { 
       label: "NVL",
-      value: userProfile?.level ?? "-",
+      value: userProfile ? (levelBreakdown.xpLvl + levelBreakdown.statsBonus + levelBreakdown.moneyBonus) : "-",
       className: "text-green-400",
       glowColor: "#22c55e",
       tooltip: "Nível",
@@ -106,7 +106,7 @@ const TopBar: React.FC<TopBarProps> = ({ userProfile }) => {
       glowColor: "#84cc16", 
       tooltip: `Total: $${(userProfile?.money ?? 0).toLocaleString("pt-BR")}` 
     },
-  ], [userProfile, xpText, energyText, xpPercentage, energyPercentage, combat]);
+  ], [userProfile, xpText, energyText, xpPercentage, energyPercentage, combat, levelBreakdown]);
 
   if (!userProfile) return null;
 

@@ -145,13 +145,6 @@ export default function TrainingPage() {
     const tick = () => {
       const remaining = Math.max(0, Math.floor((endsAtMs - Date.now()) / 1000));
       setTimeLeft(remaining);
-      // Dispara auto-complete APENAS se:
-      // 1. Cronômetro chegou a 0
-      // 2. Não está já completando (ref estável entre re-renders)
-      // 3. O tipo de treino capturado ainda é válido (defende contra stale closures)
-      if (remaining === 0 && !completingRef.current && trainingTypeAtMount) {
-        handleCompleteRef.current();
-      }
     };
 
     tick(); // executa imediatamente ao montar
