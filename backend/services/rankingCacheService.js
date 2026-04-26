@@ -294,8 +294,11 @@ async function refreshUsersRanking() {
       try {
         let rows = hydratedAll;
         if (faction) {
-          const canonical = FACTION_ALIAS_MAP[String(faction).toLowerCase().trim()] || faction;
-          rows = hydratedAll.filter(p => p.faction === canonical);
+          const targetCanonical = FACTION_ALIAS_MAP[String(faction).toLowerCase().trim()] || faction;
+          rows = hydratedAll.filter(p => {
+             const playerCanonical = FACTION_ALIAS_MAP[String(p.faction || "").toLowerCase().trim()] || p.faction;
+             return playerCanonical === targetCanonical;
+          });
         }
         
         // Aplica o limite por facção (200 para ranking, slice feito no frontend para Home)

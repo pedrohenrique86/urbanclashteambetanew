@@ -604,13 +604,16 @@ async function updatePlayerState(userId, updates) {
     if (correctLevel !== Number(newState.level)) {
       console.log(`[playerState] 📊 Ajuste de Nível detectado para ${userId}: ${newState.level} -> ${correctLevel}`);
       
-      const levelUpdates = {
-        level: String(correctLevel),
-        is_dirty: "1",
-        is_dirty_at: String(Date.now())
-      };
+      const newLevelStr = String(correctLevel);
+      const isDirtyTime = String(Date.now());
+      
       await redisClient.sAddAsync(DIRTY_PLAYERS_SET, String(userId));
-      await redisClient.hSetAsync(redisKey, levelUpdates);
+      // Fallback absoluto contra falhas de objeto no node-redis
+      await redisClient.hSetAsync(redisKey, "level", newLevelStr);
+      await redisClient.hSetAsync(redisKey, "is_dirty", "1");
+      await redisClient.hSetAsync(redisKey, "is_dirty_at", isDirtyTime);
+
+      console.log(`[playerState] ✅ Nível atualizado em Redis para ${userId}: ${newLevelStr}`);
       
       // Recarrega o estado final
       newState = await getPlayerState(userId); 
