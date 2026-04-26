@@ -366,7 +366,7 @@ const TopBar: React.FC<TopBarProps> = ({ userProfile }) => {
                   <span>Total: {Number(userProfile?.xp ?? 0).toLocaleString("pt-BR")}</span>
                </div>
             </div>
-            <p className="text-[9px] text-zinc-400 leading-relaxed italic border-l-2 border-white/10 pl-3 mt-2">O XP forma a base central vital da progressão na Faction, elevando o 'Nível Base' do seu status militar antes de receber os cálculos de prestígio (riqueza & treino).</p>
+            <p className="text-[9px] text-zinc-400 leading-relaxed italic border-l-2 border-white/10 pl-3 mt-2">O XP forma a base central vital da progressão na Faction, elevando o &apos;Nível Base&apos; do seu status militar antes de receber os cálculos de prestígio (riqueza & treino).</p>
           </div>
         )}
       />
