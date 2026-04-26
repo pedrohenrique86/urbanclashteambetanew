@@ -674,9 +674,9 @@ async function persistPlayerState(userId) {
   if (!playerState || playerState.is_dirty !== "1") return;
 
   try {
-    // Filtra apenas campos que devem ir ao banco
+    // SÊNIOR: Permite strings vazias ou nulas para que o "limpar campos" de fato aconteça no PostgreSQL
     const safeFields = Object.entries(playerState).filter(([k, v]) =>
-      DB_PERSIST_FIELDS.has(k) && v !== "" && v !== undefined && v !== null,
+      DB_PERSIST_FIELDS.has(k) && v !== undefined
     );
 
     if (safeFields.length === 0) {
@@ -685,7 +685,10 @@ async function persistPlayerState(userId) {
     }
 
     const setClauses = safeFields.map(([k], i) => `${k} = $${i + 1}`);
-    const values     = safeFields.map(([, v]) => v);
+    const values     = safeFields.map(([, v]) => {
+      if (v === "" || v === "null" || v === null) return null;
+      return v;
+    });
     values.push(userId);
 
     await query(

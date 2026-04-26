@@ -155,7 +155,7 @@ export default function TrainingPage() {
 
 
   const isTraining = !!(userProfile?.training_ends_at && timeLeft && timeLeft > 0);
-  const trainingsLeft = 8 - (userProfile?.daily_training_count || 0);
+  const trainingsLeft = Math.max(0, 8 - (userProfile?.daily_training_count || 0));
 
   return (
     <div className="min-h-screen p-4 md:p-8 bg-slate-950 bg-[radial-gradient(circle_at_50%_-20%,rgba(14,165,233,0.15),transparent_80%)] relative text-slate-300 font-sans selection:bg-cyan-500/30">

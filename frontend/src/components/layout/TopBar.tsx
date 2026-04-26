@@ -77,7 +77,8 @@ const TopBar: React.FC<TopBarProps> = ({ userProfile }) => {
       value: xpText, 
       className: "text-purple-400", 
       glowColor: "#a855f7", 
-      tooltip: "Experiência",
+      tooltipId: "topbar-xp-tooltip",
+      showHint: true,
       progress: xpPercentage,
       barColor: "bg-purple-500/50",
       isBattery: true
@@ -96,8 +97,8 @@ const TopBar: React.FC<TopBarProps> = ({ userProfile }) => {
     { label: "ATK",      value: userProfile?.attack  ?? "-",                               className: "text-red-400",     glowColor: "#ef4444", tooltip: "Ataque" },
     { label: "DEF",      value: userProfile?.defense ?? "-",                               className: "text-blue-400",    glowColor: "#3b82f6", tooltip: "Defesa" },
     { label: "FOC",      value: userProfile?.focus   ?? "-",                               className: "text-pink-400",    glowColor: "#ec4899", tooltip: "Foco" },
-    { label: "CRIT DMG", value: combat.criticalDamage?.toFixed?.(1) ?? "-",               className: "text-rose-400",    glowColor: "#f43f5e", tooltipId: "topbar-crit-dmg-tooltip", showHint: true },
-    { label: "CRIT%",    value: `${combat.criticalChance?.toFixed?.(0) ?? 0}%`,           className: "text-yellow-400",  glowColor: "#eab308", tooltipId: "topbar-crit-pct-tooltip", showHint: true },
+    { label: "CRIT DMG", value: combat.criticalDamage ? Number(combat.criticalDamage.toFixed(2)) : "-", className: "text-rose-400",    glowColor: "#f43f5e", tooltipId: "topbar-crit-dmg-tooltip", showHint: true },
+    { label: "CRIT%",    value: `${combat.criticalChance ? Number(combat.criticalChance.toFixed(2)) : 0}%`, className: "text-yellow-400",  glowColor: "#eab308", tooltipId: "topbar-crit-pct-tooltip", showHint: true },
     { label: "LUCK",     value: `${Number(userProfile?.luck ?? 0).toFixed(2)}%`,          className: "text-emerald-400", glowColor: "#34d399", tooltip: "Sorte (Bônus de Loot & Drop)" },
     { 
       label: "Cash", 
@@ -188,21 +189,33 @@ const TopBar: React.FC<TopBarProps> = ({ userProfile }) => {
         id="topbar-crit-pct-tooltip"
         place="bottom"
         style={{ zIndex: 9999 }}
-        className="!bg-slate-900/98 !backdrop-blur-2xl !rounded-2xl !border !border-yellow-500/40 !shadow-[0_0_30px_rgba(0,0,0,0.8)] !p-0 !max-w-[280px] !opacity-100"
+        className="!bg-slate-900/98 !backdrop-blur-2xl !rounded-2xl !border !border-yellow-500/40 !shadow-[0_0_30px_rgba(0,0,0,0.8)] !p-0 !max-w-[320px] !opacity-100"
         render={() => (
            <div className="p-4 space-y-3 font-orbitron text-[11px]">
               <div className="flex items-center gap-2 border-b border-white/10 pb-2">
                  <span className="text-yellow-400 font-black text-xs tracking-widest uppercase">Chance Crítica</span>
-                 <span className="text-[9px] text-zinc-500 font-bold uppercase italic">Limite (Cap): 60%</span>
+                 <span className="text-[9px] text-zinc-500 font-bold uppercase italic border border-white/10 px-1 rounded bg-black/20">Limite Máximo: 60%</span>
               </div>
-              <div className="bg-black/40 p-2.5 rounded-xl border border-white/5 space-y-2">
-                 <p className="text-white/80 font-medium">5% Base + (FOC × 0.08) + (DISC × 0.10) + Pontos de Treino</p>
-                 <div className="flex justify-between text-[9px] border-t border-white/5 pt-1.5 opacity-60">
-                    <span>Foco atual: {userProfile?.focus || 0}</span>
-                    <span>Disc: {userProfile?.discipline || 0}</span>
+              
+              <div className="bg-black/40 p-2.5 rounded-xl border border-white/5">
+                 <div className="flex flex-col gap-2.5 text-[10px] opacity-90 font-mono">
+                    <div className="flex justify-between items-center text-zinc-300">
+                       <span>Base Genérica</span>
+                       <span className="font-bold">5.0%</span>
+                    </div>
+                    <div className="flex justify-between items-center text-pink-400">
+                       <span>
+                          Aptidão de Foco
+                          <span className="block text-[8px] opacity-60 mt-0.5">({userProfile?.focus || 0} pts × 0.08)</span>
+                       </span>
+                       <span className="font-bold">+{Number((userProfile?.focus || 0) * 0.08).toFixed(2)}%</span>
+                    </div>
+                    <div className="flex justify-between items-center text-yellow-400">
+                       <span>Equipamentos (Chance Bruta)</span>
+                       <span className="font-bold">+{Number(userProfile?.critical_chance ?? 0).toFixed(1)}%</span>
+                    </div>
                  </div>
               </div>
-              <p className="text-[9px] text-zinc-400 leading-relaxed italic">Mesmo com atributos infinitos, a chance de acerto crítico não ultrapassará 60% para manter o equilíbrio tático.</p>
            </div>
         )}
       />
@@ -212,19 +225,43 @@ const TopBar: React.FC<TopBarProps> = ({ userProfile }) => {
         id="topbar-crit-dmg-tooltip"
         place="bottom"
         style={{ zIndex: 9999 }}
-        className="!bg-slate-900/98 !backdrop-blur-2xl !rounded-2xl !border !border-rose-500/40 !shadow-[0_0_30px_rgba(0,0,0,0.8)] !p-0 !max-w-[280px] !opacity-100"
+        className="!bg-slate-900/98 !backdrop-blur-2xl !rounded-2xl !border !border-rose-500/40 !shadow-[0_0_30px_rgba(0,0,0,0.8)] !p-0 !max-w-[320px] !opacity-100"
         render={() => {
            const isRenegado = userFaction === 'gangsters';
+           const baseFaction = isRenegado ? 150 : 130;
+           
+           const atk = Number(userProfile?.attack || 0);
+           const def = Number(userProfile?.defense || 0);
+           const foc = Number(userProfile?.focus || 0);
+           const sumStats = atk + def + foc;
+           const statsBonus = Math.floor(sumStats / 50);
+           
            return (
               <div className="p-4 space-y-3 font-orbitron text-[11px]">
                  <div className="flex items-center gap-2 border-b border-white/10 pb-2">
                     <span className="text-rose-400 font-black text-xs tracking-widest uppercase">Multiplicador Crítico</span>
-                    <span className="text-[9px] text-zinc-500 font-bold uppercase italic">{isRenegado ? "Base 150%" : "Base 130%"}</span>
+                    <span className="text-[9px] text-zinc-500 font-bold uppercase italic border border-white/10 px-1 rounded bg-black/20">Limite Máximo: 4.0x</span>
                  </div>
+                 
                  <div className="bg-black/40 p-2.5 rounded-xl border border-white/5">
-                    <p className="text-white/80 font-medium">1 + (Base Facção + Pontos) / 100</p>
+                    <div className="flex flex-col gap-2.5 text-[10px] opacity-90 font-mono">
+                       <div className="flex justify-between items-center text-zinc-300">
+                          <span>Base da Facção</span>
+                          <span className="font-bold">{baseFaction}%</span>
+                       </div>
+                       <div className="flex justify-between items-center text-cyan-400">
+                          <span>
+                             Bônus de Treino
+                             <span className="block text-[8px] opacity-60 mt-0.5">(Total de Atributos ÷ 50)</span>
+                          </span>
+                          <span className="font-bold">+{statsBonus}%</span>
+                       </div>
+                       <div className="flex justify-between items-center text-rose-400">
+                          <span>Equipamentos (Dano Bruto)</span>
+                          <span className="font-bold">+{Number(userProfile?.critical_damage ?? 0).toFixed(1)}%</span>
+                       </div>
+                    </div>
                  </div>
-                 <p className="text-[9px] text-zinc-400 leading-relaxed italic">Renegados são mais letais em acertos críticos, enquanto Guardiões compensam com defesa e mitigação.</p>
               </div>
            );
         }}
@@ -307,6 +344,29 @@ const TopBar: React.FC<TopBarProps> = ({ userProfile }) => {
               </p>
             </div>
 
+          </div>
+        )}
+      />
+
+      {/* Tooltip dedicado da Experiência (XP) */}
+      <Tooltip
+        id="topbar-xp-tooltip"
+        place="bottom"
+        style={{ zIndex: 9999 }}
+        className="!bg-slate-900/98 !backdrop-blur-2xl !rounded-2xl !border !border-purple-500/40 !shadow-[0_0_30px_rgba(0,0,0,0.8)] !p-0 !max-w-[300px] !opacity-100"
+        render={() => (
+          <div className="p-4 space-y-3 font-orbitron text-[11px]">
+            <div className="flex items-center gap-2 border-b border-white/10 pb-2">
+               <span className="text-purple-400 font-black text-xs tracking-widest uppercase">Experiência Real (XP)</span>
+            </div>
+            <div className="bg-black/40 p-2.5 rounded-xl border border-white/5 space-y-2">
+               <p className="text-white/80 font-medium leading-relaxed">Concedida passivamente ao concluir treinamentos diários e operações de risco.</p>
+               <div className="flex justify-between text-[10px] border-t border-white/5 pt-1.5 opacity-60 font-mono text-purple-300">
+                  <span>Atual: {xpCurrent} / {xpRequired}</span>
+                  <span>Total: {Number(userProfile?.xp ?? 0).toLocaleString("pt-BR")}</span>
+               </div>
+            </div>
+            <p className="text-[9px] text-zinc-400 leading-relaxed italic border-l-2 border-white/10 pl-3 mt-2">O XP forma a base central vital da progressão na Faction, elevando o 'Nível Base' do seu status militar antes de receber os cálculos de prestígio (riqueza & treino).</p>
           </div>
         )}
       />

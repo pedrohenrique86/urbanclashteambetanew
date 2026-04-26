@@ -50,6 +50,8 @@ export interface UserProfile {
   discipline?: number;
   crit_chance_pct?: number;
   crit_damage_mult?: number;
+  critical_chance?: number;
+  critical_damage?: number;
   max_energy?: number;
   xp_required?: number;
   action_points?: number;
@@ -173,6 +175,8 @@ export const UserProfileProvider = ({ children }: { children: ReactNode }) => {
         luck: profileData.luck !== undefined ? Number(profileData.luck) : 0,
         intimidation: profileData.intimidation !== undefined ? Number(profileData.intimidation) : 0,
         discipline: profileData.discipline !== undefined ? Number(profileData.discipline) : 0,
+        critical_chance: profileData.critical_chance !== undefined ? Number(profileData.critical_chance) : 0,
+        critical_damage: profileData.critical_damage !== undefined ? Number(profileData.critical_damage) : 0,
         crit_chance_pct: profileData.crit_chance_pct !== undefined ? Number(profileData.crit_chance_pct) : 0,
         crit_damage_mult: profileData.crit_damage_mult !== undefined ? Number(profileData.crit_damage_mult) : 0,
         max_energy: profileData.max_energy !== undefined ? Number(profileData.max_energy) : 100,

@@ -164,12 +164,10 @@ function calculateLevelFromXp(totalXp) {
  */
 function calcCritChance(player) {
   const foc      = Math.max(0, Number(player.focus)            || 0);
-  const disc     = Math.max(0, Number(player.discipline)       || 0);
   const rawCrit  = Math.max(0, Number(player.critical_chance)  || 0);
 
   const chance = COMBAT.CRIT_BASE
     + foc    * COMBAT.CRIT_FOC_FACTOR
-    + disc   * COMBAT.CRIT_DISC_FACTOR
     + rawCrit * COMBAT.CRIT_RAW_FACTOR;
 
   return Math.min(COMBAT.CRIT_CAP, Math.round(chance * 100) / 100);
@@ -186,6 +184,14 @@ function calcCritDamageMultiplier(player) {
   const rawDmg = Math.max(0, Number(player.critical_damage) || 0);
   const faction = String(player.faction || '').toLowerCase();
 
+  const atk = Math.max(0, Number(player.attack) || 0);
+  const def = Math.max(0, Number(player.defense) || 0);
+  const foc = Math.max(0, Number(player.focus) || 0);
+  
+  // Bônus Dinâmico de Treino: Cada 50 atributos combinados = +1 ponto de porcentagem de dano crítico extra.
+  // Garante evolução contínua da Topbar.
+  const statsBonus = Math.floor((atk + def + foc) / 50);
+
   let base;
   if (faction === 'renegados' || faction === 'gangsters') {
     base = COMBAT.CRIT_DMG_BASE_RENEGADO;
@@ -195,8 +201,11 @@ function calcCritDamageMultiplier(player) {
     base = COMBAT.CRIT_DMG_GENERIC_BASE;
   }
 
-  const totalPct = base + rawDmg * COMBAT.CRIT_DMG_RAW_FACTOR;
-  return Math.round((1 + totalPct / 100) * 100) / 100; // ex: 150% → 2.50×
+  const totalPct = base + (rawDmg * COMBAT.CRIT_DMG_RAW_FACTOR) + statsBonus;
+  let multiplier = Math.round((1 + totalPct / 100) * 100) / 100; // ex: 150% → 2.50×
+  
+  // Hard Cap de Segurança (Teto Máximo) para impedir One-Shots no Late-game extremo
+  return Math.min(4.00, multiplier);
 }
 
 /**

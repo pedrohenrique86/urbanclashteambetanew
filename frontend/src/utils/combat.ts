@@ -1,3 +1,5 @@
+import { FACTION_ALIAS_MAP_FRONTEND } from './faction';
+
 export interface CombatStats {
   attack: number;
   defense: number;
@@ -50,11 +52,14 @@ export const calculateCombatStats = (userProfile: any) => {
     ? userProfile.faction 
     : (userProfile.faction?.name || '');
   const factionName = rawFaction.toLowerCase().trim();
-  const canonical = factionName === 'gangsters' ? 'renegados' : factionName === 'guardas' ? 'guardioes' : factionName;
+  
+  // Utilizar o mesmo mapa de alias do frontend para blindar nomes errôneos vindos do BD
+  const resolvedFaction = FACTION_ALIAS_MAP_FRONTEND[factionName] || 'gangsters'; // fallback para gangsters (renegados)
 
-  let baseMult = 2.0;
-  if (canonical === 'renegados') baseMult = 2.5;
-  else if (canonical === 'guardioes') baseMult = 2.3;
+  let baseMult = 2.5; // Padrão Renegado/Gangster
+  if (resolvedFaction === 'guardas') {
+    baseMult = 2.3;
+  }
   
   // Transforma os raw points de dano (ex: 50) em multiplicador (ex: +0.50x)
   const criticalDamage = baseMult + (rawDmg / 100);
@@ -62,10 +67,10 @@ export const calculateCombatStats = (userProfile: any) => {
   let effectiveDefense = defense;
   let effectiveDamageReduction = 0;
   
-  if (canonical === 'renegados') {
+  if (resolvedFaction === 'gangsters') {
     // Legacy Gangsters logic representation
     effectiveDefense = defense;
-  } else if (canonical === 'guardioes') {
+  } else if (resolvedFaction === 'guardas') {
     // Softcap reduction is now used in backend: DEF / (DEF + 200)
     effectiveDamageReduction = defense / (defense + 200);
   }
