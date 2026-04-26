@@ -43,6 +43,20 @@ export function ToastProvider({ children }: ToastProviderProps) {
     setToast(prev => ({ ...prev, show: false }));
   };
 
+  // SÊNIOR PATTERN: Listener universal para disparar toasts via eventos globais
+  // Isso permite disparar toasts de arquivos .ts/.js puros (ex: api.ts)
+  React.useEffect(() => {
+    const handleGlobalToast = (event: any) => {
+      const { message, type, duration } = event.detail || {};
+      if (message && type) {
+        showToast(message, type, duration || 5000);
+      }
+    };
+
+    window.addEventListener('toast:show' as any, handleGlobalToast);
+    return () => window.removeEventListener('toast:show' as any, handleGlobalToast);
+  }, []);
+
   return (
     <ToastContext.Provider value={{ showToast, hideToast }}>
       {children}

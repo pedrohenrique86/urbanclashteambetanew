@@ -53,14 +53,14 @@ const DB_PERSIST_FIELDS = new Set([
   "victories", "defeats", "winning_streak",
   "status", "status_ends_at",
   "training_ends_at", "daily_training_count", "last_training_reset", "active_training_type",
+  "energy", "action_points", "last_ap_reset",
   "energy_updated_at",
 ]);
 
 // ─── Dirty TIPO 2: campos voláteis (NÃO persistem no safety-net, só via debounce
 //                   quando absolutamente necessário — energia regenera sozinha)
 const VOLATILE_FIELDS = new Set([
-  "energy", "max_energy",
-  "action_points",
+  "max_energy",
 ]);
 
 // ─── Todos os campos que disparam SSE ao frontend ────────────────────────────────
@@ -170,10 +170,17 @@ function _calcRankingScore(state) {
  * Verifica se o jogador já teve reset hoje (America/Sao_Paulo).
  * Se não, restaura AP para 20.000.
  */
-async function _checkAndResetAP(userId, redisKey) {
+async function _checkAndResetAP(userId, redisKey, state) {
   // Pega a data atual no fuso de SP no formato YYYY-MM-DD usando API nativa Intl
   const dateKey = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' });
   const lockKey = `ap_reset:${userId}:${dateKey}`;
+
+  // Se o estado já tem a data de hoje no campo de reset (do DB), marca o lock
+  if (state && state.last_ap_reset === dateKey) {
+    const alreadySet = await redisClient.getAsync(lockKey);
+    if (!alreadySet) await redisClient.setAsync(lockKey, "1", "EX", 172800);
+    return false;
+  }
 
   const alreadyReset = await redisClient.getAsync(lockKey);
   if (!alreadyReset) {
@@ -181,6 +188,7 @@ async function _checkAndResetAP(userId, redisKey) {
     const MAX_AP = 20000;
     await redisClient.hSetAsync(redisKey, {
       action_points: String(MAX_AP),
+      last_ap_reset: dateKey,
       is_dirty: "1",
       is_dirty_at: String(Date.now())
     });
@@ -197,9 +205,15 @@ async function _checkAndResetAP(userId, redisKey) {
 /**
  * Lazy Reset de Treinamentos Diários.
  */
-async function _checkAndResetTrainingCount(userId, redisKey) {
+async function _checkAndResetTrainingCount(userId, redisKey, state) {
   const dateKey = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' });
   const lockKey = `training_reset:${userId}:${dateKey}`;
+
+  if (state && state.last_training_reset === dateKey) {
+    const alreadySet = await redisClient.getAsync(lockKey);
+    if (!alreadySet) await redisClient.setAsync(lockKey, "1", "EX", 172800);
+    return false;
+  }
 
   const alreadyReset = await redisClient.getAsync(lockKey);
   if (!alreadyReset) {
@@ -289,7 +303,14 @@ function _buildPatch(updates, newState) {
   const patch = {};
   let xpOrLevelChanged = false;
 
-  for (const redisKey of Object.keys(updates)) {
+  // SÊNIOR: Verificamos tanto as chaves enviadas explicitamente quanto chaves internas 
+  // que podem ter mudado (ex: level) e que precisam ser sincronizadas.
+  const allKeys = new Set(Object.keys(updates));
+  if (newState._internalUpdate) {
+    allKeys.add("level");
+  }
+
+  for (const redisKey of allKeys) {
     const sseKey = FIELD_TO_SSE[redisKey];
     if (!sseKey) continue;
     
@@ -304,8 +325,8 @@ function _buildPatch(updates, newState) {
   // SÊNIOR: Se XP ou Level mudou, injeta os campos derivados no Patch SSE
   if (xpOrLevelChanged) {
     const xpStatus = gameLogic.deriveXpStatus(newState.total_xp, newState.level);
-    patch.currentXp  = xpStatus.currentXp;
-    patch.xpRequired = xpStatus.xpRequired;
+    patch.current_xp  = Number(xpStatus.currentXp);
+    patch.xp_required = Number(xpStatus.xpRequired);
   }
 
   return patch;
@@ -399,7 +420,17 @@ async function loadPlayerState(userId) {
     }, {});
 
     stateForRedis.is_dirty       = "0";
-    stateForRedis.is_dirty_at    = "";   // timestamp da última vez que ficou dirty
+    stateForRedis.is_dirty_at    = ""; 
+
+    const dateKey = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' });
+
+    // SÊNIOR: Sincroniza locks de reset ao carregar do banco
+    if (playerState.last_training_reset === dateKey) {
+      await redisClient.setAsync(`training_reset:${userId}:${dateKey}`, "1", "EX", 172800);
+    }
+    if (playerState.last_ap_reset === dateKey) {
+      await redisClient.setAsync(`ap_reset:${userId}:${dateKey}`, "1", "EX", 172800);
+    }
 
     await redisClient.hSetAsync(redisKey, stateForRedis);
     await redisClient.expireAsync(redisKey, PLAYER_STATE_TTL);
@@ -426,29 +457,30 @@ async function getPlayerState(userId) {
   const raw = await redisClient.hGetAllAsync(redisKey);
 
   if (raw && Object.keys(raw).length > 0) {
+    const state = _parseState(raw);
+    
     // Executa Lazy Resets em background
-    _checkAndResetAP(userId, redisKey).catch(e => console.error("[apReset] Falha:", e.message));
-    _checkAndResetTrainingCount(userId, redisKey).catch(e => console.error("[trainingReset] Falha:", e.message));
+    _checkAndResetAP(userId, redisKey, state).catch(e => console.error("[apReset] Falha:", e.message));
+    _checkAndResetTrainingCount(userId, redisKey, state).catch(e => console.error("[trainingReset] Falha:", e.message));
     
     // SÊNIOR: Regeneração de Energia
-    const initialParsed = _parseState(raw);
-    if (initialParsed) {
-      await _checkAndRegenEnergy(userId, redisKey, initialParsed).catch(e => console.error("[energyRegen] Falha:", e.message));
+    if (state) {
+      await _checkAndRegenEnergy(userId, redisKey, state).catch(e => console.error("[energyRegen] Falha:", e.message));
     }
 
-    // Relê do Redis caso a regeneração tenha alterado valores
-    const finalRaw = initialParsed ? await redisClient.hGetAllAsync(redisKey) : raw;
-    const parsed = _parseState(finalRaw);
+    // Relê do Redis caso a regeneração ou resets tenham alterado valores
+    const finalRaw = await redisClient.hGetAllAsync(redisKey);
+    const finalState = _parseState(finalRaw);
     
     // SÊNIOR: Executa Lazy Reset de Status se necessário
-    if (parsed && parsed._status_expired) {
-      delete parsed._status_expired;
+    if (finalState && finalState._status_expired) {
+      delete finalState._status_expired;
       setPlayerStatus(userId, 'Operacional').catch(e => console.error("[statusReset] Falha:", e.message));
-      parsed.status = 'Operacional';
-      parsed.status_ends_at = null;
+      finalState.status = 'Operacional';
+      finalState.status_ends_at = null;
     }
 
-    return parsed;
+    return finalState;
   }
 
   // Cache miss → carrega do banco
@@ -519,6 +551,7 @@ async function updatePlayerState(userId, updates) {
 
     // ── 4. Lógica de NÍVEL DINÂMICO (Prestígio) ──────────────────────────────────
     const correctLevel = gameLogic.calculateDynamicLevel(newState);
+    let internalUpdate = false;
     
     if (correctLevel !== Number(newState.level)) {
       console.log(`[playerState] 📊 Ajuste de Nível detectado para ${userId}: ${newState.level} -> ${correctLevel}`);
@@ -529,17 +562,18 @@ async function updatePlayerState(userId, updates) {
         is_dirty_at: String(Date.now())
       };
       await redisClient.sAddAsync(DIRTY_PLAYERS_SET, String(userId));
-
       await redisClient.hSetAsync(redisKey, levelUpdates);
       
-      // Recarrega o estado final para o PATCH SSE levar os valores corretos
+      // Recarrega o estado final
       newState = await getPlayerState(userId); 
+      internalUpdate = true;
       hasCritical = true; 
       hasSSEChange = true;
     }
 
     // ── 5. Emite PATCH mínimo via SSE ────────────────────────────────────────────
     if (hasSSEChange) {
+      if (internalUpdate) newState._internalUpdate = true;
       const patch   = _buildPatch(updates, newState);
       const version = _nextVersion(userId);
 

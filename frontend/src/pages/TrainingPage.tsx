@@ -78,7 +78,7 @@ export default function TrainingPage() {
     setLoading(type);
     try {
       const res = await trainingService.startTraining(type);
-      showToast(res.message, "success");
+      showToast("TREINAMENTO INICIADO COM SUCESSO!", "success");
       await refreshProfile();
     } catch (err: any) {
       showToast(err.response?.data?.error || err.message, "error");
@@ -128,7 +128,7 @@ export default function TrainingPage() {
   const trainingsLeft = 8 - (userProfile?.daily_training_count || 0);
 
   return (
-    <div className="min-h-screen p-4 md:p-8 bg-slate-950 relative text-slate-300 font-sans selection:bg-cyan-500/30">
+    <div className="min-h-screen p-4 md:p-8 bg-slate-950 bg-[radial-gradient(circle_at_50%_-20%,rgba(14,165,233,0.15),transparent_80%)] relative text-slate-300 font-sans selection:bg-cyan-500/30">
       {/* GRID BACKGROUND */}
       <div className="fixed inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:32px_32px] pointer-events-none"></div>
 
@@ -164,7 +164,7 @@ export default function TrainingPage() {
           
           {/* DAILY LIMIT CARD */}
           <div 
-            className="bg-slate-900/60 backdrop-blur-2xl border border-cyan-500/20 shadow-[0_0_30px_rgba(34,211,238,0.08)] p-6 relative group overflow-hidden"
+            className="bg-white/5 backdrop-blur-3xl border border-cyan-500/30 shadow-[0_0_40px_rgba(34,211,238,0.1),inset_0_1px_rgba(255,255,255,0.1)] p-6 relative group overflow-hidden"
             style={MILITARY_CLIP}
           >
             <div className="absolute top-0 right-0 p-2 opacity-20 group-hover:opacity-40 transition-opacity">
@@ -200,7 +200,7 @@ export default function TrainingPage() {
                 initial={{ opacity: 0, scale: 0.98 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.98 }}
-                className="bg-slate-900/80 backdrop-blur-2xl border border-violet-500/30 p-6 shadow-[0_0_40px_rgba(139,92,246,0.15),inset_0_0_20px_rgba(139,92,246,0.05)] relative"
+                className="bg-white/5 backdrop-blur-3xl border border-violet-500/40 shadow-[0_0_50px_rgba(139,92,246,0.15),inset_0_1px_rgba(255,255,255,0.1)] p-6 relative"
                 style={MILITARY_CLIP}
               >
                 {/* Corner Markers */}
@@ -246,7 +246,7 @@ export default function TrainingPage() {
                 key="idle"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                className="bg-slate-900/40 backdrop-blur-xl border-2 border-white/5 border-dashed p-10 flex flex-col items-center justify-center text-center opacity-60"
+                className="bg-white/5 backdrop-blur-3xl border-2 border-white/10 border-dashed p-10 flex flex-col items-center justify-center text-center opacity-60"
                 style={MILITARY_CLIP}
               >
                 <div className="w-16 h-16 rounded-full border border-white/10 flex items-center justify-center mb-4">
@@ -268,10 +268,10 @@ export default function TrainingPage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 * idx }}
-              className={`group relative bg-slate-900/60 backdrop-blur-2xl border transition-all duration-300 hover:-translate-y-1 shadow-[0_0_30px_rgba(34,211,238,0.08)] hover:shadow-[0_0_40px_rgba(34,211,238,0.15)]
-                ${opt.id === 'grande' ? 'border-fuchsia-500/30 hover:border-fuchsia-400/60' : 
-                  opt.id === 'medio' ? 'border-violet-500/30 hover:border-violet-400/60' : 
-                  'border-cyan-500/30 hover:border-cyan-400/60'}`}
+              className={`group relative bg-white/5 backdrop-blur-3xl border transition-all duration-300 hover:bg-white/10 hover:-translate-y-1 shadow-[0_0_40px_rgba(34,211,238,0.1),inset_0_1px_rgba(255,255,255,0.1)]
+                ${opt.id === 'grande' ? 'border-fuchsia-500/40 hover:border-fuchsia-400/60' : 
+                  opt.id === 'medio' ? 'border-violet-500/40 hover:border-violet-400/60' : 
+                  'border-cyan-500/40 hover:border-cyan-400/60'}`}
               style={MILITARY_CLIP}
             >
               <div className="p-6 md:p-8 flex flex-col md:flex-row gap-8 items-stretch">
