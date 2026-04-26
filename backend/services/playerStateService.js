@@ -648,6 +648,14 @@ async function updatePlayerState(userId, updates) {
         level     : Number(newState.level),
         current_xp: Number(newState.total_xp),
       });
+
+      // NOVO: Dispara uma atualização imediata do snapshot geral do Ranking
+      try {
+        const rankingCacheService = require("./rankingCacheService");
+        rankingCacheService.scheduleAsapRefresh();
+      } catch (err) {
+        // Ignora erros de require circular ou não carregados a tempo
+      }
     }
 
     // ── 6. Agenda debounce para DB apenas se campos persistíveis mudaram ─────────

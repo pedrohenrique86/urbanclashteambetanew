@@ -468,6 +468,20 @@ function startPeriodicRefresh() {
 }
 
 /**
+ * Força um alerta de atualização imediata (com debounce de 5 segundos).
+ * Usado quando há ganho crítico de nível/XP por workers offline.
+ */
+let asapRefreshTimeout = null;
+function scheduleAsapRefresh() {
+  if (asapRefreshTimeout) clearTimeout(asapRefreshTimeout);
+  asapRefreshTimeout = setTimeout(() => {
+    asapRefreshTimeout = null;
+    console.log("[ranking] ⚡ Reconstrução imediata do ranking acionada (Worker Update)...");
+    warmupRankings().catch(err => console.error("[ranking] Erro no ASAP Refresh:", err.message));
+  }, 5000);
+}
+
+/**
  * Warmup inicial — popula ZSET com todos os jogadores do banco na primeira carga.
  * Necessário apenas na primeira execução ou após restart.
  */
@@ -499,6 +513,7 @@ module.exports = {
   ensureFreshRanking,
   warmupRankings,
   startPeriodicRefresh,
+  scheduleAsapRefresh,
   initializeRankingZSet,
   refreshUsersRanking,
   refreshClansRanking,

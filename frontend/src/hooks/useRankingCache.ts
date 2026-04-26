@@ -222,6 +222,23 @@ export const useRankingCache = (): UseRankingCacheReturn => {
         });
       });
 
+      // NOVO: Escuta atualizações individuais em tempo real (ex: treinos offline terminando)
+      eventSource?.addEventListener("ranking:player:update", (event: any) => {
+        if (!mountedRef.current) return;
+        
+        try {
+          // Quando algum jogador tem uma alteração crítica de XP/nível, 
+          // re-buscamos o snapshot para garantir a posição correta, com debounce 
+          // para evitar spam se 500 pessoas terminarem o treino juntas.
+          if (refreshDebounce) clearTimeout(refreshDebounce);
+          refreshDebounce = setTimeout(() => {
+            if (mountedRef.current) forceRefreshRef.current();
+          }, 3000); // 3 segundos de debounce para updates competitivos
+        } catch (err) {
+          console.warn("[ranking] Falha ao processar ranking:player:update:", err);
+        }
+      });
+
       eventSource.onerror = () => {
         eventSource?.close();
         if (mountedRef.current) reconnectTimeout = setTimeout(connect, 5000);
