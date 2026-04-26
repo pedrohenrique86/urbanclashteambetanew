@@ -96,8 +96,8 @@ const TopBar: React.FC<TopBarProps> = ({ userProfile }) => {
     { label: "ATK",      value: userProfile?.attack  ?? "-",                               className: "text-red-400",     glowColor: "#ef4444", tooltip: "Ataque" },
     { label: "DEF",      value: userProfile?.defense ?? "-",                               className: "text-blue-400",    glowColor: "#3b82f6", tooltip: "Defesa" },
     { label: "FOC",      value: userProfile?.focus   ?? "-",                               className: "text-pink-400",    glowColor: "#ec4899", tooltip: "Foco" },
-    { label: "CRIT DMG", value: combat.criticalDamage?.toFixed?.(1) ?? "-",               className: "text-rose-400",    glowColor: "#f43f5e", tooltipId: "topbar-crit-dmg-tooltip" },
-    { label: "CRIT%",    value: `${combat.criticalChance?.toFixed?.(0) ?? 0}%`,           className: "text-yellow-400",  glowColor: "#eab308", tooltipId: "topbar-crit-pct-tooltip" },
+    { label: "CRIT DMG", value: combat.criticalDamage?.toFixed?.(1) ?? "-",               className: "text-rose-400",    glowColor: "#f43f5e", tooltipId: "topbar-crit-dmg-tooltip", showHint: true },
+    { label: "CRIT%",    value: `${combat.criticalChance?.toFixed?.(0) ?? 0}%`,           className: "text-yellow-400",  glowColor: "#eab308", tooltipId: "topbar-crit-pct-tooltip", showHint: true },
     { label: "LUCK",     value: `${Number(userProfile?.luck ?? 0).toFixed(2)}%`,          className: "text-emerald-400", glowColor: "#34d399", tooltip: "Sorte (Bônus de Loot & Drop)" },
     { 
       label: "Cash", 
@@ -124,7 +124,7 @@ const TopBar: React.FC<TopBarProps> = ({ userProfile }) => {
               <React.Fragment key={metric.label}>
                 <div className="flex flex-col items-center justify-center text-center px-1">
                   <span
-                    className={`text-[8px] text-zinc-500 font-black uppercase tracking-widest leading-none mb-1 flex items-center gap-1 ${metric.tooltip || metric.tooltipId ? 'cursor-help' : ''}`}
+                    className={`text-[8px] text-zinc-500 font-black uppercase tracking-widest leading-none mb-1 flex items-center gap-1 ${metric.tooltipId ? 'cursor-help' : 'cursor-default'}`}
                     data-tooltip-id={metric.tooltipId ?? "topbar-tooltip"}
                     data-tooltip-content={metric.tooltipId ? undefined : metric.tooltip}
                   >
