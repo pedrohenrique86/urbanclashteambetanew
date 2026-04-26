@@ -103,6 +103,49 @@ async function resolveFaction(factionInput, clientOrQuery) {
   return { canonicalName: canonical, factionId: result.rows[0].id };
 }
 
+/**
+ * Converte os dados brutos do perfil (do DB ou Redis) para o formato esperado pelo frontend.
+ * Calcula campos derivados de XP e Combate em tempo real.
+ */
+function convertProfileData(profile) {
+  if (!profile) return null;
+
+  // Se o profile veio do Redis, os campos numéricos podem estar como strings.
+  // Garantimos a conversão para manter a compatibilidade com o frontend.
+  // XP e XP requerido agora são calculados dinamicamente baseado no total_xp e level.
+  const level    = parseInt(profile.level, 10) || 1;
+  const total_xp = parseInt(profile.total_xp || 0, 10);
+  const xpStatus = gameLogic.deriveXpStatus(total_xp, level);
+
+  return {
+    ...profile,
+    id: profile.user_id || profile.id, // Normalização de ID
+    username: profile.username || profile.display_name,
+    is_admin: profile.is_admin === "1" || profile.is_admin === true || profile.is_admin === "true",
+    attack: parseFloat(profile.attack) || 0,
+    defense: parseFloat(profile.defense) || 0,
+    focus: parseFloat(profile.focus) || 0,
+    critical_damage: parseFloat(profile.critical_damage) || 0,
+    critical_chance: parseFloat(profile.critical_chance) || 0,
+    intimidation: parseFloat(profile.intimidation) || 0,
+    discipline: parseFloat(profile.discipline) || 0,
+    level,
+    energy: parseInt(profile.energy, 10) || 0,
+    total_xp,
+    current_xp: xpStatus.currentXp,
+    xp_required: xpStatus.xpRequired,
+    action_points: parseInt(profile.action_points, 10) || 0,
+    money: parseInt(profile.money, 10) || 0,
+    victories: parseInt(profile.victories, 10) || 0,
+    defeats: parseInt(profile.defeats, 10) || 0,
+    winning_streak: parseInt(profile.winning_streak, 10) || 0,
+    // SÊNIOR: Valores DERIVADOS calculados em tempo real — nunca persistidos
+    // Estes são os valores REAIS que o combate usa
+    crit_chance_pct : gameLogic.calcCritChance(profile),
+    crit_damage_mult: gameLogic.calcCritDamageMultiplier(profile),
+  };
+}
+
 // =========================
 // SSE Ranking
 // =========================
@@ -318,41 +361,7 @@ router.get("/profile", authenticateToken, async (req, res) => {
       return res.status(200).json(null);
     }
 
-    // Se o profile veio do Redis, os campos numéricos podem estar como strings.
-    // Garantimos a conversão para manter a compatibilidade com o frontend.
-    // XP e XP requerido agora são calculados dinamicamente baseado no total_xp e level.
-    const level    = parseInt(profile.level, 10) || 1;
-    const total_xp = parseInt(profile.total_xp || 0, 10);
-    const xpStatus = gameLogic.deriveXpStatus(total_xp, level);
-
-    const convertedProfile = {
-      ...profile,
-      id: profile.user_id || profile.id, // Normalização de ID
-      username: profile.username || profile.display_name,
-      is_admin: profile.is_admin === "1" || profile.is_admin === true || profile.is_admin === "true",
-      attack: parseFloat(profile.attack) || 0,
-      defense: parseFloat(profile.defense) || 0,
-      focus: parseFloat(profile.focus) || 0,
-      critical_damage: parseFloat(profile.critical_damage) || 0,
-      critical_chance: parseFloat(profile.critical_chance) || 0,
-      intimidation: parseFloat(profile.intimidation) || 0,
-      discipline: parseFloat(profile.discipline) || 0,
-      level,
-      energy: parseInt(profile.energy, 10) || 0,
-      total_xp,
-      current_xp: xpStatus.currentXp,
-      xp_required: xpStatus.xpRequired,
-      action_points: parseInt(profile.action_points, 10) || 0,
-      money: parseInt(profile.money, 10) || 0,
-      victories: parseInt(profile.victories, 10) || 0,
-      defeats: parseInt(profile.defeats, 10) || 0,
-      winning_streak: parseInt(profile.winning_streak, 10) || 0,
-      // SÊNIOR: Valores DERIVADOS calculados em tempo real — nunca persistidos
-      // Estes são os valores REAIS que o combate usa
-      crit_chance_pct : gameLogic.calcCritChance(profile),
-      crit_damage_mult: gameLogic.calcCritDamageMultiplier(profile),
-    };
-
+    const convertedProfile = convertProfileData(profile);
     const gameState = await getGameState();
     res.json({ ...convertedProfile, gameState });
   } catch (error) {
@@ -468,7 +477,8 @@ router.post("/profile", authenticateToken, async (req, res) => {
     await invalidatePlayerCache(user.id);
     await refreshUserRankingCaches();
 
-    res.status(201).json(insertedProfile.rows[0]);
+    const converted = convertProfileData(insertedProfile.rows[0]);
+    res.status(201).json(converted);
   } catch (error) {
     if (error.code === "23505") {
       return res.status(409).json({ error: "Perfil já existe ou username em uso" });
@@ -548,7 +558,8 @@ router.put(
       await invalidatePlayerCache(req.user.id);
       await refreshUserRankingCaches();
 
-      res.json(updatedProfile.rows[0]);
+      const converted = convertProfileData(updatedProfile.rows[0]);
+      res.json(converted);
     } catch (error) {
       console.error("❌ Erro ao atualizar perfil do usuário:", error.message);
       res.status(500).json({ error: "Erro interno do servidor" });
@@ -831,7 +842,7 @@ router.put(
 
       res.json({
         message: "Perfil atualizado com sucesso",
-        profile: updatedProfile,
+        profile: convertProfileData(updatedProfile),
       });
     } catch (error) {
       if (

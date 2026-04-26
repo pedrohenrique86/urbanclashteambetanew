@@ -147,12 +147,17 @@ export const UserProfileProvider = ({ children }: { children: ReactNode }) => {
     (profileData: any, currentUser: any): UserProfile | null => {
       if (!profileData || !currentUser) return null;
 
+      const level = Number(profileData.level) || 1;
+      
+      // SÊNIOR: Fallback para xp_required caso o backend não tenha retornado (ex: no momento da criação)
+      const xp_required = Number(profileData.xp_required) || (100 + (Math.floor(level / 5) * 10));
+
       return {
         id: currentUser.id,
         username: profileData.username || currentUser.username,
         email: currentUser.email,
         faction: profileData.faction || null,
-        level: profileData.level || 1,
+        level: level,
         xp: profileData.total_xp || profileData.xp || 0,
         energy: profileData.energy || 100,
         gold: profileData.gold || 0,
@@ -171,7 +176,7 @@ export const UserProfileProvider = ({ children }: { children: ReactNode }) => {
         crit_chance_pct: Number(profileData.crit_chance_pct) || 0,
         crit_damage_mult: Number(profileData.crit_damage_mult) || 0,
         max_energy: Number(profileData.max_energy) || 100,
-        xp_required: Number(profileData.xp_required) || 0,
+        xp_required: xp_required,
         action_points: Number(profileData.action_points) || 0,
         money: Number(profileData.money) || 0,
 
