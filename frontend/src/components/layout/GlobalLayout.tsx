@@ -96,7 +96,7 @@ const GlobalLayout: React.FC<GlobalLayoutProps> = ({ children }) => {
       // Limpa localmente para não disparar duas vezes em re-renders
       userProfile.pending_training_toast = null;
     }
-  }, [userProfile?.pending_training_toast, showToast]);
+  }, [userProfile?.pending_training_toast, showToast, userProfile]);
 
   useEffect(() => {
     clearPanels();

@@ -223,11 +223,22 @@ const redisWrapper = {
       const s = String(start || 0);
       const e = String(stop || -1);
       
-      // sendCommand é o método mais compatível: funciona em Redis 5, 6 e 7
-      // Retorna um array plano: [member1, score1, member2, score2...]
       return await client.sendCommand(['ZREVRANGE', k, s, e, 'WITHSCORES']);
     } catch (err) {
       console.error(`[RedisClient] Erro em zRangeWithScoresAsync key=${key}:`, err.message);
+      return [];
+    }
+  },
+
+  zRangeByScoreAsync: async (key, min, max) => {
+    if (!key || !isReady) return [];
+    try {
+      const k = String(key);
+      const mMin = String(min);
+      const mMax = String(max);
+      return await client.sendCommand(['ZRANGEBYSCORE', k, mMin, mMax]);
+    } catch (err) {
+      console.error(`[RedisClient] Erro em zRangeByScoreAsync key=${key}:`, err.message);
       return [];
     }
   },
