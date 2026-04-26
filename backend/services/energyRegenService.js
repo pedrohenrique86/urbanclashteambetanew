@@ -51,8 +51,9 @@ async function processAllActivePlayers() {
       processedCount++;
 
       try {
-        // getPlayerState dispara _checkAndRegenEnergy internamente e envia SSE se ganhou energia
-        await playerStateService.getPlayerState(userId);
+        // Chama diretamente a função de regen — sem passar por getPlayerState()
+        // para evitar o duplo trigger de _checkAndRegenEnergy.
+        await playerStateService.regenEnergyForPlayer(userId);
       } catch (err) {
         // Silencioso por player individual para não poluir logs
       }

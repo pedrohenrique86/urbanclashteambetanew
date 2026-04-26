@@ -286,8 +286,8 @@ async function _checkAndRegenEnergy(userId, redisKey, state) {
   
   if (now - lastUpdate >= rateMs) {
     const cycles = Math.floor((now - lastUpdate) / rateMs);
-    const maxEnergy = Number(state.max_energy || 100);
-    const currentEnergy = Number(state.energy || 0);
+    const maxEnergy = Math.floor(Number(state.max_energy || 100)); // sempre inteiro
+    const currentEnergy = Math.floor(Number(state.energy || 0));   // sempre inteiro
 
     // Se já estiver no máximo, apenas empurra o timestamp para o 'agora' para não acumular ciclos infinitos
     if (currentEnergy >= maxEnergy) {
@@ -295,8 +295,8 @@ async function _checkAndRegenEnergy(userId, redisKey, state) {
       return false;
     }
 
-    const energyToAdd = cycles * (gameLogic.ENERGY.REGEN_AMOUNT || 1);
-    const newEnergy = Math.min(maxEnergy, currentEnergy + energyToAdd);
+    const energyToAdd = cycles * Math.floor(gameLogic.ENERGY.REGEN_AMOUNT || 1);
+    const newEnergy = Math.min(maxEnergy, currentEnergy + energyToAdd); // já inteiro
     const actualGained = newEnergy - currentEnergy;
 
     if (actualGained > 0) {
@@ -305,7 +305,7 @@ async function _checkAndRegenEnergy(userId, redisKey, state) {
       const newLastUpdateStr = new Date(newLastUpdateMs).toISOString();
 
       await redisClient.hSetAsync(redisKey, {
-        energy: String(newEnergy),
+        energy: String(Math.floor(newEnergy)), // garante inteiro no Redis
         energy_updated_at: newLastUpdateStr,
         is_dirty: "1",
         is_dirty_at: String(Date.now())
@@ -315,7 +315,7 @@ async function _checkAndRegenEnergy(userId, redisKey, state) {
       // Emite SSE para feedback visual imediato
       sseService.publish(`player:${userId}`, "player:state", {
         type: "player:patch",
-        patch: { energy: newEnergy },
+        patch: { energy: Math.floor(newEnergy) }, // garante inteiro no SSE
         version: _nextVersion(userId)
       });
 
@@ -858,6 +858,23 @@ async function setPlayerStatus(userId, newStatus, durationSeconds = null) {
   return getPlayerState(userId);
 }
 
+/**
+ * Regen direta para uso pelo energyRegenService (heartbeat).
+ * Evita o duplo trigger: NÃO chama getPlayerState() internamente,
+ * apenas lê o estado do Redis e aplica a regen se necessário.
+ */
+async function regenEnergyForPlayer(userId) {
+  if (!redisClient.client.isReady) return;
+  const redisKey = `${PLAYER_STATE_PREFIX}${userId}`;
+  const raw = await redisClient.hGetAllAsync(redisKey);
+  if (!raw || Object.keys(raw).length === 0) return;
+  const state = _parseState(raw);
+  if (!state) return;
+  await _checkAndRegenEnergy(userId, redisKey, state).catch(e =>
+    console.error(`[energy] ❌ regenEnergyForPlayer(${userId}):`, e.message)
+  );
+}
+
 module.exports = {
   loadPlayerState,
   getPlayerState,
@@ -867,6 +884,7 @@ module.exports = {
   schedulePersistence,
   deletePlayerState,
   setPlayerStatus,
+  regenEnergyForPlayer,  // ← usado pelo energyRegenService (sem duplo trigger)
   // Para rankingCacheService
   getDirtyRankingPlayers,
   _clearRankingDirty,

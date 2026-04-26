@@ -26,10 +26,10 @@ const TopBar: React.FC<TopBarProps> = ({ userProfile }) => {
   const xpPercentage = xpRequired > 0 ? Math.min(100, (xpCurrent / xpRequired) * 100) : 0;
   const xpText = xpRequired > 0 ? `${xpCurrent}/${xpRequired}` : `${xpCurrent}`;
 
-  const energyCurrent = userProfile?.energy ?? 0;
-  const energyMax = userProfile?.max_energy ?? 100;
+  const energyCurrent = Math.floor(userProfile?.energy ?? 0);
+  const energyMax = Math.floor(userProfile?.max_energy ?? 100);
   const energyPercentage = Math.min(100, (energyCurrent / energyMax) * 100);
-  const energyText = `${Math.round(energyPercentage)}%`;
+  const energyText = `${energyCurrent}/${energyMax}`;
 
   const combat = useMemo(() => calculateCombatStats(userProfile), [userProfile]);
 
