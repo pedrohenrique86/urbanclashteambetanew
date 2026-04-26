@@ -54,6 +54,14 @@ const TopBar: React.FC<TopBarProps> = ({ userProfile }) => {
     return { xpLvl, statsBonus, moneyBonus, totalStats, money };
   }, [userProfile]);
 
+  const formatCurrency = (n: number) => {
+    if (n < 100000) return n.toLocaleString("pt-BR");
+    if (n < 1000000) return `${(n / 1000).toFixed(1).replace(/\.0$/, "")}k`;
+    if (n < 1000000000) return `${(n / 1000000).toFixed(1).replace(/\.0$/, "")}M`;
+    if (n < 1000000000000) return `${(n / 1000000000).toFixed(1).replace(/\.0$/, "")}B`;
+    return `${(n / 1000000000000).toFixed(1).replace(/\.0$/, "")}T`;
+  };
+
   const metrics = useMemo(() => [
     { 
       label: "NVL",
@@ -91,7 +99,13 @@ const TopBar: React.FC<TopBarProps> = ({ userProfile }) => {
     { label: "CRIT DMG", value: combat.criticalDamage?.toFixed?.(1) ?? "-",               className: "text-rose-400",    glowColor: "#f43f5e", tooltipId: "topbar-crit-dmg-tooltip" },
     { label: "CRIT%",    value: `${combat.criticalChance?.toFixed?.(0) ?? 0}%`,           className: "text-yellow-400",  glowColor: "#eab308", tooltipId: "topbar-crit-pct-tooltip" },
     { label: "LUCK",     value: `${Number(userProfile?.luck ?? 0).toFixed(2)}%`,          className: "text-emerald-400", glowColor: "#34d399", tooltip: "Sorte (Bônus de Loot & Drop)" },
-    { label: "Cash",     value: `$${(userProfile?.money ?? 0).toLocaleString("pt-BR")}`,  className: "text-lime-400",    glowColor: "#84cc16", tooltip: "Dinheiro" },
+    { 
+      label: "Cash", 
+      value: `$${formatCurrency(userProfile?.money ?? 0)}`, 
+      className: "text-lime-400", 
+      glowColor: "#84cc16", 
+      tooltip: `Total: $${(userProfile?.money ?? 0).toLocaleString("pt-BR")}` 
+    },
   ], [userProfile, xpText, energyText, xpPercentage, energyPercentage, combat]);
 
   if (!userProfile) return null;
