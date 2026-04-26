@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useUserProfile } from "../hooks/useUserProfile";
 import { trainingService } from "../services/trainingService";
 import { useToast } from "../contexts/ToastContext";
@@ -64,6 +64,8 @@ export default function TrainingPage() {
   const { showToast } = useToast();
   const [loading, setLoading] = useState<string | null>(null);
   const [timeLeft, setTimeLeft] = useState<number | null>(null);
+  // Ref para garantir que auto-complete só dispara UMA vez por sessão de treino
+  const completingRef = useRef(false);
 
   const subtitle = "UNIDADE EM PRONTIDÃO. EFICIÊNCIA É A ÚNICA MÉTRICA QUE IMPORTA.";
 
@@ -75,9 +77,11 @@ export default function TrainingPage() {
   };
 
   const handleStart = useCallback(async (type: string) => {
+    // Reset da proteção ao iniciar novo treino
+    completingRef.current = false;
     setLoading(type);
     try {
-      const res = await trainingService.startTraining(type);
+      await trainingService.startTraining(type);
       showToast("TREINAMENTO INICIADO COM SUCESSO!", "success");
       await refreshProfile();
     } catch (err: any) {
@@ -88,41 +92,74 @@ export default function TrainingPage() {
   }, [showToast, refreshProfile]);
 
   const handleComplete = useCallback(async () => {
-    if (loading === "completing") return;
+    // Proteção dupla: ref (estável entre re-renders) + state
+    if (completingRef.current) return;
+    completingRef.current = true;
     setLoading("completing");
     try {
       const res = await trainingService.completeTraining();
       showToast(
-        `${res.message} [ +${res.gains.attack} ATK, +${res.gains.defense} DEF, +${res.gains.focus} FOC, +${res.gains.xp} XP ]`, 
-        "success", 
+        `${res.message} [ +${res.gains.attack} ATK, +${res.gains.defense} DEF, +${res.gains.focus} FOC, +${res.gains.xp} XP ]`,
+        "success",
         7000
       );
       await refreshProfile();
     } catch (err: any) {
+      // Em caso de erro, allow retry
+      completingRef.current = false;
+      const msg = err.response?.data?.error || err.message || "Erro ao completar treino";
+      showToast(msg, "error");
       await refreshProfile();
     } finally {
       setLoading(null);
     }
-  }, [loading, showToast, refreshProfile]);
+  }, [showToast, refreshProfile]);
 
-  const updateCountdown = useCallback(() => {
-    if (!userProfile?.training_ends_at) {
+  // Ref estável que aponta para a versão mais recente de handleComplete
+  // Evita que o countdown recriar o interval ao mudar o loading state
+  const handleCompleteRef = useRef(handleComplete);
+  useEffect(() => {
+    handleCompleteRef.current = handleComplete;
+  }, [handleComplete]);
+
+  useEffect(() => {
+    // Se não há treino ativo nem data de término, não há nada a fazer
+    if (!userProfile?.training_ends_at || !userProfile?.active_training_type) {
+      setTimeLeft(null);
+      // NÃO resetamos completingRef aqui — o SSE pode chegar enquanto handleComplete
+      // ainda está rodando, causando reset prematuro. Só resetamos em handleStart.
+      return;
+    }
+
+    const endsAtMs = new Date(userProfile.training_ends_at).getTime();
+
+    // Valida se a data é válida (defende contra strings inválidas do Redis)
+    if (isNaN(endsAtMs)) {
       setTimeLeft(null);
       return;
     }
-    const endsAt = new Date(userProfile.training_ends_at).getTime();
-    const remaining = Math.max(0, Math.floor((endsAt - Date.now()) / 1000));
-    setTimeLeft(remaining);
-    if (remaining === 0 && userProfile.active_training_type) {
-      handleComplete();
-    }
-  }, [userProfile?.training_ends_at, userProfile?.active_training_type, handleComplete]);
 
-  useEffect(() => {
-    updateCountdown();
-    const timer = setInterval(updateCountdown, 1000);
+    // Captura o tipo de treino no momento que o effect roda — estável por closure
+    const trainingTypeAtMount = userProfile.active_training_type;
+
+    const tick = () => {
+      const remaining = Math.max(0, Math.floor((endsAtMs - Date.now()) / 1000));
+      setTimeLeft(remaining);
+      // Dispara auto-complete APENAS se:
+      // 1. Cronômetro chegou a 0
+      // 2. Não está já completando (ref estável entre re-renders)
+      // 3. O tipo de treino capturado ainda é válido (defende contra stale closures)
+      if (remaining === 0 && !completingRef.current && trainingTypeAtMount) {
+        handleCompleteRef.current();
+      }
+    };
+
+    tick(); // executa imediatamente ao montar
+    const timer = setInterval(tick, 1000);
     return () => clearInterval(timer);
-  }, [updateCountdown]);
+  // Dependência apenas nos dados concretos do treino, NÃO no handleComplete
+  }, [userProfile?.training_ends_at, userProfile?.active_training_type]);
+
 
   const isTraining = !!(userProfile?.training_ends_at && timeLeft && timeLeft > 0);
   const trainingsLeft = 8 - (userProfile?.daily_training_count || 0);

@@ -78,7 +78,8 @@ class TrainingService {
     }
 
     const endsAt = new Date(state.training_ends_at);
-    if (endsAt > new Date()) {
+    // Grace period de 5 segundos para compensar skew de relógio entre frontend e servidor
+    if (endsAt.getTime() > new Date().getTime() + 5000) {
       throw new Error("O treinamento ainda não terminou.");
     }
 

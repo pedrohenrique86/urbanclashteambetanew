@@ -112,10 +112,15 @@ function convertProfileData(profile) {
 
   // Se o profile veio do Redis, os campos numéricos podem estar como strings.
   // Garantimos a conversão para manter a compatibilidade com o frontend.
-  // XP e XP requerido agora são calculados dinamicamente baseado no total_xp e level.
   const level    = parseInt(profile.level, 10) || 1;
   const total_xp = parseInt(profile.total_xp || 0, 10);
-  const xpStatus = gameLogic.deriveXpStatus(total_xp, level);
+
+  // CRÍTICO: usa o nível PURO de XP (não o dinâmico) para derivar current_xp.
+  // O nível dinâmico (armazenado em 'level') inclui bônus de atributos/money —
+  // se usado diretamente em deriveXpStatus, getTotalXpUntilLevel() pode ultrapassar
+  // o total_xp real resultando em current_xp errado (ex: 142 em vez de 42).
+  const xpLevelPure = gameLogic.calculateLevelFromXp(total_xp);
+  const xpStatus    = gameLogic.deriveXpStatus(total_xp, xpLevelPure);
 
   return {
     ...profile,
@@ -140,11 +145,11 @@ function convertProfileData(profile) {
     defeats: parseInt(profile.defeats, 10) || 0,
     winning_streak: parseInt(profile.winning_streak, 10) || 0,
     // SÊNIOR: Valores DERIVADOS calculados em tempo real — nunca persistidos
-    // Estes são os valores REAIS que o combate usa
     crit_chance_pct : gameLogic.calcCritChance(profile),
     crit_damage_mult: gameLogic.calcCritDamageMultiplier(profile),
   };
 }
+
 
 // =========================
 // SSE Ranking

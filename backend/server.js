@@ -194,6 +194,11 @@ async function startServer() {
           await rankingCacheService.initializeRankingZSet();
           await rankingCacheService.warmupRankings();
           rankingCacheService.startPeriodicRefresh();
+          
+          // Inicia Heartbeat de Energia (Regeneração automática)
+          const energyRegenService = require("./services/energyRegenService");
+          energyRegenService.startEnergyRegenHeartbeat();
+
           console.log("✅ Warmup de background concluído.");
         } catch (bgError) {
           console.error("❌ Erro em tarefas de background:", bgError);

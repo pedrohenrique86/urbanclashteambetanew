@@ -95,7 +95,12 @@ const FIELD_TO_SSE = {
 };
 
 // ─── Campos numéricos no Redis Hash ──────────────────────────────────────────────
-const NUMERIC_FIELDS = new Set(Object.keys(FIELD_TO_SSE));
+const NUMERIC_FIELDS = new Set([
+  "level", "total_xp", "energy", "max_energy", "action_points",
+  "attack", "defense", "focus", "luck", "critical_damage", "critical_chance",
+  "money", "intimidation", "discipline", "victories", "defeats", 
+  "winning_streak", "daily_training_count"
+]);
 
 // ─── Estado interno ───────────────────────────────────────────────────────────────
 const _debounceTimers  = new Map();  // userId → timer handle
@@ -133,9 +138,21 @@ function _parseState(raw) {
     }
   }
 
+  // SÊNIOR: Normaliza campos nullable — Redis armazena "" como string,
+  // mas o frontend precisa de null para falsy checks funcionarem corretamente.
+  const NULLABLE_STRING_FIELDS = ['training_ends_at', 'active_training_type', 'status_ends_at'];
+  for (const field of NULLABLE_STRING_FIELDS) {
+    if (out[field] === '' || out[field] === 'null' || out[field] === 'undefined') {
+      out[field] = null;
+    }
+  }
+
   // SÊNIOR: Derivação Dinâmica em Tempo Real
-  // Nunca salva current_xp ou xp_required no Redis/DB.
-  const xpStatus = gameLogic.deriveXpStatus(out.total_xp, out.level);
+  // CRÍTICO: usa calculateLevelFromXp (nível PURO de XP), NÃO o nível dinâmico.
+  // O nível dinâmico inclui bônus de atributos/money — se usado aqui, causa
+  // getTotalXpUntilLevel() a ultrapassar o total_xp real e dá current_xp errado.
+  const xpLevelForDerivation = gameLogic.calculateLevelFromXp(Number(out.total_xp) || 0);
+  const xpStatus = gameLogic.deriveXpStatus(out.total_xp, xpLevelForDerivation);
   out.current_xp  = xpStatus.currentXp;
   out.xp_required = xpStatus.xpRequired;
 
@@ -159,6 +176,7 @@ function _parseState(raw) {
 }
 
 /** Score do ranking: nível > XP total. */
+
 function _calcRankingScore(state) {
   // Level tem peso de 1 milhão para garantir que 
   // nível maior sempre ganhe de nível menor, com XP como desempate fino.
@@ -236,39 +254,59 @@ async function _checkAndResetTrainingCount(userId, redisKey, state) {
  * +1% (1 ponto) a cada 3 minutos (configurado em gameLogic).
  */
 async function _checkAndRegenEnergy(userId, redisKey, state) {
-  // Se não houver campo de tempo, inicializa com agora
-  if (!state.energy_updated_at) {
-    const nowStr = new Date().toISOString();
-    await redisClient.hSetAsync(redisKey, "energy_updated_at", nowStr);
+  const now = Date.now();
+  
+  // SÊNIOR: Validação de Timestamp. Redis pode retornar "" ou "null".
+  let lastUpdate;
+  if (!state.energy_updated_at || state.energy_updated_at === "") {
+    lastUpdate = now;
+    await redisClient.hSetAsync(redisKey, "energy_updated_at", new Date(now).toISOString());
     return false;
+  } else {
+    lastUpdate = new Date(state.energy_updated_at).getTime();
+    // Proteção contra data inválida que trava regeneração
+    if (isNaN(lastUpdate)) {
+      console.error(`[energy] ⚠️ Data inválida para ${userId}: ${state.energy_updated_at}. Resetando.`);
+      lastUpdate = now;
+      await redisClient.hSetAsync(redisKey, "energy_updated_at", new Date(now).toISOString());
+      return false;
+    }
+    // CRÍTICO: Proteção contra timestamp no FUTURO (skew de relógio / bug)
+    // Se lastUpdate > now, o diff será negativo e energia nunca regenera
+    if (lastUpdate > now) {
+      const skewSeconds = Math.round((lastUpdate - now) / 1000);
+      console.warn(`[energy] ⚠️ Timestamp no FUTURO para ${userId} (skew: +${skewSeconds}s). Resetando para agora.`);
+      lastUpdate = now;
+      await redisClient.hSetAsync(redisKey, "energy_updated_at", new Date(now).toISOString());
+      return false;
+    }
   }
 
-  const now = Date.now();
-  const lastUpdate = new Date(state.energy_updated_at).getTime();
-  const rateMs = gameLogic.ENERGY.REGEN_RATE_MINUTES * 60 * 1000;
-
+  const rateMs = (gameLogic.ENERGY.REGEN_RATE_MINUTES || 3) * 60 * 1000;
+  
   if (now - lastUpdate >= rateMs) {
     const cycles = Math.floor((now - lastUpdate) / rateMs);
     const maxEnergy = Number(state.max_energy || 100);
     const currentEnergy = Number(state.energy || 0);
 
-    // Se já estiver no máximo ou acima, apenas empurra o timer para frente
+    // Se já estiver no máximo, apenas empurra o timestamp para o 'agora' para não acumular ciclos infinitos
     if (currentEnergy >= maxEnergy) {
-      await redisClient.hSetAsync(redisKey, "energy_updated_at", new Date().toISOString());
+      await redisClient.hSetAsync(redisKey, "energy_updated_at", new Date(now).toISOString());
       return false;
     }
 
-    const energyToAdd = cycles * gameLogic.ENERGY.REGEN_AMOUNT;
+    const energyToAdd = cycles * (gameLogic.ENERGY.REGEN_AMOUNT || 1);
     const newEnergy = Math.min(maxEnergy, currentEnergy + energyToAdd);
     const actualGained = newEnergy - currentEnergy;
 
     if (actualGained > 0) {
-      // Define o tempo como o final do último ciclo processado para não "perder" milisegundos
-      const newLastUpdate = new Date(lastUpdate + cycles * rateMs).toISOString();
+      // SÊNIOR: Evita drift milisegundo a milisegundo mantendo o resto do ciclo
+      const newLastUpdateMs = lastUpdate + (cycles * rateMs);
+      const newLastUpdateStr = new Date(newLastUpdateMs).toISOString();
 
       await redisClient.hSetAsync(redisKey, {
         energy: String(newEnergy),
-        energy_updated_at: newLastUpdate,
+        energy_updated_at: newLastUpdateStr,
         is_dirty: "1",
         is_dirty_at: String(Date.now())
       });
@@ -284,12 +322,13 @@ async function _checkAndRegenEnergy(userId, redisKey, state) {
       console.log(`[energy] ⚡ +${actualGained} energia regenerada para ${userId} (${cycles} ciclos)`);
       return true;
     } else {
-      // Caso bizarro onde cycles > 0 mas energy já mudou (race condition)
-      await redisClient.hSetAsync(redisKey, "energy_updated_at", new Date().toISOString());
+      // Caso bizarro onde cycles > 0 mas não houve ganho
+      await redisClient.hSetAsync(redisKey, "energy_updated_at", new Date(now).toISOString());
     }
   }
   return false;
 }
+
 
 /**
  * Constrói o PATCH mínimo: apenas campos que foram alterados,
@@ -319,14 +358,22 @@ function _buildPatch(updates, newState) {
     }
 
     const val = newState[redisKey];
-    if (val !== undefined) patch[sseKey] = Number(val);
+    if (val !== undefined) {
+      if (NUMERIC_FIELDS.has(redisKey)) {
+        patch[sseKey] = Number(val);
+      } else {
+        patch[sseKey] = val;
+      }
+    }
   }
 
   // SÊNIOR: Se XP ou Level mudou, injeta os campos derivados no Patch SSE
+  // CRÍTICO: sempre usa nível de XP puro — não o dinâmico — para derivação correta.
   if (xpOrLevelChanged) {
-    const xpStatus = gameLogic.deriveXpStatus(newState.total_xp, newState.level);
-    patch.current_xp  = Number(xpStatus.currentXp);
-    patch.xp_required = Number(xpStatus.xpRequired);
+    const xpLevelForPatch = gameLogic.calculateLevelFromXp(Number(newState.total_xp) || 0);
+    const xpStatus = gameLogic.deriveXpStatus(newState.total_xp, xpLevelForPatch);
+    patch.currentXp  = Number(xpStatus.currentXp);
+    patch.xpRequired = Number(xpStatus.xpRequired);
   }
 
   return patch;
