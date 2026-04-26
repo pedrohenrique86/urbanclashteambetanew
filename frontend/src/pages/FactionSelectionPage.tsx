@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useUserProfile } from "../hooks/useUserProfile";
 import { useUserProfileContext } from "../contexts/UserProfileContext";
 import { motion, AnimatePresence } from "framer-motion";
@@ -23,6 +23,20 @@ export default function FactionSelectionPage() {
 
   const { userProfile: profile, loading: profileLoading } = useUserProfile();
   const { refreshProfile, processProfileData, setUserProfile } = useUserProfileContext();
+  const [coords, setCoords] = useState({ x: 34.92, y: -12.04 });
+  const [sync, setSync] = useState(0.02);
+
+  // Live Tactical Data Fluctuations
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCoords(prev => ({
+        x: Number((prev.x + (Math.random() * 0.04 - 0.02)).toFixed(2)),
+        y: Number((prev.y + (Math.random() * 0.04 - 0.02)).toFixed(2))
+      }));
+      setSync(Number((0.02 + (Math.random() * 0.01)).toFixed(3)));
+    }, 1500);
+    return () => clearInterval(interval);
+  }, []);
 
   const handleFactionSelect = async () => {
     if (profileLoading) {
@@ -88,44 +102,45 @@ export default function FactionSelectionPage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-6 md:p-12 relative overflow-hidden custom-scrollbar bg-black/60 backdrop-blur-[2px]">
+    <div className="min-h-screen w-full flex flex-col items-center p-6 md:p-12 relative bg-black select-none custom-scrollbar">
       {/* 1. Cinematic Background Layers */}
-      <BackgroundEffects selectedFaction={selectedFaction} />
-
-      {/* 2. Top Navigation Bar (Decorative AAA) */}
-      <div className="fixed top-0 left-0 w-full h-1 bg-gradient-to-r from-orange-600/50 via-white/20 to-blue-600/50 z-50 opacity-50" />
-      <div className="fixed top-8 left-1/2 -translate-x-1/2 z-50 flex items-center gap-12 opacity-30 pointer-events-none">
-        <span className="text-[8px] font-black font-orbitron tracking-[0.5em] text-white">SYSTEM_BOOT: OK</span>
-        <span className="text-[8px] font-black font-orbitron tracking-[0.5em] text-white">RECRUIT_SYNC: READY</span>
+      <div className="fixed inset-0 z-0">
+        <BackgroundEffects selectedFaction={selectedFaction} />
       </div>
 
-      {/* 3. Main Selection Content */}
+      {/* 2. Main Selection Content */}
       <AnimatePresence mode="wait">
         <motion.div
           key="selection-container"
-          initial={{ opacity: 0, scale: 0.98 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.8, ease: "easeOut" }}
-          className="relative z-10 w-full max-w-6xl mt-10"
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 1.2, ease: [0.22, 1, 0.36, 1] }}
+          className="relative z-10 w-full max-w-7xl flex flex-col items-center -mt-6 pb-6"
         >
           {/* Header Section */}
           <FactionHeader />
 
-          {/* Faction Grid - Cinematic Vertical Divider in-between */}
-          <div className="relative grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-24 mb-16 px-4">
+          {/* Faction Grid - Tightened for better proximity */}
+          <div className="relative w-full grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-8 mb-16 items-stretch justify-center max-w-5xl">
             
-            {/* Center Decorative Divider (Holographic effect) */}
-            <div className="hidden md:block absolute left-1/2 top-0 bottom-0 w-px -translate-x-1/2 overflow-hidden">
-               <div className="w-full h-full bg-gradient-to-b from-transparent via-white/10 to-transparent" />
-               <motion.div 
-                 animate={{ y: ["-100%", "100%"] }}
-                 transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
-                 className="w-full h-20 bg-gradient-to-b from-transparent via-white to-transparent opacity-30"
-               />
+            {/* Center Decorative Status Indicator - Scaled Down */}
+            <div className="hidden md:flex absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex-col items-center gap-3 z-20">
+               <div className="w-px h-16 bg-gradient-to-b from-transparent via-white/10 to-transparent" />
+               <div className="flex items-center gap-2 px-3 py-1 bg-black/60 backdrop-blur-md border border-white/10 rounded-full shadow-[0_0_15px_rgba(0,0,0,0.5)]">
+                  <motion.div 
+                    animate={{ opacity: [0.6, 1, 0.6], scale: [1, 1.2, 1] }}
+                    transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+                    className="w-1.5 h-1.5 bg-emerald-500 rounded-full shadow-[0_0_5px_rgba(16,185,129,0.5)]"
+                  />
+                  <span className="text-[7px] font-black font-orbitron tracking-[0.2em] text-zinc-100 drop-shadow-[0_1px_2px_rgba(0,0,0,0.5)]">
+                    RECRUIT: <span className="text-emerald-400">ACTIVE</span>
+                  </span>
+               </div>
+               <div className="w-px h-16 bg-gradient-to-b from-transparent via-white/10 to-transparent" />
             </div>
 
-            {/* Faction Cards - (Props not modified as per instructions) */}
-            <div className="relative group">
+            {/* Faction Cards */}
+            <div className="flex justify-center items-start h-full">
               <FactionCard
                 faction="gangsters"
                 selectedFaction={selectedFaction}
@@ -134,7 +149,7 @@ export default function FactionSelectionPage() {
               />
             </div>
 
-            <div className="relative group">
+            <div className="flex justify-center items-start h-full">
               <FactionCard
                 faction="guardas"
                 selectedFaction={selectedFaction}
@@ -144,40 +159,83 @@ export default function FactionSelectionPage() {
             </div>
           </div>
 
-          {/* Bottom Information (Tactical Footer) */}
-          {error && (
-            <motion.div 
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="text-red-500 font-mono text-[10px] uppercase tracking-widest text-center mb-8 border border-red-500/20 bg-red-500/5 py-2 px-4 rounded"
-            >
-              [ ALERTA_ERRO: {error} ]
-            </motion.div>
-          )}
+          {/* Messaging Area */}
+          <AnimatePresence>
+            {error && (
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.9 }}
+                className="text-red-500 font-orbitron text-[9px] uppercase tracking-[0.4em] text-center mb-12 border border-red-500/30 bg-red-500/5 py-4 px-10 rounded-sm backdrop-blur-md"
+              >
+                [ ERR_LOG_0X44: {error} ]
+              </motion.div>
+            )}
+          </AnimatePresence>
 
-          <div className="flex flex-col items-center gap-4 opacity-40 hover:opacity-100 transition-opacity duration-300">
-            <div className="flex items-center gap-6">
-              <div className="text-right">
-                <span className="block text-[7px] text-zinc-500 font-black">ENCRYPT_KEY</span>
-                <span className="block text-[9px] text-zinc-400 font-mono">X92-ALFA-BETA</span>
-              </div>
-              <div className="w-2 h-2 rounded-full border border-white/20 flex items-center justify-center">
-                 <div className="w-0.5 h-0.5 bg-white rounded-full" />
-              </div>
-              <div className="text-left">
-                <span className="block text-[7px] text-zinc-500 font-black">ACCESS_LEVEL</span>
-                <span className="block text-[9px] text-zinc-400 font-mono">LEVEL_01_INITIAL</span>
-              </div>
-            </div>
+          {/* NEW: Tactical System Footer (Creative AAA Addition) */}
+          <div className="w-full mt-10 relative">
+             <div className="relative overflow-hidden rounded-xl border border-white/10 bg-black/40 backdrop-blur-md p-6 group">
+                {/* Glossy Reflection Animation */}
+                <motion.div 
+                  animate={{ x: ["-100%", "200%"] }}
+                  transition={{ duration: 5, repeat: Infinity, ease: "linear" }}
+                  className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[0.05] to-transparent skew-x-12 pointer-events-none"
+                />
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-center px-4 relative z-10">
+                   {/* 1. Live System Log (Marquee Effect) */}
+                   <div className="flex items-center gap-4 border-l border-white/10 pl-4 min-w-0">
+                      <span className="text-[8px] font-black font-orbitron text-orange-500 tracking-widest shrink-0 drop-shadow-md">SYSTEM_LOG:</span>
+                      <div className="overflow-hidden flex-1 relative h-4 flex items-center">
+                         <div className="flex gap-12 animate-marquee-slow whitespace-nowrap absolute left-0">
+                            <span className="text-[9px] text-zinc-300 font-mono tracking-tighter uppercase drop-shadow-sm">[OK] INTERFACE_NEURAL_STABLE</span>
+                            <span className="text-[9px] text-zinc-300 font-mono tracking-tighter uppercase drop-shadow-sm">[OK] SECTOR_4_ENCRYPTED</span>
+                            <span className="text-[9px] text-zinc-300 font-mono tracking-tighter uppercase drop-shadow-sm">[OK] ACCESS_GRANTED_LEVEL_1</span>
+                            <span className="text-[9px] text-zinc-300 font-mono tracking-tighter uppercase drop-shadow-sm">[WARN] DISPUTE_IN_PROGRESS_S7</span>
+                            {/* Duplicate for infinite loop feel */}
+                            <span className="text-[9px] text-zinc-300 font-mono tracking-tighter uppercase drop-shadow-sm">[OK] INTERFACE_NEURAL_STABLE</span>
+                            <span className="text-[9px] text-zinc-300 font-mono tracking-tighter uppercase drop-shadow-sm">[OK] SECTOR_4_ENCRYPTED</span>
+                         </div>
+                      </div>
+                   </div>
+
+                   {/* 2. Central Faction Balance Indicator (Visual Flair) */}
+                   <div className="flex flex-col items-center gap-2">
+                      <div className="flex items-center gap-1">
+                         {[...Array(12)].map((_, i) => (
+                           <motion.div 
+                             key={i}
+                             animate={{ opacity: [0.2, 0.6, 0.2] }}
+                             transition={{ duration: 2, delay: i * 0.1, repeat: Infinity }}
+                             className={`w-1 h-3 ${i < 6 ? 'bg-orange-500/60' : 'bg-blue-500/60'}`} 
+                           />
+                         ))}
+                      </div>
+                      <span className="text-[7px] text-zinc-400 font-black tracking-[0.4em] uppercase drop-shadow-sm">Global_Influence_Scale</span>
+                   </div>
+
+                   {/* 3. Tactical Data Blocks */}
+                   <div className="flex items-center justify-end gap-8">
+                      <div className="flex flex-col items-end">
+                         <span className="text-[7px] text-orange-500/70 font-black uppercase tracking-widest">NET_COORD</span>
+                         <span className="text-[10px] text-zinc-100 font-mono tracking-widest drop-shadow-md">
+                           {coords.x.toFixed(2)} / {coords.y.toFixed(2)}
+                         </span>
+                      </div>
+                      <div className="flex flex-col items-end border-r border-white/10 pr-8">
+                         <span className="text-[7px] text-blue-500/70 font-black uppercase tracking-widest">SYNC_DELAY</span>
+                         <span className="text-[10px] text-emerald-400 font-mono tracking-widest drop-shadow-md">{sync}ms</span>
+                      </div>
+                   </div>
+                </div>
+             </div>
           </div>
         </motion.div>
       </AnimatePresence>
-
-      {/* Decorative Corner Accents (AAA Touch) */}
-      <div className="fixed top-4 left-4 w-12 h-12 border-t border-l border-white/5 pointer-events-none" />
-      <div className="fixed top-4 right-4 w-12 h-12 border-t border-r border-white/5 pointer-events-none" />
-      <div className="fixed bottom-4 left-4 w-12 h-12 border-b border-l border-white/5 pointer-events-none" />
-      <div className="fixed bottom-4 right-4 w-12 h-12 border-b border-r border-white/5 pointer-events-none" />
     </div>
+
+
+
   );
 }

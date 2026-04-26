@@ -2,66 +2,37 @@ import { motion } from "framer-motion";
 
 export default function FactionHeader() {
   return (
-    <div className="text-center mb-16 relative">
+    <div className="text-center mb-4 relative group">
+      {/* Subtle Dark Glow for Legibility */}
+      <div className="absolute inset-x-0 -top-10 bottom-0 bg-black/40 blur-3xl pointer-events-none -z-10" />
       <motion.div
-        initial={{ opacity: 0, y: -20 }}
+        initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 1, ease: 'easeOut' }}
-        className="inline-flex flex-col items-center"
+        className="flex flex-col items-center"
       >
-        {/* Recruitment Protocol Label */}
-        <div className="flex items-center gap-4 mb-4">
-          <div className="h-[1px] w-8 bg-zinc-800" />
-          <div className="flex flex-col items-center">
-            <span className="text-[10px] tracking-[0.6em] text-orange-500 font-black uppercase mb-1">
-              ESTABLISHING_LINK
-            </span>
-            <div className="flex items-center gap-1">
-              <div className="w-1 h-1 bg-orange-600 animate-pulse" />
-              <div className="w-1 h-1 bg-orange-600 animate-pulse delay-75" />
-              <div className="w-1 h-1 bg-orange-600 animate-pulse delay-150" />
-            </div>
-          </div>
-          <div className="h-[1px] w-8 bg-zinc-800" />
+        {/* Protocol Label - Enhanced Contrast */}
+        <div className="flex items-center gap-4 mb-2">
+          <div className="h-px w-10 bg-gradient-to-r from-transparent to-orange-500" />
+          <span className="text-[9px] tracking-[0.5em] text-orange-500 font-black uppercase drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
+             AWAITING_PROTOCOL_SELECTION
+          </span>
+          <div className="h-px w-10 bg-gradient-to-l from-transparent to-orange-500" />
         </div>
         
-        {/* Main Title Container */}
-        <div className="relative mb-4">
-          <h1 className="text-2xl sm:text-4xl md:text-5xl font-orbitron font-black tracking-[0.2em] text-white">
-            SELECIONE SEU <span className="relative inline-block text-transparent bg-gradient-to-b from-white to-gray-500 bg-clip-text">DESTINO</span>
+        {/* Title - Downscaled for better fit */}
+        <div className="relative mb-3">
+          <h1 className="text-lg sm:text-3xl font-orbitron font-black tracking-[0.2em] text-white uppercase italic drop-shadow-[0_4px_8px_rgba(0,0,0,0.9)]">
+            DEFINA SEU <span className="text-transparent bg-gradient-to-b from-white via-gray-200 to-gray-400 bg-clip-text">DESTINO</span>
           </h1>
-          
-          {/* Glitchy Underline */}
-          <div className="absolute -bottom-2 left-0 w-full h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
-          <motion.div 
-            animate={{ x: [-10, 10, -10], opacity: [0, 1, 0] }}
-            transition={{ duration: 2, repeat: Infinity }}
-            className="absolute -bottom-2 left-0 w-full h-[1px] bg-orange-500/50 blur-[1px]"
-          />
+          <div className="absolute -bottom-2 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-white/20 to-transparent" />
         </div>
 
-        {/* Narrative Context */}
-        <div className="max-w-xl mx-auto space-y-4">
-          <p className="text-[11px] sm:text-xs text-zinc-500 font-mono uppercase tracking-[0.3em] font-medium leading-relaxed">
-            [ O SUBMUNDO NÃO PERDOA FRAQUEZA. AS RUAS ESTÃO EM DISPUTA E O SEU ALINHAMENTO DEFINIRÁ SEU FUTURO NO URBAN CLASH TEAM. ]
+        {/* Narrative Context - Strongly Visible */}
+        <div className="max-w-2xl mx-auto">
+          <p className="text-[10px] text-zinc-100 font-bold uppercase tracking-[0.15em] leading-relaxed drop-shadow-[0_2px_3px_rgba(0,0,0,0.8)] px-4">
+            DIRECIONE SUA LEALDADE. CADA CAMINHO REESCREVE A ORDEM DO URBAN CLASH.
           </p>
-          
-          <div className="flex items-center justify-center gap-6 py-4 px-8 border-y border-white/5 bg-white/[0.02]">
-            <div className="flex flex-col items-center">
-              <span className="text-[8px] text-zinc-600 uppercase tracking-widest mb-1 font-black">LOCALIZAÇÃO</span>
-              <span className="text-[10px] text-zinc-300 font-orbitron tracking-wider">CIDADE_ALTA_S01</span>
-            </div>
-            <div className="w-px h-8 bg-white/5" />
-            <div className="flex flex-col items-center">
-              <span className="text-[8px] text-zinc-600 uppercase tracking-widest mb-1 font-black">ESTADO</span>
-              <span className="text-[10px] text-green-500 font-orbitron tracking-wider animate-pulse">SISTEMA_ATIVO</span>
-            </div>
-            <div className="w-px h-8 bg-white/5" />
-            <div className="flex flex-col items-center">
-              <span className="text-[8px] text-zinc-600 uppercase tracking-widest mb-1 font-black">PROTOCOLO</span>
-              <span className="text-[10px] text-orange-500 font-orbitron tracking-wider">A-12_RECRUIT</span>
-            </div>
-          </div>
         </div>
       </motion.div>
     </div>

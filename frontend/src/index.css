@@ -43,6 +43,14 @@
   .custom-scrollbar::-webkit-scrollbar-corner {
     background: #374151;
   }
+
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
 }
 
 * {
@@ -97,7 +105,17 @@ iframe {
   max-width: 100%;
 }
 
+/* AAA Gaming Animations */
+@keyframes marquee-slow {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+.animate-marquee-slow {
+  animation: marquee-slow 40s linear infinite;
+}
+
 /* Utilitário para ocultar scroll horizontal por erro de conteúdo */
 .no-x-scroll {
   overflow-x: hidden;
-}
+}
