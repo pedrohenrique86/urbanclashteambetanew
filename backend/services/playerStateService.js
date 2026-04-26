@@ -52,6 +52,7 @@ const DB_PERSIST_FIELDS = new Set([
   "victories", "defeats", "winning_streak",
   "status", "status_ends_at",
   "training_ends_at", "daily_training_count", "last_training_reset", "active_training_type",
+  "energy_updated_at",
 ]);
 
 // ─── Dirty TIPO 2: campos voláteis (NÃO persistem no safety-net, só via debounce
@@ -214,6 +215,65 @@ async function _checkAndResetTrainingCount(userId, redisKey) {
 }
 
 /**
+ * Lazy Reset de Energia (Regeneração Passiva).
+ * +1% (1 ponto) a cada 3 minutos (configurado em gameLogic).
+ */
+async function _checkAndRegenEnergy(userId, redisKey, state) {
+  // Se não houver campo de tempo, inicializa com agora
+  if (!state.energy_updated_at) {
+    const nowStr = new Date().toISOString();
+    await redisClient.hSetAsync(redisKey, "energy_updated_at", nowStr);
+    return false;
+  }
+
+  const now = Date.now();
+  const lastUpdate = new Date(state.energy_updated_at).getTime();
+  const rateMs = gameLogic.ENERGY.REGEN_RATE_MINUTES * 60 * 1000;
+
+  if (now - lastUpdate >= rateMs) {
+    const cycles = Math.floor((now - lastUpdate) / rateMs);
+    const maxEnergy = Number(state.max_energy || 100);
+    const currentEnergy = Number(state.energy || 0);
+
+    // Se já estiver no máximo ou acima, apenas empurra o timer para frente
+    if (currentEnergy >= maxEnergy) {
+      await redisClient.hSetAsync(redisKey, "energy_updated_at", new Date().toISOString());
+      return false;
+    }
+
+    const energyToAdd = cycles * gameLogic.ENERGY.REGEN_AMOUNT;
+    const newEnergy = Math.min(maxEnergy, currentEnergy + energyToAdd);
+    const actualGained = newEnergy - currentEnergy;
+
+    if (actualGained > 0) {
+      // Define o tempo como o final do último ciclo processado para não "perder" milisegundos
+      const newLastUpdate = new Date(lastUpdate + cycles * rateMs).toISOString();
+
+      await redisClient.hSetAsync(redisKey, {
+        energy: String(newEnergy),
+        energy_updated_at: newLastUpdate,
+        is_dirty: "1",
+        is_dirty_at: String(Date.now())
+      });
+
+      // Emite SSE para feedback visual imediato
+      sseService.publish(`player:${userId}`, "player:state", {
+        type: "player:patch",
+        patch: { energy: newEnergy },
+        version: _nextVersion(userId)
+      });
+
+      console.log(`[energy] ⚡ +${actualGained} energia regenerada para ${userId} (${cycles} ciclos)`);
+      return true;
+    } else {
+      // Caso bizarro onde cycles > 0 mas energy já mudou (race condition)
+      await redisClient.hSetAsync(redisKey, "energy_updated_at", new Date().toISOString());
+    }
+  }
+  return false;
+}
+
+/**
  * Constrói o PATCH mínimo: apenas campos que foram alterados,
  * mapeados para camelCase (API SSE do frontend).
  *
@@ -315,8 +375,16 @@ async function loadPlayerState(userId) {
     const redisKey    = `${PLAYER_STATE_PREFIX}${userId}`;
 
     const stateForRedis = Object.entries(playerState).reduce((acc, [k, v]) => {
+      // Campos que precisam de precisão de hora (ISO Completo)
+      const isTimestamp = ["energy_updated_at", "status_ends_at", "training_ends_at", "created_at", "updated_at"].includes(k);
+
       if (v instanceof Date) {
-        acc[k] = !isNaN(v.getTime()) ? v.toISOString().split("T")[0] : "";
+        if (isTimestamp) {
+          acc[k] = !isNaN(v.getTime()) ? v.toISOString() : "";
+        } else {
+          // Campos de data simples (apenas YYYY-MM-DD)
+          acc[k] = !isNaN(v.getTime()) ? v.toISOString().split("T")[0] : "";
+        }
       } else if (k === "birth_date" && v) {
         const d = new Date(v);
         acc[k] = !isNaN(d.getTime()) ? d.toISOString().split("T")[0] : "";
@@ -358,7 +426,15 @@ async function getPlayerState(userId) {
     _checkAndResetAP(userId, redisKey).catch(e => console.error("[apReset] Falha:", e.message));
     _checkAndResetTrainingCount(userId, redisKey).catch(e => console.error("[trainingReset] Falha:", e.message));
     
-    const parsed = _parseState(raw);
+    // SÊNIOR: Regeneração de Energia
+    const initialParsed = _parseState(raw);
+    if (initialParsed) {
+      await _checkAndRegenEnergy(userId, redisKey, initialParsed).catch(e => console.error("[energyRegen] Falha:", e.message));
+    }
+
+    // Relê do Redis caso a regeneração tenha alterado valores
+    const finalRaw = initialParsed ? await redisClient.hGetAllAsync(redisKey) : raw;
+    const parsed = _parseState(finalRaw);
     
     // SÊNIOR: Executa Lazy Reset de Status se necessário
     if (parsed && parsed._status_expired) {

@@ -43,6 +43,12 @@ const XP_SCALING = {
   DAILY_CAP_TRAIN: 100000, // Suporta escala 1000
 };
 
+const ENERGY = {
+  REGEN_RATE_MINUTES : 3,
+  REGEN_AMOUNT       : 1, // 1 unidade por ciclo
+  MAX_DEFAULT        : 100,
+};
+
 
 /**
  * Retorna o XP necessário para passar do nível atual para o próximo.
@@ -304,4 +310,5 @@ module.exports = {
   // Constantes exportadas para uso em rotas/serviços
   COMBAT,
   XP_SCALING,
+  ENERGY,
 };
