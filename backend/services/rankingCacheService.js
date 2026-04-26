@@ -27,7 +27,9 @@ const gameLogic = require("../utils/gameLogic");
 // ─── Constantes ────────────────────────────────────────────────────────────────
 const RANKINGS_USERS_PREFIX   = "ranking:users:";
 const RANKINGS_CLANS_PREFIX   = "ranking:clans:";
-const RANKINGS_TTL_SECONDS    = 86400;   // 24 horas (evita dogpile effect de 10 em 10 min)
+const RANKINGS_TTL_SECONDS    = 86400;   // 24 horas
+const PLAYER_RANKING_LIMIT    = 200;
+const CLAN_RANKING_LIMIT      = 26;
 const STANDARD_LIMIT          = 26;
 const LOCK_TTL_MS             = 30_000;
 
@@ -85,7 +87,7 @@ async function fetchClansFromDB() {
      FROM clans c
      ORDER BY c.season_score DESC, c.member_count DESC
      LIMIT $1`,
-    [STANDARD_LIMIT],
+    [CLAN_RANKING_LIMIT],
   );
   return result.rows;
 }
@@ -110,7 +112,7 @@ async function fetchUsersFromDB(faction) {
     params.push(canonical);
   }
   queryStr += ` ORDER BY p.level DESC, p.total_xp DESC LIMIT $${params.length + 1}`;
-  params.push(STANDARD_LIMIT);
+  params.push(PLAYER_RANKING_LIMIT);
 
   const result = await query(queryStr, params);
   return result.rows.map((r, i) => {
@@ -133,11 +135,10 @@ async function fetchUsersFromDB(faction) {
 let usersRefreshPromise = null;
 async function refreshUsersRanking() {
   if (usersRefreshPromise) return usersRefreshPromise;
-
   usersRefreshPromise = (async () => {
     // 1. Pega top-N do ZSET (score descendente)
-    // Aumentamos para 199 (200 membros) para garantir chance de ter pelo menos 26 de cada facção
-    const zsetMembers = await playerStateService._zrangeRankingWithScores(0, 199);
+    // Aumentamos para 800 para garantir que teremos 200 de cada facção mesmo com desbalanço
+    const zsetMembers = await playerStateService._zrangeRankingWithScores(0, 799);
     
     // Se o ZSET estiver vazio, usa fallback do banco de dados separadamente para cada facção
     if (!Array.isArray(zsetMembers) || zsetMembers.length === 0) {
@@ -172,76 +173,113 @@ async function refreshUsersRanking() {
     // 2. Normaliza os dados do Redis
     let entries = [];
     if (typeof zsetMembers[0] === "string") {
-      // Upstash: [member, score, member, score, ...]
       for (let i = 0; i < zsetMembers.length; i += 2) {
         entries.push({ userId: zsetMembers[i], score: Number(zsetMembers[i + 1]) });
       }
     } else if (Array.isArray(zsetMembers) && zsetMembers[0] && typeof zsetMembers[0] === "object") {
-      // node-redis (v4): [{ value, score }]
       entries = zsetMembers.map((e) => ({ 
         userId: e.value || e.member || e.id, 
         score: Number(e.score) 
       })).filter(e => e.userId);
-    } else if (zsetMembers && typeof zsetMembers === "object") {
-      // Caso o Redis retorne um Objeto/Mapa: { "id1": 100, "id2": 200 }
-      for (const [id, sc] of Object.entries(zsetMembers)) {
-        entries.push({ userId: id, score: Number(sc) });
-      }
     }
 
     console.log(`[ranking] 🔍 Processando ${entries.length} membros globais do ZSET.`);
 
-    // 3. Validação de Existência (Ghost Cleanup) - Executado APENAS UMA VEZ
+    // 3. Validação de Existência (Ghost Cleanup) - Batch
     const candidateIds = entries.map((e) => e.userId);
+    let validEntries = entries;
     if (candidateIds.length > 0) {
       try {
-        const placeholders = candidateIds.map((_, i) => `$${i + 1}`).join(',');
-        const { rows } = await query(`SELECT id FROM users WHERE id IN (${placeholders})`, candidateIds);
+        const { rows } = await query(`SELECT id FROM users WHERE id IN (${candidateIds.map((_,i) => `$${i+1}`).join(',')})`, candidateIds);
         const existingIds = new Set(rows.map((r) => r.id));
-
         if (existingIds.size < entries.length) {
-          console.log(`[ranking] 👻 Detectados usuários removidos do banco. Filtrando...`);
-          entries = entries.filter((e) => existingIds.has(e.userId));
+          validEntries = entries.filter((e) => existingIds.has(e.userId));
         }
       } catch (dbErr) {
         console.error("[ranking] ❌ Falha na validação de usuários fantasma:", dbErr.message);
       }
     }
 
-    // 4. Hidratação dos perfis via Redis Hash (APENAS UMA VEZ)
+    // 4. BATCH HYDRATION: Substitui o loop N+1 pelo carregamento em lote
     const hydratedAll = [];
-    for (const { userId } of entries) {
-      let state = await playerStateService.getPlayerState(userId);
-      
-      if (!state) {
-        console.warn(`[ranking] ⚠️ Jogador ${userId} está no ZSET mas não foi encontrado no Banco. Removendo...`);
-        await playerStateService.deletePlayerState(userId).catch(() => {});
-        continue;
-      }
+    const missingIds = [];
+    const pipeline = redisClient.pipeline();
 
-      const level = Number(state.level || 0);
-      const total_xp = Number(state.total_xp || 0);
-      const xpStatus = gameLogic.deriveXpStatus(total_xp, level);
-
-      hydratedAll.push({
-        id          : state.user_id || userId,
-        username    : state.username    || "",
-        country     : state.country     || "",
-        display_name: state.display_name || state.username || "",
-        avatar_url  : state.avatar_url  || null,
-        level       : level,
-        total_xp    : total_xp,
-        current_xp  : xpStatus.currentXp,
-        xp_required : xpStatus.xpRequired,
-        faction     : state.faction     || "",
-        victories   : Number(state.victories || 0),
-        defeats     : Number(state.defeats || 0),
-        winning_streak: Number(state.winning_streak || 0),
-        clan_name   : state.clan_name   || null,
-        status      : state.status      || 'livre',
-        status_ends_at: state.status_ends_at || null,
-      });
+    for (const { userId } of validEntries) {
+      pipeline.hGetAll(`${playerStateService.PLAYER_STATE_PREFIX}${userId}`);
     }
+
+    const redisResults = await pipeline.exec();
+
+    validEntries.forEach((entry, idx) => {
+      const raw = redisResults[idx][1]; // Pipeline returns [err, result]
+      if (raw && Object.keys(raw).length > 0) {
+        const state = playerStateService._parseState(raw);
+        hydratedAll.push({
+          id          : state.user_id || entry.userId,
+          username    : state.username    || "",
+          country     : state.country     || "",
+          display_name: state.display_name || state.username || "",
+          avatar_url  : state.avatar_url  || null,
+          level       : Number(state.level || 0),
+          total_xp    : Number(state.total_xp || 0),
+          current_xp  : state.current_xp,
+          xp_required : state.xp_required,
+          faction     : state.faction     || "",
+          victories   : Number(state.victories || 0),
+          defeats     : Number(state.defeats || 0),
+          winning_streak: Number(state.winning_streak || 0),
+          clan_name   : state.clan_name   || null,
+          status      : state.status      || 'livre',
+          status_ends_at: state.status_ends_at || null,
+        });
+      } else {
+        missingIds.push(entry.userId);
+      }
+    });
+
+    if (missingIds.length > 0) {
+      console.log(`[ranking] 🚰 Cache miss para ${missingIds.length} jogadores. Buscando em lote no DB...`);
+      try {
+        const { rows } = await query(`
+          SELECT p.*, u.username, u.country, c.name AS clan_name
+          FROM user_profiles p
+          JOIN users u ON p.user_id = u.id
+          LEFT JOIN clan_members cm ON cm.user_id = p.user_id
+          LEFT JOIN clans c ON cm.clan_id = c.id
+          WHERE p.user_id IN (${missingIds.map((_, i) => `$${i+1}`).join(',')})
+        `, missingIds);
+
+        for (const row of rows) {
+          const xpStatus = gameLogic.deriveXpStatus(Number(row.total_xp), Number(row.level));
+          hydratedAll.push({
+            id          : row.user_id,
+            username    : row.username,
+            country     : row.country || "",
+            display_name: row.display_name || row.username,
+            avatar_url  : row.avatar_url,
+            level       : Number(row.level),
+            total_xp    : Number(row.total_xp),
+            current_xp  : xpStatus.currentXp,
+            xp_required : xpStatus.xpRequired,
+            faction     : row.faction,
+            victories   : Number(row.victories || 0),
+            defeats     : Number(row.defeats || 0),
+            winning_streak: Number(row.winning_streak || 0),
+            clan_name   : row.clan_name,
+            status      : row.status || 'livre',
+            status_ends_at: row.status_ends_at,
+          });
+          // Opcional: Background update para o Redis
+          playerStateService.loadPlayerState(row.user_id).catch(() => {});
+        }
+      } catch (err) {
+        console.error("[ranking] ❌ Erro no Batch Hydration:", err.message);
+      }
+    }
+
+    // Ordenação final garantida (nível desc, xp desc)
+    hydratedAll.sort((a, b) => b.level - a.level || b.total_xp - a.total_xp);
 
     // 5. Distribuição por facção e atualização dos caches
     const factions = ["renegados", "guardioes", "gangsters", "guardas", null]; // null = todos
@@ -260,12 +298,11 @@ async function refreshUsersRanking() {
           rows = hydratedAll.filter(p => p.faction === canonical);
         }
         
-        // Aplica o limite por facção e adiciona o rank numérico
-        rows = rows.slice(0, STANDARD_LIMIT).map((p, i) => ({ ...p, rank: i + 1 }));
+        // Aplica o limite por facção (200 para ranking, slice feito no frontend para Home)
+        rows = rows.slice(0, PLAYER_RANKING_LIMIT).map((p, i) => ({ ...p, rank: i + 1 }));
 
         const entry = await setCachedData(cacheKey, rows);
-        const eventName = `ranking:snapshot:users:${factionKey}`;
-        sseService.publish("ranking", eventName, rows);
+        sseService.publish("ranking", `ranking:snapshot:users:${factionKey}`, rows);
 
         console.log(`[ranking] ✅ Snapshot de jogadores [${factionKey}] atualizado (${rows.length} entries).`);
       } catch (err) {

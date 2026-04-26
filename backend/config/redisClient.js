@@ -243,6 +243,38 @@ const redisWrapper = {
       return null;
     }
   },
+  
+  // ─── Set Operations ─────────────────────────────────────────────────────────
+
+  sAddAsync: async (key, member) => {
+    if (!key || !isReady) return null;
+    try {
+      return await client.sAdd(String(key), String(member));
+    } catch (err) {
+      console.error(`[RedisClient] Erro em sAddAsync key=${key}:`, err.message);
+      return null;
+    }
+  },
+
+  sMembersAsync: async (key) => {
+    if (!key || !isReady) return [];
+    try {
+      return await client.sMembers(String(key));
+    } catch (err) {
+      console.error(`[RedisClient] Erro em sMembersAsync key=${key}:`, err.message);
+      return [];
+    }
+  },
+
+  sRemAsync: async (key, member) => {
+    if (!key || !isReady) return null;
+    try {
+      return await client.sRem(String(key), String(member));
+    } catch (err) {
+      console.error(`[RedisClient] Erro em sRemAsync key=${key}:`, err.message);
+      return null;
+    }
+  },
 
   // Expõe referências internas
   getRawClient,

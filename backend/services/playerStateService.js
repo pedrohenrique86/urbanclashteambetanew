@@ -37,6 +37,7 @@ const PLAYER_STATE_TTL      = 60 * 60 * 24; // 24 horas (otimizado para Oracle V
 const DEBOUNCE_MS           = 3000;        // debounce primário antes do DB
 const PERSIST_BATCH_SIZE    = 50;          // máx players por lote no safety-net
 const SAFETY_STALENESS_MS   = 12_000;      // safety-net só persiste dirty > 12s
+const DIRTY_PLAYERS_SET     = "player:dirty:set";
 
 // ─── Campos que afetam o ranking (ZSET) e o Nível Dinâmico ────────────────────────
 const RANKING_FIELDS = new Set(["total_xp", "level", "attack", "defense", "focus", "money"]);
@@ -183,6 +184,7 @@ async function _checkAndResetAP(userId, redisKey) {
       is_dirty: "1",
       is_dirty_at: String(Date.now())
     });
+    await redisClient.sAddAsync(DIRTY_PLAYERS_SET, String(userId));
 
     // Marcar reset do dia com TTL de 48h
     await redisClient.setAsync(lockKey, "1", "EX", 172800);
@@ -207,6 +209,7 @@ async function _checkAndResetTrainingCount(userId, redisKey) {
       is_dirty: "1",
       is_dirty_at: String(Date.now())
     });
+    await redisClient.sAddAsync(DIRTY_PLAYERS_SET, String(userId));
 
     await redisClient.setAsync(lockKey, "1", "EX", 172800);
     return true;
@@ -255,6 +258,7 @@ async function _checkAndRegenEnergy(userId, redisKey, state) {
         is_dirty: "1",
         is_dirty_at: String(Date.now())
       });
+      await redisClient.sAddAsync(DIRTY_PLAYERS_SET, String(userId));
 
       // Emite SSE para feedback visual imediato
       sseService.publish(`player:${userId}`, "player:state", {
@@ -499,6 +503,7 @@ async function updatePlayerState(userId, updates) {
       const now = String(Date.now());
       pipeline.hSet(redisKey, "is_dirty", "1");
       pipeline.hSet(redisKey, "is_dirty_at", now);  // timestamp para o safety-net
+      pipeline.sAdd(DIRTY_PLAYERS_SET, String(userId));
     }
 
     await pipeline.exec();
@@ -523,6 +528,7 @@ async function updatePlayerState(userId, updates) {
         is_dirty: "1",
         is_dirty_at: String(Date.now())
       };
+      await redisClient.sAddAsync(DIRTY_PLAYERS_SET, String(userId));
 
       await redisClient.hSetAsync(redisKey, levelUpdates);
       
@@ -609,6 +615,7 @@ async function persistPlayerState(userId) {
     );
 
     await redisClient.hSetAsync(redisKey, { is_dirty: "0", is_dirty_at: "" });
+    await redisClient.sRemAsync(DIRTY_PLAYERS_SET, String(userId));
     console.log(`[playerState] ✅ ${userId} persistido (${safeFields.length} campos).`);
   } catch (err) {
     console.error(`[playerState] ❌ Erro ao persistir ${userId}:`, err.message);
@@ -628,18 +635,23 @@ async function persistDirtyStates() {
   const staleMin = now - SAFETY_STALENESS_MS;
 
   try {
-    const iterator = redisClient.scanIterator({ MATCH: `${PLAYER_STATE_PREFIX}*`, COUNT: 100 });
+    const dirtyIds = await redisClient.sMembersAsync(DIRTY_PLAYERS_SET);
+    if (!dirtyIds || dirtyIds.length === 0) return;
+
     const staleIds = [];
 
-    for await (const key of iterator) {
+    for (const uid of dirtyIds) {
+      const key = `${PLAYER_STATE_PREFIX}${uid}`;
       const [isDirty, dirtyAt] = await Promise.all([
         redisClient.hGetAsync(key, "is_dirty"),
         redisClient.hGetAsync(key, "is_dirty_at"),
       ]);
 
-      if (isDirty !== "1") continue;
-
-      const uid = key.replace(PLAYER_STATE_PREFIX, "");
+      if (isDirty !== "1") {
+        // Limpeza de orfãos no set
+        await redisClient.sRemAsync(DIRTY_PLAYERS_SET, uid);
+        continue;
+      }
 
       // Pula se ainda há um debounce ativo para este jogador
       if (_debounceTimers.has(uid)) continue;
@@ -686,7 +698,8 @@ async function deletePlayerState(userId) {
   const redisKey = `${PLAYER_STATE_PREFIX}${uid}`;
   await Promise.all([
     redisClient.delAsync(redisKey),
-    redisClient.zRemAsync(RANKING_ZSET_KEY, uid)
+    redisClient.zRemAsync(RANKING_ZSET_KEY, uid),
+    redisClient.sRemAsync(DIRTY_PLAYERS_SET, uid)
   ]);
   console.log(`[playerState] 🗑️ Estado e ranking de ${uid} removidos do Redis.`);
 }
@@ -733,6 +746,7 @@ async function setPlayerStatus(userId, newStatus, durationSeconds = null) {
     is_dirty: "1",
     is_dirty_at: String(Date.now())
   });
+  await redisClient.sAddAsync(DIRTY_PLAYERS_SET, String(userId));
 
   // 2. Emite SSE em tempo real (Canal Privado)
   sseService.publish(`player:${userId}`, "player:status", {
