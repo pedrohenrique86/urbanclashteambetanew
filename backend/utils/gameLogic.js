@@ -225,8 +225,23 @@ function calcCritDamageMultiplier(player) {
  * @returns {object}
  */
 function resolveCombatHit(attacker, defender) {
-  const atkBase    = Math.max(0, Number(attacker.attack)  || 0);
-  const defValue   = Math.max(0, Number(defender.defense) || 0);
+  // 1. Identidade das Facções
+  const attFaction = String(attacker.faction || '').toLowerCase();
+  const defFaction = String(defender.faction || '').toLowerCase();
+
+  // Afinidades do Atacante (Renegados batem 20% mais forte da academia, Guardiões batem 10% mais fraco)
+  let atkAffinity = 1.0;
+  if (attFaction === 'renegados' || attFaction === 'gangsters') atkAffinity = 1.2;
+  else if (attFaction === 'guardioes' || attFaction === 'guardas') atkAffinity = 0.9;
+
+  // Afinidades do Defensor (Guardiões defendem 20% melhor o treino, Renegados defendem 10% pior)
+  let defAffinity = 1.0;
+  if (defFaction === 'guardioes' || defFaction === 'guardas') defAffinity = 1.2;
+  else if (defFaction === 'renegados' || defFaction === 'gangsters') defAffinity = 0.9;
+
+  // 2. Leitura com Afinidades Genéticas
+  const atkBase    = Math.max(0, (Number(attacker.attack) || 0) * atkAffinity);
+  const defValue   = Math.max(0, (Number(defender.defense) || 0) * defAffinity);
   const intimidation = Math.max(0, Number(attacker.intimidation) || 0) / 100; // ex: 35% -> 0.35
   const discipline   = Math.max(0, Number(defender.discipline) || 0) / 100;   // ex: 40% -> 0.40
 
@@ -243,22 +258,31 @@ function resolveCombatHit(attacker, defender) {
 
   // Habilidade Guardião: Disciplina (reduz o dano bônus crítico recebido)
   if (isCrit && discipline > 0) {
-    // Multiplicador extra (acima de 1.0). Ex: 2.5 vira 1.5 extra.
     const bonusCritMultiplier = critMultiplier - 1;
-    // Reduz o bônus pela disciplina. Ex: 1.5 * (1 - 0.4) = 0.9
     const mitigatedBonus = bonusCritMultiplier * (1 - discipline);
     critMultiplier = 1 + mitigatedBonus;
   }
 
-  const finalDamage    = Math.round(damageAfterDef * critMultiplier);
+  // 3. Supressão de Aura (A Fama do Power Solo)
+  // O somatório total do jogador causa intimidação cega se ele for muito mais rico em status que o oponente.
+  const attPowerSolo = (Number(attacker.attack)||0) + (Number(attacker.defense)||0) + (Number(attacker.focus)||0);
+  const defPowerSolo = (Number(defender.attack)||0) + (Number(defender.defense)||0) + (Number(defender.focus)||0);
+  const powerGap = attPowerSolo - defPowerSolo;
+  
+  // Limita a Supressão entre perder 30% (-0.3) ou ganhar 30% (+0.3) no dano universal
+  const auraModifier = Math.max(0.7, Math.min(1.3, 1 + (powerGap / 10000)));
+
+  // 4. Fechamento de Dano
+  const finalDamage = Math.max(1, Math.round(damageAfterDef * critMultiplier * auraModifier));
 
   return {
-    damage       : Math.max(1, finalDamage), // dano mínimo de 1
+    damage       : finalDamage,
     isCrit,
     critChancePct,
     critMultiplier: Math.round(critMultiplier * 100) / 100,
     rawDamage    : damageRaw,
     defReduction : Math.round(defReduction * 100) / 100,
+    auraModifier : Math.round(auraModifier * 100) / 100
   };
 }
 
