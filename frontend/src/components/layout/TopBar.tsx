@@ -42,7 +42,8 @@ const TopBar: React.FC<TopBarProps> = ({ userProfile }) => {
       glowColor: "#a855f7", 
       tooltip: "Experiência",
       progress: xpPercentage,
-      barColor: "bg-purple-600/30"
+      barColor: "bg-purple-500/50",
+      isBattery: true
     },
     { 
       label: "EN", 
@@ -51,7 +52,7 @@ const TopBar: React.FC<TopBarProps> = ({ userProfile }) => {
       glowColor: "#f97316", 
       tooltip: "Energia",
       progress: energyPercentage,
-      barColor: "bg-orange-600/30",
+      barColor: "bg-orange-500/50",
       isBattery: true
     },
     { label: "PA", value: userProfile?.action_points ?? "-", className: "text-cyan-400", glowColor: "#06b6d4", tooltip: "Pontos de Ação" },
@@ -88,12 +89,12 @@ const TopBar: React.FC<TopBarProps> = ({ userProfile }) => {
                   </span>
                   
                   {/* Value container with optional progress or battery background */}
-                  <div className={`relative px-3 py-1 rounded-lg overflow-hidden min-w-[50px] flex items-center justify-center ${metric.progress !== undefined ? 'bg-white/5' : ''} ${metric.isBattery ? 'pr-4 !rounded-md' : ''}`}>
+                  <div className={`relative px-3 py-1 rounded-lg overflow-hidden flex items-center justify-center ${metric.progress !== undefined ? 'bg-white/5 w-[65px] sm:w-[75px]' : 'min-w-[50px]'} ${metric.isBattery ? 'pr-4 !rounded-md' : ''}`}>
                     
                     {/* The Fill Layer */}
                     {metric.progress !== undefined && (
                       <motion.div
-                        initial={{ width: 0 }}
+                        initial={false}
                         animate={{ width: `${metric.progress}%` }}
                         transition={{ type: "spring", stiffness: 40, damping: 12 }}
                         className={`absolute inset-0 left-0 right-auto h-full ${metric.barColor} z-0 shadow-[inset_-1px_0_6px_rgba(255,255,255,0.1)]`}
@@ -102,7 +103,7 @@ const TopBar: React.FC<TopBarProps> = ({ userProfile }) => {
 
                     {/* Content Layer */}
                     <span
-                      className={`relative z-10 font-orbitron font-black text-xs sm:text-sm ${metric.className} leading-none`}
+                      className={`relative z-10 font-orbitron font-black text-[10px] sm:text-xs ${metric.className} leading-none whitespace-nowrap`}
                       style={{
                         textShadow: `0 0 10px ${metric.glowColor}`,
                       }}
