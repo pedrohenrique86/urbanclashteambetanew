@@ -360,13 +360,36 @@ function getFactionStats(faction) {
 router.get("/profile", authenticateToken, async (req, res) => {
   try {
     const playerStateService = require("../services/playerStateService");
-    const profile = await playerStateService.getPlayerState(req.user.id);
+    let profile = await playerStateService.getPlayerState(req.user.id);
 
     if (!profile) {
       return res.status(200).json(null);
     }
 
+   // SÊNIOR: Toast Dinâmico para Conclusão de Treino Offline
+    // O worker do servidor em background varre a fila, conclui o treino
+    // e injeta 'pending_training_toast' no estado do jogador no Redis.
+    // Quando ele loga, nós pescamos esse aviso e repassamos ao frontend.
+    
+    // Injeta o toast pendente para o frontend consumir e apaga do profile caso chegue no FrontEnd
+    // (Opcional: você pode aplicar redisClient.hDelAsync aqui se quiser garantir).
+    
     const convertedProfile = convertProfileData(profile);
+    
+    if (profile.pending_training_toast) {
+      try {
+        let parsedToast = profile.pending_training_toast;
+        if (typeof parsedToast === 'string') parsedToast = JSON.parse(parsedToast);
+        convertedProfile.pending_training_toast = parsedToast;
+        
+        // Limpa o toast do Redis após entregar
+        const redisClient = require("../config/redisClient");
+        await redisClient.hDelAsync(`playerState:${req.user.id}`, "pending_training_toast");
+      } catch (e) {
+        console.error("Erro ao fazer parse do pending_training_toast:", e);
+      }
+    }
+
     const gameState = await getGameState();
     res.json({ ...convertedProfile, gameState });
   } catch (error) {

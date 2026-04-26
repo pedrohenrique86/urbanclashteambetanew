@@ -55,48 +55,10 @@ const GlobalLayout: React.FC<GlobalLayoutProps> = ({ children }) => {
     (p) => location.pathname === p || location.pathname.startsWith("/auth/"),
   );
 
-  // SÊNIOR: Efeito global de conclusão de treinamento. Conclui em background onde quer que o jogador esteja.
-  useEffect(() => {
-    if (!userProfile?.training_ends_at || !userProfile?.active_training_type) {
-      completingRef.current = false; // Reset da trava de conclusão quando não houver treino ativo
-      return;
-    }
-    const endsAtMs = new Date(userProfile.training_ends_at).getTime();
-    if (isNaN(endsAtMs)) return;
+  // SÊNIOR: A conclusão do treinamento agora é 100% gerenciada pelo Backend (Worker). 
+  // Nenhuma checagem (tick) de tempo precisa ser feita pelo front-end. O servidor
+  // processará no milissegundo exato e despachará via SSE o novo status ou enviará no login.
 
-    const tick = async () => {
-      // 1 segundo de tolerância adicionado ao clock skew
-      const remaining = Math.max(0, Math.floor((endsAtMs - Date.now() + 1000) / 1000));
-      if (remaining === 0 && !completingRef.current) {
-        completingRef.current = true;
-        try {
-          const res = await trainingService.completeTraining();
-          showToast(
-            `${res.message} [ +${res.gains.attack} ATK, +${res.gains.defense} DEF, +${res.gains.focus} FOC, +${res.gains.xp} XP ]`,
-            "success",
-            7000
-          );
-          // O perfil será atualizado via SSE e na próxima rodada este useEffect limpará o completingRef
-        } catch (err: any) {
-          const httpStatus = err.response?.status;
-          console.warn("[GlobalLayout] Treino background erro/ignorado:", err.response?.data?.error || err.message);
-          
-          if (httpStatus === 400 || httpStatus === 404) {
-             // Erro 400 frequentemente indica "O treinamento ainda não terminou" (skew) ou "Nenhum ativo"
-             // Caso já tenha concluído, forcamos um refresh pra sincronizar a interface se o SSE falhou.
-             setTimeout(() => { refreshProfile().finally(() => { completingRef.current = false; }) }, 5000);
-          } else {
-             // Para outros erros (ex: 500, network), liberamos rapidamente
-             setTimeout(() => { completingRef.current = false; }, 3000);
-          }
-        }
-      }
-    };
-
-    tick();
-    const timer = setInterval(tick, 2000);
-    return () => clearInterval(timer);
-  }, [userProfile?.training_ends_at, userProfile?.active_training_type, showToast, refreshProfile]);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -122,6 +84,19 @@ const GlobalLayout: React.FC<GlobalLayoutProps> = ({ children }) => {
       document.body.style.overflow = originalStyle;
     };
   }, [shouldShowNav]);
+
+  useEffect(() => {
+    if (userProfile?.pending_training_toast) {
+      const g = userProfile.pending_training_toast;
+      showToast(
+        `Treinamento concluído! [ +${g.attack} ATK, +${g.defense} DEF, +${g.focus} FOC, +${g.xp} XP ]`,
+        "success",
+        7000
+      );
+      // Limpa localmente para não disparar duas vezes em re-renders
+      userProfile.pending_training_toast = null;
+    }
+  }, [userProfile?.pending_training_toast, showToast]);
 
   useEffect(() => {
     clearPanels();

@@ -62,6 +62,7 @@ export interface UserProfile {
   daily_training_count?: number;
   last_training_reset?: string;
   active_training_type?: string | null;
+  pending_training_toast?: any;
 }
 
 export interface IUserProfileContext {
@@ -131,6 +132,7 @@ function mergePlayerStateIntoProfile(
   if (patch.dailyTrainingCount !== undefined) next.daily_training_count = patch.dailyTrainingCount;
   if (patch.lastTrainingReset !== undefined) next.last_training_reset = patch.lastTrainingReset;
   if (patch.activeTrainingType !== undefined) next.active_training_type = patch.activeTrainingType;
+  if (patch.pending_training_toast !== undefined) next.pending_training_toast = patch.pending_training_toast;
 
   return next;
 }
@@ -196,6 +198,7 @@ export const UserProfileProvider = ({ children }: { children: ReactNode }) => {
         daily_training_count: Number(profileData.daily_training_count) || 0,
         last_training_reset: profileData.last_training_reset,
         active_training_type: profileData.active_training_type || null,
+        pending_training_toast: profileData.pending_training_toast || null,
       };
     },
     [],

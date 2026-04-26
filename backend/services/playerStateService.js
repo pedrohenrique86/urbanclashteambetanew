@@ -38,6 +38,7 @@ const DEBOUNCE_MS           = 3000;        // debounce primário antes do DB
 const PERSIST_BATCH_SIZE    = 50;          // máx players por lote no safety-net
 const SAFETY_STALENESS_MS   = 12_000;      // safety-net só persiste dirty > 12s
 const DIRTY_PLAYERS_SET     = "player:dirty:set";
+const TRAINING_QUEUE_KEY    = "queue:trainings";
 
 // ─── Campos que afetam o ranking (ZSET) e o Nível Dinâmico ────────────────────────
 const RANKING_FIELDS = new Set(["total_xp", "level", "attack", "defense", "focus", "money"]);
@@ -775,6 +776,80 @@ function schedulePersistence() {
 }
 
 /**
+ * ZSET de Agendamento de Treinamentos
+ */
+async function scheduleTraining(userId, endsAtMs) {
+  try {
+    await redisClient.zAddAsync(TRAINING_QUEUE_KEY, endsAtMs, String(userId));
+    console.log(`[training] ⏳ Treino agendado para ${userId} às ${new Date(endsAtMs).toLocaleTimeString()}`);
+  } catch (err) {
+    console.error("[training] Erro ao agendar no ZSET:", err.message);
+  }
+}
+
+async function cancelScheduledTraining(userId) {
+  try {
+    await redisClient.zRemAsync(TRAINING_QUEUE_KEY, String(userId));
+  } catch (err) {
+    console.error("[training] Erro ao remover agendamento:", err.message);
+  }
+}
+
+/**
+ * Worker do Backend:
+ * Varre o ZSET a cada N segundos para achar treinos que terminaram.
+ */
+async function processTrainingQueue() {
+  if (!redisClient.client.isReady) return;
+  const now = Date.now();
+
+  try {
+    const readyUserIds = await redisClient.zRangeByScoreAsync(TRAINING_QUEUE_KEY, 0, now);
+    if (!readyUserIds || readyUserIds.length === 0) return;
+
+    // Remove para não re-processar caso a task caia na metade
+    for (const uid of readyUserIds) {
+      await redisClient.zRemAsync(TRAINING_QUEUE_KEY, uid);
+    }
+
+    const trainingService = require("./trainingService"); // require preguiçoso para evitar dependência circular
+    console.log(`[worker] ⚙️ Concluindo treinos na fila para ${readyUserIds.length} jogadores.`);
+
+    await Promise.allSettled(
+      readyUserIds.map(async (uid) => {
+        try {
+          const result = await trainingService.completeTraining(uid);
+          
+          // Injete a Notificação de Toast no Perfil para quando ele entrar (offline)
+          const stateKey = `${PLAYER_STATE_PREFIX}${uid}`;
+          await redisClient.hSetAsync(stateKey, "pending_training_toast", JSON.stringify(result.gains));
+          
+          // SSE emite o toast em tempo real para quem estiver online
+          sseService.publish(`player:${uid}`, "player:state", {
+            type: "player:patch",
+            patch: { pending_training_toast: result.gains },
+            version: _nextVersion(uid)
+          });
+        } catch (e) {
+           console.warn(`[worker] ⚠️ Treino não concluível para ${uid}:`, e.message);
+        }
+      })
+    );
+  } catch (err) {
+    console.error("[worker] Erro na fila de treinos:", err.message);
+  }
+}
+
+function startTrainingWorker() {
+  const INTERVAL_MS = 5 * 1000; // a cada 5 segundos verifica a fila
+  const t = setInterval(processTrainingQueue, INTERVAL_MS);
+  if (t.unref) t.unref();
+}
+
+// Inicia o worker assim que o módulo é carregado
+startTrainingWorker();
+
+/**
  * Remove um jogador do Redis completamente (limpeza de ghosts).
  */
 async function deletePlayerState(userId) {
@@ -887,7 +962,9 @@ module.exports = {
   schedulePersistence,
   deletePlayerState,
   setPlayerStatus,
-  regenEnergyForPlayer,  // ← usado pelo energyRegenService (sem duplo trigger)
+  regenEnergyForPlayer,
+  scheduleTraining,
+  cancelScheduledTraining,
   // Para rankingCacheService
   getDirtyRankingPlayers,
   _clearRankingDirty,

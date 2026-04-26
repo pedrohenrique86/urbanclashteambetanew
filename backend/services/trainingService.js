@@ -54,6 +54,9 @@ class TrainingService {
     };
 
     const newState = await playerStateService.updatePlayerState(userId, updates);
+
+    // Adiciona à fila de processamento ZSET!
+    playerStateService.scheduleTraining(userId, endsAt.getTime());
     
     return {
       message: TRAINING_HUMOR[Math.floor(Math.random() * TRAINING_HUMOR.length)],
@@ -103,6 +106,8 @@ class TrainingService {
     };
 
     const newState = await playerStateService.updatePlayerState(userId, updates);
+
+    playerStateService.cancelScheduledTraining(userId);
 
     return {
       message: TRAINING_HUMOR[Math.floor(Math.random() * TRAINING_HUMOR.length)],

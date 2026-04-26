@@ -44,6 +44,7 @@ export interface PlayerStatePatch {
   dailyTrainingCount?: number;
   lastTrainingReset?: string;
   activeTrainingType?: string | null;
+  pending_training_toast?: any;
 }
 
 /**
