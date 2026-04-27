@@ -113,7 +113,7 @@ const TopBar: React.FC<TopBarProps> = ({ userProfile }) => {
 
   return (
     <>
-      <div className="sticky top-0 z-50 w-full flex justify-center items-start md:items-center py-2 md:py-3 pointer-events-none">
+      <div className="w-full flex justify-center items-start md:items-center py-2 md:py-3 pointer-events-none">
         <div
           className="relative bg-black/60 backdrop-blur-2xl border border-white/10 rounded-2xl p-1.5 shadow-2xl w-[95%] md:w-auto pointer-events-auto"
           style={{
