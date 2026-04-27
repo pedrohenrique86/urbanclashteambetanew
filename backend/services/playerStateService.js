@@ -110,6 +110,10 @@ const _memDirtyRanking = new Set();  // userId → mudança de XP/nível (para r
 // Contador de versão por jogador para consistência do PATCH no frontend
 const _versionMap = new Map();       // userId → number
 
+// Guard para evitar double-completion no Lazy Training Completion
+// Se o worker já está processando, o getPlayerState não dispara um segundo completeTraining
+const _inProgressCompletions = new Set(); // userId → em processamento
+
 // ─── Status Constants ─────────────────────────────────────────────────────────────
 const ALLOWED_STATUSES = ['Operacional', 'Isolamento', 'Recondicionamento', 'Aprimoramento'];
 const VALID_TRANSITIONS = {
@@ -529,20 +533,27 @@ async function getPlayerState(userId) {
     }
 
     // SÊNIOR: Lazy Training Completion
-    // Se o treinamento já terminou, completamos agora na leitura (robusto a worker crashes/delays)
+    // Se o treinamento já terminou e NÃO está sendo processado pelo worker,
+    // completamos agora na leitura (robusto a worker crashes/delays)
     if (finalState && finalState.training_ends_at && finalState.active_training_type) {
       const endsAt = new Date(finalState.training_ends_at);
-      if (!isNaN(endsAt.getTime()) && endsAt.getTime() <= Date.now()) {
+      const uid = String(userId);
+      if (!isNaN(endsAt.getTime()) && endsAt.getTime() <= Date.now() && !_inProgressCompletions.has(uid)) {
+        _inProgressCompletions.add(uid);
         try {
           const trainingService = require("./trainingService");
-          // Para não bloquear a resposta primária com await pesado, executamos assíncrono
-          // Não importa se a resposta atual vai levemente desatualizada, pois SSE/Ranking atualizarão em ms.
+          // Executa assíncrono — SSE/Ranking atualizarão em ms após conclusion.
           setImmediate(async () => {
             try {
-              await trainingService.completeTraining(userId);
+              await trainingService.completeTraining(uid);
             } catch (ignored) {}
+            finally {
+              _inProgressCompletions.delete(uid);
+            }
           });
-        } catch (e) { }
+        } catch (e) {
+          _inProgressCompletions.delete(uid);
+        }
       }
     }
 
@@ -840,31 +851,39 @@ async function processTrainingQueue() {
     const readyUserIds = await redisClient.zRangeByScoreAsync(TRAINING_QUEUE_KEY, 0, now);
     if (!readyUserIds || readyUserIds.length === 0) return;
 
-    // Remove para não re-processar caso a task caia na metade
-    for (const uid of readyUserIds) {
-      await redisClient.zRemAsync(TRAINING_QUEUE_KEY, uid);
-    }
-
     const trainingService = require("./trainingService"); // require preguiçoso para evitar dependência circular
     console.log(`[worker] ⚙️ Concluindo treinos na fila para ${readyUserIds.length} jogadores.`);
 
     await Promise.allSettled(
       readyUserIds.map(async (uid) => {
+        // SÊNIOR: Marca como em processamento ANTES de chamar completeTraining
+        // para que o Lazy Training Completion em getPlayerState não dispare uma segunda cópia.
+        _inProgressCompletions.add(uid);
         try {
+          // SÊNIOR: at-least-once delivery — só remove do ZSET após sucesso.
+          // Se falhar, a entry permanece no ZSET e será re-tentada no próximo ciclo.
           const result = await trainingService.completeTraining(uid);
-          
-          // Injete a Notificação de Toast no Perfil para quando ele entrar (offline)
+
+          // Remoção do ZSET somente após conclusão com sucesso
+          await redisClient.zRemAsync(TRAINING_QUEUE_KEY, uid);
+
+          // Persiste toast de conclusão no Redis para exibir ao jogador quando ele voltar (offline)
           const stateKey = `${PLAYER_STATE_PREFIX}${uid}`;
           await redisClient.hSetAsync(stateKey, "pending_training_toast", JSON.stringify(result.gains));
-          
-          // SSE emite o toast em tempo real para quem estiver online
+
+          // SSE emite o toast em tempo real se o jogador estiver online
           sseService.publish(`player:${uid}`, "player:state", {
             type: "player:patch",
             patch: { pending_training_toast: result.gains },
             version: _nextVersion(uid)
           });
+
+          console.log(`[worker] ✅ Treino concluído para ${uid} (offline-safe).`);
         } catch (e) {
-           console.warn(`[worker] ⚠️ Treino não concluível para ${uid}:`, e.message);
+          // NÃO remove do ZSET — será re-tentado no próximo ciclo (5s)
+          console.warn(`[worker] ⚠️ Falha ao concluir treino para ${uid} (re-tentará):`, e.message);
+        } finally {
+          _inProgressCompletions.delete(uid);
         }
       })
     );
@@ -1004,6 +1023,7 @@ module.exports = {
   _zaddRanking,
   _zrangeRankingWithScores,
   _calcRankingScore,
+  _parseState,           // Necessário para hydration no rankingCacheService
   RANKING_ZSET_KEY,
   PLAYER_STATE_PREFIX,
 };

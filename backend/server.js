@@ -28,7 +28,7 @@ const trainingRoutes = require("./routes/training");
 const { connectDB, closePool, seedClans } = require("./config/database");
 const { redisReadyPromise } = require("./config/redisClient");
 const { checkAutoStart } = require("./services/gameStateService");
-const { schedulePersistence } = require("./services/playerStateService");
+const { schedulePersistence, scheduleTraining } = require("./services/playerStateService");
 const { initializeSocket } = require("./socketHandler");
 const rankingCacheService = require("./services/rankingCacheService");
 const http = require("http");
@@ -167,6 +167,40 @@ async function startGameStateMonitor() {
 }
 
 // Inicializar servidor
+
+/**
+ * Recuperação de treinos pendentes após restart do servidor.
+ * Consulta o banco por treinos com training_ends_at preenchido (em andamento ou já vencidos)
+ * e re-insere no ZSET para que o worker os processe imediatamente.
+ */
+async function recoverPendingTrainings() {
+  try {
+    const { query } = require("./config/database");
+    const result = await query(
+      `SELECT user_id, training_ends_at
+       FROM user_profiles
+       WHERE training_ends_at IS NOT NULL
+         AND active_training_type IS NOT NULL
+         AND active_training_type <> ''`,
+    );
+
+    if (result.rows.length === 0) {
+      console.log("[startup] ✅ Sem treinos pendentes para recuperar.");
+      return;
+    }
+
+    console.log(`[startup] 🔄 Recuperando ${result.rows.length} treinos pendentes no ZSET...`);
+    for (const row of result.rows) {
+      const endsAtMs = new Date(row.training_ends_at).getTime();
+      if (!isNaN(endsAtMs)) {
+        await scheduleTraining(row.user_id, endsAtMs);
+      }
+    }
+    console.log("[startup] ✅ Treinos pendentes re-agendados no ZSET.");
+  } catch (err) {
+    console.error("[startup] ❌ Erro ao recuperar treinos pendentes:", err.message);
+  }
+}
 async function startServer() {
   try {
     await connectDB();
@@ -194,6 +228,9 @@ async function startServer() {
           await rankingCacheService.initializeRankingZSet();
           await rankingCacheService.warmupRankings();
           rankingCacheService.startPeriodicRefresh();
+
+          // Recupera treinos pendentes que estavam em andamento antes do restart
+          await recoverPendingTrainings();
           
           // Inicia Heartbeat de Energia (Regeneração automática)
           const energyRegenService = require("./services/energyRegenService");
