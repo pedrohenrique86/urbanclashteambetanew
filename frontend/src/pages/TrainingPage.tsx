@@ -158,9 +158,7 @@ export default function TrainingPage() {
   const trainingsLeft = Math.max(0, 8 - (userProfile?.daily_training_count || 0));
 
   return (
-    <div className="min-h-screen p-4 md:p-8 bg-slate-950 bg-[radial-gradient(circle_at_50%_-20%,rgba(14,165,233,0.15),transparent_80%)] relative text-slate-300 font-sans selection:bg-cyan-500/30">
-      {/* GRID BACKGROUND */}
-      <div className="fixed inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:32px_32px] pointer-events-none"></div>
+    <div className="min-h-screen p-4 md:p-8 bg-transparent relative text-slate-300 font-sans selection:bg-cyan-500/30">
 
       {/* HUD DECORATION - CORNERS */}
       <div className="fixed inset-0 pointer-events-none border-[1px] border-cyan-500/10 opacity-30 m-4 hidden md:block z-0">
@@ -178,9 +176,9 @@ export default function TrainingPage() {
             Military <span className="text-cyan-400">Training</span> HUB
           </h1>
           <div className="flex items-center gap-4 mt-2">
-            <span className="text-[10px] font-mono bg-white/10 px-2 py-0.5 text-slate-400">SEC_LEVEL: 4</span>
-            <span className="text-[10px] font-mono text-cyan-500/70 animate-pulse tracking-widest">● SYSTEM_ONLINE</span>
-            <p className="text-slate-500 text-xs font-mono hidden md:block uppercase tracking-tighter">
+            <span className="text-[10px] font-mono bg-white/10 px-2 py-0.5 text-slate-300">SEC_LEVEL: 4</span>
+            <span className="text-[10px] font-mono text-cyan-400 animate-pulse tracking-widest">● SYSTEM_ONLINE</span>
+            <p className="text-slate-400 text-xs font-mono hidden md:block uppercase tracking-tighter">
               {subtitle}
             </p>
           </div>
@@ -194,7 +192,7 @@ export default function TrainingPage() {
           
           {/* DAILY LIMIT CARD */}
           <div 
-            className="bg-white/5 backdrop-blur-3xl border border-cyan-500/30 shadow-[0_0_40px_rgba(34,211,238,0.1),inset_0_1px_rgba(255,255,255,0.1)] p-6 relative group overflow-hidden"
+            className="bg-black/40 backdrop-blur-md border border-cyan-500/30 shadow-[0_0_40px_rgba(34,211,238,0.1),inset_0_1px_rgba(255,255,255,0.1)] p-6 relative group overflow-hidden"
             style={MILITARY_CLIP}
           >
             <div className="absolute top-0 right-0 p-2 opacity-20 group-hover:opacity-40 transition-opacity">
@@ -207,7 +205,7 @@ export default function TrainingPage() {
               <div className="flex-1">
                 <div className="flex items-end gap-2 mb-2">
                   <span className="text-6xl font-black text-white font-orbitron leading-none">{trainingsLeft}</span>
-                  <span className="text-slate-500 font-bold uppercase text-[10px] tracking-widest mb-1">UNITS_AVAIL</span>
+                  <span className="text-slate-400 font-bold uppercase text-[10px] tracking-widest mb-1">UNITS_AVAIL</span>
                 </div>
                 <div className="w-full bg-white/5 h-2 overflow-hidden border border-white/5">
                   <motion.div 
@@ -230,7 +228,7 @@ export default function TrainingPage() {
                 initial={{ opacity: 0, scale: 0.98 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.98 }}
-                className="bg-white/5 backdrop-blur-3xl border border-violet-500/40 shadow-[0_0_50px_rgba(139,92,246,0.15),inset_0_1px_rgba(255,255,255,0.1)] p-6 relative"
+                className="bg-black/40 backdrop-blur-md border border-violet-500/40 shadow-[0_0_50px_rgba(139,92,246,0.15),inset_0_1px_rgba(255,255,255,0.1)] p-6 relative"
                 style={MILITARY_CLIP}
               >
                 {/* Corner Markers */}
@@ -250,7 +248,7 @@ export default function TrainingPage() {
                 </div>
 
                 <div className="bg-black/60 p-6 border border-white/5 mb-6 text-center">
-                  <span className="text-[10px] text-slate-500 font-mono block mb-2 uppercase">Time_to_Completion</span>
+                  <span className="text-[10px] text-slate-400 font-mono block mb-2 uppercase">Time_to_Completion</span>
                   <p className="text-5xl font-orbitron font-black text-white tracking-tighter">
                     {formatTime(timeLeft || 0)}
                   </p>
@@ -258,13 +256,13 @@ export default function TrainingPage() {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="bg-white/5 p-2 border border-white/5">
-                    <span className="text-[8px] text-slate-500 block uppercase">Start_Log</span>
+                    <span className="text-[8px] text-slate-400 block uppercase">Start_Log</span>
                     <span className="text-[10px] text-slate-300 font-mono">
                       {new Date(new Date(userProfile?.training_ends_at || 0).getTime() - (TRAINING_OPTIONS.find(o => o.id === userProfile?.active_training_type)?.duration || 0) * 60000).toLocaleTimeString()}
                     </span>
                   </div>
                   <div className="bg-white/5 p-2 border border-white/5">
-                    <span className="text-[8px] text-slate-500 block uppercase">ETA_Log</span>
+                    <span className="text-[8px] text-slate-400 block uppercase">ETA_Log</span>
                     <span className="text-[10px] text-slate-300 font-mono">
                       {new Date(userProfile?.training_ends_at || 0).toLocaleTimeString()}
                     </span>
@@ -276,13 +274,13 @@ export default function TrainingPage() {
                 key="idle"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                className="bg-white/5 backdrop-blur-3xl border-2 border-white/10 border-dashed p-10 flex flex-col items-center justify-center text-center opacity-60"
+                className="bg-black/40 backdrop-blur-md border-2 border-white/10 border-dashed p-10 flex flex-col items-center justify-center text-center opacity-60"
                 style={MILITARY_CLIP}
               >
                 <div className="w-16 h-16 rounded-full border border-white/10 flex items-center justify-center mb-4">
                    <AcademicCapIcon className="w-8 h-8 text-slate-700" />
                 </div>
-                <p className="text-slate-500 font-mono text-[10px] uppercase tracking-widest leading-relaxed">
+                <p className="text-slate-400 font-mono text-[10px] uppercase tracking-widest leading-relaxed">
                   Status: Inativo<br/>Aguardando Instruções
                 </p>
               </motion.div>
@@ -298,7 +296,7 @@ export default function TrainingPage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 * idx }}
-              className={`group relative bg-white/5 backdrop-blur-3xl border transition-all duration-300 hover:bg-white/10 hover:-translate-y-1 shadow-[0_0_40px_rgba(34,211,238,0.1),inset_0_1px_rgba(255,255,255,0.1)]
+              className={`group relative bg-black/40 backdrop-blur-md border transition-all duration-300 hover:bg-white/10 hover:-translate-y-1 shadow-[0_0_40px_rgba(34,211,238,0.1),inset_0_1px_rgba(255,255,255,0.1)]
                 ${opt.id === 'grande' ? 'border-fuchsia-500/40 hover:border-fuchsia-400/60' : 
                   opt.id === 'medio' ? 'border-violet-500/40 hover:border-violet-400/60' : 
                   'border-cyan-500/40 hover:border-cyan-400/60'}`}
@@ -325,7 +323,7 @@ export default function TrainingPage() {
                         <span className="text-white">{opt.duration}M</span>
                       </div>
                     </div>
-                    <p className="text-slate-400 text-sm font-medium leading-relaxed italic border-l-2 border-white/10 pl-4">
+                    <p className="text-slate-300 text-sm font-medium leading-relaxed italic border-l-2 border-white/10 pl-4">
                       {opt.description}
                     </p>
                   </div>
@@ -333,7 +331,7 @@ export default function TrainingPage() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-white/5">
                     {/* COSTS */}
                     <div className="flex flex-wrap gap-2 items-center">
-                      <span className="text-[9px] text-slate-500 font-black uppercase tracking-widest w-full mb-1">Resource_Cost:</span>
+                      <span className="text-[9px] text-slate-400 font-black uppercase tracking-widest w-full mb-1">Resource_Cost:</span>
                       <div className="bg-red-500/10 border border-red-500/30 px-2 py-1 flex items-center gap-2">
                         <BoltIcon className="w-3 h-3 text-red-500" />
                         <span className="text-xs font-bold text-red-200">-{opt.costs.ap} AP</span>
@@ -350,7 +348,7 @@ export default function TrainingPage() {
 
                     {/* GAINS */}
                     <div className="flex flex-wrap gap-2 items-center md:justify-end">
-                       <span className="text-[9px] text-slate-500 font-black uppercase tracking-widest w-full mb-1 md:text-right">Projected_Yield:</span>
+                       <span className="text-[9px] text-slate-400 font-black uppercase tracking-widest w-full mb-1 md:text-right">Projected_Yield:</span>
                        <div className="bg-white/5 border border-white/10 px-2 py-1 text-[11px] font-bold">
                          <span className="text-cyan-400">+{opt.gains.atk}</span> ATK
                        </div>
@@ -400,7 +398,7 @@ export default function TrainingPage() {
       </div>
 
       {/* FOOTER - TECHNICAL INFO */}
-      <footer className="max-w-6xl mx-auto mt-20 pt-8 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-4 opacity-40 grayscale hover:grayscale-0 transition-all relative z-10">
+      <footer className="max-w-6xl mx-auto mt-20 pt-8 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-4 opacity-70 grayscale hover:grayscale-0 transition-all relative z-10">
         <div className="flex items-center gap-6">
           <div className="flex flex-col">
              <span className="text-[8px] font-black tracking-widest uppercase">Encryption</span>
