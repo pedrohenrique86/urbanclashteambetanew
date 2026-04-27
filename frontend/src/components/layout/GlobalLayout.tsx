@@ -23,7 +23,7 @@ interface GlobalLayoutProps {
 const GlobalLayout: React.FC<GlobalLayoutProps> = ({ children }) => {
   const location = useLocation();
   const { themeClasses } = useTheme();
-  const { userProfile, handleLogout, refreshProfile } = useUserProfileContext();
+  const { userProfile, handleLogout, refreshProfile, setUserProfile } = useUserProfileContext();
   const { currentPanel, closePanel, clearPanels, hasOpenPanel } = useHUD();
   const { showToast } = useToast();
   const completingRef = useRef(false);
@@ -93,10 +93,12 @@ const GlobalLayout: React.FC<GlobalLayoutProps> = ({ children }) => {
         "success",
         7000
       );
-      // Limpa localmente para não disparar duas vezes em re-renders
-      userProfile.pending_training_toast = null;
+      // Limpa o toast no estado React para não disparar novamente em re-renders
+      setUserProfile((prev) =>
+        prev ? { ...prev, pending_training_toast: null } : prev
+      );
     }
-  }, [userProfile?.pending_training_toast, showToast, userProfile]);
+  }, [userProfile?.pending_training_toast, showToast, setUserProfile]);
 
   useEffect(() => {
     clearPanels();

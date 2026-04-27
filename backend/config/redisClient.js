@@ -128,6 +128,18 @@ const redisWrapper = {
     }
   },
 
+  hDelAsync: async (k, ...fields) => {
+    if (!k || !isReady) return null;
+    try {
+      const key = String(k);
+      const fs = fields.map(String);
+      return await client.hDel(key, fs);
+    } catch (err) {
+      console.error(`[RedisClient] Erro em hDelAsync key=${k}:`, err.message);
+      return null;
+    }
+  },
+
   hGetAllAsync: async (k) => {
     if (!k || !isReady) return null;
     try {

@@ -867,18 +867,27 @@ async function processTrainingQueue() {
           // Remoção do ZSET somente após conclusão com sucesso
           await redisClient.zRemAsync(TRAINING_QUEUE_KEY, uid);
 
-          // Persiste toast de conclusão no Redis para exibir ao jogador quando ele voltar (offline)
+          // Persiste toast de conclusão no Redis para exibir ao jogador quando ele voltar (offline).
+          // Será apagado pelo GET /api/users/profile na próxima leitura (ou imediatamente se online).
           const stateKey = `${PLAYER_STATE_PREFIX}${uid}`;
           await redisClient.hSetAsync(stateKey, "pending_training_toast", JSON.stringify(result.gains));
 
           // SSE emite o toast em tempo real se o jogador estiver online
+          const hasActiveSubscriber = sseService.hasSubscribers(`player:${uid}`);
           sseService.publish(`player:${uid}`, "player:state", {
             type: "player:patch",
             patch: { pending_training_toast: result.gains },
             version: _nextVersion(uid)
           });
 
-          console.log(`[worker] ✅ Treino concluído para ${uid} (offline-safe).`);
+          // Se o jogador está online e recebeu via SSE, apaga imediatamente do Redis
+          // para que um reload posterior não mostre o toast de novo.
+          if (hasActiveSubscriber) {
+            await redisClient.hDelAsync(stateKey, "pending_training_toast");
+          }
+
+          console.log(`[worker] ✅ Treino concluído para ${uid} (online: ${hasActiveSubscriber}).`);
+
         } catch (e) {
           // NÃO remove do ZSET — será re-tentado no próximo ciclo (5s)
           console.warn(`[worker] ⚠️ Falha ao concluir treino para ${uid} (re-tentará):`, e.message);

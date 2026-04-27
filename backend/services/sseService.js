@@ -125,4 +125,6 @@ module.exports = {
   unsubscribe,
   publish,
   broadcast,
+  /** Retorna true se houver ao menos um cliente SSE conectado ao tópico */
+  hasSubscribers: (topic) => topics.has(topic) && topics.get(topic).size > 0,
 };
