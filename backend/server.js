@@ -25,6 +25,7 @@ const { router: userRoutes } = require("./routes/users");
 const { router: clanRoutes } = require("./routes/clans");
 const publicRoutes = require("./routes/public");
 const trainingRoutes = require("./routes/training");
+const supplyRoutes = require("./routes/supply");
 const { connectDB, closePool, seedClans } = require("./config/database");
 const { redisReadyPromise } = require("./config/redisClient");
 const { checkAutoStart } = require("./services/gameStateService");
@@ -121,6 +122,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/clans", clanRoutes);
 app.use("/api/training", trainingRoutes);
+app.use("/api/supply", supplyRoutes);
 app.use("/api/time", timeRoutes);
 app.use("/api/admin", adminRoutes);
 // app.use("/api/game", gameRoutes); // Replaced by Socket.IO
