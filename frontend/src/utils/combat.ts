@@ -11,7 +11,7 @@ export interface CombatStats {
 }
 
 export const getCriticalChanceExplanation = (): string => {
-  return `Base (5%) + (Foco × 0.08) + (Disciplina × 0.1) + Treinos (Cap 60%)`;
+  return `Base (5%) + (Foco × 0.08) + Treinos Acumulados (cap 60%)`;
 };
 
 export const getCriticalDamageExplanation = (factionName: string): string => {
@@ -36,44 +36,40 @@ export const calculateCombatStats = (userProfile: any) => {
   const attack = userProfile.attack || 0;
   const defense = userProfile.defense || 0;
   const focus = userProfile.focus || 0;
-  const discipline = userProfile.discipline || 0;
   
   // A UI processa os pontos brutos (accumulators) que vêm do banco.
   const rawCrit = userProfile.critical_chance || 0;
   const rawDmg = userProfile.critical_damage || 0;
 
-  // Lógica de Chance Crítica (Sincronizado com backend gameLogic.js)
-  // 5% Base + Foco(0.08) + Disciplina(0.1) + Pontos Brutos de Treino
-  let criticalChance = 5.0 + (focus * 0.08) + (discipline * 0.10) + rawCrit;
+  // Lógica de Chance Crítica — SSOT: backend gameLogic.js calcCritChance()
+  // NOTA: discipline NÃO entra nesta fórmula (apenas CRIT_BASE + FOC + rawCrit)
+  let criticalChance = 5.0 + (focus * 0.08) + rawCrit;
   if (criticalChance > 60.0) criticalChance = 60.0; // Hardcap 60%
 
-  // Lógica de Multiplicador de Dano Crítico (Sincronizado com backend gameLogic.js)
+  // Lógica de Multiplicador de Dano Crítico — SSOT: backend calcCritDamageMultiplier()
   const rawFaction = typeof userProfile.faction === 'string' 
     ? userProfile.faction 
     : (userProfile.faction?.name || '');
   const factionName = rawFaction.toLowerCase().trim();
-  
-  // Utilizar o mesmo mapa de alias do frontend para blindar nomes errôneos vindos do BD
-  const resolvedFaction = FACTION_ALIAS_MAP_FRONTEND[factionName] || 'gangsters'; // fallback para gangsters (renegados)
+  const resolvedFaction = FACTION_ALIAS_MAP_FRONTEND[factionName] || 'gangsters';
 
-  let baseMult = 2.5; // Padrão Renegado/Gangster
+  // Base por facção (pontos percentuais): Renegados/gangsters=150, Guardiões/guardas=130
+  // O FACTION_ALIAS_MAP_FRONTEND normaliza tudo para 'gangsters' | 'guardas'
+  let basePct = 150; // default: renegados / gangsters
   if (resolvedFaction === 'guardas') {
-    baseMult = 2.3;
+    basePct = 130;
   }
-  
-  // Transforma os raw points de dano (ex: 50) em multiplicador (ex: +0.50x)
-  const criticalDamage = baseMult + (rawDmg / 100);
 
-  let effectiveDefense = defense;
-  let effectiveDamageReduction = 0;
-  
-  if (resolvedFaction === 'gangsters') {
-    // Legacy Gangsters logic representation
-    effectiveDefense = defense;
-  } else if (resolvedFaction === 'guardas') {
-    // Softcap reduction is now used in backend: DEF / (DEF + 200)
-    effectiveDamageReduction = defense / (defense + 200);
-  }
+  // Bônus de treino: cada 50 atributos combinados = +1% de dano crítico extra
+  const statsBonus = Math.floor((attack + defense + focus) / 50);
+
+  // Multiplicador final: 1 + (base + rawDmg + statsBonus) / 100
+  // Ex: base=150, raw=0, stats=0 → 1 + 150/100 = 2.50×
+  const criticalDamage = Math.min(4.0, Math.round((1 + (basePct + rawDmg + statsBonus) / 100) * 100) / 100);
+
+  // DEF softcap: redução = DEF / (DEF + 200) — igual ao backend
+  const effectiveDefense = defense;
+  const effectiveDamageReduction = defense / (defense + 200);
   
   return {
     attack,

@@ -71,13 +71,16 @@ A força bruta total de um personagem é o **Power Solo** *(Ataque + Defesa + Fo
 - **Softcap limitador**: A chance é sempre **limitada em 60%** para balanceamento mecânico, ninguém consegue dar ataque critico em 100% dos hits.
 
 ### 5.5 Dano Crítico (As 3 Camadas)
-Diferente da simples rolagem de acerto, o **Multiplicador do Crítico** (aquele 2.3x) é empilhado em 3 camadas, recompensando grinds orgânicos e carteiras premium juntas:
-- **1ª Camada: Facção**: Renegados geram garantidos **150%** e Guardiões geram **130%**.
-- **2ª Camada: Academia (Progresso Orgânico Lento)**: A cada `50 pontos combinados` no Power Solo, é gerado +1% extra invisivel no cálculo. Isso prova ao jogador gratuito que ser assíduo gera letalidade.
-- **3ª Camada: Privilégios (Armas Raras)**: Pontos diretos injetados isoladamente evitam burocracia, explodindo instantaneamente o dano num click.
+Diferente da simples rolagem de acerto, o **Multiplicador do Crítico** é empilhado em 3 camadas, recompensando grind orgânico de treino:
+- **1ª Camada: Facção (Base Percentual)**: Renegados partem de **150%** e Guardiões de **130%**.
+- **2ª Camada: Bônus de Treino (Orgânico)**: A cada `50 pontos combinados` em (ATK + DEF + FOC), ganha +1% extra no multiplicador. Fórmula: `statsBonus = Math.floor((ATK + DEF + FOC) / 50)`.
+- **3ª Camada: Pontos Brutos Acumulados (`critical_damage`)**: Cada treino deposita pontos brutos no campo `critical_damage` do jogador. Cada ponto equivale a +1% no multiplicador final.
+- **Fórmula Final do Multiplicador**:
+  - `Multiplicador = 1 + (base_facção + statsBonus + critical_damage_raw) / 100`
+  - *Exemplo: Renegado com base=150, statsBonus=10, raw=20 → 1 + 180/100 = 2.80×*
 - **Resolução Crítica no Hit**: 
   - Guardiões mitigam pesadamente Críticos inimigos em campo com a Passiva Fixa da **Disciplina**: o Dano Crítico Bônus do atacante sofre uma tesourada (se a disciplina for de 40%, um bônus extra de +200% cai para +120%).
-- **Hard-Cap (Teto Limitador)**: Nenhum multiplicador consegue exceder o teto do script de **4.0x**, protegendo os novos de tomarem One-Shots indevidos de armas absurdas da 3ª camada.
+- **Hard-Cap (Teto Limitador)**: Nenhum multiplicador consegue exceder o teto do script de **4.0×**, protegendo os novatos de tomarem One-Shots indevidos.
 
 ## 6. Histórico e Retrospecto de Batalha
 - **Wins / Losses**: Vitórias e derrotas gravadas.
@@ -93,8 +96,10 @@ Como os dados trafegam do Redis para o FrontEnd e visível na interface:
 3. Se um usuário entra em estado de **Treino**, o Redis registra a data de fim. O FrontEnd aplica o **Aprimoramento Forçado**: se esse prazo futuro não expirou, ele desconsidera logs genéricos, engessando as funcionalidades da UI do jogador.
   
 ## 8. Treinamento Diário
-- Sistema limita treinamentos via `daily_training_count` vs `DAILY_CAP_TRAIN`.
+- Sistema limita treinamentos via `daily_training_count` com cap de **`MAX_DAILY_TRAININGS = 8`** treinos por dia.
 - Registra `last_training_reset` usando fuso do jogo (`America/Sao_Paulo`). Backend faz um *Lazy Reset* no background escapando da dor de cabeça do uso de velhos CRONs desnecessários.
+- **Worker de Treino**: Roda via `setInterval` a cada 5 segundos varrendo um ZSET Redis (`queue:trainings`). At-least-once delivery garante que falhas temporárias não percam o progresso do jogador.
+- **Recuperação no Startup**: Ao iniciar, o servidor consulta o banco por treinos com `training_ends_at` preenchido e re-insere no ZSET, garantindo que jogadores offline tenham o treino processado mesmo após reinicialização do servidor.
 
 ---
 

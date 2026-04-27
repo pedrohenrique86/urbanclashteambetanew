@@ -200,19 +200,26 @@ const TopBar: React.FC<TopBarProps> = ({ userProfile }) => {
               <div className="bg-black/40 p-2.5 rounded-xl border border-white/5">
                  <div className="flex flex-col gap-2.5 text-[10px] opacity-90 font-mono">
                     <div className="flex justify-between items-center text-zinc-300">
-                       <span>Base Genérica</span>
+                       <span>Base Fixa</span>
                        <span className="font-bold">5.0%</span>
                     </div>
                     <div className="flex justify-between items-center text-pink-400">
                        <span>
-                          Aptidão de Foco
-                          <span className="block text-[8px] opacity-60 mt-0.5">({userProfile?.focus || 0} pts × 0.08)</span>
+                          Bônus de Foco
+                          <span className="block text-[8px] opacity-60 mt-0.5">({userProfile?.focus || 0} pts × 0.08%)</span>
                        </span>
                        <span className="font-bold">+{Number((userProfile?.focus || 0) * 0.08).toFixed(2)}%</span>
                     </div>
                     <div className="flex justify-between items-center text-yellow-400">
-                       <span>Equipamentos (Chance Bruta)</span>
+                       <span>
+                          Treinos Acumulados
+                          <span className="block text-[8px] opacity-60 mt-0.5">(pontos brutos de treino × 1%)</span>
+                       </span>
                        <span className="font-bold">+{Number(userProfile?.critical_chance ?? 0).toFixed(1)}%</span>
+                    </div>
+                    <div className="border-t border-white/10 pt-2 flex justify-between items-center text-white">
+                       <span className="text-[9px] uppercase tracking-wider">Total (cap 60%)</span>
+                       <span className="font-black">{Math.min(60, 5 + (userProfile?.focus || 0) * 0.08 + (userProfile?.critical_chance || 0)).toFixed(2)}%</span>
                     </div>
                  </div>
               </div>
@@ -247,18 +254,25 @@ const TopBar: React.FC<TopBarProps> = ({ userProfile }) => {
                     <div className="flex flex-col gap-2.5 text-[10px] opacity-90 font-mono">
                        <div className="flex justify-between items-center text-zinc-300">
                           <span>Base da Facção</span>
-                          <span className="font-bold">{baseFaction}%</span>
+                          <span className="font-bold">{baseFaction}% → +{(baseFaction/100).toFixed(2)}×</span>
                        </div>
                        <div className="flex justify-between items-center text-cyan-400">
                           <span>
                              Bônus de Treino
-                             <span className="block text-[8px] opacity-60 mt-0.5">(Total de Atributos ÷ 50)</span>
+                             <span className="block text-[8px] opacity-60 mt-0.5">(ATK+DEF+FOC) ÷ 50 = {statsBonus} pontos</span>
                           </span>
-                          <span className="font-bold">+{statsBonus}%</span>
+                          <span className="font-bold">+{statsBonus}% → +{(statsBonus/100).toFixed(2)}×</span>
                        </div>
                        <div className="flex justify-between items-center text-rose-400">
-                          <span>Equipamentos (Dano Bruto)</span>
-                          <span className="font-bold">+{Number(userProfile?.critical_damage ?? 0).toFixed(1)}%</span>
+                          <span>
+                             Treinos Acumulados
+                             <span className="block text-[8px] opacity-60 mt-0.5">(pontos brutos × 1%)</span>
+                          </span>
+                          <span className="font-bold">+{Number(userProfile?.critical_damage ?? 0).toFixed(1)}% → +{(Number(userProfile?.critical_damage ?? 0)/100).toFixed(2)}×</span>
+                       </div>
+                       <div className="border-t border-white/10 pt-2 flex justify-between items-center text-white">
+                          <span className="text-[9px] uppercase tracking-wider">1 + (base+treino+acum) ÷ 100</span>
+                          <span className="font-black">{Math.min(4.0, Math.round((1 + (baseFaction + statsBonus + Number(userProfile?.critical_damage ?? 0)) / 100) * 100) / 100).toFixed(2)}×</span>
                        </div>
                     </div>
                  </div>
