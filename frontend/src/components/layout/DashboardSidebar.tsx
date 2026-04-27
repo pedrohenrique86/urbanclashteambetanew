@@ -1,5 +1,5 @@
-
- import React, { useState, useRef, useEffect, useCallback, useMemo } from "react";
+/* eslint-disable react/prop-types */
+import React, { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {

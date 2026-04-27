@@ -32,7 +32,6 @@ const GlobalLayout: React.FC<GlobalLayoutProps> = ({ children }) => {
   const sidebarUsername = useMemo(() => userProfile?.username, [userProfile?.username]);
   const sidebarFaction = useMemo(
     () => (userProfile?.faction?.name || userProfile?.faction) as "gangsters" | "guardas" | undefined,
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     [userProfile?.faction]
   );
   const sidebarIsAdmin = useMemo(() => userProfile?.is_admin, [userProfile?.is_admin]);
