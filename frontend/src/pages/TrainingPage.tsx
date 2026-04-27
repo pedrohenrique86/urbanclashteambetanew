@@ -48,7 +48,7 @@ const TRAINING_OPTIONS = [
   },
   {
     id: "grande",
-    name: "PROTOCOLO DE ASSALTO",
+    name: "PROTOCOLO ASSALTO",
     description: "Intensidade máxima. Foco total em poder de ATAQUE (ATK) bruto e XP.",
     duration: 100,
     costs: { ap: 500, cash: 800, energy: 70 },
@@ -185,180 +185,178 @@ export default function TrainingPage() {
         </motion.div>
       </header>
 
-      <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8">
+      <div className="max-w-7xl mx-auto space-y-8">
         
-        {/* SIDEBAR: STATUS */}
-        <div className="lg:col-span-4 space-y-6 relative z-10">
-          
-          {/* DAILY LIMIT CARD */}
-          <div 
-            className="bg-black/40 backdrop-blur-md border border-cyan-500/30 shadow-[0_0_40px_rgba(34,211,238,0.1),inset_0_1px_rgba(255,255,255,0.1)] p-6 relative group overflow-hidden"
-            style={MILITARY_CLIP}
-          >
-            <div className="absolute top-0 right-0 p-2 opacity-20 group-hover:opacity-40 transition-opacity">
-              <ExclamationTriangleIcon className="w-12 h-12 text-white" />
-            </div>
-            <h3 className="text-[10px] font-orbitron text-cyan-500 mb-6 flex items-center gap-2 tracking-[0.3em]">
-              <div className="w-2 h-2 bg-cyan-500 shadow-[0_0_8px_rgba(6,182,212,1)]"></div> LIMIT_CAPACITY
-            </h3>
-            <div className="flex items-center gap-4">
-              <div className="flex-1">
-                <div className="flex items-end gap-2 mb-2">
-                  <span className="text-6xl font-black text-white font-orbitron leading-none">{trainingsLeft}</span>
-                  <span className="text-slate-400 font-bold uppercase text-[10px] tracking-widest mb-1">UNITS_AVAIL</span>
-                </div>
-                <div className="w-full bg-white/5 h-2 overflow-hidden border border-white/5">
-                  <motion.div 
-                    initial={{ width: 0 }}
-                    animate={{ width: `${(trainingsLeft / 8) * 100}%` }}
-                    className="h-full bg-cyan-500 shadow-[0_0_15px_rgba(6,182,212,0.6)] relative"
-                  >
-                    <div className="absolute inset-0 bg-[repeating-linear-gradient(45deg,transparent,transparent_5px,rgba(0,0,0,0.2)_5px,rgba(0,0,0,0.2)_10px)]"></div>
-                  </motion.div>
+        {/* SIDEBAR: STATUS - Agora como uma linha horizontal no topo ou integrada */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 relative z-10">
+          <div className="lg:col-span-12 grid grid-cols-1 md:grid-cols-2 gap-6">
+            
+            {/* DAILY LIMIT CARD */}
+            <div 
+              className="bg-black/40 backdrop-blur-md border border-cyan-500/30 shadow-[0_0_40px_rgba(34,211,238,0.1),inset_0_1px_rgba(255,255,255,0.1)] p-6 relative group overflow-hidden"
+              style={MILITARY_CLIP}
+            >
+              <div className="absolute top-0 right-0 p-2 opacity-20 group-hover:opacity-40 transition-opacity">
+                <ExclamationTriangleIcon className="w-12 h-12 text-white" />
+              </div>
+              <h3 className="text-[10px] font-orbitron text-cyan-500 mb-6 flex items-center gap-2 tracking-[0.3em]">
+                <div className="w-2 h-2 bg-cyan-500 shadow-[0_0_8px_rgba(6,182,212,1)]"></div> LIMIT_CAPACITY
+              </h3>
+              <div className="flex items-center gap-4">
+                <div className="flex-1">
+                  <div className="flex items-end gap-2 mb-2">
+                    <span className="text-6xl font-black text-white font-orbitron leading-none">{trainingsLeft}</span>
+                    <span className="text-slate-400 font-bold uppercase text-[10px] tracking-widest mb-1">UNITS_AVAIL</span>
+                  </div>
+                  <div className="w-full bg-white/5 h-2 overflow-hidden border border-white/5">
+                    <motion.div 
+                      initial={{ width: 0 }}
+                      animate={{ width: `${(trainingsLeft / 8) * 100}%` }}
+                      className="h-full bg-cyan-500 shadow-[0_0_15px_rgba(6,182,212,0.6)] relative"
+                    >
+                      <div className="absolute inset-0 bg-[repeating-linear-gradient(45deg,transparent,transparent_5px,rgba(0,0,0,0.2)_5px,rgba(0,0,0,0.2)_10px)]"></div>
+                    </motion.div>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
 
-          {/* ACTIVE STATUS */}
-          <AnimatePresence mode="wait">
-            {isTraining ? (
-              <motion.div 
-                key="active"
-                initial={{ opacity: 0, scale: 0.98 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.98 }}
-                className="bg-black/40 backdrop-blur-md border border-violet-500/40 shadow-[0_0_50px_rgba(139,92,246,0.15),inset_0_1px_rgba(255,255,255,0.1)] p-6 relative"
-                style={MILITARY_CLIP}
-              >
-                {/* Corner Markers */}
-                <div className="absolute top-2 left-2 w-3 h-3 border-t-2 border-l-2 border-violet-500/50"></div>
-                <div className="absolute top-2 right-2 w-3 h-3 border-t-2 border-r-2 border-violet-500/50"></div>
-                
-                <div className="flex items-start justify-between mb-8">
-                  <div>
-                    <h3 className="font-orbitron text-white text-xl font-black uppercase tracking-widest">Engaged</h3>
-                    <p className="text-cyan-400 text-[10px] font-mono uppercase tracking-[0.2em] mt-1">
-                      {TRAINING_OPTIONS.find(o => o.id === userProfile?.active_training_type)?.role}
-                    </p>
+            {/* ACTIVE STATUS */}
+            <AnimatePresence mode="wait">
+              {isTraining ? (
+                <motion.div 
+                  key="active"
+                  initial={{ opacity: 0, scale: 0.98 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.98 }}
+                  className="bg-black/40 backdrop-blur-md border border-violet-500/40 shadow-[0_0_50px_rgba(139,92,246,0.15),inset_0_1px_rgba(255,255,255,0.1)] p-6 relative"
+                  style={MILITARY_CLIP}
+                >
+                  {/* Corner Markers */}
+                  <div className="absolute top-2 left-2 w-3 h-3 border-t-2 border-l-2 border-violet-500/50"></div>
+                  <div className="absolute top-2 right-2 w-3 h-3 border-t-2 border-r-2 border-violet-500/50"></div>
+                  
+                  <div className="flex items-start justify-between mb-4">
+                    <div>
+                      <h3 className="font-orbitron text-white text-xl font-black uppercase tracking-widest leading-none">Engaged</h3>
+                      <p className="text-cyan-400 text-[10px] font-mono uppercase tracking-[0.2em] mt-1">
+                        {TRAINING_OPTIONS.find(o => o.id === userProfile?.active_training_type)?.role}
+                      </p>
+                    </div>
+                    <div className="bg-violet-500/20 p-2 border border-violet-500/30 animate-pulse">
+                      <ClockIcon className="w-5 h-5 text-violet-400" />
+                    </div>
                   </div>
-                  <div className="bg-violet-500/20 p-2 border border-violet-500/30 animate-pulse">
-                    <ClockIcon className="w-6 h-6 text-violet-400" />
-                  </div>
-                </div>
 
-                <div className="bg-black/60 p-6 border border-white/5 mb-6 text-center">
-                  <span className="text-[10px] text-slate-400 font-mono block mb-2 uppercase">Time_to_Completion</span>
-                  <p className="text-5xl font-orbitron font-black text-white tracking-tighter">
-                    {formatTime(timeLeft || 0)}
+                  <div className="flex items-center gap-6">
+                    <div className="flex-1 bg-black/60 p-4 border border-white/5 text-center">
+                      <span className="text-[10px] text-slate-400 font-mono block mb-1 uppercase">Time_Left</span>
+                      <p className="text-3xl font-orbitron font-black text-white tracking-tighter">
+                        {formatTime(timeLeft || 0)}
+                      </p>
+                    </div>
+
+                    <div className="space-y-2">
+                        <div className="bg-white/5 p-2 border border-white/5 min-w-[100px]">
+                          <span className="text-[8px] text-slate-400 block uppercase">Start</span>
+                          <span className="text-[10px] text-slate-300 font-mono">
+                            {new Date(new Date(userProfile?.training_ends_at || 0).getTime() - (TRAINING_OPTIONS.find(o => o.id === userProfile?.active_training_type)?.duration || 0) * 60000).toLocaleTimeString()}
+                          </span>
+                        </div>
+                        <div className="bg-white/5 p-2 border border-white/5 min-w-[100px]">
+                          <span className="text-[8px] text-slate-400 block uppercase">ETA</span>
+                          <span className="text-[10px] text-slate-300 font-mono">
+                            {new Date(userProfile?.training_ends_at || 0).toLocaleTimeString()}
+                          </span>
+                        </div>
+                    </div>
+                  </div>
+                </motion.div>
+              ) : (
+                <motion.div 
+                  key="idle"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="bg-black/40 backdrop-blur-md border-2 border-white/10 border-dashed p-6 flex items-center justify-center gap-6 text-center opacity-60"
+                  style={MILITARY_CLIP}
+                >
+                  <div className="w-12 h-12 rounded-full border border-white/10 flex items-center justify-center">
+                     <AcademicCapIcon className="w-6 h-6 text-slate-700" />
+                  </div>
+                  <p className="text-slate-400 font-mono text-[10px] uppercase tracking-widest leading-relaxed text-left">
+                    Status: Inativo<br/>Aguardando Instruções
                   </p>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="bg-white/5 p-2 border border-white/5">
-                    <span className="text-[8px] text-slate-400 block uppercase">Start_Log</span>
-                    <span className="text-[10px] text-slate-300 font-mono">
-                      {new Date(new Date(userProfile?.training_ends_at || 0).getTime() - (TRAINING_OPTIONS.find(o => o.id === userProfile?.active_training_type)?.duration || 0) * 60000).toLocaleTimeString()}
-                    </span>
-                  </div>
-                  <div className="bg-white/5 p-2 border border-white/5">
-                    <span className="text-[8px] text-slate-400 block uppercase">ETA_Log</span>
-                    <span className="text-[10px] text-slate-300 font-mono">
-                      {new Date(userProfile?.training_ends_at || 0).toLocaleTimeString()}
-                    </span>
-                  </div>
-                </div>
-              </motion.div>
-            ) : (
-              <motion.div 
-                key="idle"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="bg-black/40 backdrop-blur-md border-2 border-white/10 border-dashed p-10 flex flex-col items-center justify-center text-center opacity-60"
-                style={MILITARY_CLIP}
-              >
-                <div className="w-16 h-16 rounded-full border border-white/10 flex items-center justify-center mb-4">
-                   <AcademicCapIcon className="w-8 h-8 text-slate-700" />
-                </div>
-                <p className="text-slate-400 font-mono text-[10px] uppercase tracking-widest leading-relaxed">
-                  Status: Inativo<br/>Aguardando Instruções
-                </p>
-              </motion.div>
-            )}
-          </AnimatePresence>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
         </div>
 
         {/* MAIN: TRAINING OPTIONS */}
-        <div className="lg:col-span-8 space-y-4 relative z-10">
+        <div className="lg:col-span-12 grid grid-cols-1 md:grid-cols-3 gap-6 relative z-10">
           {TRAINING_OPTIONS.map((opt, idx) => (
             <motion.div
               key={opt.id}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 * idx }}
-              className={`group relative bg-black/40 backdrop-blur-md border transition-all duration-300 hover:bg-white/10 hover:-translate-y-1 shadow-[0_0_40px_rgba(34,211,238,0.1),inset_0_1px_rgba(255,255,255,0.1)]
+              className={`group relative bg-black/40 backdrop-blur-md border transition-all duration-300 hover:bg-white/5 hover:-translate-y-1 shadow-[0_0_40px_rgba(34,211,238,0.1),inset_0_1px_rgba(255,255,255,0.1)]
                 ${opt.id === 'grande' ? 'border-fuchsia-500/40 hover:border-fuchsia-400/60' : 
                   opt.id === 'medio' ? 'border-violet-500/40 hover:border-violet-400/60' : 
                   'border-cyan-500/40 hover:border-cyan-400/60'}`}
               style={MILITARY_CLIP}
             >
-              <div className="p-6 md:p-8 flex flex-col md:flex-row gap-8 items-stretch">
+              <div className="p-6 flex flex-col gap-6 text-center">
                 {/* ICON & ROLE */}
-                <div className="flex flex-col items-center justify-center gap-4 bg-black/40 p-6 border border-white/5 w-full md:w-40">
-                  <div className="p-4 bg-white/5 group-hover:scale-110 transition-transform shadow-inner border border-white/5">
+                <div className="flex flex-col items-center gap-3">
+                  <div className="p-4 bg-white/5 group-hover:scale-110 transition-transform shadow-inner border border-white/5 relative">
                     {opt.icon}
                   </div>
-                  <span className={`text-[10px] font-black text-center uppercase tracking-tighter
+                  <span className={`text-[10px] font-black uppercase tracking-tighter
                     ${opt.id === 'grande' ? 'text-fuchsia-400' : opt.id === 'medio' ? 'text-violet-400' : 'text-cyan-400'}`}>
                     {opt.role}
                   </span>
                 </div>
 
-                <div className="flex-1 flex flex-col justify-between space-y-6">
+                <div className="space-y-4">
                   <div>
-                    <div className="flex items-start justify-between gap-4 mb-2">
-                      <h3 className="text-2xl font-orbitron font-black text-white tracking-widest uppercase">{opt.name}</h3>
-                      <div className="flex items-center gap-2 bg-white/5 px-3 py-1 border border-white/10 font-mono text-xs">
-                        <ClockIcon className="w-4 h-4 text-slate-500" />
-                        <span className="text-white">{opt.duration}M</span>
-                      </div>
+                    <h3 className="text-lg font-orbitron font-black text-white tracking-wider uppercase mb-1">{opt.name}</h3>
+                    <div className="flex items-center justify-center gap-2 font-mono text-[10px]">
+                      <ClockIcon className="w-3 h-3 text-slate-500" />
+                      <span className="text-slate-300">{opt.duration} MINUTOS</span>
                     </div>
-                    <p className="text-slate-300 text-sm font-medium leading-relaxed italic border-l-2 border-white/10 pl-4">
-                      {opt.description}
-                    </p>
                   </div>
+                  
+                  <p className="text-slate-400 text-xs font-medium leading-relaxed italic h-12 flex items-center justify-center">
+                    {opt.description}
+                  </p>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-white/5">
+                  <div className="space-y-4 pt-4 border-t border-white/5">
                     {/* COSTS */}
-                    <div className="flex flex-wrap gap-2 items-center">
-                      <span className="text-[9px] text-slate-400 font-black uppercase tracking-widest w-full mb-1">Resource_Cost:</span>
-                      <div className="bg-red-500/10 border border-red-500/30 px-2 py-1 flex items-center gap-2">
-                        <BoltIcon className="w-3 h-3 text-red-500" />
-                        <span className="text-xs font-bold text-red-200">-{opt.costs.ap} AP</span>
+                    <div className="grid grid-cols-3 gap-2">
+                      <div className="bg-red-500/10 border border-red-500/20 p-2 flex flex-col items-center">
+                        <BoltIcon className="w-3 h-3 text-red-500 mb-1" />
+                        <span className="text-[10px] font-bold text-red-200">{opt.costs.ap} PA</span>
                       </div>
-                      <div className="bg-green-500/10 border border-green-500/30 px-2 py-1 flex items-center gap-2">
-                        <BanknotesIcon className="w-3 h-3 text-green-500" />
-                        <span className="text-xs font-bold text-green-200">${opt.costs.cash}</span>
+                      <div className="bg-green-500/10 border border-green-500/20 p-2 flex flex-col items-center">
+                        <BanknotesIcon className="w-3 h-3 text-green-500 mb-1" />
+                        <span className="text-[10px] font-bold text-green-200">${opt.costs.cash}</span>
                       </div>
-                      <div className="bg-yellow-500/10 border border-yellow-500/30 px-2 py-1 flex items-center gap-2">
-                        <FireIcon className="w-3 h-3 text-yellow-500" />
-                        <span className="text-xs font-bold text-yellow-200">-{opt.costs.energy}%</span>
+                      <div className="bg-yellow-500/10 border border-yellow-500/20 p-2 flex flex-col items-center">
+                        <FireIcon className="w-3 h-3 text-yellow-500 mb-1" />
+                        <span className="text-[10px] font-bold text-yellow-200">{opt.costs.energy}% EN</span>
                       </div>
                     </div>
 
                     {/* GAINS */}
-                    <div className="flex flex-wrap gap-2 items-center md:justify-end">
-                       <span className="text-[9px] text-slate-400 font-black uppercase tracking-widest w-full mb-1 md:text-right">Projected_Yield:</span>
-                       <div className="bg-white/5 border border-white/10 px-2 py-1 text-[11px] font-bold">
+                    <div className="flex flex-wrap gap-1 justify-center">
+                       <div className="bg-white/1 border border-white/10 px-2 py-0.5 text-[9px] font-bold">
                          <span className="text-cyan-400">+{opt.gains.atk}</span> ATK
                        </div>
-                       <div className="bg-white/5 border border-white/10 px-2 py-1 text-[11px] font-bold">
+                       <div className="bg-white/5 border border-white/10 px-2 py-0.5 text-[9px] font-bold">
                          <span className="text-cyan-400">+{opt.gains.def}</span> DEF
                        </div>
-                       <div className="bg-white/5 border border-white/10 px-2 py-1 text-[11px] font-bold">
-                         <span className="text-cyan-400">+{opt.gains.foc}</span> FOC
-                       </div>
-                       <div className="bg-white/5 border border-white/10 px-2 py-1 text-[11px] font-bold">
+                       <div className="bg-white/5 border border-white/10 px-2 py-0.5 text-[9px] font-bold">
                          <span className="text-cyan-400">+{opt.gains.xp}</span> XP
                        </div>
                     </div>
