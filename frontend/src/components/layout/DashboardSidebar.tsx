@@ -220,7 +220,7 @@ const GameClockDisplayWrapper: React.FC<{ isCollapsed: boolean }> = ({ isCollaps
   );
 };
 
-const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
+const DashboardSidebar: React.FC<DashboardSidebarProps> = React.memo(({
   onMobileClose,
   username,
   faction,
@@ -228,7 +228,8 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
   isAdmin,
 }) => {
   const { userProfile } = useUserProfileContext();
-  const playerStatus = userProfile?.status || 'Operacional';
+  // Extrai APENAS o status — evita re-render do sidebar ao mudar XP/dinheiro/energia
+  const playerStatus = useMemo(() => userProfile?.status || 'Operacional', [userProfile?.status]);
 
   const isPathBlocked = useCallback((path: string) => {
     if (playerStatus === 'Operacional') return false;
@@ -623,6 +624,8 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
     />
   </>
 );
-};
+});
+
+DashboardSidebar.displayName = 'DashboardSidebar';
 
 export default DashboardSidebar;

@@ -137,10 +137,36 @@ function mergePlayerStateIntoProfile(
   return next;
 }
 
+// ─── Cache helpers (localStorage) ─────────────────────────────────────────
+const PROFILE_CACHE_KEY = "uc_profile_cache";
+
+function readProfileCache(): UserProfile | null {
+  try {
+    const raw = localStorage.getItem(PROFILE_CACHE_KEY);
+    return raw ? (JSON.parse(raw) as UserProfile) : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeProfileCache(profile: UserProfile | null): void {
+  try {
+    if (profile) {
+      // Não persiste dados voláteis de sessão (toast pendente)
+      const { pending_training_toast: _, ...toStore } = profile;
+      localStorage.setItem(PROFILE_CACHE_KEY, JSON.stringify(toStore));
+    } else {
+      localStorage.removeItem(PROFILE_CACHE_KEY);
+    }
+  } catch { /* quota exceeded — ignora silenciosamente */ }
+}
+// ────────────────────────────────────────────────────────────────────────────
+
 export const UserProfileProvider = ({ children }: { children: ReactNode }) => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
-  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  // Inicializa com o cache do localStorage — exibe sidebar instantaneamente no F5
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(() => readProfileCache());
   const [loading, setLoading] = useState(false);
 
   const isFetching = useRef(false);
@@ -239,10 +265,12 @@ export const UserProfileProvider = ({ children }: { children: ReactNode }) => {
         const processed = processProfileData(profileData, user);
 
         setUserProfile(processed);
+        writeProfileCache(processed);   // ← persiste no localStorage
         fetchedForUser.current = user.id;
         return processed;
       } else {
         setUserProfile(null);
+        writeProfileCache(null);
         fetchedForUser.current = user.id;
         return null;
       }
@@ -286,6 +314,8 @@ export const UserProfileProvider = ({ children }: { children: ReactNode }) => {
 
   const handleLogout = useCallback(() => {
     HUDCache.clear();
+    writeProfileCache(null);   // ← limpa cache no logout
+    setUserProfile(null);
     logout().then(() => {
       navigate("/");
     });

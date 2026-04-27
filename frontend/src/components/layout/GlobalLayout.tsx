@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from "react";
+import React, { useRef, useEffect, useMemo } from "react";
 import { useLocation } from "react-router-dom";
 import TopBar from "./TopBar";
 import DashboardSidebar from "./DashboardSidebar";
@@ -27,6 +27,15 @@ const GlobalLayout: React.FC<GlobalLayoutProps> = ({ children }) => {
   const { currentPanel, closePanel, clearPanels, hasOpenPanel } = useHUD();
   const { showToast } = useToast();
   const completingRef = useRef(false);
+
+  // Estabiliza props do sidebar — evita re-render quando XP/dinheiro mudam
+  const sidebarUsername = useMemo(() => userProfile?.username, [userProfile?.username]);
+  const sidebarFaction = useMemo(
+    () => (userProfile?.faction?.name || userProfile?.faction) as "gangsters" | "guardas" | undefined,
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [userProfile?.faction]
+  );
+  const sidebarIsAdmin = useMemo(() => userProfile?.is_admin, [userProfile?.is_admin]);
 
   // SÊNIOR: Lógica de exibição do Blocker (Oculta se estiver na página de destino do status)
   const status = userProfile?.status || 'Operacional';
@@ -148,15 +157,10 @@ const GlobalLayout: React.FC<GlobalLayoutProps> = ({ children }) => {
       >
         <div className="hidden md:flex md:flex-shrink-0 z-20 h-full">
           <DashboardSidebar
-            username={userProfile?.username}
-            faction={
-              (userProfile?.faction?.name || userProfile?.faction) as
-              | "gangsters"
-              | "guardas"
-              | undefined
-            }
+            username={sidebarUsername}
+            faction={sidebarFaction}
             handleLogout={handleLogout}
-            isAdmin={userProfile?.is_admin}
+            isAdmin={sidebarIsAdmin}
           />
         </div>
 

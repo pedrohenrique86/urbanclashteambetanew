@@ -54,12 +54,27 @@ const TopBar: React.FC<TopBarProps> = ({ userProfile }) => {
     return { xpLvl, statsBonus, moneyBonus, totalStats, money };
   }, [userProfile]);
 
-  const formatCurrency = (n: number) => {
-    if (n < 100000) return n.toLocaleString("pt-BR");
-    if (n < 1000000) return `${(n / 1000).toFixed(1).replace(/\.0$/, "")}k`;
-    if (n < 1000000000) return `${(n / 1000000).toFixed(1).replace(/\.0$/, "")}M`;
-    if (n < 1000000000000) return `${(n / 1000000000).toFixed(1).replace(/\.0$/, "")}B`;
-    return `${(n / 1000000000000).toFixed(1).replace(/\.0$/, "")}T`;
+  const formatCurrency = (n: number): string => {
+    if (!isFinite(n) || isNaN(n)) return "0";
+
+    const abs = Math.abs(n);
+    const sign = n < 0 ? "-" : "";
+
+    // Formata com 1 casa decimal em pt-BR (vírgula) e remove ",0" desnecessário
+    const fmt = (val: number, divisor: number, suffix: string): string => {
+      const divided = val / divisor;
+      // Arredonda para 1 casa — se ficar >= 1000 sobe de nível automaticamente
+      const rounded = Math.round(divided * 10) / 10;
+      const formatted = rounded
+        .toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 1 });
+      return `${sign}${formatted}${suffix}`;
+    };
+
+    if (abs < 1_000)           return `${sign}${abs.toLocaleString("pt-BR")}`;
+    if (abs < 1_000_000)       return fmt(abs, 1_000,           "k");
+    if (abs < 1_000_000_000)   return fmt(abs, 1_000_000,       "M");
+    if (abs < 1_000_000_000_000) return fmt(abs, 1_000_000_000, "B");
+    return                            fmt(abs, 1_000_000_000_000, "T");
   };
 
   const metrics = useMemo(() => [
@@ -105,7 +120,7 @@ const TopBar: React.FC<TopBarProps> = ({ userProfile }) => {
       value: `$${formatCurrency(userProfile?.money ?? 0)}`, 
       className: "text-lime-400", 
       glowColor: "#84cc16", 
-      tooltip: `Total: $${(userProfile?.money ?? 0).toLocaleString("pt-BR")}` 
+      tooltip: `$${(userProfile?.money ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}` 
     },
   ], [userProfile, xpText, energyText, xpPercentage, energyPercentage, combat, levelBreakdown]);
 
@@ -153,9 +168,9 @@ const TopBar: React.FC<TopBarProps> = ({ userProfile }) => {
                     {/* Content Layer */}
                     <span
                       className={`relative z-10 font-orbitron font-black text-[10px] sm:text-xs ${metric.className} leading-none whitespace-nowrap`}
-                      style={{
-                        textShadow: `0 0 10px ${metric.glowColor}`,
-                      }}
+                      style={{ textShadow: `0 0 10px ${metric.glowColor}` }}
+                      data-tooltip-id={metric.tooltipId ?? "topbar-tooltip"}
+                      data-tooltip-content={metric.tooltipId ? undefined : metric.tooltip}
                     >
                       {metric.value}
                     </span>
