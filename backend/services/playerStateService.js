@@ -528,6 +528,24 @@ async function getPlayerState(userId) {
       finalState.status_ends_at = null;
     }
 
+    // SÊNIOR: Lazy Training Completion
+    // Se o treinamento já terminou, completamos agora na leitura (robusto a worker crashes/delays)
+    if (finalState && finalState.training_ends_at && finalState.active_training_type) {
+      const endsAt = new Date(finalState.training_ends_at);
+      if (!isNaN(endsAt.getTime()) && endsAt.getTime() <= Date.now()) {
+        try {
+          const trainingService = require("./trainingService");
+          // Para não bloquear a resposta primária com await pesado, executamos assíncrono
+          // Não importa se a resposta atual vai levemente desatualizada, pois SSE/Ranking atualizarão em ms.
+          setImmediate(async () => {
+            try {
+              await trainingService.completeTraining(userId);
+            } catch (ignored) {}
+          });
+        } catch (e) { }
+      }
+    }
+
     return finalState;
   }
 
@@ -569,7 +587,11 @@ async function updatePlayerState(userId, updates) {
 
     for (const [key, value] of Object.entries(updates)) {
       if (typeof value === "number") {
-        pipeline.hIncrBy(redisKey, key, value);
+        if (!Number.isInteger(value)) {
+          pipeline.hIncrByFloat(redisKey, key, value);
+        } else {
+          pipeline.hIncrBy(redisKey, key, value);
+        }
       } else {
         pipeline.hSet(redisKey, key, String(value));
       }
