@@ -467,7 +467,7 @@ export default function ReckoningPage() {
                              let result = [{ text: txt, highlight: false, className: "" }];
                              
                              namesToHighlight.forEach(h => {
-                                let newResult: any[] = [];
+                                const newResult: any[] = [];
                                 result.forEach(seg => {
                                    if (seg.highlight) {
                                       newResult.push(seg);
