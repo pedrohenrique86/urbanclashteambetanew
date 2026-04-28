@@ -103,6 +103,11 @@ export default function TrainingPage() {
         "success",
         7000
       );
+      if (res.unlock_acerto_de_contas) {
+        setTimeout(() => {
+          showToast("Spectro: Radar ativo. O Acerto de Contas foi liberado!", "success", 5000);
+        }, 1000);
+      }
       await refreshProfile();
     } catch (err: any) {
       // Em caso de erro, allow retry

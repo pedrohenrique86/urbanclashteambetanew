@@ -105,9 +105,13 @@ class TrainingService {
       active_training_type: "",
     };
 
+    const oldLevel = Number(state.level || 1);
     const newState = await playerStateService.updatePlayerState(userId, updates);
+    const newLevel = Number(newState.level || 1);
 
     playerStateService.cancelScheduledTraining(userId);
+
+    const isUnlock = oldLevel < 10 && newLevel >= 10;
 
     return {
       message: TRAINING_HUMOR[Math.floor(Math.random() * TRAINING_HUMOR.length)],
@@ -118,6 +122,7 @@ class TrainingService {
         level_bonus_pct: Math.round(Number(state.level || 1) * gameLogic.XP_SCALING.LEVEL_FACTOR * 100),
       },
       player: newState,
+      ...(isUnlock ? { unlock_acerto_de_contas: true } : {})
     };
   }
 }

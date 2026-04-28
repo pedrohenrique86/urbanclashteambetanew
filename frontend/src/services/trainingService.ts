@@ -19,6 +19,7 @@ export interface TrainingStartResponse {
 export interface TrainingCompleteResponse {
   message: string;
   gains: TrainingGains;
+  unlock_acerto_de_contas?: boolean;
 }
 
 export const trainingService = {

@@ -95,6 +95,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           title: "Acerto de Contas",
           path: "/reckoning",
           icon: <ShieldExclamationIcon className="w-5 h-5" />,
+          isNew: (userProfile?.level || 1) >= 10,
         },
         {
           title: "Guerra de Esquadrões",
@@ -325,6 +326,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
                             {subItem.icon}
                           </span>
                           <span>{subItem.title}</span>
+                          {(subItem as any).isNew && (
+                            <span className="ml-auto flex h-2 w-2 relative">
+                              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75"></span>
+                              <span className="relative inline-flex rounded-full h-2 w-2 bg-orange-500"></span>
+                            </span>
+                          )}
                         </button>
                       </li>
                     ))}

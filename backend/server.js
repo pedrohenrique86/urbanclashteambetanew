@@ -15,6 +15,7 @@ const cors = require("cors");
 
 const timeRoutes = require("./routes/time");
 const adminRoutes = require("./routes/admin");
+const combatRoutes = require("./routes/combat");
 // const gameRoutes = require("./routes/game"); // Replaced by Socket.IO
 const helmet = require("helmet");
 const morgan = require("morgan");
@@ -125,6 +126,7 @@ app.use("/api/training", trainingRoutes);
 app.use("/api/supply", supplyRoutes);
 app.use("/api/time", timeRoutes);
 app.use("/api/admin", adminRoutes);
+app.use("/api/combat", combatRoutes);
 // app.use("/api/game", gameRoutes); // Replaced by Socket.IO
 
 // Rota de health check
