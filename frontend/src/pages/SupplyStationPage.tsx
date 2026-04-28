@@ -8,7 +8,8 @@ import {
   ClockIcon,
   ShieldExclamationIcon,
 } from "@heroicons/react/24/outline";
-import { Coffee, Sandwich, UtensilsCrossed, Sparkles, Syringe, BatteryCharging, HeartPulse, Skull, FlaskConical } from "lucide-react";
+import { HelpCircle, Coffee, Sandwich, UtensilsCrossed, Sparkles, Syringe, BatteryCharging, HeartPulse, Skull, FlaskConical } from "lucide-react";
+import { Tooltip } from "react-tooltip";
 import { motion, AnimatePresence } from "framer-motion";
 
 /**
@@ -332,7 +333,7 @@ export default function SupplyStationPage() {
                      <div className="flex items-center gap-2">
                        <div className={`w-2 h-2 ${needsAntidote ? 'bg-cyan-500 shadow-[0_0_8px_rgba(34,211,238,1)]' : 'bg-slate-600'}`}></div> ANTIDOTE_SYSTEM
                      </div>
-                     <span className={`text-[9px] font-black font-orbitron tracking-[0.2em] leading-none mt-1 uppercase ${needsAntidote ? 'text-cyan-300/40' : 'text-slate-600'}`}>PURGAÇÃO QUÍMICA</span>
+                     <span className={`text-[9px] font-black font-orbitron tracking-[0.2em] leading-none mt-1 uppercase ${needsAntidote ? 'text-cyan-300/40' : 'text-slate-600'}`}>LIMPEZA QUÍMICA</span>
                    </h3>
                    <div className="flex flex-col flex-1">
                      <div className="flex items-end gap-2 mb-8">
@@ -340,6 +341,12 @@ export default function SupplyStationPage() {
                          {needsAntidote ? `$${antidoteCost.toLocaleString("pt-BR")}` : "---"}
                        </span>
                        <span className="text-slate-500 font-bold uppercase text-[10px] tracking-widest mb-0.5">DOSE</span>
+                       <div 
+                         className="mb-0.5 cursor-help"
+                         data-tooltip-id="antidote-formula-tooltip"
+                       >
+                         <HelpCircle className={`w-3 h-3 transition-colors ${needsAntidote ? 'text-blue-500' : 'text-slate-500/50 hover:text-cyan-400'}`} />
+                       </div>
                      </div>
                      
                      <button
@@ -546,6 +553,28 @@ export default function SupplyStationPage() {
           UrbanClash Tactical Interface v4.0.2
         </div>
       </footer>
+
+      {/* Tooltip da Fórmula do Antídoto */}
+      <Tooltip
+        id="antidote-formula-tooltip"
+        place="top"
+        style={{ zIndex: 9999 }}
+        className={`!bg-slate-900/95 !backdrop-blur-xl !rounded-xl !border ${
+          (userProfile?.toxicity || 0) > 0 ? "!border-blue-500/50 !shadow-[0_0_20px_rgba(59,130,246,0.3)]" : "!border-cyan-500/30 !shadow-[0_0_20px_rgba(34,211,238,0.2)]"
+        } !p-3 !max-w-[280px] !opacity-100`}
+        render={() => (
+          <div className="space-y-2 font-orbitron text-[10px] text-slate-300">
+            <p className={`${(userProfile?.toxicity || 0) > 0 ? "text-blue-400" : "text-cyan-400"} font-bold tracking-widest uppercase border-b border-white/10 pb-1`}>CÁLCULO DINÂMICO DE DOSE</p>
+            <div className="space-y-1 font-mono text-[9px]">
+              <p className="text-white/90">A dose é calculada com base na gravidade da intoxicação e maturidade da unidade:</p>
+              <div className={`bg-black/40 p-2 rounded border border-white/5 ${(userProfile?.toxicity || 0) > 0 ? "text-blue-400/80" : "text-cyan-400/80"}`}>
+                CUSTO = [100 + (NVL × 10)] + [TX × 5 × (1 + NVL/10)]
+              </div>
+              <p className="italic text-slate-500 mt-1">Quanto maior o nível e a toxicidade, maior o esforço químico necessário para desintoxicação.</p>
+            </div>
+          </div>
+        )}
+      />
     </div>
   );
 }
