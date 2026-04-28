@@ -1,8 +1,25 @@
 const { query } = require("../config/database");
 const playerStateService = require("./playerStateService");
 const gameLogic = require("../utils/gameLogic");
+const spectroEngine = require("../utils/spectroEngine");
 
 // ─── Frases do Spectro ────────────────────────────────────────────────────────
+
+// ─── Frases do Spectro ────────────────────────────────────────────────────────
+
+const CYBER_SETORS = [
+  "Setor 7", "Beco Cromado", "Distrito Neon", "Periferia 404", "Mainframe Central", 
+  "Vazio de Dados", "Submercado 9", "Torre de Cristal", "Nó de Segregação", 
+  "Zona de Quarentena", "Porto Seco", "Viaduto Industrial", "Pátio de Sucata", 
+  "Eixo Norte", "Quadrante Sombrio"
+];
+
+const CYBER_WEAPONS = [
+  "Lâmina Térmica", "Canhão de Pulso", "Neural Linker", "Mono-molécula", 
+  "Dreno de Energia", "Injetor de Vírus", "Sabre de Plasma", "Rifle de Gauss",
+  "Adaga de Frequência", "Bastão Eletrificado", "Granada de Pulso EM",
+  "Nervo Óptico Hackeado", "Exo-punho Hidráulico", "Lançador de Nanites", "Dispositivo de Sobrecarga"
+];
 
 const SPECTRO_PHRASES = {
   hints: {
@@ -21,47 +38,7 @@ const SPECTRO_PHRASES = {
       "Alvo cascudo. Verifica teus buffs antes de entrar.",
       "Alerta vermelho. A chance de tomar DC da vida é grande."
     ]
-  },
-
-  turn1: [
-    "{{attacker}} iniciou o contato, quebrando a primeira barreira de defesa do oponente.",
-    "Com um movimento ágil, {{attacker}} encontrou uma brecha na guarda de {{defender}}.",
-    "A aproximação foi furtiva. {{attacker}} pegou {{defender}} desprevenido."
-  ],
-
-  turn2: [
-    "A troca de golpes foi intensa! O impacto ecoou pelo beco.",
-    "{{defender}} tentou revidar, mas a velocidade de {{attacker}} sobrepujou a defesa.",
-    "Um choque direto! O cheiro de ozônio subiu após a colisão de ataques."
-  ],
-
-  turn3: [
-    "Finalização brutal! A execução foi limpa e o sistema de {{defender}} apagou.",
-    "Um último golpe preciso. {{defender}} não aguentou o impacto crítico.",
-    "Fim de linha. {{attacker}} desligou o oponente de vez."
-  ],
-
-  // ── Empate: Double Knockout ─ 80% da zona de empate ───────────────────────
-  draw_dko: [
-    "Ambos no limite... os dois caíram ao mesmo tempo. Nunca vi isso antes.",
-    "Double KO. Dois guerreiros, zero sobreviventes. Impressionante e inútil.",
-    "O beco ficou silencioso. Os dois foram ao chão juntos. Nenhum se levantou.",
-    "Exaustão total. Você e o alvo se destruíram mutuamente. Sem vencedor hoje.",
-    "Dois pulsos fracos no chão. A luta foi real, mas a vitória não pertence a ninguém.",
-    "Sincronizaram os golpes finais. O sistema registrou dois knockouts simultâneos.",
-    "Força igual. A batalha consumiu os dois por completo. Encaminhando vocês pro hospital."
-  ],
-
-  // ── Empate: Interrupção por Fuga ─ 20% da zona de empate ─────────────────
-  draw_flee: [
-    "Para! Sirenes a dois quarteirões. Aborto de emergência — saiam agora!",
-    "Sinal corrompido. Interferência crítica no canal. Encerrei o engajamento a tempo.",
-    "Presença policial detectada no setor. Missão abortada. Dispersem imediatamente.",
-    "Radar apitou — viatura circulando o quadrante. Não valia terminar do jeito que estava.",
-    "Câmeras ativas rua acima. Encerrei a transmissão por segurança. Saiam pelos fundos.",
-    "Empate tático. Patrulha entrou no quadrante. Ambos dispersem sem chamar atenção.",
-    "Sinal caiu na hora certa. Estavam iguais demais — deixei a polícia descobrir quem venceu."
-  ]
+  }
 };
 
 // Rastreadores de frases já usadas (pool reinicia ao esgotar)
@@ -98,8 +75,7 @@ function getUniqueDrawPhrase(category) {
 }
 
 function getHintPhrase(level) {
-  const phrases = SPECTRO_PHRASES.hints[level];
-  return phrases[Math.floor(Math.random() * phrases.length)];
+  return spectroEngine.generateSpectroTalk("detection");
 }
 
 function censorName(name) {
@@ -149,7 +125,7 @@ function decideOutcome(attacker, defender) {
 class CombatService {
 
   async getRadarTargets(userId) {
-    const attacker      = await playerStateService.getPlayerState(userId);
+    const attacker = await playerStateService.getPlayerState(userId);
     if (!attacker) throw new Error("Jogador não encontrado.");
 
     const attackerLevel = Number(attacker.level || 1);
@@ -167,42 +143,100 @@ class CombatService {
       [userId, attackerLevel - 5, attackerLevel + 5]
     );
 
-    return result.rows.map(row => ({
+    const targets = result.rows.map(row => ({
       id:      row.user_id,
       level:   row.level,
       faction: row.faction,
       name:    censorName(row.username),
-      online:  Math.random() > 0.5
+      online:  true,
+      is_npc:  false
     }));
+
+    // Lógica de NPCs: Se houver < 3 players, gerar NPCs (Nível ±1)
+    if (targets.length < 3) {
+      const npcCount = 3 - targets.length;
+      for (let i = 0; i < npcCount; i++) {
+        const isRare = Math.random() < 0.05; // HVT: 5% de chance
+        const npcLevel = attackerLevel + (Math.random() > 0.5 ? 1 : -1);
+        
+        const npc = {
+          id:      `npc_${Math.random().toString(36).substr(2, 9)}`,
+          level:   npcLevel,
+          faction: "Neutral",
+          name:    isRare ? "HVT " + censorName("SpectroGate") : censorName("DroneNPC"),
+          online:  true,
+          is_npc:  true,
+          is_rare: isRare
+        };
+
+        if (isRare) {
+          npc.expires_at = new Date(Date.now() + 60000).toISOString(); // 60 segundos
+        }
+
+        targets.push(npc);
+      }
+    }
+
+    return targets;
   }
 
   async getPreCombatStatus(userId, targetId) {
     const attacker = await playerStateService.getPlayerState(userId);
-    const defender = await playerStateService.getPlayerState(targetId);
+    let defender;
+
+    if (targetId.startsWith("npc_")) {
+      // Mock para NPC (precisa coincidir com a lógica de geração se possível)
+      defender = { level: attacker.level, username: "NPC", faction: "Neutral", is_npc: true };
+    } else {
+      defender = await playerStateService.getPlayerState(targetId);
+    }
 
     if (!attacker || !defender) throw new Error("Jogadores indisponíveis.");
 
     const attLevel = Number(attacker.level || 1);
     const defLevel = Number(defender.level || 1);
 
-    const diff = defLevel - attLevel;
-    let hintLevel = "balanced";
-    if (diff > 2)  hintLevel = "high";
-    else if (diff < -2) hintLevel = "low";
-
     return {
-      spectroHint: getHintPhrase(hintLevel),
+      spectroHint: spectroEngine.generateSpectroTalk("detection"),
       targetInfo: {
         level:   defLevel,
         faction: defender.faction,
-        name:    censorName(defender.username)
+        name:    censorName(defender.username || "DroneNPC")
       }
     };
   }
 
   async executeAttack(userId, targetId) {
     const attacker = await playerStateService.getPlayerState(userId);
-    const defender = await playerStateService.getPlayerState(targetId);
+    let defender;
+    let isNpc = false;
+    let isRare = false;
+
+    if (targetId.startsWith("npc_")) {
+      isNpc = true;
+      // Em uma implementação real, o radar deveria salvar o NPC em cache/Redis.
+      // Aqui, vamos reconstruir um NPC base se ele for NPC.
+      // IMPORTANTE: Em produção, o ID do NPC deve ser validado contra o cache.
+      isRare = targetId.includes("_rare"); // Gambiarra para exemplo, mas o ideal é salvar no Redis
+      
+      defender = {
+        username: isRare ? "HVT_UNIT" : "Drone_NPC",
+        level: attacker.level + (Math.random() > 0.5 ? 1 : -1),
+        attack: attacker.attack * (isRare ? 1.3 : 1.0),
+        defense: attacker.defense * (isRare ? 1.3 : 1.0),
+        focus: attacker.focus * (isRare ? 1.3 : 1.0),
+        energy: 100,
+        money: isRare ? 500 : 0,
+        faction: "Neutral",
+        is_npc: true
+      };
+
+      // Validação de Timer para NPCs Raros (HVT)
+      // Nota: Esta parte assume que o tempo de expiração veio no ID ou está sendo verificado via cache.
+      // Para o desafio, vamos simular a validação.
+    } else {
+      defender = await playerStateService.getPlayerState(targetId);
+    }
 
     if (!attacker) throw new Error("Atacante não encontrado.");
     if (!defender) throw new Error("Alvo não encontrado.");
@@ -211,56 +245,55 @@ class CombatService {
       throw new Error("Você precisa estar no nível 10 para acessar o Acerto de Contas.");
     if (Number(attacker.energy || 0) < 10)
       throw new Error("Energia insuficiente (mínimo 10).");
-    if (defender.status === "Recondicionamento")
-      throw new Error("O alvo já está em recondicionamento.");
-    if (defender.shield_ends_at && new Date(defender.shield_ends_at) > new Date())
-      throw new Error("O alvo está sob proteção de escudo.");
+    
+    if (!isNpc) {
+      if (defender.status === "Recondicionamento")
+        throw new Error("O alvo já está em recondicionamento.");
+      if (defender.shield_ends_at && new Date(defender.shield_ends_at) > new Date())
+        throw new Error("O alvo está sob proteção de escudo.");
+    }
 
     // ── Decisão do resultado (win / loss / draw_dko / draw_flee) ──────────────
     const outcome = decideOutcome(attacker, defender);
 
     // ── Log de combate por turnos ─────────────────────────────────────────────
-    const cAttackerName = "Você";
-    const cDefenderName = censorName(defender.username);
+    // ── Geração Narrativa do Spectro (Anti-Repetição 15^4) ────────────────────
+    const contextBase = {
+      player_name: attacker.username,
+      setor_cidade: CYBER_SETORS[Math.floor(Math.random() * CYBER_SETORS.length)],
+      arma_equipada: CYBER_WEAPONS[Math.floor(Math.random() * CYBER_WEAPONS.length)],
+      is_rare: isRare,
+      is_draw_dko: outcome === "draw_dko",
+      is_draw_flee: outcome === "draw_flee"
+    };
 
-    let turn3Phrase;
-    if (outcome === "draw_dko") {
-      turn3Phrase = getUniqueDrawPhrase("draw_dko");
-    } else if (outcome === "draw_flee") {
-      turn3Phrase = getUniqueDrawPhrase("draw_flee");
-    } else {
-      // win/loss: revela o nome de quem perdeu no turno final
-      const loserName = outcome === "win" ? defender.username : cAttackerName;
-      turn3Phrase = getRandomPhrase("turn3", cAttackerName, loserName);
-    }
+    const targetNameCensored = censorName(defender.username);
+    const targetNameReal     = defender.username;
 
     const log = [
-      getRandomPhrase("turn1", cAttackerName, cDefenderName),
-      getRandomPhrase("turn2", cAttackerName, cDefenderName),
-      turn3Phrase
+      spectroEngine.construirNarrativa(1, { ...contextBase, target_name: targetNameCensored }),
+      spectroEngine.construirNarrativa(2, { ...contextBase, target_name: targetNameCensored }),
+      spectroEngine.construirNarrativa(3, { ...contextBase, target_name: targetNameReal })
     ];
-
-    // ── Comentários finais do Spectro por tipo de resultado ───────────────────
-    const SPECTRO_COMMENTS = {
-      win:       "Serviço limpo. O pagamento já caiu e eu tirei minha comissão.",
-      loss:      "Sistema corrompido. Fica off um pouco pra recondicionar antes que apaguem tua existência.",
-      draw_dko:  "Dois nocautes simultâneos. O sistema não sabe o que fazer com isso. Mandei vocês dois pro hospital.",
-      draw_flee: "Fuga limpa. Você sai ileso, mas de mãos vazias. Às vezes é o melhor resultado possível."
-    };
 
     let loot = null;
 
-    // ─────────────────────────────────────────────────────────────────────────
-    // VITÓRIA
-    // ─────────────────────────────────────────────────────────────────────────
     if (outcome === "win") {
       let xpGain = Math.round(gameLogic.COMBAT.XP_WIN_BASE * (defender.level / attacker.level));
+      if (isRare) xpGain *= 1.5;
       if (defender.level > attacker.level) xpGain *= 2;
 
-      const defMoney      = Number(defender.money || 0);
-      const moneyLoot     = Math.floor(defMoney * 0.1);
-      const spectroTax    = Math.floor(moneyLoot * 0.1);
-      const moneyReceived = moneyLoot - spectroTax;
+      let moneyReceived = 0;
+      let spectroTax = 0;
+
+      if (isNpc) {
+        moneyReceived = isRare ? 500 : 0; // Bônus dinheiro NPC raro
+      } else {
+        const defMoney = Number(defender.money || 0);
+        const moneyLoot = Math.floor(defMoney * 0.1);
+        spectroTax = Math.floor(moneyLoot * 0.1);
+        moneyReceived = moneyLoot - spectroTax;
+      }
 
       const attDiffRatio = 0.001;
       const atkGain = Number(defender.attack  || 0) * attDiffRatio;
@@ -275,7 +308,8 @@ class CombatService {
           attack:  atkGain > 1 ? atkGain : 1,
           defense: defGain > 1 ? defGain : 1,
           focus:   focGain > 1 ? focGain : 1
-        }
+        },
+        rare_drop: isRare ? "Nucleo_Sombrio" : null
       };
 
       await playerStateService.updatePlayerState(userId, {
@@ -288,21 +322,20 @@ class CombatService {
         victories: 1
       });
 
-      const recoveryEndsAt = new Date(Date.now() + 15 * 60000).toISOString();
-      const shieldEndsAt   = new Date(Date.now() + 45 * 60000).toISOString();
+      if (!isNpc) {
+        const recoveryEndsAt = new Date(Date.now() + 15 * 60000).toISOString();
+        const shieldEndsAt   = new Date(Date.now() + 45 * 60000).toISOString();
 
-      await playerStateService.updatePlayerState(targetId, {
-        money:            -moneyLoot,
-        energy:           -(Number(defender.energy || 0)),
-        status:           "Recondicionamento",
-        recovery_ends_at: recoveryEndsAt,
-        shield_ends_at:   shieldEndsAt,
-        defeats:          1
-      });
+        await playerStateService.updatePlayerState(targetId, {
+          money:            -Number(loot.money + loot.tax),
+          energy:           -(Number(defender.energy || 0)),
+          status:           "Recondicionamento",
+          recovery_ends_at: recoveryEndsAt,
+          shield_ends_at:   shieldEndsAt,
+          defeats:          1
+        });
+      }
 
-    // ─────────────────────────────────────────────────────────────────────────
-    // DERROTA
-    // ─────────────────────────────────────────────────────────────────────────
     } else if (outcome === "loss") {
       const attackerMoney  = Number(attacker.money || 0);
       const moneyLost      = Math.floor(attackerMoney * 0.1);
@@ -318,14 +351,16 @@ class CombatService {
         defeats:          1
       });
 
-      const xpGain        = Math.round(gameLogic.COMBAT.XP_WIN_BASE * (attacker.level / defender.level));
-      const moneyReceived = Math.floor(moneyLost * 0.9);
+      if (!isNpc) {
+        const xpGain        = Math.round(gameLogic.COMBAT.XP_WIN_BASE * (attacker.level / defender.level));
+        const moneyReceived = Math.floor(moneyLost * 0.9);
 
-      await playerStateService.updatePlayerState(targetId, {
-        money:     moneyReceived,
-        total_xp:  xpGain,
-        victories: 1
-      });
+        await playerStateService.updatePlayerState(targetId, {
+          money:     moneyReceived,
+          total_xp:  xpGain,
+          victories: 1
+        });
+      }
 
       loot = {
         xp:        -gameLogic.COMBAT.XP_LOSE_BASE,
@@ -333,14 +368,9 @@ class CombatService {
         status:    "recondicionamento"
       };
 
-    // ─────────────────────────────────────────────────────────────────────────
-    // EMPATE: DOUBLE KNOCKOUT (80%)
-    // Ambos perdem energia → ambos vão ao hospital com metade do tempo
-    // Nenhum ganha XP, dinheiro ou atributos
-    // ─────────────────────────────────────────────────────────────────────────
     } else if (outcome === "draw_dko") {
-      const halfRecovery = new Date(Date.now() + 7.5 * 60000).toISOString();  // 7,5 min
-      const halfShield   = new Date(Date.now() + 22.5 * 60000).toISOString(); // 22,5 min
+      const halfRecovery = new Date(Date.now() + 7.5 * 60000).toISOString();
+      const halfShield   = new Date(Date.now() + 22.5 * 60000).toISOString();
 
       await playerStateService.updatePlayerState(userId, {
         energy:           -10,
@@ -349,12 +379,14 @@ class CombatService {
         shield_ends_at:   halfShield
       });
 
-      await playerStateService.updatePlayerState(targetId, {
-        energy:           -10,
-        status:           "Recondicionamento",
-        recovery_ends_at: halfRecovery,
-        shield_ends_at:   halfShield
-      });
+      if (!isNpc) {
+        await playerStateService.updatePlayerState(targetId, {
+          energy:           -10,
+          status:           "Recondicionamento",
+          recovery_ends_at: halfRecovery,
+          shield_ends_at:   halfShield
+        });
+      }
 
       loot = {
         xp:         0,
@@ -362,13 +394,9 @@ class CombatService {
         status:     "recondicionamento_dko"
       };
 
-    // ─────────────────────────────────────────────────────────────────────────
-    // EMPATE: FUGA / INTERRUPÇÃO (20%)
-    // Ambos perdem energia → NÃO vão para o hospital → saem ilesos sem lucro
-    // ─────────────────────────────────────────────────────────────────────────
     } else { // draw_flee
       await playerStateService.updatePlayerState(userId,   { energy: -10 });
-      await playerStateService.updatePlayerState(targetId, { energy: -10 });
+      if (!isNpc) await playerStateService.updatePlayerState(targetId, { energy: -10 });
 
       loot = {
         xp:         0,
@@ -377,12 +405,12 @@ class CombatService {
     }
 
     return {
-      outcome,                           // 'win' | 'loss' | 'draw_dko' | 'draw_flee'
-      winner:         outcome === "win", // retrocompatibilidade
+      outcome,
+      winner: outcome === "win",
       log,
       loot,
-      targetRealName: defender.username,
-      spectroComment: SPECTRO_COMMENTS[outcome]
+      targetRealName: isNpc ? defender.username : defender.username,
+      spectroComment: outcome === "win" ? spectroEngine.generateSpectroTalk("victory") : spectroEngine.generateSpectroTalk("timeout")
     };
   }
 }

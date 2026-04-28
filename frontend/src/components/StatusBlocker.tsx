@@ -19,7 +19,8 @@ const StatusBlocker: React.FC = () => {
         '/clan',
         '/vip-access',
         '/season',
-        '/ranking'
+        '/ranking',
+        '/reckoning'
     ];
     const isWhitelisted = whitelist.some(p => location.pathname === p || location.pathname.startsWith(p + '/'));
 

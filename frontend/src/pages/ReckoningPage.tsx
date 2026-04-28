@@ -10,8 +10,10 @@ import {
   UserCircleIcon, 
   ExclamationTriangleIcon,
   FingerPrintIcon,
-  CpuChipIcon
+  CpuChipIcon,
+  StarIcon
 } from "@heroicons/react/24/outline";
+import NPCCountdown from "../components/combat/NPCCountdown";
 
 const MILITARY_CLIP = { clipPath: "polygon(8px 0%, 100% 0%, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0% 100%, 0% 8px)" };
 
@@ -59,9 +61,11 @@ export default function ReckoningPage() {
       
       const result = await combatService.attack(selectedTarget.id);
       
-      // Simulating combat turns logic
+      // Dynamic delay: NPCs are fast, PvP is immersive
+      const turnDelay = selectedTarget.is_npc ? 600 : 1800;
+      
       for (let i = 0; i < result.log.length; i++) {
-        await new Promise(r => setTimeout(r, 1500)); // 1.5 sec delay per turn
+        await new Promise(r => setTimeout(r, turnDelay));
         setBattleLog(prev => [...prev, result.log[i]]);
       }
       
@@ -141,38 +145,54 @@ export default function ReckoningPage() {
                    <div 
                      key={tgt.id}
                      onClick={() => !loadingPreCalc && handleSelectTarget(tgt)}
-                     className={`cursor-pointer group relative bg-black/60 backdrop-blur-md border border-slate-800 hover:bg-slate-900 transition-all duration-300 ${loadingPreCalc ? 'opacity-50 pointer-events-none' : 'hover:border-red-500/50 shadow-[0_0_20px_rgba(220,38,38,0)] hover:shadow-[0_0_20px_rgba(220,38,38,0.2)]'}`}
+                     className={`cursor-pointer group relative bg-black/60 backdrop-blur-md border transition-all duration-300 
+                       ${tgt.is_rare ? 'border-red-500 shadow-[0_0_15px_rgba(220,38,38,0.3)]' : 'border-slate-800'}
+                       ${loadingPreCalc ? 'opacity-50 pointer-events-none' : 'hover:border-red-500/50 hover:bg-slate-900 shadow-[0_0_20px_rgba(220,38,38,0)] hover:shadow-[0_0_20px_rgba(220,38,38,0.2)]'}`}
                      style={MILITARY_CLIP}
                    >
+                     {tgt.is_rare && (
+                       <div className="absolute top-0 left-0 bg-red-600 text-white text-[8px] font-black px-2 py-0.5 tracking-tighter z-10">
+                         RARE_HVT
+                       </div>
+                     )}
                      {tgt.online && (
                        <div className="absolute top-3 right-3 flex items-center gap-1.5">
-                         <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                         <span className="text-[8px] font-mono text-emerald-400">ONLINE</span>
+                         <span className={`w-2 h-2 rounded-full animate-pulse ${tgt.is_rare ? 'bg-red-500' : 'bg-emerald-500'}`}></span>
+                         <span className={`text-[8px] font-mono ${tgt.is_rare ? 'text-red-400' : 'text-emerald-400'}`}>{tgt.is_rare ? 'SINAL_INSTÁVEL' : 'ONLINE'}</span>
                        </div>
                      )}
                      <div className="p-5 flex flex-col gap-4">
                         <div className="flex items-center gap-3">
-                          <div className="w-12 h-12 bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-600 group-hover:text-red-500 transition-colors">
-                            <UserCircleIcon className="w-8 h-8" />
+                          <div className={`w-12 h-12 bg-slate-900 border flex items-center justify-center transition-colors
+                            ${tgt.is_rare ? 'border-red-500/50 text-red-500' : 'border-slate-800 text-slate-600 group-hover:text-red-500'}`}>
+                            {tgt.is_rare ? <ExclamationTriangleIcon className="w-8 h-8 animate-pulse" /> : <UserCircleIcon className="w-8 h-8" />}
                           </div>
                           <div>
-                            <p className="text-[10px] uppercase font-mono text-slate-500">IDENTIDADE (ENCRIPTADA)</p>
-                            <h3 className="font-orbitron font-black text-white text-lg tracking-widest">{tgt.name}</h3>
+                            <p className="text-[10px] uppercase font-mono text-slate-500">{tgt.is_npc ? 'ALVO_SINTÉTICO' : 'IDENTIDADE (ENCRIPTADA)'}</p>
+                            <h3 className={`font-orbitron font-black text-lg tracking-widest ${tgt.is_rare ? 'text-red-500' : 'text-white'}`}>{tgt.name}</h3>
                           </div>
                         </div>
+                        
                         <div className="grid grid-cols-2 gap-2 mt-2">
                            <div className="bg-white/5 border border-white/5 p-2 flex flex-col items-center">
                               <span className="text-[8px] font-black uppercase text-slate-400">NÍVEL_LVL</span>
                               <span className="font-mono text-sm text-white">{tgt.level}</span>
                            </div>
                            <div className="bg-white/5 border border-white/5 p-2 flex flex-col items-center">
-                              <span className="text-[8px] font-black uppercase text-slate-400">FACÇÃO</span>
-                              <span className="font-mono text-sm text-white capitalize">{tgt.faction || 'Neutro'}</span>
+                              <span className="text-[8px] font-black uppercase text-slate-400">STATUS</span>
+                              <span className={`font-mono text-[10px] capitalize ${tgt.is_rare ? 'text-red-400' : 'text-slate-400'}`}>
+                                {tgt.is_rare ? 'VOLÁTIL' : 'LOCALIZADO'}
+                              </span>
                            </div>
                         </div>
+
+                        {tgt.expires_at && (
+                          <NPCCountdown expiresAt={tgt.expires_at} onExpire={() => mutate()} />
+                        )}
                      </div>
-                     <div className="bg-slate-900 border-t border-slate-800 p-2 text-center text-[10px] font-mono text-slate-500 group-hover:text-red-400 transition-colors">
-                       CLIQUE PARA RASTREAR...
+                     <div className={`bg-slate-900 border-t border-slate-800 p-2 text-center text-[10px] font-mono transition-colors
+                       ${tgt.is_rare ? 'text-red-400 font-black' : 'text-slate-500 group-hover:text-red-400'}`}>
+                       {tgt.is_rare ? '>>> INTERCEPTAR_AGORA <<<' : 'CLIQUE PARA RASTREAR...'}
                      </div>
                    </div>
                  ))}
@@ -323,6 +343,16 @@ export default function ReckoningPage() {
                         <div className="flex flex-col items-center">
                            <span className="text-[9px] uppercase font-mono text-slate-500">Roubo FOC</span>
                            <span className="text-cyan-400 font-bold font-mono">+{finalResult.loot.stats.focus.toFixed(1)}</span>
+                        </div>
+                      </div>
+                    )}
+
+                    {finalResult.loot?.rare_drop && (
+                      <div className="col-span-2 md:col-span-4 bg-red-500/10 border border-red-500/30 p-2 mt-2 flex items-center justify-center gap-4">
+                        <StarIcon className="w-5 h-5 text-yellow-400 animate-bounce" />
+                        <div className="text-left">
+                          <span className="text-[8px] font-mono text-red-500 block uppercase">ITEM_RARIDADE_S</span>
+                          <span className="text-white font-orbitron font-black text-xs uppercase tracking-widest">{finalResult.loot.rare_drop}</span>
                         </div>
                       </div>
                     )}

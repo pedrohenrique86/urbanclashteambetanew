@@ -6,6 +6,9 @@ export interface RadarTarget {
   faction: string;
   name: string;
   online: boolean;
+  is_npc?: boolean;
+  is_rare?: boolean;
+  expires_at?: string;
 }
 
 export interface PreCombatInfo {
@@ -29,6 +32,7 @@ export interface CombatLoot {
   moneyLost?: number;
   status?: string;
   energyLost?: number;
+  rare_drop?: string;
 }
 
 /** Resultado possível de um combate 1x1 */
