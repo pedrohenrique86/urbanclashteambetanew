@@ -62,7 +62,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, requiresFacti
   const status = userProfile?.status || 'Operacional';
   
   // Whitelist contextual: Libera apenas a página relacionada ao status restrito
-  let authorizedPages = [...globalWhitelist];
+  const authorizedPages = [...globalWhitelist];
   if (status === 'Isolamento') authorizedPages.push('/isolation');
   if (status === 'Recondicionamento') authorizedPages.push('/recovery-base');
   if (status === 'Aprimoramento') authorizedPages.push('/training');

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import useSWR from "swr";
 import { useNavigate } from "react-router-dom";
 import { combatService, RadarTarget, PreCombatInfo, CombatResult } from "../services/combatService";
@@ -35,6 +35,13 @@ export default function ReckoningPage() {
   const [redirectCountdown, setRedirectCountdown] = useState<number | null>(null);
   const navigate = useNavigate();
 
+  const closeResult = useCallback(() => {
+    setCombatPhase("radar");
+    setSelectedTarget(null);
+    setPreCalc(null);
+    mutate(); // Refresh radar
+  }, [mutate]);
+
   // Countdown para redirecionamento automático pós-luta
   useEffect(() => {
     if (combatPhase === "result" && finalResult) {
@@ -55,7 +62,7 @@ export default function ReckoningPage() {
       }, 1000);
       return () => clearInterval(timer);
     }
-  }, [combatPhase, finalResult, navigate]);
+  }, [combatPhase, finalResult, navigate, closeResult]);
   
   const handleSelectTarget = async (target: RadarTarget) => {
     if ((userProfile?.energy || 0) < 100) {
@@ -125,12 +132,7 @@ export default function ReckoningPage() {
     }
   };
 
-  const closeResult = () => {
-    setCombatPhase("radar");
-    setSelectedTarget(null);
-    setPreCalc(null);
-    mutate(); // Refresh radar
-  };
+
 
   if (userProfile?.status === "Recondicionamento") {
     return (
