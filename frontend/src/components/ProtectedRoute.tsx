@@ -47,8 +47,8 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, requiresFacti
   }
 
   // DECISÃO 4: BLOQUEIO DE STATUS (Route Guard Global)
-  // Whitelist de páginas acessíveis mesmo com restrição
-  const whitelist = [
+  // Whitelist de páginas acessíveis indepedente do status (Menu, Perfil, etc)
+  const globalWhitelist = [
     '/dashboard',
     '/digital-identity',
     '/social-zone',
@@ -56,27 +56,28 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, requiresFacti
     '/vip-access',
     '/season',
     '/ranking',
-    '/reckoning'
+    '/profile'
   ];
 
   const status = userProfile?.status || 'Operacional';
   
   // Whitelist contextual: Libera apenas a página relacionada ao status restrito
-  if (status === 'Isolamento') whitelist.push('/isolation');
-  if (status === 'Recondicionamento') whitelist.push('/recovery-base');
-  if (status === 'Aprimoramento') whitelist.push('/training');
+  let authorizedPages = [...globalWhitelist];
+  if (status === 'Isolamento') authorizedPages.push('/isolation');
+  if (status === 'Recondicionamento') authorizedPages.push('/recovery-base');
+  if (status === 'Aprimoramento') authorizedPages.push('/training');
 
-  const isWhitelisted = whitelist.some(p => location.pathname === p || location.pathname.startsWith(p + '/'));
+  const isAuthorized = authorizedPages.some(p => location.pathname === p || location.pathname.startsWith(p + '/'));
 
-  if (status !== 'Operacional' && !isWhitelisted) {
+  if (status !== 'Operacional' && !isAuthorized) {
     if (import.meta.env.DEV) {
       console.warn(`[RouteGuard] Acesso negado: ${location.pathname} bloqueado para status: ${status}`);
     }
     
-    // Se for Aprimoramento, redireciona para a página de treino
-    if (status === 'Aprimoramento') {
-      return <Navigate to="/training" state={{ from: location, statusBlock: true }} replace />;
-    }
+    // Redirecionamento forçado baseado no status
+    if (status === 'Recondicionamento') return <Navigate to="/recovery-base" replace />;
+    if (status === 'Aprimoramento') return <Navigate to="/training" replace />;
+    if (status === 'Isolamento') return <Navigate to="/isolation" replace />;
 
     return <Navigate to="/dashboard" state={{ from: location, statusBlock: true }} replace />;
   }

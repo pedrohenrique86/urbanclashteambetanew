@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import useSWR from "swr";
+import { useNavigate } from "react-router-dom";
 import { combatService, RadarTarget, PreCombatInfo, CombatResult } from "../services/combatService";
 import { useUserProfile } from "../hooks/useUserProfile";
 import { useToast } from "../contexts/ToastContext";
@@ -11,7 +12,8 @@ import {
   ExclamationTriangleIcon,
   FingerPrintIcon,
   CpuChipIcon,
-  StarIcon
+  StarIcon,
+  ClockIcon
 } from "@heroicons/react/24/outline";
 import NPCCountdown from "../components/combat/NPCCountdown";
 
@@ -30,8 +32,36 @@ export default function ReckoningPage() {
   const [combatPhase, setCombatPhase] = useState<"radar" | "precalc" | "fighting" | "result">("radar");
   const [battleLog, setBattleLog] = useState<string[]>([]);
   const [finalResult, setFinalResult] = useState<CombatResult | null>(null);
+  const [redirectCountdown, setRedirectCountdown] = useState<number | null>(null);
+  const navigate = useNavigate();
+
+  // Countdown para redirecionamento automático pós-luta
+  useEffect(() => {
+    if (combatPhase === "result" && finalResult) {
+      setRedirectCountdown(10);
+      const timer = setInterval(() => {
+        setRedirectCountdown(prev => {
+          if (prev === null || prev <= 1) {
+            clearInterval(timer);
+            if (finalResult.winner) {
+              closeResult(); // Volta para o radar
+            } else {
+              navigate("/recovery-base"); // Manda para a base de recuperação
+            }
+            return null;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+      return () => clearInterval(timer);
+    }
+  }, [combatPhase, finalResult, navigate]);
   
   const handleSelectTarget = async (target: RadarTarget) => {
+    if ((userProfile?.energy || 0) < 100) {
+      showToast("Energia insuficiente. Recarregue para 100% para abrir o rastreador.", "warning");
+      return;
+    }
     setSelectedTarget(target);
     setLoadingPreCalc(true);
     try {
@@ -54,6 +84,10 @@ export default function ReckoningPage() {
 
   const handleAttack = async () => {
     if (!selectedTarget) return;
+    if ((userProfile?.energy || 0) < 100) {
+      showToast("Protocolo Negado: Você precisa de 100% de energia para iniciar um Acerto de Contas.", "error");
+      return;
+    }
     try {
       setCombatPhase("fighting");
       setBattleLog([]);
@@ -61,8 +95,8 @@ export default function ReckoningPage() {
       
       const result = await combatService.attack(selectedTarget.id);
       
-      // Dynamic delay: NPCs are fast, PvP is immersive
-      const turnDelay = selectedTarget.is_npc ? 600 : 1800;
+      // Delay for immersion: 14 seconds (~400 chars * 0.04s)
+      const turnDelay = 14000;
       
       for (let i = 0; i < result.log.length; i++) {
         await new Promise(r => setTimeout(r, turnDelay));
@@ -72,6 +106,15 @@ export default function ReckoningPage() {
       await new Promise(r => setTimeout(r, 1000));
       setFinalResult(result);
       setCombatPhase("result");
+
+      // Toast notification for result
+      if (result.winner) {
+        showToast(`VITÓRIA! Você neutralizou ${result.targetRealName} e coletou os dados.`, "success");
+      } else if (result.outcome === "loss") {
+        showToast(`ALERTA: Derrota crítica. Seus sistemas entraram em recondicionamento.`, "error");
+      } else {
+        showToast(`EMPATE: A conexão foi interrompida antes do desfecho.`, "warning");
+      }
       
       // Update our player profile
       await refreshProfile();
@@ -88,6 +131,16 @@ export default function ReckoningPage() {
     setPreCalc(null);
     mutate(); // Refresh radar
   };
+
+  if (userProfile?.status === "Recondicionamento") {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-4">
+        <ExclamationTriangleIcon className="w-20 h-20 text-red-500 mb-6 animate-pulse" />
+        <h1 className="text-3xl font-orbitron font-black text-white uppercase tracking-widest mb-4">SISTEMA COMPROMETIDO</h1>
+        <p className="text-slate-400 font-mono">Redirecionando para Base de Recuperação...</p>
+      </div>
+    );
+  }
 
   if ((userProfile?.level || 1) < 10) {
     return (
@@ -234,134 +287,180 @@ export default function ReckoningPage() {
                     Abortar
                   </button>
                   <button onClick={handleAttack} className="w-2/3 p-4 bg-red-500/10 border border-red-500/50 text-red-400 font-orbitron font-bold text-sm uppercase tracking-widest hover:bg-red-500 hover:text-white hover:shadow-[0_0_20px_rgba(220,38,38,0.5)] transition-all" style={MILITARY_CLIP}>
-                    INICIAR ATAQUE (CUSTO: 10% EN)
+                    INICIAR ATAQUE (CUSTO: 100% EN)
                   </button>
                 </div>
               </div>
             </motion.div>
           )}
 
-          {/* FASE: LUTANDO */}
-          {combatPhase === "fighting" && (
-            <motion.div key="fighting" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="max-w-3xl mx-auto min-h-[50vh] flex flex-col justify-center">
-              <div className="bg-black border border-red-500/30 p-8 shadow-[0_0_50px_rgba(220,38,38,0.1)] relative" style={MILITARY_CLIP}>
-                <div className="absolute inset-0 bg-[repeating-linear-gradient(45deg,transparent,transparent_10px,rgba(220,38,38,0.03)_10px,rgba(220,38,38,0.03)_20px)] pointer-events-none"></div>
-                <h3 className="text-red-500 font-orbitron font-black tracking-[0.2em] mb-8 text-center animate-pulse">
-                  CONEXÃO DE COMBATE ESTABELECIDA
-                </h3>
+          {/* FASE: COMBATE_HUB (Fighting & Result) */}
+          {(combatPhase === "fighting" || combatPhase === "result") && (
+            <motion.div 
+              key="combat_hub"
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 1.1 }}
+              className="max-w-4xl mx-auto"
+            >
+              <div className="bg-black/80 border-2 border-red-500/50 backdrop-blur-2xl p-6 md:p-10 shadow-[0_0_100px_rgba(220,38,38,0.15)] relative overflow-hidden" style={MILITARY_CLIP}>
+                {/* HUD Scanlines Deck */}
+                <div className="absolute inset-0 bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%),linear-gradient(90deg,rgba(255,0,0,0.06),rgba(0,255,0,0.02),rgba(0,0,255,0.06))] bg-[length:100%_2px,3px_100%] pointer-events-none opacity-20"></div>
                 
-                <div className="space-y-4">
-                  {battleLog.map((log, idx) => (
-                    <motion.div 
-                      key={idx}
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      className="bg-slate-900/60 border-l-2 border-red-500 p-4 font-mono text-sm shadow-[0_0_15px_rgba(220,38,38,0.1)] relative overflow-hidden"
-                    >
-                      {log}
-                      <div className="absolute top-0 bottom-0 right-0 w-8 bg-gradient-to-l from-red-500/10 to-transparent pointer-events-none"></div>
-                    </motion.div>
-                  ))}
-                  
-                  {battleLog.length < 3 && (
-                    <div className="p-4 text-center">
-                      <span className="inline-flex w-2 h-4 bg-red-400 animate-[pulse_0.7s_infinite]"></span>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </motion.div>
-          )}
-
-          {/* FASE: RESULTADO */}
-          {combatPhase === "result" && finalResult && (
-            <motion.div key="result" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="max-w-4xl mx-auto">
-              <div 
-                className={`border p-8 md:p-12 text-center backdrop-blur-xl relative overflow-hidden
-                  ${finalResult.winner ? 'bg-emerald-950/40 border-emerald-500/50 shadow-[0_0_60px_rgba(16,185,129,0.1)]' : 'bg-red-950/40 border-red-500/50 shadow-[0_0_60px_rgba(220,38,38,0.1)]'}`}
-                style={MILITARY_CLIP}
-              >
-                <div className="absolute inset-0 bg-grid-white/[0.02] pointer-events-none"></div>
-                
-                <h2 className={`font-orbitron font-black text-4xl md:text-6xl uppercase tracking-widest mb-2
-                  ${finalResult.winner ? 'text-emerald-400 drop-shadow-[0_0_10px_rgba(16,185,129,0.5)]' : 'text-red-500 drop-shadow-[0_0_10px_rgba(220,38,38,0.5)]'}`}
-                >
-                  {finalResult.winner ? "VITÓRIA" : "SISTEMA COMPROMETIDO"}
-                </h2>
-                
-                <div className="flex justify-center items-center gap-2 mb-10 font-mono text-xs uppercase tracking-widest text-slate-400">
-                  <FingerPrintIcon className="w-4 h-4" />
-                  <span>IDENTIDADE VERDADEIRA DECODIFICADA: <span className="text-white font-bold">{finalResult.targetRealName}</span></span>
-                </div>
-
-                <div className="bg-black/60 p-6 max-w-2xl mx-auto border border-white/5 mb-8 text-left space-y-6">
-                  <div>
-                    <span className="text-[10px] text-cyan-400 font-mono uppercase tracking-widest">Sinal de Interceptação: Spectro</span>
-                    <p className="mt-2 text-slate-300 italic">&ldquo;{finalResult.spectroComment}&rdquo;</p>
-                  </div>
-                  
-                  <div className="w-full h-px bg-slate-800"></div>
-
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
-                    {finalResult.loot?.xp !== undefined && (
-                      <div className="flex flex-col gap-1">
-                        <span className="text-[10px] tracking-widest uppercase font-mono text-slate-500">Experiência</span>
-                        <span className={`font-black font-orbitron text-xl ${finalResult.loot.xp > 0 ? 'text-cyan-400' : 'text-red-400'}`}>
-                          {finalResult.loot.xp > 0 ? '+' : ''}{finalResult.loot.xp}
-                        </span>
+                {/* COMBAT HEADER */}
+                <div className="flex justify-between items-center mb-10 border-b border-red-500/30 pb-6 relative z-10">
+                   <div className="flex flex-col">
+                      <span className="text-[10px] font-mono text-red-500 tracking-[0.3em] uppercase mb-1">Iniciador</span>
+                      <h4 className="font-orbitron font-black text-xl text-white uppercase">{userProfile?.username}</h4>
+                      <span className="text-[10px] text-slate-500 font-mono">LVL {userProfile?.level}</span>
+                   </div>
+                   
+                   <div className="flex flex-col items-center">
+                      <div className="w-12 h-12 bg-red-500/20 border border-red-500 flex items-center justify-center animate-pulse mb-2">
+                         <BoltIcon className="w-8 h-8 text-red-500" />
                       </div>
-                    )}
-                    
-                    {finalResult.winner && finalResult.loot?.money !== undefined ? (
-                      <div className="flex flex-col gap-1 relative group">
-                        <span className="text-[10px] tracking-widest uppercase font-mono text-slate-500">Dinheiro Sujo</span>
-                        <span className="font-black font-orbitron text-xl text-green-400">+${finalResult.loot.money}</span>
-                        {/* Tooltip sobre taxa do Spectro */}
-                        {finalResult.loot.tax !== undefined && finalResult.loot.tax > 0 && (
-                          <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 w-48 bg-black border border-slate-700 p-2 text-[10px] font-mono text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-                            O saque total foi ${(finalResult.loot.money + finalResult.loot.tax)}. Spectro cobrou ${finalResult.loot.tax} de taxa de lavagem.
+                      <span className="text-[10px] font-mono text-red-500 animate-pulse uppercase">VS</span>
+                   </div>
+
+                   <div className="flex flex-col text-right">
+                      <span className="text-[10px] font-mono text-red-500 tracking-[0.3em] uppercase mb-1">Alvo_Interceptado</span>
+                      <h4 className="font-orbitron font-black text-xl text-red-500 uppercase">{selectedTarget?.name}</h4>
+                      <span className="text-[10px] text-slate-500 font-mono text-right">LVL {selectedTarget?.level}</span>
+                   </div>
+                </div>
+
+                {/* LOGS / FIGHTING AREA */}
+                <div className="min-h-[300px] flex flex-col justify-center gap-4 relative z-10">
+                   {combatPhase === "fighting" && (
+                     <div className="space-y-4">
+                        {battleLog.length === 0 && (
+                          <div className="text-center p-8 border border-white/5 bg-white/5 animate-pulse">
+                             <p className="font-mono text-sm text-slate-400 uppercase tracking-widest">Estabelecendo Conexão Neural...</p>
                           </div>
                         )}
-                      </div>
-                    ) : (
-                      <div className="flex flex-col gap-1">
-                        <span className="text-[10px] tracking-widest uppercase font-mono text-slate-500">Fundos Queimados</span>
-                        <span className="font-black font-orbitron text-xl text-red-500">-${finalResult.loot?.moneyLost || 0}</span>
-                      </div>
-                    )}
+                        {battleLog.map((log, idx) => (
+                          <motion.div 
+                            key={idx}
+                            initial={{ opacity: 0, x: -10 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            className="bg-red-500/5 border-l-4 border-red-500 p-5 font-mono text-xs md:text-sm text-slate-200 leading-relaxed shadow-[0_0_20px_rgba(220,38,38,0.05)]"
+                          >
+                            <span className="text-red-500 mr-3">[{idx + 1}]</span>
+                            {log.split("").map((char, i) => (
+                              <motion.span
+                                key={i}
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                transition={{ 
+                                  duration: 0.05,
+                                  delay: i * 0.04 // Velocidade ultra lenta (mais devagar ainda)
+                                }}
+                              >
+                                {char}
+                              </motion.span>
+                            ))}
+                          </motion.div>
+                        ))}
+                        {battleLog.length > 0 && battleLog.length < 3 && (
+                          <div className="flex justify-center p-2">
+                             <div className="w-1 h-6 bg-red-500 animate-bounce"></div>
+                          </div>
+                        )}
+                     </div>
+                   )}
 
-                    {finalResult.winner && finalResult.loot?.stats && (
-                      <div className="col-span-2 grid grid-cols-3 bg-white/5 border border-white/5 py-2">
-                        <div className="flex flex-col items-center">
-                           <span className="text-[9px] uppercase font-mono text-slate-500">Roubo ATK</span>
-                           <span className="text-cyan-400 font-bold font-mono">+{finalResult.loot.stats.attack.toFixed(1)}</span>
-                        </div>
-                        <div className="flex flex-col items-center">
-                           <span className="text-[9px] uppercase font-mono text-slate-500">Roubo DEF</span>
-                           <span className="text-cyan-400 font-bold font-mono">+{finalResult.loot.stats.defense.toFixed(1)}</span>
-                        </div>
-                        <div className="flex flex-col items-center">
-                           <span className="text-[9px] uppercase font-mono text-slate-500">Roubo FOC</span>
-                           <span className="text-cyan-400 font-bold font-mono">+{finalResult.loot.stats.focus.toFixed(1)}</span>
-                        </div>
-                      </div>
-                    )}
+                   {/* RESULT AREA (Inside Hub) */}
+                   {combatPhase === "result" && finalResult && (
+                      <motion.div 
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="text-center"
+                      >
+                         {redirectCountdown !== null && (
+                            <div className="flex items-center justify-center gap-2 text-red-500 font-mono text-xs mb-4 animate-pulse">
+                               <ClockIcon className="w-4 h-4" />
+                               <span>SINAL ENCAPSULANDO EM {redirectCountdown}s... {finalResult.winner ? 'RETORNANDO AO RADAR' : 'REDIRECIONANDO PARA BASE DE RECUPERAÇÃO'}</span>
+                            </div>
+                         )}
 
-                    {finalResult.loot?.rare_drop && (
-                      <div className="col-span-2 md:col-span-4 bg-red-500/10 border border-red-500/30 p-2 mt-2 flex items-center justify-center gap-4">
-                        <StarIcon className="w-5 h-5 text-yellow-400 animate-bounce" />
-                        <div className="text-left">
-                          <span className="text-[8px] font-mono text-red-500 block uppercase">ITEM_RARIDADE_S</span>
-                          <span className="text-white font-orbitron font-black text-xs uppercase tracking-widest">{finalResult.loot.rare_drop}</span>
-                        </div>
-                      </div>
-                    )}
-                  </div>
+                         <h2 className={`font-orbitron font-black text-5xl md:text-7xl uppercase mb-4 tracking-tighter
+                           ${finalResult.winner ? 'text-emerald-400 drop-shadow-[0_0_15px_rgba(16,185,129,0.4)]' : 'text-red-500 drop-shadow-[0_0_15px_rgba(220,38,38,0.4)]'}`}>
+                            {finalResult.winner ? "VITÓRIA" : "DERROTA"}
+                         </h2>
+
+                         <div className="bg-slate-900/80 border border-white/10 p-6 text-left mb-8 space-y-6">
+                            <div>
+                               <span className="text-[10px] text-red-500 font-mono uppercase tracking-widest">Relatório do Spectro:</span>
+                               <p className="mt-2 text-slate-300 italic text-sm">&ldquo;{finalResult.spectroComment}&rdquo;</p>
+                            </div>
+
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                               {finalResult.loot?.xp !== undefined && (
+                                 <div className="bg-black/40 p-3 border border-white/5">
+                                   <span className="text-[8px] text-slate-500 block uppercase mb-1">XP_GAIN</span>
+                                   <span className={`font-black font-orbitron text-xl ${finalResult.loot.xp >= 0 ? 'text-cyan-400' : 'text-red-400'}`}>
+                                     {finalResult.loot.xp >= 0 ? '+' : ''}{finalResult.loot.xp}
+                                   </span>
+                                 </div>
+                               )}
+                               
+                               <div className="bg-black/40 p-3 border border-white/5">
+                                 <span className="text-[8px] text-slate-500 block uppercase mb-1">CASH_VARIATION</span>
+                                 <span className={`font-black font-orbitron text-xl ${finalResult.winner ? 'text-green-400' : 'text-red-500'}`}>
+                                   {finalResult.winner ? `+$${finalResult.loot?.money || 0}` : `-$${finalResult.loot?.moneyLost || 0}`}
+                                 </span>
+                               </div>
+
+                               {finalResult.winner && finalResult.loot?.stats && (
+                                 <div className="bg-black/40 p-3 border border-white/5 col-span-2">
+                                    <span className="text-[8px] text-slate-500 block uppercase mb-1">ATTRIBUTES_SAUSAGE</span>
+                                    <div className="flex gap-4">
+                                       <div className="flex flex-col">
+                                          <span className="text-[8px] text-slate-600">ATK</span>
+                                          <span className="text-cyan-400 font-bold ml-1 text-xs">+{finalResult.loot.stats.attack.toFixed(1)}</span>
+                                       </div>
+                                       <div className="flex flex-col">
+                                          <span className="text-[8px] text-slate-600">DEF</span>
+                                          <span className="text-cyan-400 font-bold ml-1 text-xs">+{finalResult.loot.stats.defense.toFixed(1)}</span>
+                                       </div>
+                                       <div className="flex flex-col">
+                                          <span className="text-[8px] text-slate-600">FOC</span>
+                                          <span className="text-cyan-400 font-bold ml-1 text-xs">+{finalResult.loot.stats.focus.toFixed(1)}</span>
+                                       </div>
+                                    </div>
+                                 </div>
+                               )}
+                            </div>
+
+                            <div className="border-t border-white/5 pt-4 flex flex-col md:flex-row justify-between items-center gap-4">
+                               <p className="text-[10px] font-mono text-slate-500 flex items-center gap-2">
+                                  <FingerPrintIcon className="w-3 h-3" />
+                                  ALVO_REVELADO: <span className="text-white uppercase font-bold">{finalResult.targetRealName}</span>
+                               </p>
+                               <button 
+                                 onClick={closeResult}
+                                 className="px-8 py-3 bg-red-500 text-white font-orbitron font-black text-xs uppercase tracking-widest hover:bg-red-600 transition-all shadow-[0_0_20px_rgba(220,38,38,0.4)]"
+                                 style={MILITARY_CLIP}
+                               >
+                                 Finalizar_Sessão
+                               </button>
+                            </div>
+                         </div>
+                      </motion.div>
+                   )}
                 </div>
-
-                <button onClick={closeResult} className="bg-white/10 hover:bg-white/20 border border-white/20 text-white font-orbitron font-bold py-3 px-10 uppercase tracking-[0.2em] transition-colors" style={MILITARY_CLIP}>
-                  VOLTAR AO RADAR
-                </button>
+                
+                {/* HUD Footer Decor */}
+                <div className="mt-8 pt-4 border-t border-white/5 flex justify-between items-end opacity-40">
+                   <div className="text-[8px] font-mono text-slate-500">
+                      SYS_LOG: DUEL_SOCKET_ENCRYPT_256BIT<br/>
+                      EN_CONSUMPTION: 100%_DELTA
+                   </div>
+                   <div className="text-[8px] font-mono text-slate-500 text-right uppercase">
+                      UrbanClash_Duel_Engine_v9.1<br/>
+                      {new Date().toLocaleTimeString()}
+                   </div>
+                </div>
               </div>
             </motion.div>
           )}

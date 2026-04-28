@@ -2,11 +2,6 @@ const { query } = require("../config/database");
 const playerStateService = require("./playerStateService");
 const gameLogic = require("../utils/gameLogic");
 const spectroEngine = require("../utils/spectroEngine");
-
-// ─── Frases do Spectro ────────────────────────────────────────────────────────
-
-// ─── Frases do Spectro ────────────────────────────────────────────────────────
-
 const CYBER_SETORS = [
   "Setor 7", "Beco Cromado", "Distrito Neon", "Periferia 404", "Mainframe Central", 
   "Vazio de Dados", "Submercado 9", "Torre de Cristal", "Nó de Segregação", 
@@ -21,57 +16,26 @@ const CYBER_WEAPONS = [
   "Nervo Óptico Hackeado", "Exo-punho Hidráulico", "Lançador de Nanites", "Dispositivo de Sobrecarga"
 ];
 
-const SPECTRO_PHRASES = {
-  hints: {
-    low: [
-      "Alvo fácil. Vai ser como deletar um arquivo corrompido.",
-      "Nem precisa de firewall pra esse aí.",
-      "Fraco. Vai fundo e limpa a lixeira."
-    ],
-    balanced: [
-      "50/50. Vai depender de quem bater primeiro.",
-      "Nível equilibrado. Mantém o foco e não erra o timing.",
-      "Essa vai ser acirrada, cuidado na execução."
-    ],
-    high: [
-      "Esse sinal tá pesado... se eu fosse você, pediria reforços.",
-      "Alvo cascudo. Verifica teus buffs antes de entrar.",
-      "Alerta vermelho. A chance de tomar DC da vida é grande."
-    ]
+const RENEGADO_BOT_NAMES = [
+  "VandaLo_Ne0n", "Sombra_Ativ4", "Cr4ck_H3ad", "Ghost_Protocol", "Glitch_Stalker",
+  "Rogue_Unit_01", "Cypher_Punk", "Void_Runner", "Chaos_Node", "Null_Pointer",
+  "Static_Rebel", "Data_Thief", "Neural_Bandit", "Pixel_Wraith", "Overclock_Kid",
+  "Broken_Link", "Night_Crawler", "Shadow_Script", "Hex_Ghost", "Zero_Day"
+];
+
+const GUARDIAO_BOT_NAMES = [
+  "Sentinela_XV", "Pax_CorpHQ", "Vigilante_System", "Aegis_Prime", "Iron_Law",
+  "Order_Enforcer", "Cyber_Shield", "PeaceKeeper_Alpha", "Guardian_Z", "Unity_Beacon",
+  "System_Admin", "Protocol_X", "Core_Defender", "Nexus_Guard", "Vector_Prime",
+  "Law_Giver", "Sentinel_Omega", "Avalaunch_Unit", "Grid_Keeper", "Secure_Shell"
+];
+
+function shuffleArray(array) {
+  for (let i = array.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [array[i], array[j]] = [array[j], array[i]];
   }
-};
-
-// Rastreadores de frases já usadas (pool reinicia ao esgotar)
-const _usedDko  = new Set();
-const _usedFlee = new Set();
-
-// ─── Helpers de narrativa ─────────────────────────────────────────────────────
-
-function getRandomPhrase(category, attackerToken = "Atacante", defenderToken = "Alvo") {
-  const phrases = SPECTRO_PHRASES[category];
-  const phrase  = phrases[Math.floor(Math.random() * phrases.length)];
-  return phrase
-    .replace("{{attacker}}", attackerToken)
-    .replace("{{defender}}", defenderToken);
-}
-
-/**
- * Retorna uma frase de empate sem repetir até esgotar o pool inteiro.
- * Garante que o Spectro nunca repita a mesma frase na mesma sessão.
- */
-function getUniqueDrawPhrase(category) {
-  const phrases = SPECTRO_PHRASES[category];
-  const tracker = category === "draw_dko" ? _usedDko : _usedFlee;
-
-  if (tracker.size >= phrases.length) tracker.clear(); // reinicia pool após esgotar
-
-  let idx;
-  do {
-    idx = Math.floor(Math.random() * phrases.length);
-  } while (tracker.has(idx));
-
-  tracker.add(idx);
-  return phrases[idx];
+  return array;
 }
 
 function getHintPhrase(level) {
@@ -79,8 +43,59 @@ function getHintPhrase(level) {
 }
 
 function censorName(name) {
-  if (!name || name.length <= 2) return "U***";
-  return name.charAt(0) + "********" + name.charAt(name.length - 1);
+  if (!name) return "****";
+  // Se já for um bot marcado, não censura
+  if (name.includes("[BOT]")) return name;
+  
+  if (name.length <= 2) return name.charAt(0) + "***" + (name.length > 1 ? name.charAt(name.length-1) : "");
+  return name.charAt(0) + "*****" + name.charAt(name.length - 1);
+}
+
+function getNpcData(targetId, attacker) {
+  const isRare = targetId.includes("_rare");
+  const seedStr = targetId.replace("npc_", "").replace("_rare", "");
+  
+  // Simple hash to pick name and variations deterministically
+  let hash = 0;
+  for (let i = 0; i < seedStr.length; i++) {
+    hash = (hash << 5) - hash + seedStr.charCodeAt(i);
+    hash |= 0;
+  }
+  
+  const attackerFaction = String(attacker.faction || '').toLowerCase();
+  let pool = [];
+  let botFaction = "Neutral";
+  
+  if (attackerFaction === 'guardioes' || attackerFaction === 'guardas') {
+    botFaction = "Renegados";
+    pool = RENEGADO_BOT_NAMES;
+  } else if (attackerFaction === 'renegados' || attackerFaction === 'gangsters') {
+    botFaction = "Guardiões";
+    pool = GUARDIAO_BOT_NAMES;
+  } else {
+    pool = [...RENEGADO_BOT_NAMES, ...GUARDIAO_BOT_NAMES];
+  }
+
+  const nameIndex = Math.abs(hash) % pool.length;
+  const rawName = pool[nameIndex];
+  const name = isRare ? `[HVT] ${rawName}` : `[BOT] ${rawName}`;
+
+  // Deterministic level based on hash: level +/- 2
+  const levelOff = (Math.abs(hash * 31) % 5) - 2; // -2 to +2
+  const level = Math.max(1, Number(attacker.level) + levelOff);
+
+  return {
+    username: name,
+    level: level,
+    attack: attacker.attack * (isRare ? 1.3 : 0.8 + (Math.abs(hash % 40) / 100)),
+    defense: attacker.defense * (isRare ? 1.3 : 0.8 + (Math.abs((hash * 13) % 40) / 100)),
+    focus: attacker.focus * (isRare ? 1.3 : 0.8 + (Math.abs((hash * 7) % 40) / 100)),
+    energy: 100,
+    money: isRare ? 500 : 0,
+    faction: botFaction,
+    is_npc: true,
+    is_rare: isRare
+  };
 }
 
 // ─── Motor de Decisão de Resultado ───────────────────────────────────────────
@@ -152,18 +167,20 @@ class CombatService {
       is_npc:  false
     }));
 
-    // Lógica de NPCs: Se houver < 3 players, gerar NPCs (Nível ±1)
-    if (targets.length < 3) {
-      const npcCount = 3 - targets.length;
+    // Lógica de NPCs: Se houver < 5 targets, gerar NPCs
+    if (targets.length < 5) {
+      const npcCount = 5 - targets.length;
+      
       for (let i = 0; i < npcCount; i++) {
         const isRare = Math.random() < 0.05; // HVT: 5% de chance
-        const npcLevel = attackerLevel + (Math.random() > 0.5 ? 1 : -1);
-        
+        const npcId = `npc_${Math.random().toString(36).substr(2, 9)}${isRare ? '_rare' : ''}`;
+        const npcData = getNpcData(npcId, attacker);
+
         const npc = {
-          id:      `npc_${Math.random().toString(36).substr(2, 9)}`,
-          level:   npcLevel,
-          faction: "Neutral",
-          name:    isRare ? "HVT " + censorName("SpectroGate") : censorName("DroneNPC"),
+          id:      npcId,
+          level:   npcData.level,
+          faction: npcData.faction,
+          name:    npcData.username,
           online:  true,
           is_npc:  true,
           is_rare: isRare
@@ -185,15 +202,13 @@ class CombatService {
     let defender;
 
     if (targetId.startsWith("npc_")) {
-      // Mock para NPC (precisa coincidir com a lógica de geração se possível)
-      defender = { level: attacker.level, username: "NPC", faction: "Neutral", is_npc: true };
+      defender = getNpcData(targetId, attacker);
     } else {
       defender = await playerStateService.getPlayerState(targetId);
     }
 
     if (!attacker || !defender) throw new Error("Jogadores indisponíveis.");
 
-    const attLevel = Number(attacker.level || 1);
     const defLevel = Number(defender.level || 1);
 
     return {
@@ -201,7 +216,7 @@ class CombatService {
       targetInfo: {
         level:   defLevel,
         faction: defender.faction,
-        name:    censorName(defender.username || "DroneNPC")
+        name:    censorName(defender.username)
       }
     };
   }
@@ -214,26 +229,8 @@ class CombatService {
 
     if (targetId.startsWith("npc_")) {
       isNpc = true;
-      // Em uma implementação real, o radar deveria salvar o NPC em cache/Redis.
-      // Aqui, vamos reconstruir um NPC base se ele for NPC.
-      // IMPORTANTE: Em produção, o ID do NPC deve ser validado contra o cache.
-      isRare = targetId.includes("_rare"); // Gambiarra para exemplo, mas o ideal é salvar no Redis
-      
-      defender = {
-        username: isRare ? "HVT_UNIT" : "Drone_NPC",
-        level: attacker.level + (Math.random() > 0.5 ? 1 : -1),
-        attack: attacker.attack * (isRare ? 1.3 : 1.0),
-        defense: attacker.defense * (isRare ? 1.3 : 1.0),
-        focus: attacker.focus * (isRare ? 1.3 : 1.0),
-        energy: 100,
-        money: isRare ? 500 : 0,
-        faction: "Neutral",
-        is_npc: true
-      };
-
-      // Validação de Timer para NPCs Raros (HVT)
-      // Nota: Esta parte assume que o tempo de expiração veio no ID ou está sendo verificado via cache.
-      // Para o desafio, vamos simular a validação.
+      isRare = targetId.includes("_rare");
+      defender = getNpcData(targetId, attacker);
     } else {
       defender = await playerStateService.getPlayerState(targetId);
     }
@@ -243,8 +240,8 @@ class CombatService {
 
     if (Number(attacker.level || 1) < 10)
       throw new Error("Você precisa estar no nível 10 para acessar o Acerto de Contas.");
-    if (Number(attacker.energy || 0) < 10)
-      throw new Error("Energia insuficiente (mínimo 10).");
+    if (Number(attacker.energy || 0) < 100)
+      throw new Error("Energia insuficiente (requer 100% para iniciar protocolo de combate).");
     
     if (!isNpc) {
       if (defender.status === "Recondicionamento")
@@ -264,7 +261,8 @@ class CombatService {
       arma_equipada: CYBER_WEAPONS[Math.floor(Math.random() * CYBER_WEAPONS.length)],
       is_rare: isRare,
       is_draw_dko: outcome === "draw_dko",
-      is_draw_flee: outcome === "draw_flee"
+      is_draw_flee: outcome === "draw_flee",
+      is_loss: outcome === "loss"
     };
 
     const targetNameCensored = censorName(defender.username);
@@ -313,7 +311,7 @@ class CombatService {
       };
 
       await playerStateService.updatePlayerState(userId, {
-        energy:    -10,
+        energy:    -100,
         money:     moneyReceived,
         total_xp:  xpGain,
         attack:    loot.stats.attack,
@@ -373,7 +371,7 @@ class CombatService {
       const halfShield   = new Date(Date.now() + 22.5 * 60000).toISOString();
 
       await playerStateService.updatePlayerState(userId, {
-        energy:           -10,
+        energy:           -100,
         status:           "Recondicionamento",
         recovery_ends_at: halfRecovery,
         shield_ends_at:   halfShield
@@ -390,17 +388,17 @@ class CombatService {
 
       loot = {
         xp:         0,
-        energyLost: 10,
+        energyLost: 100,
         status:     "recondicionamento_dko"
       };
 
     } else { // draw_flee
-      await playerStateService.updatePlayerState(userId,   { energy: -10 });
+      await playerStateService.updatePlayerState(userId,   { energy: -100 });
       if (!isNpc) await playerStateService.updatePlayerState(targetId, { energy: -10 });
 
       loot = {
         xp:         0,
-        energyLost: 10
+        energyLost: 100
       };
     }
 

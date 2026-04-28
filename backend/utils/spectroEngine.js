@@ -246,7 +246,7 @@ function construirNarrativa(turno, contexto) {
     p4 = `Spectro: "ALERTA DE ELITE! Esse alvo possui uma assinatura neural de nível militar. Não subestime a fera!"`;
   }
 
-  // Lógica Especial: Turno 3 - Empates
+  // Lógica Especial: Turno 3 - Empates e Derrotas
   if (turno === 3) {
     if (is_draw_dko) {
       p2 = `...em um choque mútuo de proporções nucleares, ambos desferem o golpe final ao mesmo tempo...`;
@@ -256,6 +256,10 @@ function construirNarrativa(turno, contexto) {
       p2 = `...quando você ia desferir o golpe, sirenes de alta frequência cortam o ar do ${setor_cidade}...`;
       p3 = `...viaturas da SWAT-Net surgem nas esquinas. A luta é interrompida pela necessidade brutal de fuga.`;
       p4 = `Spectro: "ABORTAR! A polícia chegou na festa. Saiam daí antes que virem arquivo morto na cadeia!"`;
+    } else if (contexto.is_loss) {
+      p2 = `...sua arma falha no momento crucial, enquanto ${target_name} encontra uma brecha fatal na sua defesa...`;
+      p3 = `...o choque do impacto desativa seus sistemas. A visão escurece enquanto o aviso de 'RECONDICIONAMENTO' pisca em vermelho.`;
+      p4 = `Spectro: "NÃO! Conexão perdida... você foi deletado, ${player_name}. Voltando para o modo de segurança... se você sobreviver."`;
     }
   }
 
@@ -295,4 +299,36 @@ function construirNarrativa(turno, contexto) {
   return narrativa;
 }
 
-module.exports = { construirNarrativa };
+/**
+ * Retorna uma frase curta do Spectro baseada na categoria.
+ */
+function generateSpectroTalk(category) {
+  const pools = {
+    detection: [
+      "Sinal captado. A rede está aberta e o alvo está vulnerável.",
+      "Vejamos o que temos aqui... uma assinatura neural interessante.",
+      "Rastreamento completo. O firewall dele tem furos que eu posso explorar.",
+      "Alvo localizado. Se prepare, a conexão está instável mas suficiente.",
+      "Encontrei uma brecha. O alvo nem sabe que estamos assistindo."
+    ],
+    victory: [
+      "Execução terminada. Os créditos já estão na conta. Procede para o próximo nó.",
+      "Belo trabalho. Limpamos o lixo digital do setor.",
+      "Veredito: Culpa confirmada, sentença executada. Adoro eficiência.",
+      "Alvo desconectado permanentemente. A rede está mais limpa agora.",
+      "Isso foi... satisfatório. Vamos ver quem é o próximo na lista."
+    ],
+    timeout: [
+      "Sinal perdido. O desgraçado conseguiu fugir pela rota de fuga.",
+      "Conexão interrompida. Alguém puxou a tomada do outro lado.",
+      "Falha na sincronização. O alvo sumiu no vácuo de dados.",
+      "Tempo esgotado. A janela de interceptação fechou.",
+      "Eles escaparam... por enquanto. Mas eu nunca esqueço um IP."
+    ]
+  };
+
+  const pool = pools[category] || pools.detection;
+  return pool[Math.floor(Math.random() * pool.length)];
+}
+
+module.exports = { construirNarrativa, generateSpectroTalk };
