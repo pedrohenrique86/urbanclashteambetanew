@@ -7,21 +7,12 @@
 const FRAGMENTS = {
   turno1: { // TENSÃO: Clima, Bio-dados, Furtividade
     ambiente: [
-      "Sob a chuva ácida que corrói o concreto do ${setor_cidade} às ${horario_real}...",
-      "A névoa de neon do ${setor_cidade} oscila violentamente enquanto o relógio marca ${horario_real}...",
-      "No silêncio opressor do ${setor_cidade}, interrompido apenas pelo zumbido dos drones às ${horario_real}...",
-      "As luzes estroboscópicas de um outdoor hackeado iluminam o beco do ${setor_cidade} às ${horario_real}...",
-      "O cheiro de ozônio e metal queimado impregna o ar pesado do ${setor_cidade} nesta tarde de ${horario_real}...",
-      "Vapor tóxico sobe das bueiros térmicos do ${setor_cidade} enquanto os ponteiros indicam ${horario_real}...",
-      "Entre arranha-céus colossais que bloqueiam o sol do ${setor_cidade}, a hora final chega às ${horario_real}...",
-      "Câmeras de vigilância desativadas piscam em vermelho no distrito de ${setor_cidade} às ${horario_real}...",
-      "O asfalto úmido reflete os hologramas de propaganda que dominam o céu do ${setor_cidade} às ${horario_real}...",
-      "Sirenes distantes ecoam pelas ruas vazias do ${setor_cidade}, abafadas pelo vento frio de ${horario_real}...",
-      "A grade de energia do ${setor_cidade} sofre quedas constantes enquanto o cronômetro marca ${horario_real}...",
-      "Sinais de rádio pirata interferem na comunicação local no ${setor_cidade} às ${horario_real}...",
-      "Um corvo robótico observa do alto de uma gárgula de aço no ${setor_cidade} exatamente às ${horario_real}...",
-      "A umidade do ${setor_cidade} condensa nos seus implantes cibernéticos, marcando o tempo: ${horario_real}...",
-      "Sombras deformadas se alongam sob as vigas de sustentação do ${setor_cidade} enquanto bate ${horario_real}..."
+      "No coração do ${setor_cidade}, o sinal de ${target_name} oscila enquanto ${player_name} se aproxima...",
+      "As sombras do ${setor_cidade} escondem o avanço tático de ${player_name} contra o alvo...",
+      "Sob o neon do ${setor_cidade}, ${player_name} intercepta a frequência neural de ${target_name}...",
+      "No vácuo digital do ${setor_cidade}, a caçada de ${player_name} por ${target_name} atinge o ápice...",
+      "A chuva do ${setor_cidade} silencia os passos de ${player_name} na direção de ${target_name}...",
+      "Entre cabos expostos no ${setor_cidade}, ${player_name} isola o perímetro para pegar ${target_name}..."
     ],
     acao: [
       "...você ajusta o foco dos seus implantes oculares enquanto saca sua ${arma_equipada}...",
@@ -41,21 +32,12 @@ const FRAGMENTS = {
       "...com a respiração controlada, ${player_name} aguarda o momento perfeito para revelar a ${arma_equipada}..."
     ],
     impacto: [
-      "...o rastreador biométrico apita em um tom agudo, denunciando uma presença hostil logo à frente.",
-      "...faíscas de fiação exposta iluminam o alvo por um breve segundo, revelando uma silhueta tensa e pronta.",
-      "...o ar em volta fica saturado de eletricidade estática enquanto seu sensor capta uma pulsação acelerada.",
-      "...ecos de passos metálicos ricocheteiam nas paredes, confirmando que você não está sozinho no setor.",
-      "...uma anomalia no radar indica que o oponente está usando camuflagem óptica de baixa frequência.",
-      "...um zumbido subsônico distorce a visão periférica de ${player_name}, prenunciando o choque iminente.",
-      "...o scanner de curto alcance detecta níveis perigosos de radiação emanando da armadura do inimigo.",
-      "...fragmentos de vidro quebrado estalam sob os pés do adversário, quebrando o silêncio da emboscada.",
-      "...uma rajada de vento frio traz o aroma metálico de sangue e refrigerante hidráulico vazando de perto.",
-      "...bio-sensores indicam que o alvo está em estado de alerta máximo, pronto para o primeiro contato.",
-      "...o contador Geiger no seu pulso começa a estalar freneticamente conforme a aproximação ocorre.",
-      "...padrões infravermelhos mostram que o inimigo está respirando de forma pesada e irregular na neblina.",
-      "...um clarão azulado reflete nas poças de óleo, denunciando a posição daquele que te caça nas sombras.",
-      "...a pressão atmosférica parece despencar enquanto os dois predadores se reconhecem no escuro.",
-      "...um sinal de interferência corrompe seu visor HUD, indicando que o alvo possui contramedidas Ativas."
+      "...o rastreador apita: ${player_name} e ${target_name} estão em rota de colisão iminente.",
+      "...faíscas revelam ${target_name} tentando um contra-hack contra os sistemas de ${player_name}.",
+      "...o sensor capta a pulsação de ${target_name} acelerando conforme ${player_name} fecha o cerco.",
+      "...${player_name} detecta uma brecha defensiva em ${target_name} e inicia a carga neural.",
+      "...uma anomalia indica que ${target_name} está tentando fugir da sombra de ${player_name}.",
+      "...o scanner mostra que ${player_name} possui 88% de vantagem posicional sobre ${target_name}."
     ],
     spectro: [
       "Spectro: \"Sinal detectado. Escaneando... Esse sinal biométrico parece instável e fácil de corromper.\"",
@@ -94,38 +76,19 @@ const FRAGMENTS = {
       "O tempo parece desacelerar para ${player_name} enquanto os golpes se sucedem no ${setor_cidade}..."
     ],
     acao: [
-      "...você desfere uma sequência brutal com sua ${arma_equipada}, perfurando a defesa inimiga com ímpeto...",
-      "...os circuitos da ${arma_equipada} chiam com o uso excessivo, mas cada impacto é certeiro e devastador...",
-      "...${player_name} avança ignorando os alertas de dano, usando a ${arma_equipada} como um instrumento de purga...",
-      "...um giro rápido coloca a ${arma_equipada} em contato direto com os cabos neurais do adversário...",
-      "...você canaliza um pulso eletromagnético através da ${arma_equipada}, fritando os sensores do alvo...",
-      "...${player_name} utiliza o ambiente a seu favor, golpeando com a ${arma_equipada} de um ângulo impossível...",
-      "...cada movimento com a ${arma_equipada} deixa um rastro de luz residual que confunde os olhos do inimigo...",
-      "...em um acesso de fúria cibernética, você golpeia repetidamente com a ${arma_equipada} sem piedade...",
-      "...a precisão cirúrgica de ${player_name} faz com que a ${arma_equipada} encontre cada junta exposta do alvo...",
-      "...uma manobra evasiva permite que você revide com a ${arma_equipada}, causando um corte profundo...",
-      "...${player_name} sobrecarrega o capacitor da ${arma_equipada} para um impacto de força triplicada...",
-      "...você sente o recuo da ${arma_equipada} nos ossos, mas o dano causado no oponente é imensamente superior...",
-      "...com um movimento fluido, ${player_name} desarma o ímpeto inimigo usando o cabo da ${arma_equipada}...",
-      "...um brilho intenso emana da ${arma_equipada} quando ela se conecta ao peito do agressor distraído...",
-      "...${player_name} sorri por trás do visor enquanto a ${arma_equipada} desenha o caminho da vitória..."
+      "...${player_name} desfere uma sequência brutal, perfurando a defesa de ${target_name} com a ${arma_equipada}...",
+      "...os circuitos de ${target_name} chiam com o impacto direto da ${arma_equipada} de ${player_name}...",
+      "...${player_name} ignora alertas de dano para cravar a ${arma_equipada} no peito de ${target_name}...",
+      "...um giro rápido de ${player_name} conecta a ${arma_equipada} aos cabos neurais de ${target_name}...",
+      "...${player_name} canaliza um pulso através da ${arma_equipada}, fritando os sensores de ${target_name}...",
+      "...${player_name} sobrecarrega o capacitor da ${arma_equipada} para um choque crítico em ${target_name}..."
     ],
     impacto: [
-      "...choques elétricos saltam da armadura rompida, banhando o ambiente em um brilho azul metálico e frio.",
-      "...o estrondo de metal contra metal ecoa, seguido pelo chiado característico de fluído hidráulico vazando.",
-      "...uma explosão de faíscas cega os scanners por um instante, deixando apenas o rastro de destruição total.",
-      "...o inimigo cambaleia para trás enquanto luzes de erro piscam em seu peito, indicando falha crítica.",
-      "...uma fumaça negra e densa começa a sair dos ventiladores de resfriamento do alvo atingido em cheio.",
-      "...chips de memória e fragmentos de fibra de carbono se espalham pelo chão após o impacto absurdo.",
-      "...o grito de dor do oponente é abafado pelo som de motores elétricos entrando em curto-circuito.",
-      "...um vazamento de gás refrigerante cria uma nuvem gélida entre os dois, congelando o sangue no chão.",
-      "...o visor de proteção do adversário racha, revelando olhos arregalados de puro terror e desespero.",
-      "...energias residuais continuam a estalar no ponto de impacto, desintegrando partes da vestimenta.",
-      "...o alvo tenta um contra-ataque desesperado, mas seus movimentos estão lentos e pesados pelo dano.",
-      "...um estalo seco indica que um osso ou suporte de titânio cedeu sob a pressão da sua investida.",
-      "...o radar inimigo entra em loop infinito após o choque, deixando-o completamente vulnerável e cego.",
-      "...líquido lubrificante neon espirra nas paredes, desenhando um mapa grotesco da batalha em curso.",
-      "...a grade defensiva do oponente colapsa de vez, deixando o caminho livre para o golpe finalizador."
+      "...blindagem de ${target_name} colapsa sob a pressão ofensiva constante de ${player_name}.",
+      "...o visor de ${target_name} racha, revelando terror frente à frieza de ${player_name}.",
+      "...${target_name} cambaleia, enquanto ${player_name} calcula a trajetória do golpe final.",
+      "...líquido lubrificante neon de ${target_name} espirra nos implantes de ${player_name}.",
+      "...o sinal vital de ${target_name} oscila, perdendo a luta contra a vontade de ${player_name}."
     ],
     spectro: [
       "Spectro: \"Isso foi lindo de ver! O kernel dele está entrando em colapso total agora mesmo.\"",
@@ -219,7 +182,7 @@ const FRAGMENTS = {
 
 /**
  * Função principal do motor narrativo.
- * Gera uma string de 300-400 caracteres combinando 4 partes.
+ * Gera uma string de 200-300 caracteres combinando 4 partes.
  */
 function construirNarrativa(turno, contexto) {
   const { player_name, target_name, setor_cidade, arma_equipada, is_rare, is_draw_dko, is_draw_flee } = contexto;
@@ -278,22 +241,22 @@ function construirNarrativa(turno, contexto) {
     narrativa = narrativa.replace(new RegExp(key, 'g'), val);
   }
 
-  // Ajuste de Tamanho (300-400 caracteres)
-  // Como os fragmentos foram desenhados para terem ~80-100 caracteres cada, a soma deve estar no range.
+  // Ajuste de Tamanho (200-300 caracteres)
+  // Como os fragmentos foram desenhados para terem ~60-80 caracteres cada, a soma deve estar no range.
   // Mas para garantir:
-  if (narrativa.length < 300) {
+  if (narrativa.length < 200) {
     // Adiciona um ruído/glitch se for muito curta
     const glitches = [
-      " [Sinal instável...]", " // Link neural estabelecido.", " (Dados corrompidos)", " <System.Halt>", " [Ping: 10ms]"
+      " [Sinal instável...]", " // Sincronização neural em 98%.", " (Dados lidos)", " <System.Ready>", " [Ping: 5ms]"
     ];
-    while (narrativa.length < 300) {
+    while (narrativa.length < 200 && narrativa.length < 300) {
       narrativa += getRandom(glitches);
     }
   }
   
-  if (narrativa.length > 400) {
-    // Trunca de forma elegante no último ponto ou espaço
-    narrativa = narrativa.substring(0, 397) + "...";
+  if (narrativa.length > 300) {
+    // Trunca de forma elegante
+    narrativa = narrativa.substring(0, 297) + "...";
   }
 
   return narrativa;

@@ -19,6 +19,25 @@ import NPCCountdown from "../components/combat/NPCCountdown";
 
 const MILITARY_CLIP = { clipPath: "polygon(8px 0%, 100% 0%, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0% 100%, 0% 8px)" };
 
+const ANALYZING_PHRASES = [
+  "ANALISANDO DADOS DO ALVO...",
+  "RASTREANDO PACOTES DE REDE...",
+  "CALCULANDO IMPACTO NEURAL...",
+  "SINCRONIZANDO COM SPECTRO...",
+  "VERIFICANDO VULNERABILIDADES ARQUITETÔNICAS...",
+  "DECODIFICANDO FIREWALL DE DEFESA...",
+  "MONITORANDO FLUXO DE CRÉDITOS ESCUSOS...",
+  "MAPEANDO BACKDOORS DE FUGA..."
+];
+
+const RESULT_PHRASES = [
+  "REASSIMILANDO CONEXÃO...",
+  "COMPILANDO RELATÓRIO DO CONFRONTO...",
+  "CALCULANDO GANHOS E PERDAS...",
+  "FINALIZANDO PROTOCOLO DE ACERTO...",
+  "VERIFICANDO INTEGRIDADE DO CAIXA..."
+];
+
 export default function ReckoningPage() {
   const { userProfile, refreshProfile } = useUserProfile();
   const { showToast } = useToast();
@@ -33,6 +52,8 @@ export default function ReckoningPage() {
   const [battleLog, setBattleLog] = useState<string[]>([]);
   const [finalResult, setFinalResult] = useState<CombatResult | null>(null);
   const [redirectCountdown, setRedirectCountdown] = useState<number | null>(null);
+  const [turnCountdown, setTurnCountdown] = useState<number | null>(null);
+  const [countdownMessage, setCountdownMessage] = useState("");
   const navigate = useNavigate();
 
   const closeResult = useCallback(() => {
@@ -45,15 +66,15 @@ export default function ReckoningPage() {
   // Countdown para redirecionamento automático pós-luta
   useEffect(() => {
     if (combatPhase === "result" && finalResult) {
-      setRedirectCountdown(10);
+      setRedirectCountdown(15);
       const timer = setInterval(() => {
         setRedirectCountdown(prev => {
           if (prev === null || prev <= 1) {
             clearInterval(timer);
-            if (finalResult.winner) {
-              closeResult(); // Volta para o radar
+            if (finalResult.winner || finalResult.outcome === "draw_flee") {
+              closeResult(); // Volta para o radar se ganhou ou se fugiu sem danos críticos
             } else {
-              navigate("/recovery-base"); // Manda para a base de recuperação
+              navigate("/recovery-base"); // Manda para a base de recuperação se perdeu ou empate DKO
             }
             return null;
           }
@@ -102,15 +123,84 @@ export default function ReckoningPage() {
       
       const result = await combatService.attack(selectedTarget.id);
       
-      // Delay for immersion: 14 seconds (~400 chars * 0.04s)
-      const turnDelay = 14000;
-      
-      for (let i = 0; i < result.log.length; i++) {
-        await new Promise(r => setTimeout(r, turnDelay));
-        setBattleLog(prev => [...prev, result.log[i]]);
+      // Countdown Inicial (5 segundos)
+      const initPhrases = [
+        "ESTABELECENDO TÚNEL NEURAL SEGURO...",
+        "SINCRONIZANDO RELÓGIO DE COMBATE...",
+        "CARREGANDO MÓDULOS SPECTRO_v9.1...",
+        "INJETANDO SCRIPTS DE INTERCEPTAÇÃO...",
+        "LOCALIZANDO NÓ DE DEFESA DO ALVO..."
+      ];
+      setCountdownMessage(initPhrases[Math.floor(Math.random() * initPhrases.length)]);
+      for (let s = 5; s > 0; s--) {
+        setTurnCountdown(s);
+        await new Promise(r => setTimeout(r, 1000));
+      }
+      setTurnCountdown(null);
+      setCountdownMessage("");
+
+      // Sequência de 3 turnos
+      for (let i = 0; i < 3; i++) {
+        // Exibe o texto do turno
+        const turnText = result.log[i];
+        setBattleLog(prev => [...prev, turnText]);
+        
+        // Espera o texto ser "digitado" (60ms por caractere + margem)
+        const typingDuration = turnText.length * 60 + 1500;
+        await new Promise(r => setTimeout(r, typingDuration));
+
+        // Determina mensagem do countdown baseado no turno
+        let msg = "";
+        if (i === 0) {
+          // Análise de Poderes (Turno 1)
+          const pPwr = (userProfile?.attack || 0) + (userProfile?.defense || 0) + (userProfile?.focus || 0);
+          const tPwr = (preCalc?.targetInfo.level || 1) * 30; // Estimativa simples do poder do alvo
+          const ratio = pPwr / tPwr;
+          const dominance = Math.min(99, Math.round(ratio * 100));
+          
+          const analysisPhrases = [
+             `ANÁLISE DE PODER: ${dominance}% DOMINÂNCIA SOBRE ALVO...`,
+             `VERIFICANDO SINCRONIA: PROTOCOLO ${dominance > 100 ? 'ALFA' : 'DELTA'} ATIVO...`,
+             `POTENCIAL DE COMBATE: ${pPwr.toFixed(0)} CP vs ${tPwr.toFixed(0)} CP...`,
+             `SCANNER DE ELITE: VULNERABILIDADE DETECTADA EM ${dominance}%...`
+          ];
+          msg = analysisPhrases[Math.floor(Math.random() * analysisPhrases.length)];
+        } else if (i === 1) {
+          // Verificação de Sistema (Turno 2)
+          const verificationPhrases = [
+             "VERIFICANDO INTEGRIDADE NURAL DO ALVO...",
+             "ESTADO DE SISTEMA: DEGRADAÇÃO EM ANDAMENTO...",
+             "FLUXO DE DADOS: ESTÁVEL EM 98.4%...",
+             `MONITORANDO SPECTRO: ${userProfile?.username?.toUpperCase()} EM VANTAGEM...`
+          ];
+          msg = verificationPhrases[Math.floor(Math.random() * verificationPhrases.length)];
+        } else {
+          // Palpite do Spectro (Turno 3)
+          const predictionPhrases = result.winner 
+            ? [
+                "PALPITE DO SPECTRO: VITÓRIA CONFIRMADA EM 99.9%...",
+                "CONSULTA AO ORÁCULO: O ALVO ESTÁ DELETADO.",
+                "VEREDITO: EXECUÇÃO TERMINADA COM SUCESSO."
+              ]
+            : [
+                "PALPITE DO SPECTRO: CONEXÃO INSTÁVEL... POSSÍVEL FALHA.",
+                "ALERTA: DADOS CORROMPIDOS NA FINALIZAÇÃO.",
+                "AVISO: O ALVO RESISTIU AO PROTOCOLO FINAL."
+              ];
+          msg = predictionPhrases[Math.floor(Math.random() * predictionPhrases.length)];
+        }
+        
+        setCountdownMessage(msg);
+
+        // Countdown de 10 segundos
+        for (let s = 10; s > 0; s--) {
+          setTurnCountdown(s);
+          await new Promise(r => setTimeout(r, 1000));
+        }
+        setTurnCountdown(null);
       }
       
-      await new Promise(r => setTimeout(r, 1000));
+      await new Promise(r => setTimeout(r, 500));
       setFinalResult(result);
       setCombatPhase("result");
 
@@ -340,6 +430,25 @@ export default function ReckoningPage() {
                              <p className="font-mono text-sm text-slate-400 uppercase tracking-widest">Estabelecendo Conexão Neural...</p>
                           </div>
                         )}
+                        {turnCountdown !== null && (
+                          <div className="flex flex-col items-center gap-2 py-6 border-y border-red-500/20 bg-red-500/5 mb-6">
+                             <div className="flex items-center gap-3">
+                                <div className="w-2 h-2 bg-red-500 animate-ping rounded-full"></div>
+                                <span className="text-xs font-mono text-red-500 uppercase tracking-[0.4em] font-black">
+                                    {countdownMessage} {turnCountdown}s
+                                </span>
+                             </div>
+                             <div className="w-64 h-1 bg-slate-800 rounded-full overflow-hidden">
+                                <motion.div 
+                                   initial={{ width: "100%" }}
+                                   animate={{ width: "0%" }}
+                                   transition={{ duration: 1, ease: "linear" }}
+                                   key={turnCountdown}
+                                   className="h-full bg-red-500 shadow-[0_0_10px_rgba(220,38,38,0.5)]"
+                                />
+                             </div>
+                          </div>
+                        )}
                         {battleLog.map((log, idx) => (
                           <motion.div 
                             key={idx}
@@ -354,8 +463,8 @@ export default function ReckoningPage() {
                                 initial={{ opacity: 0 }}
                                 animate={{ opacity: 1 }}
                                 transition={{ 
-                                  duration: 0.05,
-                                  delay: i * 0.04 // Velocidade ultra lenta (mais devagar ainda)
+                                  duration: 0.06,
+                                  delay: i * 0.06 // Velocidade ainda mais lenta (atendendo pedido)
                                 }}
                               >
                                 {char}
@@ -379,9 +488,22 @@ export default function ReckoningPage() {
                         className="text-center"
                       >
                          {redirectCountdown !== null && (
-                            <div className="flex items-center justify-center gap-2 text-red-500 font-mono text-xs mb-4 animate-pulse">
-                               <ClockIcon className="w-4 h-4" />
-                               <span>SINAL ENCAPSULANDO EM {redirectCountdown}s... {finalResult.winner ? 'RETORNANDO AO RADAR' : 'REDIRECIONANDO PARA BASE DE RECUPERAÇÃO'}</span>
+                            <div className="flex flex-col items-center gap-2 mb-8 p-4 bg-black/40 border border-red-500/20 relative overflow-hidden">
+                               <div className="flex items-center gap-2 text-red-500 font-mono text-sm font-black animate-pulse">
+                                  <ClockIcon className="w-5 h-5" />
+                                  <span className="tracking-widest uppercase">Protocolo de Extração: {redirectCountdown}s</span>
+                               </div>
+                               <div className="w-full h-1 bg-slate-800/50 absolute bottom-0 left-0">
+                                  <motion.div 
+                                     initial={{ width: "100%" }}
+                                     animate={{ width: `${(redirectCountdown / 15) * 100}%` }}
+                                     transition={{ duration: 0.5 }}
+                                     className="h-full bg-red-600 shadow-[0_0_15px_rgba(220,38,38,0.8)]"
+                                  />
+                               </div>
+                               <p className="text-[9px] text-slate-500 uppercase font-black tracking-widest mt-1 opacity-60">
+                                 {finalResult.winner ? 'RETORNANDO AO RADAR SPECTRO...' : 'REDIRECIONANDO PARA BASE DE RECUPERAÇÃO...'}
+                               </p>
                             </div>
                          )}
 
@@ -412,6 +534,15 @@ export default function ReckoningPage() {
                                    {finalResult.winner ? `+$${finalResult.loot?.money || 0}` : `-$${finalResult.loot?.moneyLost || 0}`}
                                  </span>
                                </div>
+                               
+                               {finalResult.loot?.energyLost !== undefined && (
+                                 <div className="bg-black/40 p-3 border border-white/5">
+                                   <span className="text-[8px] text-slate-500 block uppercase mb-1">EN_LOSS</span>
+                                   <span className="font-black font-orbitron text-xl text-yellow-500">
+                                     -{finalResult.loot.energyLost}%
+                                   </span>
+                                 </div>
+                               )}
 
                                {finalResult.winner && finalResult.loot?.stats && (
                                  <div className="bg-black/40 p-3 border border-white/5 col-span-2">
@@ -437,15 +568,26 @@ export default function ReckoningPage() {
                             <div className="border-t border-white/5 pt-4 flex flex-col md:flex-row justify-between items-center gap-4">
                                <p className="text-[10px] font-mono text-slate-500 flex items-center gap-2">
                                   <FingerPrintIcon className="w-3 h-3" />
-                                  ALVO_REVELADO: <span className="text-white uppercase font-bold">{finalResult.targetRealName}</span>
+                                 <span className="text-white uppercase font-bold">{finalResult.targetRealName}</span>
                                </p>
-                               <button 
-                                 onClick={closeResult}
-                                 className="px-8 py-3 bg-red-500 text-white font-orbitron font-black text-xs uppercase tracking-widest hover:bg-red-600 transition-all shadow-[0_0_20px_rgba(220,38,38,0.4)]"
-                                 style={MILITARY_CLIP}
-                               >
-                                 Finalizar_Sessão
-                               </button>
+                               <div className="flex gap-4">
+                                 {finalResult.outcome === 'loss' && (
+                                   <button 
+                                     onClick={() => navigate("/recovery-base")}
+                                     className="px-6 py-3 bg-slate-800 text-slate-400 font-orbitron font-bold text-[10px] uppercase tracking-widest hover:bg-slate-700 transition-all"
+                                     style={MILITARY_CLIP}
+                                   >
+                                     Ir para Base
+                                   </button>
+                                 )}
+                                 <button 
+                                   onClick={closeResult}
+                                   className="px-8 py-3 bg-red-500 text-white font-orbitron font-black text-xs uppercase tracking-widest hover:bg-red-600 transition-all shadow-[0_0_20px_rgba(220,38,38,0.4)]"
+                                   style={MILITARY_CLIP}
+                                 >
+                                   Finalizar_Sessão
+                                 </button>
+                               </div>
                             </div>
                          </div>
                       </motion.div>
