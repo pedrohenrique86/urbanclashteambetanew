@@ -38,6 +38,7 @@ export interface UserProfile {
   user_id?: string;
   current_xp?: number;
   resources?: number;
+  ucrypto?: number;
   wins?: number;
   losses?: number;
   streak?: number;
@@ -63,6 +64,7 @@ export interface UserProfile {
   last_training_reset?: string;
   active_training_type?: string | null;
   pending_training_toast?: any;
+  toxicity?: number;
 }
 
 export interface IUserProfileContext {
@@ -133,6 +135,7 @@ function mergePlayerStateIntoProfile(
   if (patch.lastTrainingReset !== undefined) next.last_training_reset = patch.lastTrainingReset;
   if (patch.activeTrainingType !== undefined) next.active_training_type = patch.activeTrainingType;
   if (patch.pending_training_toast !== undefined) next.pending_training_toast = patch.pending_training_toast;
+  if (patch.toxicity !== undefined) next.toxicity = patch.toxicity;
 
   return next;
 }
@@ -225,6 +228,7 @@ export const UserProfileProvider = ({ children }: { children: ReactNode }) => {
         last_training_reset: profileData.last_training_reset,
         active_training_type: profileData.active_training_type || null,
         pending_training_toast: profileData.pending_training_toast || null,
+        toxicity: Number(profileData.toxicity) || 0,
       };
     },
     [],

@@ -32,6 +32,9 @@ const TopBar: React.FC<TopBarProps> = ({ userProfile }) => {
   const energyText = `${Math.floor(energyPercentage)}%`;
 
   const combat = useMemo(() => calculateCombatStats(userProfile), [userProfile]);
+  
+  const currentToxicity = userProfile?.toxicity ?? 0;
+  const toxicityPercentage = Math.min(100, currentToxicity);
 
   // ── Cálculo ao vivo das parcelas do Nível Dinâmico ──────────────────────────
   const levelBreakdown = useMemo(() => {
@@ -70,7 +73,7 @@ const TopBar: React.FC<TopBarProps> = ({ userProfile }) => {
       return `${sign}${formatted}${suffix}`;
     };
 
-    if (abs < 1_000)           return `${sign}${abs.toLocaleString("pt-BR")}`;
+    if (abs < 10_000)          return `${sign}${abs.toLocaleString("pt-BR")}`;
     if (abs < 1_000_000)       return fmt(abs, 1_000,           "k");
     if (abs < 1_000_000_000)   return fmt(abs, 1_000_000,       "M");
     if (abs < 1_000_000_000_000) return fmt(abs, 1_000_000_000, "B");
@@ -122,6 +125,13 @@ const TopBar: React.FC<TopBarProps> = ({ userProfile }) => {
       glowColor: "#84cc16", 
       tooltip: `$${(userProfile?.money ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}` 
     },
+    { 
+      label: "UC", 
+      value: formatCurrency(userProfile?.ucrypto ?? 0), 
+      className: "text-amber-400 font-black", 
+      glowColor: "#f59e0b", 
+      tooltip: "U-CRYPTO (TOKENS)"
+    },
   ], [userProfile, xpText, energyText, xpPercentage, energyPercentage, combat, levelBreakdown]);
 
   if (!userProfile) return null;
@@ -140,16 +150,9 @@ const TopBar: React.FC<TopBarProps> = ({ userProfile }) => {
               <React.Fragment key={metric.label}>
                 <div className="flex flex-col items-center justify-center text-center px-1">
                   <span
-                    className={`text-[8px] text-zinc-500 font-black uppercase tracking-widest leading-none mb-1 flex items-center gap-1 ${metric.tooltipId ? 'cursor-help' : 'cursor-default'}`}
-                    data-tooltip-id={metric.tooltipId ?? "topbar-tooltip"}
-                    data-tooltip-content={metric.tooltipId ? undefined : metric.tooltip}
+                    className="text-[8px] text-zinc-500 font-black uppercase tracking-widest leading-none mb-1 flex items-center gap-1 cursor-default"
                   >
                     {metric.label}
-                    {metric.showHint && (
-                      <span className="text-[7px] text-cyan-400 bg-cyan-400/10 w-2.5 h-2.5 flex items-center justify-center rounded-full border border-cyan-400/30 shadow-[0_0_5px_rgba(34,211,238,0.2)]">
-                        ?
-                      </span>
-                    )}
                   </span>
                   
                   {/* Value container with optional progress or battery background */}
@@ -163,6 +166,28 @@ const TopBar: React.FC<TopBarProps> = ({ userProfile }) => {
                         transition={{ type: "spring", stiffness: 40, damping: 12 }}
                         className={`absolute inset-0 left-0 right-auto h-full ${(metric as any).barColor} z-0 shadow-[inset_-1px_0_6px_rgba(255,255,255,0.1)]`}
                       />
+                    )}
+
+                    {/* Toxicity Bar (Internal Bottom) */}
+                    {metric.label === "EN" && (
+                      <div 
+                        className="absolute bottom-0 left-0 w-full h-[2px] bg-black/40 z-20 overflow-hidden"
+                        data-tooltip-id="topbar-tooltip"
+                        data-tooltip-content="Toxicidade"
+                      >
+                        <motion.div
+                          initial={false}
+                          animate={{ width: `${toxicityPercentage}%` }}
+                          transition={{ type: "spring", stiffness: 40, damping: 12 }}
+                          className={`h-full transition-colors duration-500 ${
+                            toxicityPercentage >= 91 
+                              ? 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.8)]' 
+                              : toxicityPercentage >= 85 
+                                ? 'bg-yellow-400 shadow-[0_0_8px_rgba(250,204,21,0.8)]' 
+                                : 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.8)]'
+                          }`}
+                        />
+                      </div>
                     )}
 
                     {/* Content Layer */}
@@ -261,7 +286,7 @@ const TopBar: React.FC<TopBarProps> = ({ userProfile }) => {
            return (
               <div className="p-4 space-y-3 font-orbitron text-[11px]">
                  <div className="flex items-center gap-2 border-b border-white/10 pb-2">
-                    <span className="text-rose-400 font-black text-xs tracking-widest uppercase">Multiplicador Crítico</span>
+                    <span className="text-rose-400 font-black text-xs tracking-widest uppercase">Dano Crítico</span>
                     <span className="text-[9px] text-zinc-500 font-bold uppercase italic border border-white/10 px-1 rounded bg-black/20">Limite Máximo: 4.0x</span>
                  </div>
                  
@@ -306,7 +331,7 @@ const TopBar: React.FC<TopBarProps> = ({ userProfile }) => {
           <div className="p-5 space-y-4 font-orbitron text-[12px]">
             {/* Header */}
             <div className="flex items-center gap-2 border-b border-white/10 pb-2">
-              <span className="text-green-400 font-black text-sm tracking-widest uppercase">Nível de Prestígio</span>
+              <span className="text-green-400 font-black text-sm tracking-widest uppercase">Nível</span>
               <span className="text-[10px] text-zinc-400 uppercase tracking-widest font-bold">Dinâmico</span>
             </div>
 
@@ -386,7 +411,7 @@ const TopBar: React.FC<TopBarProps> = ({ userProfile }) => {
         render={() => (
           <div className="p-4 space-y-3 font-orbitron text-[11px]">
             <div className="flex items-center gap-2 border-b border-white/10 pb-2">
-               <span className="text-purple-400 font-black text-xs tracking-widest uppercase">Experiência Real (XP)</span>
+               <span className="text-purple-400 font-black text-xs tracking-widest uppercase">Experiência (XP)</span>
             </div>
             <div className="bg-black/40 p-2.5 rounded-xl border border-white/5 space-y-2">
                <p className="text-white/80 font-medium leading-relaxed">Concedida passivamente ao concluir treinamentos diários e operações de risco.</p>
