@@ -134,7 +134,7 @@ export default function ReckoningPage() {
 
 
 
-  if (userProfile?.status === "Recondicionamento") {
+  if (userProfile?.status === "Recondicionamento" && combatPhase === "radar") {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-4">
         <ExclamationTriangleIcon className="w-20 h-20 text-red-500 mb-6 animate-pulse" />
@@ -144,7 +144,7 @@ export default function ReckoningPage() {
     );
   }
 
-  if ((userProfile?.level || 1) < 10) {
+  if ((userProfile?.level || 1) < 10 && combatPhase === "radar") {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-4">
         <ShieldExclamationIcon className="w-20 h-20 text-red-500 mb-6 animate-pulse" />

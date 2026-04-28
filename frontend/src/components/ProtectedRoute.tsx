@@ -56,7 +56,8 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, requiresFacti
     '/vip-access',
     '/season',
     '/ranking',
-    '/profile'
+    '/profile',
+    '/reckoning'
   ];
 
   const status = userProfile?.status || 'Operacional';
