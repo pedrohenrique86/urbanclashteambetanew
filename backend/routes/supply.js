@@ -14,5 +14,15 @@ router.post("/buy/:itemId", authenticateToken, async (req, res) => {
     res.status(400).json({ error: error.message });
   }
 });
+// Comprar antídoto
+router.post("/buy-antidote", authenticateToken, async (req, res) => {
+  try {
+    const result = await supplyService.buyAntidote(req.user.id);
+    res.json(result);
+  } catch (error) {
+    console.error("[Supply Error]:", error);
+    res.status(400).json({ error: error.message });
+  }
+});
 
 module.exports = router;

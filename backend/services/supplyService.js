@@ -27,14 +27,14 @@ const SUPPLY_ITEMS = {
     energyGained: 90,
     costCash: 500,
     costAP: 1000,
-    toxicity: 12
+    toxicity: 10
   },
   adrenalina: {
     id: "adrenalina",
     energyGained: 100,
     costCash: 850,
     costAP: 1500,
-    toxicity: 15
+    toxicity: 12
   }
 };
 
@@ -101,9 +101,11 @@ async function buySupply(userId, itemId) {
 
   let collapsed = false;
 
-  // Collapse Check (20% chance if toxicity >= 90)
-  if (finalTox >= 90) {
-    const isCollapse = Math.random() < 0.20;
+  // Collapse Check (Tiered risk based on toxicity zones)
+  if (finalTox >= 85) {
+    const chance = finalTox >= 91 ? 0.20 : 0.05; // 20% in Red zone (91+), 5% in Yellow zone (85-90)
+    const isCollapse = Math.random() < chance;
+    
     if (isCollapse) {
       collapsed = true;
       updates.status = "Recondicionamento";
@@ -130,7 +132,40 @@ async function buySupply(userId, itemId) {
   };
 }
 
+async function buyAntidote(userId) {
+  const profile = await playerStateService.getPlayerState(userId);
+  if (!profile) {
+    throw new Error("Perfil não encontrado.");
+  }
+
+  const currentTox = Math.floor(Number(profile.toxicity || 0));
+  if (currentTox <= 0) {
+    throw new Error("Sua toxicidade já está zerada.");
+  }
+
+  const level = Number(profile.level || 1);
+  const costCash = Math.floor(100 + (level * 10) + (currentTox * 5 * (1 + level / 10)));
+  
+  if (Number(profile.money || 0) < costCash) {
+    throw new Error(`Dinheiro insuficiente. O antídoto custa $${costCash}.`);
+  }
+
+  const updates = {
+    money: -costCash,
+    toxicity: -currentTox
+  };
+
+  await playerStateService.updatePlayerState(userId, updates);
+
+  return {
+    message: "Sistema purgado. Toxicidade zerada com sucesso.",
+    costCash,
+    clearedToxicity: currentTox
+  };
+}
+
 module.exports = {
   buySupply,
+  buyAntidote,
   SUPPLY_ITEMS
 };
