@@ -449,29 +449,78 @@ export default function ReckoningPage() {
                              </div>
                           </div>
                         )}
-                        {battleLog.map((log, idx) => (
-                          <motion.div 
-                            key={idx}
-                            initial={{ opacity: 0, x: -10 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            className="bg-red-500/5 border-l-4 border-red-500 p-5 font-mono text-xs md:text-sm text-slate-200 leading-relaxed shadow-[0_0_20px_rgba(220,38,38,0.05)]"
-                          >
-                            <span className="text-red-500 mr-3">[{idx + 1}]</span>
-                            {log.split("").map((char, i) => (
-                              <motion.span
-                                key={i}
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: 1 }}
-                                transition={{ 
-                                  duration: 0.06,
-                                  delay: i * 0.06 // Velocidade ainda mais lenta (atendendo pedido)
-                                }}
-                              >
-                                {char}
-                              </motion.span>
-                            ))}
-                          </motion.div>
-                        ))}
+                        {battleLog.map((log, idx) => {
+                          const pName = userProfile?.username || "";
+                          const tName = selectedTarget?.name || "";
+                          const realTName = finalResult?.targetRealName || "";
+                          
+                          // Procura nomes para destacar
+                          // Ordem importa para não sobrepor substrings
+                          const namesToHighlight = [
+                            { text: pName, className: "text-emerald-400 font-bold drop-shadow-[0_0_5px_rgba(16,185,129,0.5)]" },
+                            { text: tName, className: "text-red-500 font-bold drop-shadow-[0_0_5px_rgba(220,38,38,0.5)]" },
+                            { text: realTName, className: "text-red-500 font-bold drop-shadow-[0_0_5px_rgba(220,38,38,0.5)]" }
+                          ].filter(n => n.text.length > 0);
+
+                          const processSegments = (txt: string) => {
+                             if (!txt) return [];
+                             let result = [{ text: txt, highlight: false, className: "" }];
+                             
+                             namesToHighlight.forEach(h => {
+                                let newResult: any[] = [];
+                                result.forEach(seg => {
+                                   if (seg.highlight) {
+                                      newResult.push(seg);
+                                      return;
+                                   }
+                                   const parts = seg.text.split(h.text);
+                                   parts.forEach((p, pIdx) => {
+                                      if (p) newResult.push({ text: p, highlight: false, className: "" });
+                                      if (pIdx < parts.length - 1) newResult.push({ text: h.text, highlight: true, className: h.className });
+                                   });
+                                });
+                                result = newResult;
+                             });
+                             return result;
+                          };
+
+                          const segments = processSegments(log);
+                          let globalCharIdx = 0;
+
+                          return (
+                            <motion.div 
+                              key={idx}
+                              initial={{ opacity: 0, x: -10 }}
+                              animate={{ opacity: 1, x: 0 }}
+                              className="bg-red-500/5 border-l-4 border-red-500 p-5 font-mono text-xs md:text-sm text-slate-200 leading-relaxed shadow-[0_0_20px_rgba(220,38,38,0.05)]"
+                            >
+                              <span className="text-red-500 mr-3">[{idx + 1}]</span>
+                              {segments.map((seg, sIdx) => {
+                                 const part = seg.text;
+                                 return (
+                                   <span key={sIdx} className={seg.className}>
+                                      {part.split("").map((char: string) => {
+                                         const currentIdx = globalCharIdx++;
+                                         return (
+                                           <motion.span
+                                             key={currentIdx}
+                                             initial={{ opacity: 0 }}
+                                             animate={{ opacity: 1 }}
+                                             transition={{ 
+                                               duration: 0.06,
+                                               delay: currentIdx * 0.06 
+                                             }}
+                                           >
+                                             {char}
+                                           </motion.span>
+                                         );
+                                      })}
+                                   </span>
+                                 );
+                              })}
+                            </motion.div>
+                          );
+                        })}
                         {battleLog.length > 0 && battleLog.length < 3 && (
                           <div className="flex justify-center p-2">
                              <div className="w-1 h-6 bg-red-500 animate-bounce"></div>
@@ -487,6 +536,27 @@ export default function ReckoningPage() {
                         animate={{ opacity: 1, y: 0 }}
                         className="text-center"
                       >
+                         <div className="mb-6 p-4 border-y-2 border-slate-800 bg-black/60">
+                            <h3 className="font-orbitron font-black text-xs md:text-sm tracking-[0.5em] text-slate-400 uppercase mb-2">
+                               RESULTADO DO DUELO
+                            </h3>
+                            <div className="flex flex-col items-center gap-1">
+                               <p className={`text-xl font-black font-orbitron ${finalResult.winner ? 'text-emerald-400' : 'text-red-500'}`}>
+                                  {finalResult.winner ? 'PROTOCOLO_GANHO' : 'PROTOCOLO_PERDIDO'}
+                               </p>
+                               <p className="text-[10px] font-mono text-slate-500">
+                                  {finalResult.winner 
+                                    ? `+${finalResult.loot?.xp || 0} XP | +$${finalResult.loot?.money || 0} CASH`
+                                    : `-${finalResult.loot?.xp || 0} XP | -$${finalResult.loot?.moneyLost || 0} CASH | -100% ENERGIA`}
+                               </p>
+                               {finalResult.outcome === "loss" && (
+                                  <p className="text-[9px] text-red-600 font-black animate-pulse mt-2">
+                                     AVISO: SISTEMA 100% DRENADO - ENERGIA ZERADA
+                                  </p>
+                               )}
+                            </div>
+                         </div>
+
                          {redirectCountdown !== null && (
                             <div className="flex flex-col items-center gap-2 mb-8 p-4 bg-black/40 border border-red-500/20 relative overflow-hidden">
                                <div className="flex items-center gap-2 text-red-500 font-mono text-sm font-black animate-pulse">

@@ -182,7 +182,7 @@ const FRAGMENTS = {
 
 /**
  * Função principal do motor narrativo.
- * Gera uma string de 200-300 caracteres combinando 4 partes.
+ * Gera uma string de 200-350 caracteres combinando 4 partes.
  */
 function construirNarrativa(turno, contexto) {
   const { player_name, target_name, setor_cidade, arma_equipada, is_rare, is_draw_dko, is_draw_flee } = contexto;
@@ -241,22 +241,34 @@ function construirNarrativa(turno, contexto) {
     narrativa = narrativa.replace(new RegExp(key, 'g'), val);
   }
 
-  // Ajuste de Tamanho (200-300 caracteres)
-  // Como os fragmentos foram desenhados para terem ~60-80 caracteres cada, a soma deve estar no range.
+  // Ajuste de Tamanho (200-350 caracteres)
+  // Como os fragmentos foram desenhados para terem ~60-100 caracteres cada, a soma deve estar no range.
   // Mas para garantir:
   if (narrativa.length < 200) {
     // Adiciona um ruído/glitch se for muito curta
     const glitches = [
       " [Sinal instável...]", " // Sincronização neural em 98%.", " (Dados lidos)", " <System.Ready>", " [Ping: 5ms]"
     ];
-    while (narrativa.length < 200 && narrativa.length < 300) {
+    while (narrativa.length < 200 && narrativa.length < 350) {
       narrativa += getRandom(glitches);
     }
   }
   
-  if (narrativa.length > 300) {
-    // Trunca de forma elegante
-    narrativa = narrativa.substring(0, 297) + "...";
+  if (narrativa.length > 350) {
+    // Procura o último final de frase (. ! ?) dentro de 350 caracteres
+    const lastPuntuation = Math.max(
+      narrativa.lastIndexOf('.', 349),
+      narrativa.lastIndexOf('!', 349),
+      narrativa.lastIndexOf('?', 349)
+    );
+
+    if (lastPuntuation > 150) {
+      narrativa = narrativa.substring(0, lastPuntuation + 1);
+    } else {
+      // Se não houver pontuação, corta no último espaço para não quebrar a palavra
+      const lastSpace = narrativa.lastIndexOf(' ', 349);
+      narrativa = narrativa.substring(0, lastSpace);
+    }
   }
 
   return narrativa;
