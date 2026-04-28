@@ -5,31 +5,36 @@ const SUPPLY_ITEMS = {
     id: "cafe",
     energyGained: 15,
     costCash: 40,
-    costAP: 150
+    costAP: 150,
+    toxicity: 2
   },
   sanduiche: {
     id: "sanduiche",
     energyGained: 40,
     costCash: 120,
-    costAP: 350
+    costAP: 350,
+    toxicity: 5
   },
   marmita: {
     id: "marmita",
     energyGained: 65,
     costCash: 280,
-    costAP: 600
+    costAP: 600,
+    toxicity: 8
   },
   banquete: {
     id: "banquete",
     energyGained: 90,
     costCash: 500,
-    costAP: 1000
+    costAP: 1000,
+    toxicity: 12
   },
   adrenalina: {
     id: "adrenalina",
     energyGained: 100,
     costCash: 850,
-    costAP: 1500
+    costAP: 1500,
+    toxicity: 15
   }
 };
 
@@ -42,6 +47,10 @@ async function buySupply(userId, itemId) {
   const profile = await playerStateService.getPlayerState(userId);
   if (!profile) {
     throw new Error("Perfil não encontrado.");
+  }
+
+  if (profile.status && profile.status !== 'Operacional') {
+    throw new Error(`Sua unidade está em ${profile.status}. Consumo restrito.`);
   }
 
   if (Number(profile.money || 0) < item.costCash) {
@@ -62,19 +71,62 @@ async function buySupply(userId, itemId) {
   // Calculate new energy ensuring it doesn't exceed max
   const energyToAdd = Math.min(item.energyGained, maxEnergy - currentEnergy);
 
-  // Apply updates
+  // Toxicity Random Chance Logic (Roleplay-driven poisoning)
+  let willIntoxicate = false;
+  const roll = Math.random();
+  
+  if (item.id === "cafe") willIntoxicate = roll < 0.20; // 20% chance
+  else if (item.id === "sanduiche") willIntoxicate = roll < 0.70; // 70% chance (street food!)
+  else if (item.id === "marmita") willIntoxicate = roll < 0.50; // 50% chance
+  else if (item.id === "banquete") willIntoxicate = roll < 0.10; // 10% chance (gourmet quality)
+  else if (item.id === "adrenalina") willIntoxicate = roll < 0.90; // 90% chance (chemical strike)
+
+  const currentTox = Number(profile.toxicity || 0);
+  let toxToAdd = 0;
+  let finalTox = currentTox;
+
+  if (willIntoxicate) {
+    const rawFinalTox = currentTox + item.toxicity;
+    finalTox = Math.min(100, rawFinalTox);
+    toxToAdd = finalTox - currentTox;
+  }
+
+  // Apply basic updates
   const updates = {
     money: -item.costCash,
     action_points: -item.costAP,
-    energy: energyToAdd
+    energy: energyToAdd,
+    toxicity: toxToAdd
   };
 
+  let collapsed = false;
+
+  // Collapse Check (20% chance if toxicity >= 90)
+  if (finalTox >= 90) {
+    const isCollapse = Math.random() < 0.20;
+    if (isCollapse) {
+      collapsed = true;
+      updates.status = "Recondicionamento";
+      updates.status_ends_at = new Date(Date.now() + 20 * 60 * 1000).toISOString(); // 20 minutes
+    }
+  }
+
   await playerStateService.updatePlayerState(userId, updates);
+
+  if (collapsed) {
+    return {
+      message: "ALERTA CRÍTICO: Sobrecarga Torácica! Unidade entrou em Recondicionamento de emergência (20min).",
+      item,
+      gainedEnergy: energyToAdd,
+      collapsed: true
+    };
+  }
 
   return {
     message: "Consumo detectado. Níveis de energia restaurados.",
     item,
-    gainedEnergy: energyToAdd
+    gainedEnergy: energyToAdd,
+    collapsed: false
   };
 }
 

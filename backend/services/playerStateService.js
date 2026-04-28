@@ -55,7 +55,7 @@ const DB_PERSIST_FIELDS = new Set([
   "status", "status_ends_at",
   "training_ends_at", "daily_training_count", "last_training_reset", "active_training_type",
   "energy", "action_points", "last_ap_reset",
-  "energy_updated_at",
+  "energy_updated_at", "toxicity"
 ]);
 
 // ─── Dirty TIPO 2: campos voláteis (NÃO persistem no safety-net, só via debounce
@@ -93,6 +93,7 @@ const FIELD_TO_SSE = {
   daily_training_count: "dailyTrainingCount",
   last_training_reset: "lastTrainingReset",
   active_training_type: "activeTrainingType",
+  toxicity          : "toxicity",
 };
 
 // ─── Campos numéricos no Redis Hash ──────────────────────────────────────────────
@@ -100,7 +101,7 @@ const NUMERIC_FIELDS = new Set([
   "level", "total_xp", "energy", "max_energy", "action_points",
   "attack", "defense", "focus", "luck", "critical_damage", "critical_chance",
   "money", "intimidation", "discipline", "victories", "defeats", 
-  "winning_streak", "daily_training_count"
+  "winning_streak", "daily_training_count", "toxicity"
 ]);
 
 // ─── Estado interno ───────────────────────────────────────────────────────────────
