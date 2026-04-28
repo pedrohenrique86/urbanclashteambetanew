@@ -326,7 +326,7 @@ export default function SupplyStationPage() {
                    style={MILITARY_CLIP}
                  >
                    <div className="absolute top-0 right-0 p-2 opacity-30 group-hover:opacity-50 transition-opacity">
-                     <FlaskConical className={`w-12 h-12 ${needsAntidote ? 'text-blue-500 drop-shadow-[0_0_8px_rgba(59,130,246,0.5)]' : 'text-slate-500 Mateo'}`} />
+                     <Syringe className={`w-12 h-12 ${needsAntidote ? 'text-blue-500 drop-shadow-[0_0_8px_rgba(59,130,246,0.5)]' : 'text-slate-500 Mateo'}`} />
                    </div>
                    <h3 className={`text-[10px] font-orbitron ${needsAntidote ? 'text-cyan-400' : 'text-slate-500'} mb-6 flex flex-col gap-1 tracking-[0.3em]`}>
                      <div className="flex items-center gap-2">
@@ -339,7 +339,7 @@ export default function SupplyStationPage() {
                        <span className={`text-2xl md:text-3xl font-black font-orbitron leading-none ${needsAntidote && canAffordAntidote ? 'text-white' : 'text-slate-500 Mateo'}`}>
                          {needsAntidote ? `$${antidoteCost.toLocaleString("pt-BR")}` : "---"}
                        </span>
-                       <span className="text-slate-500 font-bold uppercase text-[10px] tracking-widest mb-0.5">CUSTO</span>
+                       <span className="text-slate-500 font-bold uppercase text-[10px] tracking-widest mb-0.5">DOSE</span>
                      </div>
                      
                      <button
@@ -357,7 +357,7 @@ export default function SupplyStationPage() {
                        {loading === "antidote" ? (
                          <div className="w-3 h-3 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin mx-auto"></div>
                        ) : (
-                         needsAntidote ? (canAffordAntidote ? "PURGAR SISTEMA" : "SALDO INSUFICIENTE") : "SISTEMA LIMPO"
+                         needsAntidote ? (canAffordAntidote ? "DRENAR_RESÍDUOS" : "SALDO INSUFICIENTE") : "SISTEMA LIMPO"
                        )}
                      </button>
                    </div>
