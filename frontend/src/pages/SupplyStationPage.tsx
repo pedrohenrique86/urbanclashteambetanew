@@ -89,7 +89,7 @@ const SUPPLY_OPTIONS = [
     description: "Injeção instantânea. Recarrega 100%.",
     energy: 100,
     costs: { ap: 1500, cash: 850 },
-    toxicityChance: 90,
+    toxicityChance: 80,
     toxicityGain: 12,
     icon: <Syringe className="w-8 h-8 text-rose-400 group-hover:text-rose-300 transition-colors" />,
     color: "rose",

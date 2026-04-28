@@ -79,7 +79,7 @@ async function buySupply(userId, itemId) {
   else if (item.id === "sanduiche") willIntoxicate = roll < 0.70; // 70% chance (street food!)
   else if (item.id === "marmita") willIntoxicate = roll < 0.50; // 50% chance
   else if (item.id === "banquete") willIntoxicate = roll < 0.10; // 10% chance (gourmet quality)
-  else if (item.id === "adrenalina") willIntoxicate = roll < 0.90; // 90% chance (chemical strike)
+  else if (item.id === "adrenalina") willIntoxicate = roll < 0.80; // 80% chance (chemical strike)
 
   const currentTox = Number(profile.toxicity || 0);
   let toxToAdd = 0;

@@ -106,7 +106,7 @@ const TopBar: React.FC<TopBarProps> = ({ userProfile }) => {
       value: energyText, 
       className: "text-orange-400", 
       glowColor: "#f97316", 
-      tooltip: "Energia",
+      tooltip: "Energia (Gerada 1% a cada 3 minutos auto)",
       progress: energyPercentage,
       barColor: "bg-orange-500/50",
       isBattery: true
