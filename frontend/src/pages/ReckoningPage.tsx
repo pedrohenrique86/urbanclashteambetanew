@@ -831,12 +831,12 @@ export default function ReckoningPage() {
 
                                {finalResult.outcome === "loss_bleeding" && (
                                   <p className="text-[9px] text-orange-500 font-black animate-pulse mt-2">
-                                     AVISO: SISTEMA SANGRANDO (-20% STATS) - RECONECTE EM 5 MIN PARA REPAROS
+                                     AVISO: SISTEMA SANGRANDO (-20% STATS) - RECONECTE EM 15 MIN PARA REPAROS
                                   </p>
                                )}
                                {finalResult.outcome === "loss_ko" && (
                                   <p className="text-[9px] text-red-600 font-black animate-pulse mt-2">
-                                     AVISO: DANO CRÍTICO TOTAL - RECONDICIONAMENTO OBRIGATÓRIO (KO)
+                                     AVISO: DANO CRÍTICO TOTAL - RECONDICIONAMENTO OBRIGATÓRIO (KO - 30 MIN)
                                   </p>
                                )}
                             </div>

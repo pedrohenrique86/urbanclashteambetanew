@@ -467,8 +467,8 @@ class CombatService {
         outcome: outcome === "win_ko" ? "K.O. - Vitória Esmagadora" : 
                  (outcome === "win_bleeding" ? "Vitória Custo Alto (Sangrando)" : "Decisão - Vitória Tática"),
         status: outcome === "win_bleeding" ? "Sangrando" : null,
-        recoveryDuration: outcome === "win_bleeding" ? 30 : null,
-        shieldDuration: outcome === "win_bleeding" ? 30 : null
+        recoveryDuration: outcome === "win_bleeding" ? 15 : null,
+        shieldDuration: outcome === "win_bleeding" ? 15 : null
       };
 
     } else if (isLoss) {
@@ -476,8 +476,8 @@ class CombatService {
       const moneyLost      = Math.floor(attackerMoney * 0.05);
       
       const isBleeding = outcome === "loss_bleeding";
-      const recoveryDuration = isBleeding ? 30 : 15;
-      const shieldDuration   = isBleeding ? 30 : 45;
+      const recoveryDuration = isBleeding ? 15 : 30;
+      const shieldDuration   = isBleeding ? 15 : 45;
 
       loot = {
         xp:        -gameLogic.COMBAT.XP_LOSE_BASE,
@@ -592,9 +592,9 @@ class CombatService {
       
       if (outcome === "win_bleeding") {
          stateUpdate.status = "Sangrando";
-         stateUpdate.status_ends_at = new Date(Date.now() + 30 * 60000).toISOString();
-         stateUpdate.recovery_ends_at = new Date(Date.now() + 30 * 60000).toISOString();
-         stateUpdate.shield_ends_at = new Date(Date.now() + 30 * 60000).toISOString();
+         stateUpdate.status_ends_at = new Date(Date.now() + 15 * 60000).toISOString();
+         stateUpdate.recovery_ends_at = new Date(Date.now() + 15 * 60000).toISOString();
+         stateUpdate.shield_ends_at = new Date(Date.now() + 15 * 60000).toISOString();
       }
 
       await playerStateService.updatePlayerState(userId, stateUpdate);

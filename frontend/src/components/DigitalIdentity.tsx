@@ -148,6 +148,8 @@ const StatusBanner = ({ status, endsAt }: { status?: string; endsAt?: string | n
         };
       case 'recondicionamento':
       case 'hospital':
+      case 'recuperação':
+      case 'recuperacao':
         return {
           bg: 'bg-yellow-500/20',
           border: 'border-yellow-500/50',
@@ -202,7 +204,10 @@ const StatusBanner = ({ status, endsAt }: { status?: string; endsAt?: string | n
 
   const timeRemaining = useMemo(() => {
     if (!endsAt) return null;
-    const diff = new Date(endsAt).getTime() - Date.now();
+    const time = new Date(endsAt).getTime();
+    if (isNaN(time)) return null;
+    
+    const diff = time - Date.now();
     if (diff <= 0) return null;
     
     const mins = Math.floor(diff / 60000);
@@ -219,7 +224,13 @@ const StatusBanner = ({ status, endsAt }: { status?: string; endsAt?: string | n
   useEffect(() => {
     if (!endsAt) return;
     const interval = setInterval(() => {
-      const diff = new Date(endsAt).getTime() - Date.now();
+      const time = new Date(endsAt).getTime();
+      if (isNaN(time)) {
+          setDisplayTime(null);
+          clearInterval(interval);
+          return;
+      }
+      const diff = time - Date.now();
       if (diff <= 0) {
         setDisplayTime(null);
         clearInterval(interval);

@@ -244,8 +244,8 @@ function resolveCombatHit(attacker, defender, turnMomentum = 1.0) {
   const isBleedingAtk = attacker.status === 'Sangrando';
   const isBleedingDef = defender.status === 'Sangrando';
 
-  const atkFinal = rawAtk * atkMult * (isBleedingAtk ? 0.85 : 1.0);
-  const defFinal = rawDef * defMult * (isBleedingDef ? 0.85 : 1.0);
+  const atkFinal = rawAtk * atkMult * (isBleedingAtk ? 0.80 : 1.0);
+  const defFinal = rawDef * defMult * (isBleedingDef ? 0.80 : 1.0);
 
   // 2. Mecânicas Avançadas (DADOS REAIS E IDENTIDADE DE CLASSE)
   // BREACH (Assinatura Renegada): Usa a Intimidação (35%) para chance de ignorar parte da Defesa
