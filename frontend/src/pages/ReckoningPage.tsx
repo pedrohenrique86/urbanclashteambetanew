@@ -149,7 +149,7 @@ const BattleRulesInfo = () => {
                     <AdjustmentsHorizontalIcon className="w-3 h-3 text-violet-400" /> Supressão de Aura e Power Solo
                   </p>
                   <p className="text-slate-400">
-                    O seu <span className="text-violet-400 font-bold">Power Solo</span> é a soma bruta de todos os seus atributos diretos <span className="text-slate-500">(ATK + DEF + FOC)</span>. A diferença de Power Solo entre você e o alvo gera uma "Aura". 
+                    O seu <span className="text-violet-400 font-bold">Power Solo</span> é a soma bruta de todos os seus atributos diretos <span className="text-slate-500">(ATK + DEF + FOC)</span>. A diferença de Power Solo entre você e o alvo gera uma &quot;Aura&quot;. 
                     O modificador de dano escala dinamicamente baseado nessa diferença, com teto de +/- 20%. Exatamente cada <span className="text-violet-400 font-bold">1000</span> pontos de diferença de Power Solo concedem o máximo impacto sobre o alvo.
                   </p>
                 </div>
