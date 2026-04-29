@@ -126,37 +126,47 @@ const BattleRulesInfo = () => {
               <div className="space-y-4 font-mono text-[10px] leading-relaxed">
                 <div>
                   <p className="text-white font-bold mb-1 uppercase flex items-center gap-2">
-                    <FireIcon className="w-3 h-3 text-red-500" /> Dano vs Defesa
+                    <FireIcon className="w-3 h-3 text-red-500" /> Vitalidade (HP) & Combate Físico
                   </p>
                   <p className="text-slate-400">
-                    O dano base é (ATK × 10). A defesa reduz esse dano usando um sistema de Softcap (diminuição gradual). 
-                    Mesmo com defesa alta, você sempre receberá o dano residual.
+                    Sua <span className="text-emerald-400 font-bold">Vida (HP)</span> adviria do seu Nível + multiplicador de DEF. <span className="text-blue-400 font-bold"> Guardiões</span> ganham +25% bônus de tolerância de HP total, mas <span className="text-red-400 font-bold"> Renegados</span> recebem penalidade de -10% na estabilidade corporal (HP). A Defesa que você veste amortece o dano inimigo via Softcap.
                   </p>
                 </div>
                 
                 <div>
                   <p className="text-white font-bold mb-1 uppercase flex items-center gap-2">
-                    <StarIcon className="w-3 h-3 text-yellow-400" /> Críticos e Foco
+                    <StarIcon className="w-3 h-3 text-yellow-400" /> Críticos e Habilidades Periciais
                   </p>
                   <p className="text-slate-400">
-                    Cada ponto de <span className="text-yellow-400">Foco</span> aumenta sua chance de Crítico. 
-                    <span className="text-red-400"> Renegados</span> batem com críticos mais letais, enquanto 
-                    <span className="text-blue-400"> Guardiões</span> usam Disciplina para reduzir o dano crítico recebido.
+                    O <span className="text-yellow-400 font-bold">Foco</span> eleva a taxa base de Crítico. 
+                    <span className="text-red-400 font-bold"> Renegados</span> testam a sua chance extraída da perícia <span className="text-white">Intimidação</span> para despoletar um <span className="text-red-500 font-black">BREACH</span> (Quebra de Defesa). Um combate com BREACH ignora completamente 40% de toda armadura/mitigação inimiga para um acerto limpo!
+                    Já os <span className="text-blue-400 font-bold"> Guardiões</span> ativam <span className="text-white">Disciplina</span> tanto para reduzir fortemente o impacto sangrento de danos críticos injetados por Renegados, quanto para engatilhar contra-ataques reflexivos.
                   </p>
                 </div>
 
                 <div>
                   <p className="text-white font-bold mb-1 uppercase flex items-center gap-2">
-                    <AdjustmentsHorizontalIcon className="w-3 h-3 text-violet-400" /> Supressão de Aura
+                    <AdjustmentsHorizontalIcon className="w-3 h-3 text-violet-400" /> Supressão de Aura e Power Solo
                   </p>
                   <p className="text-slate-400">
-                    A diferença de status total entre você e o alvo gera uma &quot;Aura&quot;. 
-                    Se você for muito mais forte, seu dano sobe até 30%. Se o alvo for muito superior, seu dano cai 30%.
+                    O seu <span className="text-violet-400 font-bold">Power Solo</span> é a soma bruta de todos os seus atributos diretos <span className="text-slate-500">(ATK + DEF + FOC)</span>. A diferença de Power Solo entre você e o alvo gera uma "Aura". 
+                    O modificador de dano escala dinamicamente baseado nessa diferença, com teto de +/- 20%. Exatamente cada <span className="text-violet-400 font-bold">1000</span> pontos de diferença de Power Solo concedem o máximo impacto sobre o alvo.
                   </p>
                 </div>
 
                 <div className="bg-red-500/10 p-3 border border-red-500/20 text-red-400 text-[9px] uppercase italic">
-                  NPCs podem variar de 80% a 120% do seu poder. Alvos HVT (Raros) sempre operam em 130%+.
+                  NPCs variam de 80% a 120% do seu poder. Alvos BOSS (Raros) sempre operam em 130%+.
+                </div>
+
+                <div>
+                  <p className="text-white font-bold mb-1 uppercase flex items-center gap-2 mt-4 border-t border-slate-800 pt-4">
+                    <FingerPrintIcon className="w-4 h-4 text-emerald-400" /> Recompensas Táticas
+                  </p>
+                  <p className="text-slate-400 mt-2">
+                    A conexão custa <span className="text-emerald-400 font-bold">300 PA</span> e <span className="text-yellow-400 font-bold">50% EN</span>.
+                    Vitórias em Bots dão bônus escalado de XP e <span className="text-white">+0.25</span> direto nos atributos.
+                    Vitórias sobre um <span className="text-red-500 font-black tracking-widest drop-shadow-[0_0_5px_rgba(220,38,38,0.8)]">BOSS</span> concedem bônus majorado de <span className="text-white">+0.50</span> nos atributos, $500 em Dinheiro extra e muito mais XP!
+                  </p>
                 </div>
               </div>
               
@@ -225,6 +235,10 @@ export default function ReckoningPage() {
   }, [combatPhase, finalResult, navigate, closeResult]);
   
   const handleSelectTarget = async (target: RadarTarget) => {
+    if ((userProfile?.action_points || 0) < 300) {
+      showToast("Você precisa de 300 Pontos de Ação (PA) para preparar a interceptação.", "warning");
+      return;
+    }
     if ((userProfile?.energy || 0) < 50) {
       showToast("Energia insuficiente. Recarregue para 50% para abrir o rastreador.", "warning");
       return;
@@ -251,6 +265,10 @@ export default function ReckoningPage() {
 
   const handleAttack = async () => {
     if (!selectedTarget) return;
+    if ((userProfile?.action_points || 0) < 300) {
+      showToast("Protocolo Negado: O Spectro cobra 300 PA pela transferência de dados táticos.", "error");
+      return;
+    }
     if ((userProfile?.energy || 0) < 50) {
       showToast("Protocolo Negado: Você precisa de 50% de energia para iniciar um Acerto de Contas.", "error");
       return;
@@ -407,15 +425,28 @@ export default function ReckoningPage() {
   }
 
   return (
-    <div className="min-h-[80vh] p-4 md:p-8 font-sans text-slate-300 relative selection:bg-red-500/30">
+    <div className="min-h-[80vh] p-4 md:p-8 font-sans text-slate-300 relative selection:bg-yellow-500/30">
+      
+      {/* HUD DECORATION - CORNERS */}
+      <div className="fixed inset-0 pointer-events-none border-[1px] border-yellow-500/10 opacity-30 m-4 hidden md:block z-0">
+        <div className="absolute top-0 left-0 w-16 h-16 border-t-2 border-l-2 border-yellow-500/50"></div>
+        <div className="absolute top-0 right-0 w-16 h-16 border-t-2 border-r-2 border-yellow-500/50"></div>
+        <div className="absolute bottom-0 left-0 w-16 h-16 border-b-2 border-l-2 border-yellow-500/50"></div>
+        <div className="absolute bottom-0 right-0 w-16 h-16 border-b-2 border-r-2 border-yellow-500/50"></div>
+      </div>
+      
       <header className="max-w-6xl mx-auto mb-12 relative z-10 flex flex-wrap gap-4 items-center justify-between">
+        <div className="absolute -left-4 top-1/2 -translate-y-1/2 w-1 h-12 bg-yellow-500 shadow-[0_0_15px_rgba(234,179,8,0.8)]"></div>
         <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}>
-          <h1 className="text-4xl md:text-5xl font-orbitron font-black text-white uppercase" style={{ textShadow: "2px 0px 0px rgba(220,38,38,0.7), -2px 0px 0px rgba(139,92,246,0.7)" }}>
-            Acerto de <span className="text-red-500">Contas</span>
+          <h1 className="text-4xl md:text-6xl font-orbitron font-black tracking-widest text-white uppercase" style={{ textShadow: "2px 0px 0px rgba(234,179,8,0.7), -2px 0px 0px rgba(139,92,246,0.7)" }}>
+            Spectro <span className="text-yellow-500">Reckoning</span>
           </h1>
           <div className="flex items-center gap-4 mt-2">
-            <span className="text-[10px] font-mono bg-white/10 px-2 py-0.5 text-slate-300">RADAR SPECTRO</span>
-            <span className="text-[10px] font-mono text-red-500 tracking-widest">● LIVE_TARGETS</span>
+            <span className="text-[10px] font-mono bg-white/10 px-2 py-0.5 text-slate-300">SEC_LEVEL: 10</span>
+            <span className="text-[10px] font-mono text-yellow-500 animate-pulse tracking-widest">● LIVE_TARGETS</span>
+            <p className="text-slate-400 text-xs font-mono hidden md:block uppercase tracking-tighter">
+              SISTEMA DE RASTREAMENTO TÁTICO E INTERCEPTAÇÃO.
+            </p>
           </div>
         </motion.div>
         
@@ -423,9 +454,17 @@ export default function ReckoningPage() {
           <BattleRulesInfo />
           
           <div className="bg-black/50 border border-slate-700 p-2 md:p-3 flex items-center gap-3">
+             <FingerPrintIcon className="w-6 h-6 text-emerald-500" />
+             <div className="flex flex-col">
+               <span className="text-[10px] font-mono text-slate-400 uppercase">Pontos_Ação</span>
+               <span className="text-lg font-black font-orbitron text-emerald-400">{userProfile?.action_points?.toLocaleString() || 0}</span>
+             </div>
+          </div>
+          
+          <div className="bg-black/50 border border-slate-700 p-2 md:p-3 flex items-center gap-3">
              <BoltIcon className="w-6 h-6 text-yellow-500 animate-pulse" />
              <div className="flex flex-col">
-               <span className="text-[10px] font-mono text-slate-400 uppercase">Energia Disponível</span>
+               <span className="text-[10px] font-mono text-slate-400 uppercase">Energia</span>
                <span className="text-lg font-black font-orbitron text-yellow-400">{userProfile?.energy || 0}%</span>
              </div>
           </div>
@@ -459,12 +498,12 @@ export default function ReckoningPage() {
                      onClick={() => !loadingPreCalc && handleSelectTarget(tgt)}
                      className={`cursor-pointer group relative bg-black/60 backdrop-blur-md border transition-all duration-300 
                        ${tgt.is_rare ? 'border-red-500 shadow-[0_0_15px_rgba(220,38,38,0.3)]' : 'border-slate-800'}
-                       ${loadingPreCalc ? 'opacity-50 pointer-events-none' : 'hover:border-red-500/50 hover:bg-slate-900 shadow-[0_0_20px_rgba(220,38,38,0)] hover:shadow-[0_0_20px_rgba(220,38,38,0.2)]'}`}
+                       ${loadingPreCalc ? 'opacity-50 pointer-events-none' : 'hover:border-yellow-500/50 hover:bg-slate-900 shadow-[0_0_20px_rgba(234,179,8,0)] hover:shadow-[0_0_20px_rgba(234,179,8,0.2)]'}`}
                      style={MILITARY_CLIP}
                    >
                      {tgt.is_rare && (
-                       <div className="absolute top-0 left-0 bg-red-600 text-white text-[8px] font-black px-2 py-0.5 tracking-tighter z-10">
-                         RARE_HVT
+                       <div className="absolute top-0 left-0 bg-red-600 text-white text-[10px] font-black px-2 py-0.5 tracking-widest z-10 animate-pulse drop-shadow-[0_0_8px_rgba(220,38,38,1)] uppercase">
+                         BOSS
                        </div>
                      )}
                      {tgt.online && (
@@ -476,12 +515,12 @@ export default function ReckoningPage() {
                      <div className="p-5 flex flex-col gap-4">
                         <div className="flex items-center gap-3">
                            <div className={`w-12 h-12 bg-slate-900 border flex items-center justify-center transition-colors
-                             ${tgt.is_rare ? 'border-red-500/50 text-red-500' : 'border-slate-800 text-slate-600 group-hover:text-red-500'}`}>
+                             ${tgt.is_rare ? 'border-red-500/50 text-red-500' : 'border-slate-800 text-slate-600 group-hover:text-yellow-500'}`}>
                              {tgt.is_rare ? <ExclamationTriangleIcon className="w-8 h-8 animate-pulse" /> : <UserCircleIcon className="w-8 h-8" />}
                            </div>
-                           <div>
-                             <p className="text-[10px] uppercase font-mono text-slate-500">{tgt.is_npc ? 'ALVO_SINTÉTICO' : 'IDENTIDADE (ENCRIPTADA)'}</p>
-                             <h3 className={`font-orbitron font-black text-lg tracking-widest ${tgt.is_rare ? 'text-red-500' : 'text-white'}`}>{tgt.name}</h3>
+                           <div className="min-w-0 flex-1">
+                             <p className="text-[10px] uppercase font-mono text-slate-500 truncate">{tgt.is_npc ? 'ALVO_SINTÉTICO' : 'IDENTIDADE (ENCRIPTADA)'}</p>
+                             <h3 className={`font-orbitron font-black text-xs md:text-sm tracking-widest truncate ${tgt.is_rare ? 'text-red-500' : 'text-white'}`} title={tgt.name}>{tgt.name}</h3>
                            </div>
                         </div>
                         
@@ -503,7 +542,7 @@ export default function ReckoningPage() {
                         )}
                      </div>
                      <div className={`bg-slate-900 border-t border-slate-800 p-2 text-center text-[10px] font-mono transition-colors
-                       ${tgt.is_rare ? 'text-red-400 font-black' : 'text-slate-500 group-hover:text-red-400'}`}>
+                       ${tgt.is_rare ? 'text-red-400 font-black' : 'text-slate-500 group-hover:text-yellow-400'}`}>
                        {tgt.is_rare ? '>>> INTERCEPTAR_AGORA <<<' : 'CLIQUE PARA RASTREAR...'}
                      </div>
                    </div>
@@ -537,7 +576,7 @@ export default function ReckoningPage() {
                    </div>
                    <div className="bg-black border border-slate-800 p-4">
                      <span className="block text-[10px] text-slate-500 font-mono uppercase mb-1">Alvo [{preCalc.targetInfo.name}]</span>
-                     <span className="font-orbitron font-black text-2xl text-red-500">{preCalc.targetInfo.level}</span>
+                     <span className="font-orbitron font-black text-2xl text-yellow-500">{preCalc.targetInfo.level}</span>
                    </div>
                 </div>
 
@@ -545,8 +584,8 @@ export default function ReckoningPage() {
                   <button onClick={cancelCombat} className="w-1/3 p-4 bg-slate-900 border border-slate-700 text-slate-300 font-orbitron font-bold text-xs uppercase tracking-widest hover:bg-slate-800 transition-colors" style={MILITARY_CLIP}>
                     Abortar
                   </button>
-                  <button onClick={handleAttack} className="w-2/3 p-4 bg-red-500/10 border border-red-500/50 text-red-400 font-orbitron font-bold text-sm uppercase tracking-widest hover:bg-red-500 hover:text-white hover:shadow-[0_0_20px_rgba(220,38,38,0.5)] transition-all" style={MILITARY_CLIP}>
-                    INICIAR ATAQUE (CUSTO: 50% EN)
+                  <button onClick={handleAttack} className="w-2/3 p-4 bg-yellow-500/10 border border-yellow-500/50 text-yellow-400 font-orbitron font-bold text-sm uppercase tracking-widest hover:bg-yellow-500 hover:text-white hover:shadow-[0_0_20px_rgba(234,179,8,0.5)] transition-all" style={MILITARY_CLIP}>
+                    INICIAR ATAQUE (CUSTO: 50% EN | 300 PA)
                   </button>
                 </div>
               </div>
@@ -937,6 +976,23 @@ export default function ReckoningPage() {
 
         </AnimatePresence>
       </div>
+
+      {/* FOOTER - TECHNICAL INFO */}
+      <footer className="max-w-6xl mx-auto mt-20 pt-8 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-4 opacity-70 grayscale hover:grayscale-0 transition-all relative z-10">
+        <div className="flex items-center gap-6">
+          <div className="flex flex-col">
+             <span className="text-[8px] font-black tracking-widest uppercase">Encryption</span>
+             <span className="text-[10px] font-mono">AES-256_ACTIVE</span>
+          </div>
+          <div className="flex flex-col">
+             <span className="text-[8px] font-black tracking-widest uppercase">Target Locale</span>
+             <span className="text-[10px] font-mono">SECTOR_7G_LIVE</span>
+          </div>
+        </div>
+        <div className="text-[10px] font-mono uppercase tracking-[0.5em]">
+          Spectro Tactical Interface v4.0.2
+        </div>
+      </footer>
     </div>
   );
 }

@@ -78,7 +78,7 @@ function getNpcData(targetId, attacker) {
 
   const nameIndex = Math.abs(hash) % pool.length;
   const rawName = pool[nameIndex];
-  const name = isRare ? `[HVT] ${rawName}` : `[BOT] ${rawName}`;
+  const name = isRare ? `[BOSS] ${rawName}` : `[BOT] ${rawName}`;
 
   // Deterministic level based on hash: level +/- 2
   const levelOff = (Math.abs(hash * 31) % 5) - 2; // -2 to +2
@@ -374,6 +374,8 @@ class CombatService {
       throw new Error("Você precisa estar no nível 10 para acessar o Acerto de Contas.");
     if (Number(attacker.energy || 0) < 50)
       throw new Error("Energia insuficiente (requer 50% para iniciar protocolo de combate).");
+    if (Number(attacker.action_points || 0) < 300)
+      throw new Error("Pontos de Ação (PA) insuficientes (requer 300 PA).");
     
     if (!isNpc) {
       if (defender.status === "Recondicionamento")
@@ -444,10 +446,17 @@ class CombatService {
         moneyReceived = moneyLoot - spectroTax;
       }
 
-      const attDiffRatio = 0.001;
-      const atkGain = (Number(defender.attack  || 0) * attDiffRatio) || 1;
-      const defGain = (Number(defender.defense || 0) * attDiffRatio) || 1;
-      const focGain = (Number(defender.focus   || 0) * attDiffRatio) || 1;
+      let atkGain, defGain, focGain;
+      if (isNpc) {
+        atkGain = isRare ? 0.50 : 0.25;
+        defGain = isRare ? 0.50 : 0.25;
+        focGain = isRare ? 0.50 : 0.25;
+      } else {
+        const attDiffRatio = 0.001;
+        atkGain = (Number(defender.attack  || 0) * attDiffRatio) || 1;
+        defGain = (Number(defender.defense || 0) * attDiffRatio) || 1;
+        focGain = (Number(defender.focus   || 0) * attDiffRatio) || 1;
+      }
 
       loot = {
         xp:    xpGain,
@@ -571,6 +580,7 @@ class CombatService {
     // ── 2. Persistência no Banco (DB Updates) ──────────────────────────────────
     if (isWin) {
       let stateUpdate = {
+        action_points: -300,
         energy:    -50,
         money:     loot.money,
         total_xp:  loot.xp,
@@ -606,6 +616,7 @@ class CombatService {
       const shieldEndsAt   = new Date(Date.now() + loot.shieldDuration * 60000).toISOString();
 
       await playerStateService.updatePlayerState(userId, {
+        action_points:    -300,
         energy:           isKO ? -(Number(attacker.energy || 0)) : -50,
         money:            -loot.moneyLost,
         status:           loot.status,
@@ -618,6 +629,7 @@ class CombatService {
       const halfShield   = new Date(Date.now() + 22.5 * 60000).toISOString();
 
       await playerStateService.updatePlayerState(userId, {
+        action_points:    -300,
         energy:           -50,
         status:           "Recondicionamento",
         recovery_ends_at: halfRecovery,
@@ -633,7 +645,7 @@ class CombatService {
         });
       }
     } else { // draw_flee
-      await playerStateService.updatePlayerState(userId,   { energy: -50 });
+      await playerStateService.updatePlayerState(userId,   { action_points: -300, energy: -50 });
       if (!isNpc) await playerStateService.updatePlayerState(targetId, { energy: -10 });
     }
 
