@@ -160,12 +160,20 @@ const BattleRulesInfo = () => {
 
                 <div>
                   <p className="text-white font-bold mb-1 uppercase flex items-center gap-2 mt-4 border-t border-slate-800 pt-4">
-                    <FingerPrintIcon className="w-4 h-4 text-emerald-400" /> Recompensas Táticas
+                    <FingerPrintIcon className="w-4 h-4 text-emerald-400" /> Recompensas Dinâmicas
                   </p>
                   <p className="text-slate-400 mt-2">
                     A conexão custa <span className="text-emerald-400 font-bold">300 PA</span> e <span className="text-yellow-400 font-bold">50% EN</span>.
-                    Vitórias em Bots dão bônus escalado de XP e <span className="text-white">+0.25</span> direto nos atributos.
-                    Vitórias sobre um <span className="text-red-500 font-black tracking-widest drop-shadow-[0_0_5px_rgba(220,38,38,0.8)]">BOSS</span> concedem bônus majorado de <span className="text-white">+0.50</span> nos atributos, $500 em Dinheiro extra e muito mais XP!
+                    As recompensas de XP e Atributos são <span className="text-cyan-400 font-bold">MODULARES</span>: quanto maior o desafio do alvo em relação ao seu poder, maior o aprendizado.
+                  </p>
+                  <ul className="text-[9px] text-slate-500 space-y-1 mt-2 list-disc list-inside uppercase">
+                    <li><span className="text-white">XP</span> escala com seu nível (mesma curva do treino).</li>
+                    <li>Chance de 5% de <span className="text-yellow-400 italic">Spectro Insight</span> (2x XP).</li>
+                    <li>Ganho de atributos varia de acordo com a força do alvo.</li>
+                    <li>Bots Comuns soltam sucata monetária ($20-$50).</li>
+                  </ul>
+                  <p className="text-slate-500 mt-3 italic text-[8px]">
+                    VITÓRIA POR DECISÃO: Se nenhum lado for abatido em 3 turnos, quem tiver maior % de HP vence. Se você perder por decisão, ficará SANGRANDO (15 min).
                   </p>
                 </div>
               </div>

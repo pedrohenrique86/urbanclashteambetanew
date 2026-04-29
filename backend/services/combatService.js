@@ -423,45 +423,68 @@ class CombatService {
       is_draw_flee: outcome === "draw_flee",
       is_loss: isLoss,
       is_bleeding: outcome === "loss_bleeding",
-      is_ko: isKO
+      is_ko: isKO,
+      faction: attacker.faction || "Renegado"
     };
 
     // ── 1. Cálculo do Loot Antes dos Logs ──────────────────────────────────────
     let loot = null;
 
     if (isWin) {
-      let xpGain = Math.round(gameLogic.COMBAT.XP_WIN_BASE * (defender.level / attacker.level));
-      if (isRare) xpGain *= 1.5;
-      if (defender.level > attacker.level) xpGain *= 2;
+      // ── DINAMIZAÇÃO DE RECOMPENSAS (ANTI-ESTÁTICO) ──
+      
+      // 1. XP DINÂMICO (Baseado no esforço relativo e progressão)
+      // Escala base acompanha o nível do jogador (mesma curva do treino)
+      const baseLevelReward = gameLogic.COMBAT.XP_WIN_BASE * (1 + Number(attacker.level) * 0.005);
+      const diffRatio = Number(defender.level) / Number(attacker.level);
+      
+      let xpGain = baseLevelReward * diffRatio;
+      if (isRare) xpGain *= 1.5; // Multiplicador de Boss
+      
+      // Variância Natural (0.8x a 1.2x)
+      xpGain *= (0.8 + Math.random() * 0.4);
+      
+      // Spectro Insight (5% de chance de XP Crítico)
+      let isCriticalInsight = false;
+      if (Math.random() < 0.05) {
+        xpGain *= 2;
+        isCriticalInsight = true;
+      }
+      
+      // Trava de Segurança: Piso 15, Teto 600
+      xpGain = Math.max(15, Math.min(600, Math.round(xpGain)));
 
+      // 2. DINHEIRO ESCALONADO
       let moneyReceived = 0;
-      let spectroTax = 0;
-
       if (isNpc) {
-        moneyReceived = isRare ? 500 : 0;
+        if (isRare) {
+           // Bosses: $25/nível + bônus randômico
+           moneyReceived = Math.floor(Number(defender.level) * 25 + 50 + (Math.random() * 200));
+        } else {
+           // Bots Comuns: Sucata tecnológica ($20 a $50)
+           moneyReceived = Math.floor(20 + Math.random() * 30);
+        }
       } else {
         const defMoney = Number(defender.money || 0);
-        const moneyLoot = Math.floor(defMoney * 0.1);
-        spectroTax = Math.floor(moneyLoot * 0.1);
-        moneyReceived = moneyLoot - spectroTax;
+        moneyReceived = Math.floor(defMoney * 0.09); // 9% do inimigo (Sênior balance)
       }
 
-      let atkGain, defGain, focGain;
-      if (isNpc) {
-        atkGain = isRare ? 0.50 : 0.25;
-        defGain = isRare ? 0.50 : 0.25;
-        focGain = isRare ? 0.50 : 0.25;
-      } else {
-        const attDiffRatio = 0.001;
-        atkGain = (Number(defender.attack  || 0) * attDiffRatio) || 1;
-        defGain = (Number(defender.defense || 0) * attDiffRatio) || 1;
-        focGain = (Number(defender.focus   || 0) * attDiffRatio) || 1;
-      }
+      // 3. ATRIBUTOS DINÂMICOS (Fator Aprendizado)
+      const playerPower = Number(attacker.attack) + Number(attacker.defense) + Number(attacker.focus);
+      const targetPower = Number(defender.attack) + Number(defender.defense) + Number(defender.focus);
+      const challengeMod = Math.min(1.5, Math.max(0.5, targetPower / playerPower));
+      
+      const statBase = isRare ? 0.50 : 0.25;
+      const genStat = (base) => Math.round(base * (0.6 + Math.random() * 0.8) * challengeMod * 100) / 100;
+
+      const atkGain = genStat(statBase);
+      const defGain = genStat(statBase);
+      const focGain = genStat(statBase);
 
       loot = {
         xp:    xpGain,
+        is_xp_crit: isCriticalInsight,
         money: moneyReceived,
-        tax:   spectroTax,
         stats: { attack: atkGain, defense: defGain, focus: focGain },
         rare_drop: isRare ? "Nucleo_Sombrio" : null,
         outcome: outcome === "win_ko" ? "K.O. - Vitória Esmagadora" : 
@@ -519,7 +542,7 @@ class CombatService {
         ...contextBase, 
         target_name: targetName,
         usedFrags 
-      });
+      }, turn);
       
       // Detalhes Técnicos (HP e Críticos)
       const atkDmg = turn.attacker.damage;
