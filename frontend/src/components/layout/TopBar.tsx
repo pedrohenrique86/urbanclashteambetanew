@@ -112,9 +112,9 @@ const TopBar: React.FC<TopBarProps> = ({ userProfile }) => {
       isBattery: true
     },
     { label: "PA",       value: userProfile?.action_points ?? "-",                         className: "text-cyan-400",    glowColor: "#06b6d4", tooltip: "Pontos de Ação" },
-    { label: "ATK",      value: userProfile?.attack  ?? "-",                               className: "text-red-400",     glowColor: "#ef4444", tooltip: "Ataque" },
-    { label: "DEF",      value: userProfile?.defense ?? "-",                               className: "text-blue-400",    glowColor: "#3b82f6", tooltip: "Defesa" },
-    { label: "FOC",      value: userProfile?.focus   ?? "-",                               className: "text-pink-400",    glowColor: "#ec4899", tooltip: "Foco" },
+    { label: "ATK",      value: userProfile?.attack !== undefined ? Math.floor(Number(userProfile.attack)) : "-", className: "text-red-400", glowColor: "#ef4444", tooltip: "Ataque" },
+    { label: "DEF",      value: userProfile?.defense !== undefined ? Math.floor(Number(userProfile.defense)) : "-", className: "text-blue-400", glowColor: "#3b82f6", tooltip: "Defesa" },
+    { label: "FOC",      value: userProfile?.focus !== undefined ? Math.floor(Number(userProfile.focus)) : "-", className: "text-pink-400", glowColor: "#ec4899", tooltip: "Foco" },
     { label: "CRIT DMG", value: combat.criticalDamage ? Number(combat.criticalDamage.toFixed(2)) : "-", className: "text-rose-400",    glowColor: "#f43f5e", tooltipId: "topbar-crit-dmg-tooltip", showHint: true },
     { label: "CRIT%",    value: `${combat.criticalChance ? Number(combat.criticalChance.toFixed(2)) : 0}%`, className: "text-yellow-400",  glowColor: "#eab308", tooltipId: "topbar-crit-pct-tooltip", showHint: true },
     { label: "LUCK",     value: `${Number(userProfile?.luck ?? 0).toFixed(2)}%`,          className: "text-emerald-400", glowColor: "#34d399", tooltip: "Sorte (Bônus de Loot & Drop)" },

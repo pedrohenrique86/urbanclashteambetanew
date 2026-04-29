@@ -232,7 +232,7 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = React.memo(({
   const playerStatus = useMemo(() => userProfile?.status || 'Operacional', [userProfile?.status]);
 
   const isPathBlocked = useCallback((path: string) => {
-    if (playerStatus === 'Operacional') return false;
+    if (playerStatus === 'Operacional' || playerStatus === 'Sangrando') return false;
 
     const whitelist = [
       '/dashboard',

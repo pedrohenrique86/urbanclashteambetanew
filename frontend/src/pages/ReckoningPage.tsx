@@ -85,7 +85,7 @@ const ANALYZING_PHRASES = [
   "SINCRONIZANDO COM SPECTRO...",
   "VERIFICANDO VULNERABILIDADES ARQUITETÔNICAS...",
   "DECODIFICANDO FIREWALL DE DEFESA...",
-  "MONITORANDO FLUXO DE CRÉDITOS ESCUSOS...",
+  "MONITORANDO FLUXO DE DINHEIRO ESCUSO...",
   "MAPEANDO BACKDOORS DE FUGA..."
 ];
 
@@ -321,9 +321,13 @@ export default function ReckoningPage() {
         const turnText = result.log[i];
         const turnHP = result.hpLog?.[i];
 
-        // 1. Exibe o texto do turno e aguarda a "digitação" (20ms/char)
+        // 1. Exibe o texto do turno e inicia a digitação
         setBattleLog(prev => [...prev, turnText]);
         
+        // Aguarda a animação de digitação (20ms por caractere)
+        await new Promise(r => setTimeout(r, turnText.length * 20));
+
+        // 2. Após o texto aparecer, atualizamos o HP para sincronizar com o impacto do golpe
         if (turnHP) {
           setCombatHP({
             pHP: turnHP.defenderHP,
@@ -333,7 +337,8 @@ export default function ReckoningPage() {
           });
         }
         
-        await new Promise(r => setTimeout(r, turnText.length * 20 + 500));
+        // Aguarda um pequeno buffer antes de avançar para ler o resultado do golpe
+        await new Promise(r => setTimeout(r, 800));
 
         // 2. Se NÃO for o último turno, abre contagem de 10s para o próximo
         if (i < totalTurns - 1) {
@@ -371,28 +376,38 @@ export default function ReckoningPage() {
       setTurnCountdown(null);
       
       const isWin = result.outcome.startsWith("win");
+      const isCriticalDirect = !isWin && result.outcome !== "draw_flee";
+      
+      // Sincroniza o perfil antes de decidir o fluxo
+      await refreshProfile();
+
+      if (isCriticalDirect) {
+        // Redirecionamento automático para perdas críticas (HP 0 ou hospitalização)
+        if (result.outcome === "loss_ko") {
+          showToast(`K.O. - Seus sistemas críticos falharam. Recondicionamento obrigatório.`, "error");
+        } else if (result.outcome === "loss_bleeding") {
+          showToast(`SANGRANDO - Você recuou com danos sistêmicos. Recuperação necessária.`, "warning");
+        } else {
+          showToast(`SISTEMA COMPROMETIDO - Redirecionando para Base de Recuperação...`, "warning");
+        }
+        
+        setIsFinalizing(true);
+        navigate("/recovery-base");
+        return;
+      }
+
       setFinalResult({ ...result, winner: isWin });
       
-
-      // Toast notification for result
+      // Toast notification for successful outcome
       if (isWin) {
         if (result.outcome === "win_bleeding") {
-           showToast(`VITÓRIA POR UM FIO! ${result.targetRealName} neutralizado, mas você está SANGRANDO (-20% ATK/DEF).`, "warning");
+           showToast(`VITÓRIA POR UM FIO! ${result.targetRealName} neutralizado, mas você está SANGRANDO.`, "warning");
         } else {
            showToast(`VITÓRIA! Você neutralizou ${result.targetRealName} com sucesso.`, "success");
         }
-      } else if (result.outcome === "loss_ko") {
-        showToast(`K.O. - Seus sistemas críticos falharam. Recondicionamento obrigatório.`, "error");
-      } else if (result.outcome === "loss_bleeding") {
-        showToast(`SANGRANDO - Você recuou com danos sistêmicos (-20% ATK/DEF).`, "warning");
-      } else {
-        showToast(`IMPASSE - A conexão foi interrompida ou houve empate tático.`, "warning");
       }
-      
-      // Sincroniza o perfil antes de avançar
-      await refreshProfile();
 
-      // Ativa a tela de resultados com o timer
+      // Ativa a tela de resultados com o timer para vencedores ou fugas
       setCombatPhase("result");
     } catch (err: any) {
       showToast(err.response?.data?.error || err.message, "error");
@@ -470,6 +485,22 @@ export default function ReckoningPage() {
           </div>
         </div>
       </header>
+
+      {userProfile?.status === 'Sangrando' && (
+        <motion.div 
+          initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
+          className="max-w-6xl mx-auto mb-6 bg-rose-500/10 border border-rose-500/50 p-4 flex items-center gap-4 text-rose-400" 
+          style={MILITARY_CLIP}
+        >
+          <ExclamationTriangleIcon className="w-8 h-8 animate-pulse text-rose-500 hidden md:block" />
+          <div>
+            <h3 className="font-orbitron font-black uppercase text-sm drop-shadow-[0_0_8px_rgba(244,63,94,0.8)] text-rose-400">AVISO TÁTICO: SANGRANDO</h3>
+            <p className="font-mono text-[10px] text-rose-400/80 uppercase leading-relaxed mt-1">
+               Sua unidade de combate está com hemorragia progressiva (-20% em base de atributos). Iniciar caçadas e acertos de contas neste estado representa risco crítico.
+            </p>
+          </div>
+        </motion.div>
+      )}
       
       <div className="max-w-6xl mx-auto">
         <AnimatePresence mode="wait">

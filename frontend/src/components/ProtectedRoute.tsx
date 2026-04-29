@@ -70,7 +70,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, requiresFacti
 
   const isAuthorized = authorizedPages.some(p => location.pathname === p || location.pathname.startsWith(p + '/'));
 
-  if (status !== 'Operacional' && !isAuthorized) {
+  if (status !== 'Operacional' && status !== 'Sangrando' && !isAuthorized) {
     if (import.meta.env.DEV) {
       console.warn(`[RouteGuard] Acesso negado: ${location.pathname} bloqueado para status: ${status}`);
     }

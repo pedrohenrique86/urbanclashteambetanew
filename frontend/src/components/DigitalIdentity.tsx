@@ -120,20 +120,21 @@ const formatDate = (dateStr?: string) => {
 
 const StatusBanner = ({ status, endsAt }: { status?: string; endsAt?: string | null }) => {
   const config = useMemo(() => {
-    switch (status) {
-      case 'Isolamento':
+    const s = status ? status.toLowerCase() : '';
+    switch (s) {
+      case 'isolamento':
         return {
           bg: 'bg-red-500/20',
           border: 'border-red-500/70',
           text: 'text-red-400',
           label: 'ISOLAMENTO',
           subtitle: 'Unidade em contenção',
-          icon: Shield, // Shield used as lock base or custom lock if available
+          icon: Shield,
           glow: 'shadow-[0_0_20px_rgba(239,68,68,0.4)]',
           animate: 'animate-[glitch_2s_infinite]',
           iconText: '🔒'
         };
-      case 'Aprimoramento':
+      case 'aprimoramento':
         return {
           bg: 'bg-cyan-500/20',
           border: 'border-cyan-500/70',
@@ -145,7 +146,8 @@ const StatusBanner = ({ status, endsAt }: { status?: string; endsAt?: string | n
           animate: 'animate-pulse',
           iconText: null
         };
-      case 'Recondicionamento':
+      case 'recondicionamento':
+      case 'hospital':
         return {
           bg: 'bg-yellow-500/20',
           border: 'border-yellow-500/50',
@@ -157,7 +159,33 @@ const StatusBanner = ({ status, endsAt }: { status?: string; endsAt?: string | n
           animate: 'animate-pulse',
           iconText: null
         };
+      case 'sangrando':
+      case 'sangramento':
+        return {
+          bg: 'bg-rose-600/20',
+          border: 'border-rose-500/70',
+          text: 'text-rose-400',
+          label: 'SANGRANDO',
+          subtitle: 'Hemorragia ativa. Necessita de cuidados médicos.',
+          icon: Skull,
+          glow: 'shadow-[0_0_20px_rgba(244,63,94,0.5)]',
+          animate: 'animate-pulse',
+          iconText: '🩸'
+        };
       default:
+        if (s && s !== 'operacional' && s !== 'livre' && s !== 'online') {
+          return {
+            bg: 'bg-zinc-600/15',
+            border: 'border-zinc-500/40',
+            text: 'text-zinc-400',
+            label: (status || '').toUpperCase(),
+            subtitle: 'Status em andamento',
+            icon: Activity,
+            glow: 'shadow-[0_0_12px_rgba(161,161,170,0.2)]',
+            animate: '',
+            iconText: null
+          };
+        }
         return {
           bg: 'bg-green-600/15',
           border: 'border-green-500/40',
@@ -220,7 +248,7 @@ const StatusBanner = ({ status, endsAt }: { status?: string; endsAt?: string | n
             </span>
           </div>
           <span className="text-[7px] text-white/50 font-black uppercase tracking-[0.1em] mt-1 italic">{config.subtitle}</span>
-          {displayTime && (
+          {displayTime && config.label !== 'OPERACIONAL' && (
             <span className="text-[7px] text-zinc-400 font-mono mt-1 flex items-center gap-1">
               <History className="w-2 h-2" /> RESTANTE: {displayTime}
             </span>

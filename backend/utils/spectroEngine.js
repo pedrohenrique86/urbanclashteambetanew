@@ -44,7 +44,7 @@ const FRAGMENTS = {
         "Spectro: \"Misericórdia, ${player_name}. Sua furtividade é igual a de um elefante bêbado.\"",
         "Spectro: \"Se você morrer para esse noob, eu vou contar pra todo mundo que você usa Windows XP.\"",
         "Spectro: \"O nível de QI desse ${target_name} é tão baixo que o meu antivírus achou que ele era um bug.\"",
-        "Spectro: \"Eu apostei 50 créditos que você ia errar o saque. Quase ganhei agora.\""
+        "Spectro: \"Eu apostei 50 de dinheiro que você ia errar o saque. Quase ganhei agora.\""
       ]
     },
     impacto: [
@@ -108,7 +108,7 @@ const FRAGMENTS = {
       ],
       spectro: [
         "Spectro: \"Execução terminada. Menos um erro no meu kernel. Bom trabalho.\"",
-        "Spectro: \"Alvo deletado. Os créditos já estão na conta. Não gaste tudo em skins.\"",
+        "Spectro: \"Alvo deletado. O dinheiro já está na conta. Não gaste tudo em skins.\"",
         "Spectro: \"Veredito: Culpa confirmada, sentença executada. Eficiência pura.\""
       ]
     },
@@ -130,7 +130,7 @@ const FRAGMENTS = {
       ]
     },
     impacto: [
-      "...o corpo cai sem vida no lodo, enquanto os créditos caem na sua conta.",
+      "...o corpo cai sem vida no lodo, enquanto o dinheiro cai na sua conta.",
       "...uma última mensagem de erro surge no visor dele: 'System Failure'.",
       "...o sistema registra a baixa. Alvo removido do servidor municipal."
     ]
@@ -204,7 +204,7 @@ function construirNarrativa(turno, contexto) {
 function generateSpectroTalk(category) {
   const pools = {
     detection: ["Sinal captado. Alvo vulnerável.", "Localizei uma brecha. Vamos nessa."],
-    victory: ["Execução terminada. Créditos na conta.", "Alvo deletado. Um erro a menos."],
+    victory: ["Execução terminada. Dinheiro na conta.", "Alvo deletado. Um erro a menos."],
     timeout: ["Sinal perdido. Ele escapou.", "Conexão interrompida. Fica pra próxima."]
   };
   const pool = pools[category] || pools.detection;

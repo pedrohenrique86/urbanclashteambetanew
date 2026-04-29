@@ -467,8 +467,8 @@ class CombatService {
         outcome: outcome === "win_ko" ? "K.O. - Vitória Esmagadora" : 
                  (outcome === "win_bleeding" ? "Vitória Custo Alto (Sangrando)" : "Decisão - Vitória Tática"),
         status: outcome === "win_bleeding" ? "Sangrando" : null,
-        recoveryDuration: outcome === "win_bleeding" ? 15 : null,
-        shieldDuration: outcome === "win_bleeding" ? 15 : null
+        recoveryDuration: outcome === "win_bleeding" ? 30 : null,
+        shieldDuration: outcome === "win_bleeding" ? 30 : null
       };
 
     } else if (isLoss) {
@@ -476,8 +476,8 @@ class CombatService {
       const moneyLost      = Math.floor(attackerMoney * 0.05);
       
       const isBleeding = outcome === "loss_bleeding";
-      const recoveryDuration = isBleeding ? 5 : 15;
-      const shieldDuration   = isBleeding ? 10 : 45;
+      const recoveryDuration = isBleeding ? 30 : 15;
+      const shieldDuration   = isBleeding ? 30 : 45;
 
       loot = {
         xp:        -gameLogic.COMBAT.XP_LOSE_BASE,
@@ -555,12 +555,12 @@ class CombatService {
         narrative += `\n\n=== [ PROTOCOLO ENCERRADO: ${loot.outcome?.toUpperCase()} ] ===`;
         if (isWin) {
           narrative += `\n+ ${loot.xp} XP`;
-          if (loot.money > 0) narrative += `\n+ $${loot.money} Créditos (Taxa Spectro: $${loot.tax})`;
+          if (loot.money > 0) narrative += `\n+ $${loot.money} Dinheiro (Taxa Spectro: $${loot.tax})`;
           narrative += `\n+ ATRIBUTOS: ATK +${Number(loot.stats.attack).toFixed(2)} | DEF +${Number(loot.stats.defense).toFixed(2)} | FOC +${Number(loot.stats.focus).toFixed(2)}`;
           if (loot.rare_drop) narrative += `\n+ ITEM RARO ENCONTRADO: [${loot.rare_drop}]`;
         } else if (isLoss) {
           narrative += `\n- PERDA: ${Math.abs(loot.xp)} XP`;
-          if (loot.moneyLost > 0) narrative += `\n- MULTA: $${loot.moneyLost} Créditos`;
+          if (loot.moneyLost > 0) narrative += `\n- MULTA: $${loot.moneyLost} Dinheiro`;
           narrative += `\n! STATUS: Seu kernel está em [${loot.status}] por ${loot.recoveryDuration} min.`;
         } else {
            narrative += `\n! RESULTADO: Sem ganhos expressivos. Conexão perdida.`;
@@ -592,8 +592,9 @@ class CombatService {
       
       if (outcome === "win_bleeding") {
          stateUpdate.status = "Sangrando";
-         stateUpdate.recovery_ends_at = new Date(Date.now() + 15 * 60000).toISOString();
-         stateUpdate.shield_ends_at = new Date(Date.now() + 15 * 60000).toISOString();
+         stateUpdate.status_ends_at = new Date(Date.now() + 30 * 60000).toISOString();
+         stateUpdate.recovery_ends_at = new Date(Date.now() + 30 * 60000).toISOString();
+         stateUpdate.shield_ends_at = new Date(Date.now() + 30 * 60000).toISOString();
       }
 
       await playerStateService.updatePlayerState(userId, stateUpdate);
@@ -606,6 +607,7 @@ class CombatService {
           money:            -Number(loot.money + loot.tax),
           energy:           -10,
           status:           "Recondicionamento",
+          status_ends_at:   recoveryEndsAt,
           recovery_ends_at: recoveryEndsAt,
           shield_ends_at:   shieldEndsAt,
           defeats:          1
@@ -620,6 +622,7 @@ class CombatService {
         energy:           isKO ? -(Number(attacker.energy || 0)) : -50,
         money:            -loot.moneyLost,
         status:           loot.status,
+        status_ends_at:   recoveryEndsAt,
         recovery_ends_at: recoveryEndsAt,
         shield_ends_at:   shieldEndsAt,
         defeats:          1
@@ -632,6 +635,7 @@ class CombatService {
         action_points:    -300,
         energy:           -50,
         status:           "Recondicionamento",
+        status_ends_at:   halfRecovery,
         recovery_ends_at: halfRecovery,
         shield_ends_at:   halfShield
       });
@@ -640,6 +644,7 @@ class CombatService {
         await playerStateService.updatePlayerState(targetId, {
           energy:           -10,
           status:           "Recondicionamento",
+          status_ends_at:   halfRecovery,
           recovery_ends_at: halfRecovery,
           shield_ends_at:   halfShield
         });

@@ -130,7 +130,7 @@ export const MobileAppDrawer: React.FC = () => {
   const playerStatus = userProfile?.status || 'Operacional';
 
   const isPathBlocked = useCallback((path: string) => {
-    if (playerStatus === 'Operacional') return false;
+    if (playerStatus === 'Operacional' || playerStatus === 'Sangrando') return false;
 
     const whitelist = [
       '/dashboard',

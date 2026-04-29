@@ -24,7 +24,7 @@ const StatusBlocker: React.FC = () => {
     ];
     const isWhitelisted = whitelist.some(p => location.pathname === p || location.pathname.startsWith(p + '/'));
 
-    const isBlocked = status !== 'Operacional' && status !== 'Aprimoramento' && !isWhitelisted;
+    const isBlocked = status !== 'Operacional' && status !== 'Aprimoramento' && status !== 'Sangrando' && !isWhitelisted;
 
     const config = useMemo(() => {
         switch (status) {

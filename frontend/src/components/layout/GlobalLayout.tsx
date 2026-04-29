@@ -43,6 +43,7 @@ const GlobalLayout: React.FC<GlobalLayoutProps> = ({ children }) => {
   const hideBlocker = (
     (status === 'Operacional') ||
     (status === 'Aprimoramento') || // Usuário solicitou remover overlay para treino
+    (status === 'Sangrando') ||
     (status === 'Isolamento' && path === '/isolation') ||
     (status === 'Recondicionamento' && path === '/recovery-base')
   );
