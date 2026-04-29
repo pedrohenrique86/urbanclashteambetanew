@@ -725,25 +725,28 @@ export default function ReckoningPage() {
                           const realTName = finalResult?.targetRealName || "";
                           
                           // Procura nomes para destacar
-                          const namesToHighlight = [
-                            { text: pName, className: "text-emerald-400 font-bold drop-shadow-[0_0_5px_rgba(16,185,129,0.5)]" },
-                            { text: tName, className: "text-red-500 font-bold drop-shadow-[0_0_5px_rgba(220,38,38,0.5)]" },
-                            { text: realTName, className: "text-red-500 font-bold drop-shadow-[0_0_5px_rgba(220,38,38,0.5)]" },
+                          // Log V4 Hi-Fi Highlighting Engine
+                          const highlights = [
+                            { text: pName, className: "text-emerald-400 font-black drop-shadow-[0_0_8px_rgba(16,185,129,0.4)]" },
+                            { text: tName, className: "text-red-500 font-black drop-shadow-[0_0_8px_rgba(220,38,38,0.4)]" },
+                            { text: realTName, className: "text-red-500 font-black" },
+                            { text: "{SPECTRO}", className: "text-emerald-500 font-black bg-emerald-500/10 px-1 border border-emerald-500/20", label: "SPECTRO_" },
+                            { text: "{CRIT}", className: "text-red-600 font-black animate-pulse bg-red-600/10 px-1 border border-red-600/30", label: "CRITICO_" },
+                            { text: "{BREACH}", className: "text-cyan-400 font-black bg-cyan-400/10 px-1 border border-cyan-400/30", label: "BREACH_" },
+                            { text: "{MISS}", className: "text-blue-400 font-mono italic", label: "EVASÃO_" },
+                            { text: "{AMBIENT}", className: "text-slate-500 italic", label: "SITUACIONAL_" },
                             { text: "BREACH:", className: "text-yellow-400 font-black" },
                             { text: "EVASÃO:", className: "text-blue-400 font-black italic" },
                             { text: "CONTRA-GOLPE:", className: "text-violet-400 font-black animate-pulse" },
                             { text: "RECHAÇO:", className: "text-rose-500 font-black" },
-                            { text: "OVERLOAD!", className: "text-cyan-400 font-black animate-pulse" },
-                            { text: "SUPERAQUECIMENTO!", className: "text-yellow-500 font-black animate-bounce" },
-                            { text: "INTERFERÊNCIA!", className: "text-blue-500 font-black" },
-                            { text: "EXPLOSÃO EXTERNA!", className: "text-red-500 font-bold animate-ping" }
+                            { text: "OVERLOAD!", className: "text-cyan-400 font-black animate-pulse" }
                           ].filter(n => n.text.length > 0);
 
                           const processSegments = (txt: string) => {
                              if (!txt) return [];
-                             let result = [{ text: txt, highlight: false, className: "" }];
+                             let result = [{ text: txt, highlight: false, className: "", label: null }];
                              
-                             namesToHighlight.forEach(h => {
+                             highlights.forEach(h => {
                                 const newResult: any[] = [];
                                 result.forEach(seg => {
                                    if (seg.highlight) {
@@ -753,7 +756,11 @@ export default function ReckoningPage() {
                                    const parts = seg.text.split(h.text);
                                    parts.forEach((p, pIdx) => {
                                       if (p) newResult.push({ text: p, highlight: false, className: "" });
-                                      if (pIdx < parts.length - 1) newResult.push({ text: h.text, highlight: true, className: h.className });
+                                      if (pIdx < parts.length - 1) newResult.push({ 
+                                        text: h.label || h.text, 
+                                        highlight: true, 
+                                        className: h.className 
+                                      });
                                    });
                                 });
                                 result = newResult;
