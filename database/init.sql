@@ -12,6 +12,10 @@ DROP TABLE IF EXISTS users CASCADE;
 -- Extensões necessárias
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+ 
+-- Tipo ENUM para Status do Jogador
+CREATE TYPE player_status_type AS ENUM ('Operacional', 'Sangrando', 'Recondicionamento', 'Isolamento', 'Aprimoramento');
+
 
 -- Tabela de usuários
 CREATE TABLE users (
@@ -65,7 +69,7 @@ CREATE TABLE user_profiles (
     critical_chance NUMERIC DEFAULT 0,
     critical_damage NUMERIC DEFAULT 150,
     energy INTEGER DEFAULT 100,
-    status VARCHAR(20) NOT NULL DEFAULT 'livre',
+    status player_status_type NOT NULL DEFAULT 'Operacional',
     status_ends_at TIMESTAMP NULL,
     action_points INTEGER DEFAULT 20000,
     money INTEGER DEFAULT 1000,
@@ -82,7 +86,7 @@ CREATE TABLE user_profiles (
 CREATE TABLE player_status_logs (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     user_id UUID REFERENCES users(id) ON DELETE CASCADE,
-    status VARCHAR(20) NOT NULL,
+    status player_status_type NOT NULL,
     started_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     ended_at TIMESTAMP NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP

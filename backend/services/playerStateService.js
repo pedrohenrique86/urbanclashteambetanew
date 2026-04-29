@@ -116,12 +116,13 @@ const _versionMap = new Map();       // userId → number
 const _inProgressCompletions = new Set(); // userId → em processamento
 
 // ─── Status Constants ─────────────────────────────────────────────────────────────
-const ALLOWED_STATUSES = ['Operacional', 'Isolamento', 'Recondicionamento', 'Aprimoramento'];
+const ALLOWED_STATUSES = ['Operacional', 'Isolamento', 'Recondicionamento', 'Aprimoramento', 'Sangrando'];
 const VALID_TRANSITIONS = {
-  'Operacional':       ['Isolamento', 'Recondicionamento', 'Aprimoramento'],
+  'Operacional':       ['Isolamento', 'Recondicionamento', 'Aprimoramento', 'Sangrando'],
   'Isolamento':        ['Operacional'],
   'Recondicionamento': ['Operacional'],
-  'Aprimoramento':     ['Operacional']
+  'Aprimoramento':     ['Operacional'],
+  'Sangrando':         ['Operacional', 'Recondicionamento']
 };
 
 function _nextVersion(userId) {
@@ -139,8 +140,14 @@ function _parseState(raw) {
   const out = { ...raw };
   for (const field of NUMERIC_FIELDS) {
     if (out[field] !== undefined) {
-      const n = Number(out[field]);
-      if (!isNaN(n)) out[field] = n;
+      let n = Number(out[field]);
+      if (!isNaN(n)) {
+        // Garantir que ATK, DEF e FOC sejam sempre inteiros para o frontend
+        if (['attack', 'defense', 'focus'].includes(field)) {
+          n = Math.floor(n);
+        }
+        out[field] = n;
+      }
     }
   }
 

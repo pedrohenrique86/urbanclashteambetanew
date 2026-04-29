@@ -15,7 +15,7 @@
 
 // ─── Constantes de combate ─────────────────────────────────────────────────────
 const COMBAT = {
-  ATK_MULTIPLIER        : 10,    // dano_base = ATK × ATK_MULTIPLIER
+  ATK_MULTIPLIER        : 15,    // Aumentado de 10 para 15 para maior letalidade e menos empates
   DEF_SOFTCAP           : 200,   // redução = DEF / (DEF + DEF_SOFTCAP)
 
   // CRIT CHANCE: % real = BASE + FOC×FOC_FACTOR + DISC_FACTOR - accumulated raw points
@@ -222,67 +222,102 @@ function calcCritDamageMultiplier(player) {
  *
  * @param {object} attacker - estado completo do atacante
  * @param {object} defender - estado completo do defensor
+ * @param {number} turnMomentum - bônus acumulado de rounds anteriores (ex: 1.1 para +10%)
  * @returns {object}
  */
-function resolveCombatHit(attacker, defender) {
-  // 1. Identidade das Facções
+function resolveCombatHit(attacker, defender, turnMomentum = 1.0) {
   const attFaction = String(attacker.faction || '').toLowerCase();
   const defFaction = String(defender.faction || '').toLowerCase();
 
-  // Afinidades do Atacante (Renegados batem 20% mais forte da academia, Guardiões batem 10% mais fraco)
-  let atkAffinity = 1.0;
-  if (attFaction === 'renegados' || attFaction === 'gangsters') atkAffinity = 1.2;
-  else if (attFaction === 'guardioes' || attFaction === 'guardas') atkAffinity = 0.9;
-
-  // Afinidades do Defensor (Guardiões defendem 20% melhor o treino, Renegados defendem 10% pior)
-  let defAffinity = 1.0;
-  if (defFaction === 'guardioes' || defFaction === 'guardas') defAffinity = 1.2;
-  else if (defFaction === 'renegados' || defFaction === 'gangsters') defAffinity = 0.9;
-
-  // 2. Leitura com Afinidades Genéticas
-  const atkBase    = Math.max(0, (Number(attacker.attack) || 0) * atkAffinity);
-  const defValue   = Math.max(0, (Number(defender.defense) || 0) * defAffinity);
-  const intimidation = Math.max(0, Number(attacker.intimidation) || 0) / 100; // ex: 35% -> 0.35
-  const discipline   = Math.max(0, Number(defender.discipline) || 0) / 100;   // ex: 40% -> 0.40
-
-  const damageRaw    = atkBase * COMBAT.ATK_MULTIPLIER;
+  // 1. Atributos Reais e Perícia de Classe (FIXA)
+  let rawAtk = Number(attacker.attack)    || 1;
+  let rawDef = Number(defender.defense)   || 1;
+  let rawFoc = Number(attacker.focus)     || 1;
   
-  // Habilidade Renegado: Intimidação (reduz a defesa do alvo)
-  const defEffective = Math.max(0, defValue * (1 - intimidation));
-  const defReduction = defEffective / (defEffective + COMBAT.DEF_SOFTCAP);
-  const damageAfterDef = Math.round(damageRaw * (1 - defReduction));
+  // Perícias Fixas: Renegado (35% Intimidação) | Guardião (40% Disciplina)
+  const attackerIntimidation = (Number(attacker.intimidation) || 0) / 100;
+  const defenderDiscipline = (Number(defender.discipline) || 0) / 100;
 
-  const critChancePct  = calcCritChance(attacker);
-  const isCrit         = Math.random() * 100 < critChancePct;
-  let critMultiplier   = isCrit ? calcCritDamageMultiplier(attacker) : 1;
+  let atkMult = (attFaction === 'renegados' || attFaction === 'gangsters') ? 1.15 : 1.0;
+  let defMult = (defFaction === 'guardioes' || defFaction === 'guardas')   ? 1.15 : 1.0;
 
-  // Habilidade Guardião: Disciplina (reduz o dano bônus crítico recebido)
-  if (isCrit && discipline > 0) {
-    const bonusCritMultiplier = critMultiplier - 1;
-    const mitigatedBonus = bonusCritMultiplier * (1 - discipline);
-    critMultiplier = 1 + mitigatedBonus;
+  const isBleedingAtk = attacker.status === 'Sangrando';
+  const isBleedingDef = defender.status === 'Sangrando';
+
+  const atkFinal = rawAtk * atkMult * (isBleedingAtk ? 0.85 : 1.0);
+  const defFinal = rawDef * defMult * (isBleedingDef ? 0.85 : 1.0);
+
+  // 2. Mecânicas Avançadas (DADOS REAIS E IDENTIDADE DE CLASSE)
+  // BREACH (Assinatura Renegada): Usa a Intimidação (35%) para chance de ignorar parte da Defesa
+  const breachChance = attackerIntimidation > 0 ? (attackerIntimidation * 100) : 0; 
+  const isBreach = Math.random() * 100 < breachChance;
+  const defMitigation = isBreach ? 0.60 : 1.0; // Ignora 40% da def se quebrar (Lethal)
+
+  // CONTRA-ATAQUE (Assinatura Guardiã): Usa a Disciplina (40%) para chance de rechaçar golpe
+  const counterChance = defenderDiscipline > 0 ? (defenderDiscipline * 100) / 2 : 0; // 20% de chance real
+  const isCounter = Math.random() * 100 < counterChance;
+
+  // EVASÃO: Diferença de Foco
+  const focalEdge = Math.max(0, defender.focus - attacker.focus);
+  const evasionChance = Math.max(2, Math.min(18, focalEdge / 35)); 
+  const isEvaded = Math.random() * 100 < evasionChance;
+
+  // 3. Cálculo de Dano
+  const damageBase = (atkFinal * COMBAT.ATK_MULTIPLIER);
+  // Redução de Defesa (Afeta pela Intimidação ativa + Breach)
+  const defCalc = defFinal * (1 - attackerIntimidation) * defMitigation;
+  const defReduction = defCalc / (defCalc + COMBAT.DEF_SOFTCAP);
+  
+  const attTotal = (rawAtk + rawDef + rawFoc);
+  const defTotal = (Number(defender.attack) + Number(defender.defense) + Number(defender.focus));
+  const powerDiff = attTotal - defTotal;
+  const auraModifier = 1 + Math.max(-0.20, Math.min(0.20, powerDiff / 5000)); // Sensibilidade aumentada (era 25000)
+  
+  let finalDamage = damageBase * (1 - defReduction) * auraModifier * turnMomentum;
+
+  // 4. Críticos e Letalidade
+  const critChance = calcCritChance(attacker);
+  const isCrit = Math.random() * 100 < critChance;
+  let critMult = isCrit ? calcCritDamageMultiplier(attacker) : 1.0;
+
+  // Disciplina do defensor reduz impacto crítico (Proteção de Elite do Guardião)
+  if (isCrit && defenderDiscipline > 0) {
+    critMult = 1 + ((critMult - 1) * (1 - defenderDiscipline)); // Mitiga 40% do dano bônus
   }
 
-  // 3. Supressão de Aura (A Fama do Power Solo)
-  // O somatório total do jogador causa intimidação cega se ele for muito mais rico em status que o oponente.
-  const attPowerSolo = (Number(attacker.attack)||0) + (Number(attacker.defense)||0) + (Number(attacker.focus)||0);
-  const defPowerSolo = (Number(defender.attack)||0) + (Number(defender.defense)||0) + (Number(defender.focus)||0);
-  const powerGap = attPowerSolo - defPowerSolo;
-  
-  // Limita a Supressão entre perder 30% (-0.3) ou ganhar 30% (+0.3) no dano universal
-  const auraModifier = Math.max(0.7, Math.min(1.3, 1 + (powerGap / 10000)));
+  const variance = 0.82 + (Math.random() * 0.36); // +/- 18%
+  let resolvedDamage = Math.floor(finalDamage * critMult * variance);
 
-  // 4. Fechamento de Dano
-  const finalDamage = Math.max(1, Math.round(damageAfterDef * critMultiplier * auraModifier));
+  if (isEvaded) resolvedDamage = Math.round(resolvedDamage * 0.25);
+
+  // 5. INCIDENTES DE CAMPO (2% de chance)
+  let incident = null;
+  const incidentRoll = Math.random() * 100;
+  if (incidentRoll < 2.0) {
+     const typeRoll = Math.random();
+     if (typeRoll < 0.33) {
+       incident = { type: "OVERHEAT", label: "SUPERAQUECIMENTO!", selfDmgPct: 0.05, dmgMult: 1.8 };
+     } else if (typeRoll < 0.66) {
+       incident = { type: "SIGNAL_GLITCH", label: "INTERFERÊNCIA!", dmgMult: 0 };
+     } else {
+       incident = { type: "SHRAPNEL", label: "EXPLOSÃO EXTERNA!", globalDmg: Math.round(atkFinal * 0.3) };
+     }
+  }
+
+  if (incident && incident.dmgMult !== undefined) resolvedDamage = Math.round(resolvedDamage * incident.dmgMult);
 
   return {
-    damage       : finalDamage,
+    damage: Math.max(0, resolvedDamage),
     isCrit,
-    critChancePct,
-    critMultiplier: Math.round(critMultiplier * 100) / 100,
-    rawDamage    : damageRaw,
-    defReduction : Math.round(defReduction * 100) / 100,
-    auraModifier : Math.round(auraModifier * 100) / 100
+    isBreach,
+    isEvaded,
+    isCounter,
+    incident,
+    counterDamage: isCounter ? Math.round(atkFinal * 0.5) : 0,
+    modifiers: {
+      aura: Math.round(auraModifier * 100) / 100,
+      momentum: Math.round(turnMomentum * 100) / 100
+    }
   };
 }
 
@@ -299,6 +334,31 @@ function scaleXpByLevel(baseXp, level) {
   const base   = Math.max(0, Number(baseXp) || 0);
   const scaled = Math.round(base * (1 + lvl * XP_SCALING.LEVEL_FACTOR));
   return scaled;
+}
+
+/**
+ * Calcula o HP máximo virtual para fins de simulação de combate.
+ * Junior: "Por que não salvar no BD?"
+ * Senior: "Porque HP que regenera instantaneamente é estado volátil. 
+ *          Calculá-lo no voo simplifica a sincronização e evita overhead de I/O."
+ */
+function calculateMaxHP(player) {
+  const def = Math.max(0, Number(player.defense) || 0);
+  const lvl = Math.max(1, Number(player.level) || 1);
+  const faction = String(player.faction || '').toLowerCase();
+  
+  // Fórmula base equilibrada para o ATK_MULTIPLIER atual
+  // Reduzido levemente para garantir que o ATK_MULTIPLIER de 15 seja decisivo em 3 turnos
+  let hp = 80 + (lvl * 4) + (def * 1.5);
+
+  // Modificadores de Vitalidade por Facção (Compensa as afinidades de dano)
+  if (faction === 'guardioes' || faction === 'guardas') {
+    hp *= 1.25; // +25% HP para Guardiões (Sustentação)
+  } else if (faction === 'renegados' || faction === 'gangsters') {
+    hp *= 0.90; // -10% HP para Renegados (Fragilidade)
+  }
+  
+  return Math.round(hp);
 }
 
 /**
@@ -335,6 +395,7 @@ module.exports = {
   getTotalXpUntilLevel,
   deriveXpStatus,
   calculateLevelFromXp,
+  calculateMaxHP,
   // Novas funções de combate e CRIT
   calcCritChance,
   calcCritDamageMultiplier,

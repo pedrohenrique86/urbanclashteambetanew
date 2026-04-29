@@ -33,10 +33,11 @@ export interface CombatLoot {
   status?: string;
   energyLost?: number;
   rare_drop?: string;
+  outcome?: string;
 }
 
 /** Resultado possível de um combate 1x1 */
-export type CombatOutcome = "win" | "loss" | "draw_dko" | "draw_flee";
+export type CombatOutcome = "win" | "loss" | "draw_dko" | "draw_flee" | "win_ko" | "win_decision" | "loss_ko" | "loss_bleeding";
 
 export interface CombatResult {
   /** Tipo de resultado: vitória, derrota ou um dos dois tipos de empate */
@@ -44,7 +45,22 @@ export interface CombatResult {
   /** Retrocompatibilidade: true apenas quando outcome === 'win' */
   winner: boolean;
   log: string[];
+  hpLog?: Array<{
+    defenderHP: number;
+    attackerHP: number;
+    defenderMaxHP: number;
+    attackerMaxHP: number;
+  }>;
   loot: CombatLoot;
+  details?: {
+    totals: { attacker: number; defender: number };
+    metrics: {
+      atkAura: number;
+      defAura: number;
+      atkCritChance: number;
+      defCritChance: number;
+    }
+  };
   targetRealName: string;
   spectroComment: string;
 }

@@ -13,11 +13,70 @@ import {
   FingerPrintIcon,
   CpuChipIcon,
   StarIcon,
-  ClockIcon
+  ClockIcon,
+  QuestionMarkCircleIcon,
+  InformationCircleIcon,
+  AdjustmentsHorizontalIcon,
+  FireIcon,
+  HeartIcon
 } from "@heroicons/react/24/outline";
 import NPCCountdown from "../components/combat/NPCCountdown";
 
 const MILITARY_CLIP = { clipPath: "polygon(8px 0%, 100% 0%, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0% 100%, 0% 8px)" };
+
+const HPBar = ({ current, max, label, color, isRight }: { current: number, max: number, label: string, color: string, isRight?: boolean }) => {
+  const percentage = Math.max(0, (current / max) * 100);
+  
+  return (
+    <div className={`flex flex-col ${isRight ? 'items-end' : 'items-start'} w-full flex-1 max-w-[350px]`}>
+      <div className={`flex justify-between w-full mb-1.5 px-0.5 items-end ${isRight ? 'flex-row-reverse' : ''}`}>
+        <div className="flex items-center gap-1.5">
+          <HeartIcon className={`w-3 h-3 ${current < max * 0.3 ? 'text-red-500 animate-pulse' : 'text-slate-400'}`} />
+          <span className="text-[10px] font-black font-orbitron text-slate-300 uppercase tracking-widest">{label}</span>
+        </div>
+        <div className="flex flex-col items-end">
+           <span className="text-[11px] font-mono font-bold text-white leading-none">{current.toFixed(0)} <span className="text-slate-500 text-[8px]">/ {max}</span></span>
+        </div>
+      </div>
+      <div className="relative w-full h-5 bg-black/60 border border-slate-800/50 overflow-hidden shadow-inner" style={MILITARY_CLIP}>
+        {/* Track Pattern */}
+        <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle,rgba(255,255,255,0.1)_1px,transparent_1px)] bg-[size:4px_4px]"></div>
+        
+        {/* Ghost bar (damage indicator) */}
+        <motion.div 
+          initial={{ width: "100%" }}
+          animate={{ width: `${percentage}%` }}
+          transition={{ duration: 1.2, ease: "easeOut", delay: 0.3 }}
+          className="absolute top-0 left-0 h-full bg-red-600/30"
+        />
+        
+        {/* Main HP bar */}
+        <motion.div 
+          initial={{ width: "100%" }}
+          animate={{ width: `${percentage}%` }}
+          transition={{ duration: 0.5, ease: "circOut" }}
+          className={`h-full bg-gradient-to-r ${color} relative`}
+        >
+          {/* Animated Shine */}
+          <motion.div 
+            animate={{ x: ['-100%', '200%'] }}
+            transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+            className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent w-1/2 skew-x-12"
+          />
+        </motion.div>
+        
+        {/* Critical Low HP Flash */}
+        {current < max * 0.25 && (
+          <motion.div 
+            animate={{ opacity: [0, 0.4, 0] }}
+            transition={{ duration: 0.5, repeat: Infinity }}
+            className="absolute inset-0 bg-red-500/20"
+          />
+        )}
+      </div>
+    </div>
+  );
+};
 
 const ANALYZING_PHRASES = [
   "ANALISANDO DADOS DO ALVO...",
@@ -30,13 +89,91 @@ const ANALYZING_PHRASES = [
   "MAPEANDO BACKDOORS DE FUGA..."
 ];
 
-const RESULT_PHRASES = [
-  "REASSIMILANDO CONEXÃO...",
-  "COMPILANDO RELATÓRIO DO CONFRONTO...",
-  "CALCULANDO GANHOS E PERDAS...",
-  "FINALIZANDO PROTOCOLO DE ACERTO...",
-  "VERIFICANDO INTEGRIDADE DO CAIXA..."
-];
+const BattleRulesInfo = () => {
+  const [isOpen, setIsOpen] = useState(false);
+  
+  return (
+    <div className="relative">
+      <button 
+        onClick={() => setIsOpen(!isOpen)}
+        className="flex items-center gap-2 px-3 py-2 bg-slate-900 border border-slate-800 hover:border-cyan-500/50 transition-all text-slate-400 hover:text-cyan-400 group"
+        style={MILITARY_CLIP}
+      >
+        <QuestionMarkCircleIcon className="w-4 h-4 group-hover:animate-pulse" />
+        <span className="text-[10px] font-mono font-black uppercase tracking-wider">Como Funciona?</span>
+      </button>
+      
+      <AnimatePresence>
+        {isOpen && (
+          <>
+            <motion.div 
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              onClick={() => setIsOpen(false)}
+              className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm"
+            />
+            <motion.div 
+              initial={{ opacity: 0, y: 10, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 10, scale: 0.95 }}
+              className="absolute right-0 top-12 w-80 md:w-96 bg-slate-950 border border-cyan-500/30 p-6 z-50 shadow-[0_0_50px_rgba(34,211,238,0.15)]"
+              style={MILITARY_CLIP}
+            >
+              <h3 className="font-orbitron font-black text-cyan-400 uppercase text-sm mb-4 flex items-center gap-2 border-b border-cyan-500/20 pb-2">
+                <InformationCircleIcon className="w-5 h-5" />
+                Matriz de Combate 1x1
+              </h3>
+              
+              <div className="space-y-4 font-mono text-[10px] leading-relaxed">
+                <div>
+                  <p className="text-white font-bold mb-1 uppercase flex items-center gap-2">
+                    <FireIcon className="w-3 h-3 text-red-500" /> Dano vs Defesa
+                  </p>
+                  <p className="text-slate-400">
+                    O dano base é (ATK × 10). A defesa reduz esse dano usando um sistema de Softcap (diminuição gradual). 
+                    Mesmo com defesa alta, você sempre receberá o dano residual.
+                  </p>
+                </div>
+                
+                <div>
+                  <p className="text-white font-bold mb-1 uppercase flex items-center gap-2">
+                    <StarIcon className="w-3 h-3 text-yellow-400" /> Críticos e Foco
+                  </p>
+                  <p className="text-slate-400">
+                    Cada ponto de <span className="text-yellow-400">Foco</span> aumenta sua chance de Crítico. 
+                    <span className="text-red-400"> Renegados</span> batem com críticos mais letais, enquanto 
+                    <span className="text-blue-400"> Guardiões</span> usam Disciplina para reduzir o dano crítico recebido.
+                  </p>
+                </div>
+
+                <div>
+                  <p className="text-white font-bold mb-1 uppercase flex items-center gap-2">
+                    <AdjustmentsHorizontalIcon className="w-3 h-3 text-violet-400" /> Supressão de Aura
+                  </p>
+                  <p className="text-slate-400">
+                    A diferença de status total entre você e o alvo gera uma &quot;Aura&quot;. 
+                    Se você for muito mais forte, seu dano sobe até 30%. Se o alvo for muito superior, seu dano cai 30%.
+                  </p>
+                </div>
+
+                <div className="bg-red-500/10 p-3 border border-red-500/20 text-red-400 text-[9px] uppercase italic">
+                  NPCs podem variar de 80% a 120% do seu poder. Alvos HVT (Raros) sempre operam em 130%+.
+                </div>
+              </div>
+              
+              <button 
+                onClick={() => setIsOpen(false)}
+                className="mt-6 w-full py-2 bg-slate-900 border border-slate-800 text-[10px] font-black uppercase text-slate-500 hover:text-white transition-colors"
+                style={MILITARY_CLIP}
+              >
+                Entendido
+              </button>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+};
 
 export default function ReckoningPage() {
   const { userProfile, refreshProfile } = useUserProfile();
@@ -54,6 +191,7 @@ export default function ReckoningPage() {
   const [redirectCountdown, setRedirectCountdown] = useState<number | null>(null);
   const [turnCountdown, setTurnCountdown] = useState<number | null>(null);
   const [countdownMessage, setCountdownMessage] = useState("");
+  const [combatHP, setCombatHP] = useState<{ pHP: number; pMax: number; tHP: number; tMax: number } | null>(null);
   const navigate = useNavigate();
 
   const closeResult = useCallback(() => {
@@ -86,8 +224,8 @@ export default function ReckoningPage() {
   }, [combatPhase, finalResult, navigate, closeResult]);
   
   const handleSelectTarget = async (target: RadarTarget) => {
-    if ((userProfile?.energy || 0) < 100) {
-      showToast("Energia insuficiente. Recarregue para 100% para abrir o rastreador.", "warning");
+    if ((userProfile?.energy || 0) < 50) {
+      showToast("Energia insuficiente. Recarregue para 50% para abrir o rastreador.", "warning");
       return;
     }
     setSelectedTarget(target);
@@ -112,8 +250,8 @@ export default function ReckoningPage() {
 
   const handleAttack = async () => {
     if (!selectedTarget) return;
-    if ((userProfile?.energy || 0) < 100) {
-      showToast("Protocolo Negado: Você precisa de 100% de energia para iniciar um Acerto de Contas.", "error");
+    if ((userProfile?.energy || 0) < 50) {
+      showToast("Protocolo Negado: Você precisa de 50% de energia para iniciar um Acerto de Contas.", "error");
       return;
     }
     try {
@@ -122,6 +260,26 @@ export default function ReckoningPage() {
       setFinalResult(null);
       
       const result = await combatService.attack(selectedTarget.id);
+      
+      // Inicializa HP bars
+      // Inicializa HP bars (Estimativa inicial baseada nos níveis e atributos conhecidos)
+      const getEstimate = (lvl: number, def: number, fac: string) => {
+        let h = 100 + (lvl * 5) + (def * 2);
+        const f = fac.toLowerCase();
+        if (f.includes("guard")) h *= 1.25;
+        else if (f.includes("reneg") || f.includes("gang")) h *= 0.9;
+        return Math.round(h);
+      };
+      
+      const pInitialMax = getEstimate(userProfile?.level || 1, userProfile?.defense || 0, String(userProfile?.faction || ""));
+      const tInitialMax = getEstimate(selectedTarget?.level || 1, userProfile?.defense || 0, String(preCalc?.targetInfo.faction || ""));
+      
+      setCombatHP({
+        pHP: pInitialMax,
+        pMax: pInitialMax,
+        tHP: tInitialMax,
+        tMax: tInitialMax
+      });
       
       // Countdown Inicial (5 segundos)
       const initPhrases = [
@@ -139,78 +297,69 @@ export default function ReckoningPage() {
       setTurnCountdown(null);
       setCountdownMessage("");
 
-      // Sequência de 3 turnos
-      for (let i = 0; i < 3; i++) {
-        // Exibe o texto do turno
+      const totalTurns = result.log.length;
+      for (let i = 0; i < totalTurns; i++) {
         const turnText = result.log[i];
+        const turnHP = result.hpLog?.[i];
+
+        // 1. Exibe o texto do turno e aguarda a "digitação" (20ms/char)
         setBattleLog(prev => [...prev, turnText]);
         
-        // Espera o texto ser "digitado" (60ms por caractere + margem)
-        const typingDuration = turnText.length * 60 + 1500;
-        await new Promise(r => setTimeout(r, typingDuration));
-
-        // Determina mensagem do countdown baseado no turno
-        let msg = "";
-        if (i === 0) {
-          // Análise de Poderes (Turno 1)
-          const pPwr = (userProfile?.attack || 0) + (userProfile?.defense || 0) + (userProfile?.focus || 0);
-          const tPwr = (preCalc?.targetInfo.level || 1) * 30; // Estimativa simples do poder do alvo
-          const ratio = pPwr / tPwr;
-          const dominance = Math.min(99, Math.round(ratio * 100));
-          
-          const analysisPhrases = [
-             `ANÁLISE DE PODER: ${dominance}% DOMINÂNCIA SOBRE ALVO...`,
-             `VERIFICANDO SINCRONIA: PROTOCOLO ${dominance > 100 ? 'ALFA' : 'DELTA'} ATIVO...`,
-             `POTENCIAL DE COMBATE: ${pPwr.toFixed(0)} CP vs ${tPwr.toFixed(0)} CP...`,
-             `SCANNER DE ELITE: VULNERABILIDADE DETECTADA EM ${dominance}%...`
-          ];
-          msg = analysisPhrases[Math.floor(Math.random() * analysisPhrases.length)];
-        } else if (i === 1) {
-          // Verificação de Sistema (Turno 2)
-          const verificationPhrases = [
-             "VERIFICANDO INTEGRIDADE NURAL DO ALVO...",
-             "ESTADO DE SISTEMA: DEGRADAÇÃO EM ANDAMENTO...",
-             "FLUXO DE DADOS: ESTÁVEL EM 98.4%...",
-             `MONITORANDO SPECTRO: ${userProfile?.username?.toUpperCase()} EM VANTAGEM...`
-          ];
-          msg = verificationPhrases[Math.floor(Math.random() * verificationPhrases.length)];
-        } else {
-          // Palpite do Spectro (Turno 3)
-          const predictionPhrases = result.winner 
-            ? [
-                "PALPITE DO SPECTRO: VITÓRIA CONFIRMADA EM 99.9%...",
-                "CONSULTA AO ORÁCULO: O ALVO ESTÁ DELETADO.",
-                "VEREDITO: EXECUÇÃO TERMINADA COM SUCESSO."
-              ]
-            : [
-                "PALPITE DO SPECTRO: CONEXÃO INSTÁVEL... POSSÍVEL FALHA.",
-                "ALERTA: DADOS CORROMPIDOS NA FINALIZAÇÃO.",
-                "AVISO: O ALVO RESISTIU AO PROTOCOLO FINAL."
-              ];
-          msg = predictionPhrases[Math.floor(Math.random() * predictionPhrases.length)];
+        if (turnHP) {
+          setCombatHP({
+            pHP: turnHP.defenderHP,
+            pMax: turnHP.defenderMaxHP,
+            tHP: turnHP.attackerHP,
+            tMax: turnHP.attackerMaxHP
+          });
         }
         
-        setCountdownMessage(msg);
+        await new Promise(r => setTimeout(r, turnText.length * 20 + 500));
 
-        // Countdown de 10 segundos
-        for (let s = 10; s > 0; s--) {
-          setTurnCountdown(s);
-          await new Promise(r => setTimeout(r, 1000));
+        // 2. Se NÃO for o último turno, abre contagem de 10s para o próximo
+        if (i < totalTurns - 1) {
+          let msg = "";
+          if (i === 0) {
+            const pPwr = (userProfile?.attack || 0) + (userProfile?.defense || 0) + (userProfile?.focus || 0);
+            const tPwr = (preCalc?.targetInfo.level || 1) * 30;
+            const ratio = pPwr / tPwr;
+            const dominance = Math.min(99, Math.round(ratio * 100));
+            msg = `ANÁLISE DE PODER: ${dominance}% DOMINÂNCIA SOBRE ALVO...`;
+          } else {
+            msg = "SINCRONIZANDO PROTOCOLO FINAL DO SPECTRO...";
+          }
+          
+          setCountdownMessage(msg);
+          for (let s = 10; s > 0; s--) {
+            setTurnCountdown(s);
+            await new Promise(r => setTimeout(r, 1000));
+          }
+          setTurnCountdown(null);
         }
-        setTurnCountdown(null);
       }
       
-      await new Promise(r => setTimeout(r, 500));
-      setFinalResult(result);
+      // 3. Após o último turno, aguarda 5 segundos antes de seguir o fluxo
+      setCountdownMessage("FINALIZANDO CONEXÃO...");
+      setTurnCountdown(5);
+      for (let s = 5; s > 0; s--) {
+        setTurnCountdown(s);
+        await new Promise(r => setTimeout(r, 1000));
+      }
+      setTurnCountdown(null);
+      
+      const isWin = result.outcome.startsWith("win");
+      setFinalResult({ ...result, winner: isWin });
       setCombatPhase("result");
 
       // Toast notification for result
-      if (result.winner) {
-        showToast(`VITÓRIA! Você neutralizou ${result.targetRealName} e coletou os dados.`, "success");
-      } else if (result.outcome === "loss") {
-        showToast(`ALERTA: Derrota crítica. Seus sistemas entraram em recondicionamento.`, "error");
+      if (isWin) {
+        showToast(`VITÓRIA! Você neutralizou ${result.targetRealName} com sucesso.`, "success");
+      } else if (result.outcome === "loss_ko") {
+        showToast(`K.O. - Seus sistemas críticos falharam. Recondicionamento obrigatório.`, "error");
+      } else if (result.outcome === "loss_bleeding") {
+        showToast(`SANGRANDO - Você recuou com danos sistêmicos (-20% ATK/DEF).`, "warning");
       } else {
-        showToast(`EMPATE: A conexão foi interrompida antes do desfecho.`, "warning");
+        showToast(`IMPASSE - A conexão foi interrompida ou houve empate tático.`, "warning");
       }
       
       // Update our player profile
@@ -246,7 +395,7 @@ export default function ReckoningPage() {
 
   return (
     <div className="min-h-[80vh] p-4 md:p-8 font-sans text-slate-300 relative selection:bg-red-500/30">
-       <header className="max-w-6xl mx-auto mb-12 relative z-10 flex flex-wrap gap-4 items-center justify-between">
+      <header className="max-w-6xl mx-auto mb-12 relative z-10 flex flex-wrap gap-4 items-center justify-between">
         <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}>
           <h1 className="text-4xl md:text-5xl font-orbitron font-black text-white uppercase" style={{ textShadow: "2px 0px 0px rgba(220,38,38,0.7), -2px 0px 0px rgba(139,92,246,0.7)" }}>
             Acerto de <span className="text-red-500">Contas</span>
@@ -256,12 +405,17 @@ export default function ReckoningPage() {
             <span className="text-[10px] font-mono text-red-500 tracking-widest">● LIVE_TARGETS</span>
           </div>
         </motion.div>
-        <div className="bg-black/50 border border-slate-700 p-2 md:p-3 flex items-center gap-3">
-           <BoltIcon className="w-6 h-6 text-yellow-500 animate-pulse" />
-           <div className="flex flex-col">
-             <span className="text-[10px] font-mono text-slate-400 uppercase">Energia Disponível</span>
-             <span className="text-lg font-black font-orbitron text-yellow-400">{userProfile?.energy || 0}%</span>
-           </div>
+        
+        <div className="flex items-center gap-6">
+          <BattleRulesInfo />
+          
+          <div className="bg-black/50 border border-slate-700 p-2 md:p-3 flex items-center gap-3">
+             <BoltIcon className="w-6 h-6 text-yellow-500 animate-pulse" />
+             <div className="flex flex-col">
+               <span className="text-[10px] font-mono text-slate-400 uppercase">Energia Disponível</span>
+               <span className="text-lg font-black font-orbitron text-yellow-400">{userProfile?.energy || 0}%</span>
+             </div>
+          </div>
         </div>
       </header>
       
@@ -308,14 +462,14 @@ export default function ReckoningPage() {
                      )}
                      <div className="p-5 flex flex-col gap-4">
                         <div className="flex items-center gap-3">
-                          <div className={`w-12 h-12 bg-slate-900 border flex items-center justify-center transition-colors
-                            ${tgt.is_rare ? 'border-red-500/50 text-red-500' : 'border-slate-800 text-slate-600 group-hover:text-red-500'}`}>
-                            {tgt.is_rare ? <ExclamationTriangleIcon className="w-8 h-8 animate-pulse" /> : <UserCircleIcon className="w-8 h-8" />}
-                          </div>
-                          <div>
-                            <p className="text-[10px] uppercase font-mono text-slate-500">{tgt.is_npc ? 'ALVO_SINTÉTICO' : 'IDENTIDADE (ENCRIPTADA)'}</p>
-                            <h3 className={`font-orbitron font-black text-lg tracking-widest ${tgt.is_rare ? 'text-red-500' : 'text-white'}`}>{tgt.name}</h3>
-                          </div>
+                           <div className={`w-12 h-12 bg-slate-900 border flex items-center justify-center transition-colors
+                             ${tgt.is_rare ? 'border-red-500/50 text-red-500' : 'border-slate-800 text-slate-600 group-hover:text-red-500'}`}>
+                             {tgt.is_rare ? <ExclamationTriangleIcon className="w-8 h-8 animate-pulse" /> : <UserCircleIcon className="w-8 h-8" />}
+                           </div>
+                           <div>
+                             <p className="text-[10px] uppercase font-mono text-slate-500">{tgt.is_npc ? 'ALVO_SINTÉTICO' : 'IDENTIDADE (ENCRIPTADA)'}</p>
+                             <h3 className={`font-orbitron font-black text-lg tracking-widest ${tgt.is_rare ? 'text-red-500' : 'text-white'}`}>{tgt.name}</h3>
+                           </div>
                         </div>
                         
                         <div className="grid grid-cols-2 gap-2 mt-2">
@@ -358,9 +512,9 @@ export default function ReckoningPage() {
                 </div>
 
                 <div className="bg-slate-900/50 border-l-4 border-cyan-500 p-4 mb-8 font-mono text-sm text-cyan-100 flex gap-3 italic">
-                  <span className="text-cyan-500 mt-0.5">&ldquo;</span>
-                  <p>{preCalc.spectroHint}</p>
-                  <span className="text-cyan-500 self-end">&rdquo;</span>
+                   <span className="text-cyan-500 mt-0.5">&ldquo;</span>
+                   <p>{preCalc.spectroHint}</p>
+                   <span className="text-cyan-500 self-end">&rdquo;</span>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4 mb-8">
@@ -379,7 +533,7 @@ export default function ReckoningPage() {
                     Abortar
                   </button>
                   <button onClick={handleAttack} className="w-2/3 p-4 bg-red-500/10 border border-red-500/50 text-red-400 font-orbitron font-bold text-sm uppercase tracking-widest hover:bg-red-500 hover:text-white hover:shadow-[0_0_20px_rgba(220,38,38,0.5)] transition-all" style={MILITARY_CLIP}>
-                    INICIAR ATAQUE (CUSTO: 100% EN)
+                    INICIAR ATAQUE (CUSTO: 50% EN)
                   </button>
                 </div>
               </div>
@@ -421,6 +575,31 @@ export default function ReckoningPage() {
                    </div>
                 </div>
 
+                {/* ANIMATED HP BARS */}
+                <div className="mb-10 flex flex-col md:flex-row gap-6 md:gap-12 justify-between items-center relative z-10 px-2">
+                   <HPBar 
+                     current={combatHP?.pHP ?? 100} 
+                     max={combatHP?.pMax ?? 100} 
+                     label="Sistemas Vitais" 
+                     color="from-cyan-600 to-blue-500" 
+                   />
+                   
+                   <div className="hidden md:flex flex-col items-center justify-center opacity-40">
+                      <div className="text-[8px] font-black font-mono text-slate-500 uppercase tracking-[0.4em]">Sincronia_Neural</div>
+                      <div className="flex gap-1 mt-1">
+                         {[1,2,3,4,5].map(i => <div key={i} className="w-1 h-3 bg-red-500/50"></div>)}
+                      </div>
+                   </div>
+
+                   <HPBar 
+                     current={combatHP?.tHP ?? 100} 
+                     max={combatHP?.tMax ?? 100} 
+                     label="Nó de Defesa Inimigo" 
+                     color="from-red-600 to-orange-500" 
+                     isRight 
+                   />
+                </div>
+
                 {/* LOGS / FIGHTING AREA */}
                 <div className="min-h-[300px] flex flex-col justify-center gap-4 relative z-10">
                    {combatPhase === "fighting" && (
@@ -455,11 +634,18 @@ export default function ReckoningPage() {
                           const realTName = finalResult?.targetRealName || "";
                           
                           // Procura nomes para destacar
-                          // Ordem importa para não sobrepor substrings
                           const namesToHighlight = [
                             { text: pName, className: "text-emerald-400 font-bold drop-shadow-[0_0_5px_rgba(16,185,129,0.5)]" },
                             { text: tName, className: "text-red-500 font-bold drop-shadow-[0_0_5px_rgba(220,38,38,0.5)]" },
-                            { text: realTName, className: "text-red-500 font-bold drop-shadow-[0_0_5px_rgba(220,38,38,0.5)]" }
+                            { text: realTName, className: "text-red-500 font-bold drop-shadow-[0_0_5px_rgba(220,38,38,0.5)]" },
+                            { text: "BREACH:", className: "text-yellow-400 font-black" },
+                            { text: "EVASÃO:", className: "text-blue-400 font-black italic" },
+                            { text: "CONTRA-GOLPE:", className: "text-violet-400 font-black animate-pulse" },
+                            { text: "RECHAÇO:", className: "text-rose-500 font-black" },
+                            { text: "OVERLOAD!", className: "text-cyan-400 font-black animate-pulse" },
+                            { text: "SUPERAQUECIMENTO!", className: "text-yellow-500 font-black animate-bounce" },
+                            { text: "INTERFERÊNCIA!", className: "text-blue-500 font-black" },
+                            { text: "EXPLOSÃO EXTERNA!", className: "text-red-500 font-bold animate-ping" }
                           ].filter(n => n.text.length > 0);
 
                           const processSegments = (txt: string) => {
@@ -492,23 +678,28 @@ export default function ReckoningPage() {
                               key={idx}
                               initial={{ opacity: 0, x: -10 }}
                               animate={{ opacity: 1, x: 0 }}
-                              className="bg-red-500/5 border-l-4 border-red-500 p-5 font-mono text-xs md:text-sm text-slate-200 leading-relaxed shadow-[0_0_20px_rgba(220,38,38,0.05)]"
+                              className="bg-red-500/5 border-l-4 border-red-500 p-5 font-mono text-xs md:text-sm text-slate-200 leading-relaxed shadow-[0_0_20px_rgba(220,38,38,0.05)] whitespace-pre-line"
                             >
                               <span className="text-red-500 mr-3">[{idx + 1}]</span>
                               {segments.map((seg, sIdx) => {
                                  const part = seg.text;
+                                 const isTechnical = part.trim().startsWith(">>");
+                                 const spanClass = isTechnical ? "text-cyan-400 font-bold opacity-90" : seg.className;
+
                                  return (
-                                   <span key={sIdx} className={seg.className}>
-                                      {part.split("").map((char: string) => {
+                                   <span key={sIdx} className={spanClass}>
+                                      {part.split("").map((char: string, cCharIdx: number) => {
                                          const currentIdx = globalCharIdx++;
+                                         if (isTechnical) return char;
+                                         
                                          return (
                                            <motion.span
-                                             key={currentIdx}
+                                             key={`${idx}-${sIdx}-${cCharIdx}`}
                                              initial={{ opacity: 0 }}
                                              animate={{ opacity: 1 }}
                                              transition={{ 
-                                               duration: 0.06,
-                                               delay: currentIdx * 0.06 
+                                               duration: 0.02,
+                                               delay: currentIdx * 0.02 
                                              }}
                                            >
                                              {char}
@@ -547,11 +738,22 @@ export default function ReckoningPage() {
                                <p className="text-[10px] font-mono text-slate-500">
                                   {finalResult.winner 
                                     ? `+${finalResult.loot?.xp || 0} XP | +$${finalResult.loot?.money || 0} CASH`
-                                    : `-${finalResult.loot?.xp || 0} XP | -$${finalResult.loot?.moneyLost || 0} CASH | -100% ENERGIA`}
+                                    : `-${finalResult.loot?.xp || 0} XP | -$${finalResult.loot?.moneyLost || 0} CASH | ENERGIA: ${finalResult.outcome === 'loss_ko' ? '-100%' : '-50%'}`}
                                </p>
-                               {finalResult.outcome === "loss" && (
+                               {finalResult.loot?.outcome && (
+                                  <p className={`text-[10px] font-mono italic mt-1 ${finalResult.winner ? 'text-emerald-500/80' : 'text-red-500/80'}`}>
+                                     {finalResult.loot?.outcome}
+                                  </p>
+                               )}
+
+                               {finalResult.outcome === "loss_bleeding" && (
+                                  <p className="text-[9px] text-orange-500 font-black animate-pulse mt-2">
+                                     AVISO: SISTEMA SANGRANDO (-20% STATS) - RECONECTE EM 5 MIN PARA REPAROS
+                                  </p>
+                               )}
+                               {finalResult.outcome === "loss_ko" && (
                                   <p className="text-[9px] text-red-600 font-black animate-pulse mt-2">
-                                     AVISO: SISTEMA 100% DRENADO - ENERGIA ZERADA
+                                     AVISO: DANO CRÍTICO TOTAL - RECONDICIONAMENTO OBRIGATÓRIO (KO)
                                   </p>
                                )}
                             </div>
@@ -582,7 +784,7 @@ export default function ReckoningPage() {
                             {finalResult.winner ? "VITÓRIA" : "DERROTA"}
                          </h2>
 
-                         <div className="bg-slate-900/80 border border-white/10 p-6 text-left mb-8 space-y-6">
+                         <div className="bg-slate-900/80 border border-white/10 p-6 text-left mb-8 space-y-6 overflow-hidden">
                             <div>
                                <span className="text-[10px] text-red-500 font-mono uppercase tracking-widest">Relatório do Spectro:</span>
                                <p className="mt-2 text-slate-300 italic text-sm">&ldquo;{finalResult.spectroComment}&rdquo;</p>
@@ -615,25 +817,66 @@ export default function ReckoningPage() {
                                )}
 
                                {finalResult.winner && finalResult.loot?.stats && (
-                                 <div className="bg-black/40 p-3 border border-white/5 col-span-2">
-                                    <span className="text-[8px] text-slate-500 block uppercase mb-1">ATTRIBUTES_SAUSAGE</span>
-                                    <div className="flex gap-4">
-                                       <div className="flex flex-col">
-                                          <span className="text-[8px] text-slate-600">ATK</span>
-                                          <span className="text-cyan-400 font-bold ml-1 text-xs">+{finalResult.loot.stats.attack.toFixed(1)}</span>
-                                       </div>
-                                       <div className="flex flex-col">
-                                          <span className="text-[8px] text-slate-600">DEF</span>
-                                          <span className="text-cyan-400 font-bold ml-1 text-xs">+{finalResult.loot.stats.defense.toFixed(1)}</span>
-                                       </div>
-                                       <div className="flex flex-col">
-                                          <span className="text-[8px] text-slate-600">FOC</span>
-                                          <span className="text-cyan-400 font-bold ml-1 text-xs">+{finalResult.loot.stats.focus.toFixed(1)}</span>
-                                       </div>
+                                 <div className="bg-black/40 p-3 border border-white/5">
+                                    <span className="text-[8px] text-slate-500 block uppercase mb-1">ATRIBUTOS</span>
+                                    <div className="flex gap-2">
+                                       <span className="text-cyan-400 font-bold text-[10px]">+{finalResult.loot.stats.attack.toFixed(0)}A</span>
+                                       <span className="text-cyan-400 font-bold text-[10px]">+{finalResult.loot.stats.defense.toFixed(0)}D</span>
+                                       <span className="text-cyan-400 font-bold text-[10px]">+{finalResult.loot.stats.focus.toFixed(0)}F</span>
                                     </div>
                                  </div>
                                )}
                             </div>
+
+                            {/* DETALHES TÉCNICOS DO CONFRONTO */}
+                            {finalResult.details && (
+                               <div className="bg-black/60 border border-slate-700/50 p-4" style={MILITARY_CLIP}>
+                                  <h4 className="text-[9px] font-black font-orbitron text-slate-500 uppercase tracking-[0.2em] mb-3 border-b border-white/5 pb-2 flex items-center gap-2">
+                                    <AdjustmentsHorizontalIcon className="w-3 h-3" />
+                                    Análise de Desempenho (Spectro Analyzer)
+                                  </h4>
+                                  <div className="grid grid-cols-2 gap-8 text-left">
+                                     <div>
+                                        <p className="text-[8px] text-slate-500 uppercase mb-2">Você (Atacante)</p>
+                                        <div className="space-y-1">
+                                           <div className="flex justify-between text-[10px] font-mono">
+                                              <span className="text-slate-400">Dano Acumulado:</span>
+                                              <span className="text-white font-bold">{finalResult.details.totals.attacker}</span>
+                                           </div>
+                                           <div className="flex justify-between text-[10px] font-mono">
+                                              <span className="text-slate-400">Modificador Aura:</span>
+                                              <span className={`${finalResult.details.metrics.atkAura >= 1 ? 'text-emerald-400' : 'text-red-400'}`}>
+                                                {(finalResult.details.metrics.atkAura * 100).toFixed(0)}%
+                                              </span>
+                                           </div>
+                                           <div className="flex justify-between text-[10px] font-mono">
+                                              <span className="text-slate-400">Chance Crítica:</span>
+                                              <span className="text-yellow-500">{finalResult.details.metrics.atkCritChance}%</span>
+                                           </div>
+                                        </div>
+                                     </div>
+                                     <div className="border-l border-white/5 pl-8">
+                                        <p className="text-[8px] text-slate-500 uppercase mb-2">Alvo (Defensor)</p>
+                                        <div className="space-y-1">
+                                           <div className="flex justify-between text-[10px] font-mono">
+                                              <span className="text-slate-400">Dano Acumulado:</span>
+                                              <span className="text-white font-bold">{finalResult.details.totals.defender}</span>
+                                           </div>
+                                           <div className="flex justify-between text-[10px] font-mono">
+                                              <span className="text-slate-400">Modificador Aura:</span>
+                                              <span className={`${finalResult.details.metrics.defAura >= 1 ? 'text-emerald-400' : 'text-red-400'}`}>
+                                                {(finalResult.details.metrics.defAura * 100).toFixed(0)}%
+                                              </span>
+                                           </div>
+                                           <div className="flex justify-between text-[10px] font-mono">
+                                              <span className="text-slate-400">Chance Crítica:</span>
+                                              <span className="text-yellow-500">{finalResult.details.metrics.defCritChance}%</span>
+                                           </div>
+                                        </div>
+                                     </div>
+                                  </div>
+                               </div>
+                            )}
 
                             <div className="border-t border-white/5 pt-4 flex flex-col md:flex-row justify-between items-center gap-4">
                                <p className="text-[10px] font-mono text-slate-500 flex items-center gap-2">
@@ -668,7 +911,7 @@ export default function ReckoningPage() {
                 <div className="mt-8 pt-4 border-t border-white/5 flex justify-between items-end opacity-40">
                    <div className="text-[8px] font-mono text-slate-500">
                       SYS_LOG: DUEL_SOCKET_ENCRYPT_256BIT<br/>
-                      EN_CONSUMPTION: 100%_DELTA
+                      EN_CONSUMPTION: 50%_DELTA
                    </div>
                    <div className="text-[8px] font-mono text-slate-500 text-right uppercase">
                       UrbanClash_Duel_Engine_v9.1<br/>

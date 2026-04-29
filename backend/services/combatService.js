@@ -84,12 +84,31 @@ function getNpcData(targetId, attacker) {
   const levelOff = (Math.abs(hash * 31) % 5) - 2; // -2 to +2
   const level = Math.max(1, Number(attacker.level) + levelOff);
 
+  const isRenegado = botFaction.toLowerCase().includes("renegado") || botFaction.toLowerCase().includes("gangster");
+  const isGuardiao = botFaction.toLowerCase().includes("guard") || botFaction.toLowerCase().includes("sentinela");
+
+  // Base variation: 85% to 105% of player stats (common)
+  let atkMult = isRare ? 1.3 : 0.85 + (Math.abs(hash % 21) / 100);
+  let defMult = isRare ? 1.3 : 0.85 + (Math.abs((hash * 13) % 21) / 100);
+  let focMult = isRare ? 1.3 : 0.85 + (Math.abs((hash * 7) % 21) / 100);
+
+  // Faction Balancing: NPCs shift their "cloned" stats slightly to match their class
+  if (isRenegado) {
+    atkMult *= 1.1; // Renegades hit slightly harder
+    defMult *= 0.9; // Renegades have slightly less HP
+  } else if (isGuardiao) {
+    atkMult *= 0.9; // Guardians hit slightly softer
+    defMult *= 1.1; // Guardians have slightly more HP
+  }
+
   return {
     username: name,
     level: level,
-    attack: attacker.attack * (isRare ? 1.3 : 0.8 + (Math.abs(hash % 40) / 100)),
-    defense: attacker.defense * (isRare ? 1.3 : 0.8 + (Math.abs((hash * 13) % 40) / 100)),
-    focus: attacker.focus * (isRare ? 1.3 : 0.8 + (Math.abs((hash * 7) % 40) / 100)),
+    attack:  Math.max(1, attacker.attack  * atkMult),
+    defense: Math.max(1, attacker.defense * defMult),
+    focus:   Math.max(1, attacker.focus   * focMult),
+    intimidation: isRenegado ? 35.0 : 0.0,
+    discipline: isGuardiao ? 40.0 : 0.0,
     energy: 100,
     money: isRare ? 500 : 0,
     faction: botFaction,
@@ -101,38 +120,102 @@ function getNpcData(targetId, attacker) {
 // ─── Motor de Decisão de Resultado ───────────────────────────────────────────
 
 /**
- * Simula 3 turnos de dano acumulado de cada lado para determinar o resultado.
- *
- * Zona de Empate: se |atkTotal - defTotal| / max(atkTotal, defTotal) < 2%
- *   → 80% draw_dko  (Double Knockout)
- *   → 20% draw_flee (Fuga / Interrupção)
- *
- * Caso contrário:
- *   → 'win'  se atkTotal >= defTotal
- *   → 'loss' se defTotal >  atkTotal
+ * Simula 3 turnos de dano detalhado para determinar o resultado e fornecer feedback numérico.
  *
  * @param {object} attacker - estado completo do atacante
  * @param {object} defender - estado completo do defensor
- * @returns {'win'|'loss'|'draw_dko'|'draw_flee'}
+ * @returns {object} { outcome, turns, totals, metrics }
  */
-function decideOutcome(attacker, defender) {
-  let atkTotal = 0;
-  let defTotal = 0;
+function simulateCombat(attacker, defender) {
+  const pMaxHP = gameLogic.calculateMaxHP(attacker);
+  const tMaxHP = gameLogic.calculateMaxHP(defender);
+  let pHP = pMaxHP;
+  let tHP = tMaxHP;
+
+  const turns = [];
+  let outcome = "loss_ko"; // Fallback
+  let finishedTurn = 3;
+  
+  let playerMomentum = 1.0;
+  let targetMomentum = 1.0;
 
   for (let i = 0; i < 3; i++) {
-    atkTotal += gameLogic.resolveCombatHit(attacker, defender).damage;
-    defTotal += gameLogic.resolveCombatHit(defender, attacker).damage;
+    const pAtk = gameLogic.resolveCombatHit(attacker, defender, playerMomentum);
+    const tAtk = gameLogic.resolveCombatHit(defender, attacker, targetMomentum);
+    
+    const pPrevHP = pHP;
+    const tPrevHP = tHP;
+    
+    // Aplica danos principais
+    tHP = Math.max(0, tHP - pAtk.damage);
+    pHP = Math.max(0, pHP - tAtk.damage);
+
+    // Aplica Incidentes (Novos Eventos)
+    if (pAtk.incident) {
+      if (pAtk.incident.selfDmgPct) pHP = Math.max(0, pHP - (pMaxHP * pAtk.incident.selfDmgPct));
+      if (pAtk.incident.globalDmg) { tHP = Math.max(0, tHP - pAtk.incident.globalDmg); pHP = Math.max(0, pHP - pAtk.incident.globalDmg); }
+    }
+    if (tAtk.incident) {
+      if (tAtk.incident.selfDmgPct) tHP = Math.max(0, tHP - (tMaxHP * tAtk.incident.selfDmgPct));
+      if (tAtk.incident.globalDmg) { pHP = Math.max(0, pHP - tAtk.incident.globalDmg); tHP = Math.max(0, tHP - tAtk.incident.globalDmg); }
+    }
+
+    // Aplica Contra-Ataques (Real Data: Disciplina em ação)
+    if (pAtk.isCounter) pHP = Math.max(0, pHP - pAtk.counterDamage);
+    if (tAtk.isCounter) tHP = Math.max(0, tHP - tAtk.counterDamage);
+
+    turns.push({
+      attacker: { ...pAtk, hpBefore: tPrevHP, hpAfter: tHP, maxHP: tMaxHP },
+      defender: { ...tAtk, hpBefore: pPrevHP, hpAfter: pHP, maxHP: pMaxHP }
+    });
+
+    // Calcula Momentum para o próximo round (+15% para quem causou mais dano)
+    if (pAtk.damage > tAtk.damage) {
+      playerMomentum = 1.15;
+      targetMomentum = 0.90;
+    } else if (pAtk.damage < tAtk.damage) {
+      playerMomentum = 0.90;
+      targetMomentum = 1.15;
+    }
+
+    // Check KO
+    if (pHP <= 0 || tHP <= 0) {
+      finishedTurn = i + 1;
+      if (pHP <= 0 && tHP <= 0) outcome = "draw_dko";
+      else if (tHP <= 0) outcome = "win_ko";
+      else outcome = "loss_ko";
+      break; 
+    }
   }
 
-  const maxDmg  = Math.max(atkTotal, defTotal);
-  const diffPct = maxDmg > 0 ? Math.abs(atkTotal - defTotal) / maxDmg : 0;
-
-  if (diffPct < 0.02) {
-    // Zona de Empate: diferença menor que 2%
-    return Math.random() < 0.80 ? "draw_dko" : "draw_flee";
+  // Se ninguém morreu em 3 turnos, decide por pontos (HP restante)
+  if (pHP > 0 && tHP > 0) {
+    const pPct = pHP / pMaxHP;
+    const tPct = tHP / tMaxHP;
+    if (Math.abs(pPct - tPct) < 0.03) { // Janela reduzida para 3% para minimizar empates por decisão
+      outcome = "draw_flee";
+    } else {
+      outcome = pPct > tPct ? "win_decision" : "loss_bleeding";
+    }
   }
 
-  return atkTotal >= defTotal ? "win" : "loss";
+  return {
+    outcome,
+    turns,
+    finishedTurn,
+    totals: { 
+      atkRemainingHP: pHP, 
+      defRemainingHP: tHP,
+      atkMaxHP: pMaxHP,
+      defMaxHP: tMaxHP
+    },
+    metrics: {
+      atkAura: turns[0].attacker.auraModifier,
+      defAura: turns[0].defender.auraModifier,
+      atkCritChance: turns[0].attacker.critChancePct,
+      defCritChance: turns[0].defender.critChancePct
+    }
+  };
 }
 
 // ─── Serviço Principal ────────────────────────────────────────────────────────
@@ -240,8 +323,8 @@ class CombatService {
 
     if (Number(attacker.level || 1) < 10)
       throw new Error("Você precisa estar no nível 10 para acessar o Acerto de Contas.");
-    if (Number(attacker.energy || 0) < 100)
-      throw new Error("Energia insuficiente (requer 100% para iniciar protocolo de combate).");
+    if (Number(attacker.energy || 0) < 50)
+      throw new Error("Energia insuficiente (requer 50% para iniciar protocolo de combate).");
     
     if (!isNpc) {
       if (defender.status === "Recondicionamento")
@@ -251,9 +334,13 @@ class CombatService {
     }
 
     // ── Decisão do resultado (win / loss / draw_dko / draw_flee) ──────────────
-    const outcome = decideOutcome(attacker, defender);
+    const combatData = simulateCombat(attacker, defender);
+    const outcome = combatData.outcome;
 
-    // ── Log de combate por turnos ─────────────────────────────────────────────
+    const isWin   = outcome.startsWith("win");
+    const isLoss  = outcome.startsWith("loss");
+    const isKO    = outcome.endsWith("_ko");
+
     // ── Geração Narrativa do Spectro (Anti-Repetição 15^4) ────────────────────
     const contextBase = {
       player_name: attacker.username,
@@ -262,21 +349,15 @@ class CombatService {
       is_rare: isRare,
       is_draw_dko: outcome === "draw_dko",
       is_draw_flee: outcome === "draw_flee",
-      is_loss: outcome === "loss"
+      is_loss: isLoss,
+      is_bleeding: outcome === "loss_bleeding",
+      is_ko: isKO
     };
 
-    const targetNameCensored = censorName(defender.username);
-    const targetNameReal     = defender.username;
-
-    const log = [
-      spectroEngine.construirNarrativa(1, { ...contextBase, target_name: targetNameCensored }),
-      spectroEngine.construirNarrativa(2, { ...contextBase, target_name: targetNameCensored }),
-      spectroEngine.construirNarrativa(3, { ...contextBase, target_name: targetNameReal })
-    ];
-
+    // ── 1. Cálculo do Loot Antes dos Logs ──────────────────────────────────────
     let loot = null;
 
-    if (outcome === "win") {
+    if (isWin) {
       let xpGain = Math.round(gameLogic.COMBAT.XP_WIN_BASE * (defender.level / attacker.level));
       if (isRare) xpGain *= 1.5;
       if (defender.level > attacker.level) xpGain *= 2;
@@ -285,7 +366,7 @@ class CombatService {
       let spectroTax = 0;
 
       if (isNpc) {
-        moneyReceived = isRare ? 500 : 0; // Bônus dinheiro NPC raro
+        moneyReceived = isRare ? 500 : 0;
       } else {
         const defMoney = Number(defender.money || 0);
         const moneyLoot = Math.floor(defMoney * 0.1);
@@ -294,26 +375,131 @@ class CombatService {
       }
 
       const attDiffRatio = 0.001;
-      const atkGain = Number(defender.attack  || 0) * attDiffRatio;
-      const defGain = Number(defender.defense || 0) * attDiffRatio;
-      const focGain = Number(defender.focus   || 0) * attDiffRatio;
+      const atkGain = (Number(defender.attack  || 0) * attDiffRatio) || 1;
+      const defGain = (Number(defender.defense || 0) * attDiffRatio) || 1;
+      const focGain = (Number(defender.focus   || 0) * attDiffRatio) || 1;
 
       loot = {
         xp:    xpGain,
         money: moneyReceived,
         tax:   spectroTax,
-        stats: {
-          attack:  atkGain > 1 ? atkGain : 1,
-          defense: defGain > 1 ? defGain : 1,
-          focus:   focGain > 1 ? focGain : 1
-        },
-        rare_drop: isRare ? "Nucleo_Sombrio" : null
+        stats: { attack: atkGain, defense: defGain, focus: focGain },
+        rare_drop: isRare ? "Nucleo_Sombrio" : null,
+        outcome: outcome === "win_ko" ? "K.O. - Vitória Esmagadora" : "Decisão - Vitória Tática"
       };
 
+    } else if (isLoss) {
+      const attackerMoney  = Number(attacker.money || 0);
+      const moneyLost      = Math.floor(attackerMoney * 0.05);
+      
+      const isBleeding = outcome === "loss_bleeding";
+      const recoveryDuration = isBleeding ? 5 : 15;
+      const shieldDuration   = isBleeding ? 10 : 45;
+
+      loot = {
+        xp:        -gameLogic.COMBAT.XP_LOSE_BASE,
+        moneyLost: moneyLost,
+        status:    isBleeding ? "Sangrando" : "Recondicionamento",
+        recoveryDuration,
+        shieldDuration,
+        outcome:   isBleeding ? "Derrota (Sangrando)" : "K.O. - Derrota Crítica"
+      };
+
+    } else if (outcome === "draw_dko") {
+      loot = {
+        xp:         0,
+        energyLost: 100,
+        status:     "Recondicionamento",
+        outcome:    "D.K.O. - Empate Crítico"
+      };
+    } else { // draw_flee
+      loot = {
+        xp:         0,
+        energyLost: 100,
+        outcome:    "Fuga - Contato Interrompido"
+      };
+    }
+
+    const targetNameCensored = censorName(defender.username);
+    const targetNameReal     = defender.username;
+
+    // Logs com valores reais
+    const log = [];
+    const hpLog = [];
+    const usedFrags = new Set();
+
+    combatData.turns.forEach((turn, index) => {
+      const isLast = (index + 1) === combatData.finishedTurn;
+      const targetName = isLast ? targetNameReal : targetNameCensored;
+      
+      let narrative = spectroEngine.construirNarrativa(index + 1, { 
+        ...contextBase, 
+        target_name: targetName,
+        usedFrags 
+      });
+      
+      // Detalhes Técnicos (HP e Críticos)
+      const atkDmg = turn.attacker.damage;
+      const defDmg = turn.defender.damage;
+      const atkCrit = turn.attacker.isCrit ? ` [CRÍTICO! ${turn.attacker.critChancePct}%]` : "";
+      const defCrit = turn.defender.isCrit ? ` [CRÍTICO! ${turn.defender.critChancePct}%]` : "";
+      
+      // Novos Eventos Robustos
+      const atkBreach = turn.attacker.isBreach ? " [BREACH: Defesa Rompida!]" : "";
+      const defBreach = turn.defender.isBreach ? " [BREACH: Defesa Inimiga Rompida!]" : "";
+      const atkEvade = turn.attacker.isEvaded ? " [EVASÃO: Passou Raspando!]" : "";
+      const defEvade = turn.defender.isEvaded ? " [EVASÃO: Alvo Desviou!]" : "";
+      const atkCounter = turn.attacker.isCounter ? ` [CONTRA-GOLPE: +${turn.attacker.counterDamage} Dano!]` : "";
+      const defCounter = turn.defender.isCounter ? ` [RECHAÇO: -${turn.defender.counterDamage} Vida!]` : "";
+      
+      const pIncident = turn.defender.incident ? ` [EVENTO: ${turn.defender.incident.label}]` : "";
+      const aIncident = turn.attacker.incident ? ` [ALERTA: ${turn.attacker.incident.label}]` : "";
+
+      const pHP = turn.defender.hpAfter;
+      const tHP = turn.attacker.hpAfter;
+      const pMax = turn.defender.maxHP;
+      const tMax = turn.attacker.maxHP;
+
+      const pMomentum = turn.defender.modifiers?.momentum > 1 ? " [Inimigo Dominando]" : "";
+      const aMomentum = turn.attacker.modifiers?.momentum > 1 ? " [Você no Ataque!]" : "";
+
+      narrative += `\n>> DANO: Você causou ${atkDmg}${atkCrit}${atkBreach}${defEvade}${atkCounter}${aIncident}`;
+      narrative += `\n>> DANO: Recebeu ${defDmg}${defCrit}${defBreach}${atkEvade}${defCounter}${pIncident}`;
+      narrative += `\n>> HP: Você [${pHP}/${pMax}]${pMomentum} | Oponente [${tHP}/${tMax}]${aMomentum}`;
+      
+      // EXIBIÇÃO DE RECOMPENSAS NO ÚLTIMO TURNO
+      if (isLast && loot) {
+        narrative += `\n\n=== [ PROTOCOLO ENCERRADO: ${loot.outcome?.toUpperCase()} ] ===`;
+        if (isWin) {
+          narrative += `\n+ ${loot.xp} XP`;
+          if (loot.money > 0) narrative += `\n+ $${loot.money} Créditos (Taxa Spectro: $${loot.tax})`;
+          narrative += `\n+ ATRIBUTOS: ATK +${Number(loot.stats.attack).toFixed(2)} | DEF +${Number(loot.stats.defense).toFixed(2)} | FOC +${Number(loot.stats.focus).toFixed(2)}`;
+          if (loot.rare_drop) narrative += `\n+ ITEM RARO ENCONTRADO: [${loot.rare_drop}]`;
+        } else if (isLoss) {
+          narrative += `\n- PERDA: ${Math.abs(loot.xp)} XP`;
+          if (loot.moneyLost > 0) narrative += `\n- MULTA: $${loot.moneyLost} Créditos`;
+          narrative += `\n! STATUS: Seu kernel está em [${loot.status}] por ${loot.recoveryDuration} min.`;
+        } else {
+           narrative += `\n! RESULTADO: Sem ganhos expressivos. Conexão perdida.`;
+        }
+      }
+
+      log.push(narrative);
+
+      hpLog.push({
+        defenderHP: pHP,
+        attackerHP: tHP,
+        defenderMaxHP: pMax,
+        attackerMaxHP: tMax
+      });
+    });
+
+    // ── 2. Persistência no Banco (DB Updates) ──────────────────────────────────
+    if (isWin) {
       await playerStateService.updatePlayerState(userId, {
-        energy:    -100,
-        money:     moneyReceived,
-        total_xp:  xpGain,
+        energy:    -50,
+        money:     loot.money,
+        total_xp:  loot.xp,
         attack:    loot.stats.attack,
         defense:   loot.stats.defense,
         focus:     loot.stats.focus,
@@ -326,52 +512,31 @@ class CombatService {
 
         await playerStateService.updatePlayerState(targetId, {
           money:            -Number(loot.money + loot.tax),
-          energy:           -(Number(defender.energy || 0)),
+          energy:           -10,
           status:           "Recondicionamento",
           recovery_ends_at: recoveryEndsAt,
           shield_ends_at:   shieldEndsAt,
           defeats:          1
         });
       }
-
-    } else if (outcome === "loss") {
-      const attackerMoney  = Number(attacker.money || 0);
-      const moneyLost      = Math.floor(attackerMoney * 0.1);
-      const recoveryEndsAt = new Date(Date.now() + 15 * 60000).toISOString();
-      const shieldEndsAt   = new Date(Date.now() + 45 * 60000).toISOString();
+    } else if (isLoss) {
+      const recoveryEndsAt = new Date(Date.now() + loot.recoveryDuration * 60000).toISOString();
+      const shieldEndsAt   = new Date(Date.now() + loot.shieldDuration * 60000).toISOString();
 
       await playerStateService.updatePlayerState(userId, {
-        energy:           -(Number(attacker.energy || 0)),
-        money:            -moneyLost,
-        status:           "Recondicionamento",
-        recovery_ends_at: recoveryEndsAt,
+        energy:           isKO ? -(Number(attacker.energy || 0)) : -50,
+        money:            -loot.moneyLost,
+        status:           loot.status,
+        status_ends_at:   recoveryEndsAt,
         shield_ends_at:   shieldEndsAt,
         defeats:          1
       });
-
-      if (!isNpc) {
-        const xpGain        = Math.round(gameLogic.COMBAT.XP_WIN_BASE * (attacker.level / defender.level));
-        const moneyReceived = Math.floor(moneyLost * 0.9);
-
-        await playerStateService.updatePlayerState(targetId, {
-          money:     moneyReceived,
-          total_xp:  xpGain,
-          victories: 1
-        });
-      }
-
-      loot = {
-        xp:        -gameLogic.COMBAT.XP_LOSE_BASE,
-        moneyLost: moneyLost,
-        status:    "recondicionamento"
-      };
-
     } else if (outcome === "draw_dko") {
       const halfRecovery = new Date(Date.now() + 7.5 * 60000).toISOString();
       const halfShield   = new Date(Date.now() + 22.5 * 60000).toISOString();
 
       await playerStateService.updatePlayerState(userId, {
-        energy:           -100,
+        energy:           -50,
         status:           "Recondicionamento",
         recovery_ends_at: halfRecovery,
         shield_ends_at:   halfShield
@@ -385,30 +550,23 @@ class CombatService {
           shield_ends_at:   halfShield
         });
       }
-
-      loot = {
-        xp:         0,
-        energyLost: 100,
-        status:     "recondicionamento_dko"
-      };
-
     } else { // draw_flee
-      await playerStateService.updatePlayerState(userId,   { energy: -100 });
+      await playerStateService.updatePlayerState(userId,   { energy: -50 });
       if (!isNpc) await playerStateService.updatePlayerState(targetId, { energy: -10 });
-
-      loot = {
-        xp:         0,
-        energyLost: 100
-      };
     }
 
     return {
       outcome,
-      winner: outcome === "win",
+      winner: isWin,
       log,
+      hpLog,
       loot,
+      details: {
+        totals: combatData.totals,
+        metrics: combatData.metrics
+      },
       targetRealName: isNpc ? defender.username : defender.username,
-      spectroComment: outcome === "win" ? spectroEngine.generateSpectroTalk("victory") : spectroEngine.generateSpectroTalk("timeout")
+      spectroComment: isWin ? spectroEngine.generateSpectroTalk("victory") : (outcome.startsWith("draw") ? spectroEngine.generateSpectroTalk("timeout") : spectroEngine.generateSpectroTalk("detection"))
     };
   }
 }

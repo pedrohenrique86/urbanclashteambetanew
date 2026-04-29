@@ -210,7 +210,7 @@ const requireOperational = async (req, res, next) => {
     // getPlayerState já executa o "Lazy Reset" se o tempo expirou
     const status = state?.status || 'Operacional';
 
-    if (status !== 'Operacional') {
+    if (status !== 'Operacional' && status !== 'Sangrando') {
       return res.status(403).json({
         error: "Ação bloqueada",
         message: `Status atual: ${status}. Unidade bloqueada para ações de gameplay.`,

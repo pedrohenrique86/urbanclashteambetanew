@@ -489,20 +489,38 @@ async function runPlayerStatusMigrations() {
     await query(`CREATE INDEX IF NOT EXISTS idx_status_logs_composite ON player_status_logs(user_id, ended_at);`);
     await query(`CREATE INDEX IF NOT EXISTS idx_status_logs_started_at ON player_status_logs(started_at);`);
 
-    // Migração de nomes (livre -> Operacional, preso -> Isolamento, recuperacao -> Recondicionamento)
-    await transaction(async (client) => {
-      await client.query(`
-        UPDATE user_profiles SET status = 'Operacional' WHERE status = 'livre';
-        UPDATE user_profiles SET status = 'Isolamento' WHERE status = 'preso';
-        UPDATE user_profiles SET status = 'Recondicionamento' WHERE status = 'recuperacao';
-        
-        UPDATE player_status_logs SET status = 'Operacional' WHERE status = 'livre';
-        UPDATE player_status_logs SET status = 'Isolamento' WHERE status = 'preso';
-        UPDATE player_status_logs SET status = 'Recondicionamento' WHERE status = 'recuperacao';
-      `);
-    });
+    // 4. Conversão para ENUM (Caixa de Seleção no Console Neon)
+    await query(`
+      DO $$ 
+      BEGIN 
+        -- Cria o tipo ENUM se não existir
+        IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'player_status_type') THEN
+          CREATE TYPE player_status_type AS ENUM ('Operacional', 'Sangrando', 'Recondicionamento', 'Isolamento', 'Aprimoramento');
+        END IF;
 
-    console.log("✅ Migrações de Status do Jogador (Nomenclatura Oficial) verificadas.");
+        -- Converte a coluna status em user_profiles
+        IF (SELECT data_type FROM information_schema.columns WHERE table_name='user_profiles' AND column_name='status') = 'character varying' THEN
+          -- Limpeza prévia para garantir que valores antigos batam com o ENUM
+          UPDATE user_profiles SET status = 'Operacional' WHERE status IN ('livre', 'active', 'ok');
+          UPDATE user_profiles SET status = 'Isolamento' WHERE status = 'preso';
+          UPDATE user_profiles SET status = 'Recondicionamento' WHERE status = 'recuperacao';
+          
+          ALTER TABLE user_profiles ALTER COLUMN status TYPE player_status_type USING status::player_status_type;
+          ALTER TABLE user_profiles ALTER COLUMN status SET DEFAULT 'Operacional';
+        END IF;
+
+        -- Converte a coluna status em player_status_logs
+        IF (SELECT data_type FROM information_schema.columns WHERE table_name='player_status_logs' AND column_name='status') = 'character varying' THEN
+          UPDATE player_status_logs SET status = 'Operacional' WHERE status IN ('livre', 'active', 'ok');
+          UPDATE player_status_logs SET status = 'Isolamento' WHERE status = 'preso';
+          UPDATE player_status_logs SET status = 'Recondicionamento' WHERE status = 'recuperacao';
+
+          ALTER TABLE player_status_logs ALTER COLUMN status TYPE player_status_type USING status::player_status_type;
+        END IF;
+      END $$;
+    `);
+
+    console.log("✅ Migrações de Status do Jogador (ENUM/Caixa de Seleção) aplicadas com sucesso.");
   } catch (error) {
     console.error("❌ Erro nas migrações de Status:", error.message);
   }
