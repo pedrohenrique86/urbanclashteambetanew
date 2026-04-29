@@ -192,6 +192,7 @@ export default function ReckoningPage() {
   const [turnCountdown, setTurnCountdown] = useState<number | null>(null);
   const [countdownMessage, setCountdownMessage] = useState("");
   const [combatHP, setCombatHP] = useState<{ pHP: number; pMax: number; tHP: number; tMax: number } | null>(null);
+  const [isFinalizing, setIsFinalizing] = useState(false);
   const navigate = useNavigate();
 
   const closeResult = useCallback(() => {
@@ -349,7 +350,7 @@ export default function ReckoningPage() {
       
       const isWin = result.outcome.startsWith("win");
       setFinalResult({ ...result, winner: isWin });
-      setCombatPhase("result");
+      
 
       // Toast notification for result
       if (isWin) {
@@ -362,8 +363,14 @@ export default function ReckoningPage() {
         showToast(`IMPASSE - A conexão foi interrompida ou houve empate tático.`, "warning");
       }
       
-      // Update our player profile
+      // Sincroniza o perfil antes de mudar de página
       await refreshProfile();
+
+      // Ativa estado de finalização para evitar "flashing" da UI
+      setIsFinalizing(true);
+
+      // Redireciona diretamente para a base de recuperação após os 5 segundos finais
+      navigate("/recovery-base");
       
     } catch (err: any) {
       showToast(err.response?.data?.error || err.message, "error");
@@ -378,10 +385,12 @@ export default function ReckoningPage() {
       <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-4">
         <ExclamationTriangleIcon className="w-20 h-20 text-red-500 mb-6 animate-pulse" />
         <h1 className="text-3xl font-orbitron font-black text-white uppercase tracking-widest mb-4">SISTEMA COMPROMETIDO</h1>
-        <p className="text-slate-400 font-mono">Redirecionando para Base de Recuperação...</p>
       </div>
     );
   }
+
+  // Evita exibir o radar ou restos da luta durante o redirecionamento
+  if (isFinalizing) return null;
 
   if ((userProfile?.level || 1) < 10 && combatPhase === "radar") {
     return (
