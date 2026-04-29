@@ -37,7 +37,7 @@ export interface CombatLoot {
 }
 
 /** Resultado possível de um combate 1x1 */
-export type CombatOutcome = "win" | "loss" | "draw_dko" | "draw_flee" | "win_ko" | "win_decision" | "loss_ko" | "loss_bleeding";
+export type CombatOutcome = "win" | "loss" | "draw_dko" | "draw_flee" | "win_ko" | "win_decision" | "loss_ko" | "loss_bleeding" | "win_pure" | "win_bleeding";
 
 export interface CombatResult {
   /** Tipo de resultado: vitória, derrota ou um dos dois tipos de empate */

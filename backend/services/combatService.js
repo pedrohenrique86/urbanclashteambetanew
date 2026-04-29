@@ -218,6 +218,55 @@ function simulateCombat(attacker, defender) {
   };
 }
 
+// ─── Emulador de Turnos Falsos para NPCs (Matriz de Probabilidade) ────────
+function generateFauxTurns(attacker, defender, outcome) {
+  const pMaxHP = gameLogic.calculateMaxHP(attacker);
+  const tMaxHP = gameLogic.calculateMaxHP(defender);
+  let pHP = pMaxHP;
+  let tHP = tMaxHP;
+
+  const turns = [];
+  for (let i = 0; i < 3; i++) {
+    let pDmg = 0;
+    let tDmg = 0;
+    
+    if (outcome === "win_pure") {
+       pDmg = Math.floor(tMaxHP / 3);
+       tDmg = Math.floor(pMaxHP * 0.05);
+    } else if (outcome === "win_bleeding") {
+       pDmg = Math.floor(tMaxHP / 3);
+       tDmg = Math.floor(pMaxHP * 0.25);
+    } else if (outcome === "draw_flee") {
+       pDmg = Math.floor(tMaxHP * 0.1);
+       tDmg = Math.floor(pMaxHP * 0.1);
+    } else if (outcome === "draw_dko") {
+       pDmg = Math.floor(tMaxHP / 3);
+       tDmg = Math.floor(pMaxHP / 3);
+    } else { // loss_ko
+       pDmg = Math.floor(tMaxHP * 0.05);
+       tDmg = Math.floor(pMaxHP / 3);
+    }
+
+    if (i === 2) {
+       if (outcome.startsWith("win")) pDmg = tHP;
+       if (outcome === "loss_ko") tDmg = pHP;
+       if (outcome === "draw_dko") { pDmg = tHP; tDmg = pHP; }
+    }
+
+    const tPrevHP = tHP;
+    const pPrevHP = pHP;
+    tHP = Math.max(0, tHP - pDmg);
+    pHP = Math.max(0, pHP - tDmg);
+
+    turns.push({
+      attacker: { damage: pDmg, isCrit: (Math.random() < 0.2), isBreach: false, isEvaded: false, isCounter: false, hpBefore: tPrevHP, hpAfter: tHP, maxHP: tMaxHP, critChancePct: 15 },
+      defender: { damage: tDmg, isCrit: (Math.random() < 0.2), isBreach: false, isEvaded: false, isCounter: false, hpBefore: pPrevHP, hpAfter: pHP, maxHP: pMaxHP, critChancePct: 10 }
+    });
+  }
+
+  return { outcome, turns, finishedTurn: 3, totals: { atkRemainingHP: pHP, defRemainingHP: tHP, atkMaxHP: pMaxHP, defMaxHP: tMaxHP }, metrics: { atkAura: 1, defAura: 1, atkCritChance: 15, defCritChance: 10 } };
+}
+
 // ─── Serviço Principal ────────────────────────────────────────────────────────
 
 class CombatService {
@@ -334,8 +383,29 @@ class CombatService {
     }
 
     // ── Decisão do resultado (win / loss / draw_dko / draw_flee) ──────────────
-    const combatData = simulateCombat(attacker, defender);
-    const outcome = combatData.outcome;
+    let combatData;
+    let outcome;
+
+    if (isNpc) {
+      const roll = Math.random() * 100;
+      if (isRare) {
+        if (roll < 35) outcome = "win_pure";
+        else if (roll < 65) outcome = "win_bleeding"; // 30%
+        else if (roll < 75) outcome = "draw_flee"; // 10%
+        else if (roll < 80) outcome = "draw_dko"; // 5%
+        else outcome = "loss_ko"; // 20%
+      } else {
+        if (roll < 60) outcome = "win_pure";
+        else if (roll < 75) outcome = "win_bleeding"; // 15%
+        else if (roll < 85) outcome = "draw_flee"; // 10%
+        else if (roll < 90) outcome = "draw_dko"; // 5%
+        else outcome = "loss_ko"; // 10%
+      }
+      combatData = generateFauxTurns(attacker, defender, outcome);
+    } else {
+      combatData = simulateCombat(attacker, defender);
+      outcome = combatData.outcome;
+    }
 
     const isWin   = outcome.startsWith("win");
     const isLoss  = outcome.startsWith("loss");
@@ -385,7 +455,11 @@ class CombatService {
         tax:   spectroTax,
         stats: { attack: atkGain, defense: defGain, focus: focGain },
         rare_drop: isRare ? "Nucleo_Sombrio" : null,
-        outcome: outcome === "win_ko" ? "K.O. - Vitória Esmagadora" : "Decisão - Vitória Tática"
+        outcome: outcome === "win_ko" ? "K.O. - Vitória Esmagadora" : 
+                 (outcome === "win_bleeding" ? "Vitória Custo Alto (Sangrando)" : "Decisão - Vitória Tática"),
+        status: outcome === "win_bleeding" ? "Sangrando" : null,
+        recoveryDuration: outcome === "win_bleeding" ? 15 : null,
+        shieldDuration: outcome === "win_bleeding" ? 15 : null
       };
 
     } else if (isLoss) {
@@ -496,7 +570,7 @@ class CombatService {
 
     // ── 2. Persistência no Banco (DB Updates) ──────────────────────────────────
     if (isWin) {
-      await playerStateService.updatePlayerState(userId, {
+      let stateUpdate = {
         energy:    -50,
         money:     loot.money,
         total_xp:  loot.xp,
@@ -504,7 +578,15 @@ class CombatService {
         defense:   loot.stats.defense,
         focus:     loot.stats.focus,
         victories: 1
-      });
+      };
+      
+      if (outcome === "win_bleeding") {
+         stateUpdate.status = "Sangrando";
+         stateUpdate.recovery_ends_at = new Date(Date.now() + 15 * 60000).toISOString();
+         stateUpdate.shield_ends_at = new Date(Date.now() + 15 * 60000).toISOString();
+      }
+
+      await playerStateService.updatePlayerState(userId, stateUpdate);
 
       if (!isNpc) {
         const recoveryEndsAt = new Date(Date.now() + 15 * 60000).toISOString();
@@ -527,7 +609,7 @@ class CombatService {
         energy:           isKO ? -(Number(attacker.energy || 0)) : -50,
         money:            -loot.moneyLost,
         status:           loot.status,
-        status_ends_at:   recoveryEndsAt,
+        recovery_ends_at: recoveryEndsAt,
         shield_ends_at:   shieldEndsAt,
         defeats:          1
       });

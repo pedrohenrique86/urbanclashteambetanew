@@ -321,11 +321,15 @@ export default function ReckoningPage() {
         if (i < totalTurns - 1) {
           let msg = "";
           if (i === 0) {
-            const pPwr = (userProfile?.attack || 0) + (userProfile?.defense || 0) + (userProfile?.focus || 0);
-            const tPwr = (preCalc?.targetInfo.level || 1) * 30;
-            const ratio = pPwr / tPwr;
-            const dominance = Math.min(99, Math.round(ratio * 100));
-            msg = `ANÁLISE DE PODER: ${dominance}% DOMINÂNCIA SOBRE ALVO...`;
+            if (result.outcome === "draw_dko") {
+               msg = "Bio-assinaturas colidindo... isso vai acabar mal para os dois!";
+            } else {
+               const pPwr = (userProfile?.attack || 0) + (userProfile?.defense || 0) + (userProfile?.focus || 0);
+               const tPwr = (preCalc?.targetInfo.level || 1) * 30;
+               const ratio = pPwr / tPwr;
+               const dominance = Math.min(99, Math.round(ratio * 100));
+               msg = `ANÁLISE DE PODER: ${dominance}% DOMINÂNCIA SOBRE ALVO...`;
+            }
           } else {
             msg = "SINCRONIZANDO PROTOCOLO FINAL DO SPECTRO...";
           }
@@ -354,7 +358,11 @@ export default function ReckoningPage() {
 
       // Toast notification for result
       if (isWin) {
-        showToast(`VITÓRIA! Você neutralizou ${result.targetRealName} com sucesso.`, "success");
+        if (result.outcome === "win_bleeding") {
+           showToast(`VITÓRIA POR UM FIO! ${result.targetRealName} neutralizado, mas você está SANGRANDO (-20% ATK/DEF).`, "warning");
+        } else {
+           showToast(`VITÓRIA! Você neutralizou ${result.targetRealName} com sucesso.`, "success");
+        }
       } else if (result.outcome === "loss_ko") {
         showToast(`K.O. - Seus sistemas críticos falharam. Recondicionamento obrigatório.`, "error");
       } else if (result.outcome === "loss_bleeding") {
@@ -363,15 +371,11 @@ export default function ReckoningPage() {
         showToast(`IMPASSE - A conexão foi interrompida ou houve empate tático.`, "warning");
       }
       
-      // Sincroniza o perfil antes de mudar de página
+      // Sincroniza o perfil antes de avançar
       await refreshProfile();
 
-      // Ativa estado de finalização para evitar "flashing" da UI
-      setIsFinalizing(true);
-
-      // Redireciona diretamente para a base de recuperação após os 5 segundos finais
-      navigate("/recovery-base");
-      
+      // Ativa a tela de resultados com o timer
+      setCombatPhase("result");
     } catch (err: any) {
       showToast(err.response?.data?.error || err.message, "error");
       cancelCombat();
