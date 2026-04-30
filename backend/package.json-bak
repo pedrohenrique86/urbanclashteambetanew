@@ -22,10 +22,10 @@
     "migrate:create:random": "node scripts/create-migration-random.js",
     "seed:dev": "node scripts/run-seed.js dev",
     "seed:prod": "node scripts/run-seed.js prod",
-    "seed:all": "npm run seed:dev && npm run seed:prod",
-    "dev:local": "cross-env PORT=3001 DATABASE_URL=\"postgresql://neondb_owner:npg_ZI7jQfsxEd6t@ep-delicate-cell-ac2ni9pz-pooler.sa-east-1.aws.neon.tech/neondb?sslmode=verify-full&channel_binding=require\" nodemon server.js",
-    "dev:prod": "cross-env PORT=4000 DATABASE_URL=\"postgresql://neondb_owner:npg_Qvd18hbrASEt@ep-little-dream-ac8rjq4b-pooler.sa-east-1.aws.neon.tech/neondb?sslmode=verify-full&channel_binding=require\" nodemon server.js",
-    "dev:all": "concurrently --names \"LOCAL,PROD\" --prefix-colors \"bgBlue.bold,bgMagenta.bold\" \"npm run dev:local\" \"npm run dev:prod\""
+    "seed:all": "npm run seed:dev && npm run seed:prod"
+    "dev:local": "cross-env PORT=3001 DATABASE_URL=postgresql://neondb_owner:npg_ZI7jQfsxEd6t@ep-delicate-cell-ac2ni9pz-pooler.sa-east-1.aws.neon.tech/neondb?sslmode=verify-full&channel_binding=require nodemon server.js",
+    "dev:prod": "cross-env PORT=4000 DATABASE_URL=postgresql://neondb_owner:npg_Qvd18hbrASEt@ep-little-dream-ac8rjq4b-pooler.sa-east-1.aws.neon.tech/neondb?sslmode=verify-full&channel_binding=require nodemon server.js",
+    "dev:all": "concurrently \"npm run dev:local\" \"npm run dev:prod\""
   },
   "dependencies": {
     "axios": "^1.6.8",
@@ -47,8 +47,6 @@
     "wait-on": "^7.2.0"
   },
   "devDependencies": {
-    "concurrently": "^8.2.2",
-    "cross-env": "^7.0.3",
     "jest": "^29.7.0",
     "nodemon": "^3.1.0"
   },
