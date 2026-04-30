@@ -44,8 +44,8 @@ function getHintPhrase(level) {
 
 function censorName(name) {
   if (!name) return "****";
-  // Se já for um bot marcado, não censura
-  if (name.includes("[BOT]")) return name;
+  // Se já for um bot marcado ou um boss, não censura
+  if (name.includes("[BOT]") || name.includes("[BOSS]")) return name;
   
   if (name.length <= 2) return name.charAt(0) + "***" + (name.length > 1 ? name.charAt(name.length-1) : "");
   return name.charAt(0) + "*****" + name.charAt(name.length - 1);
@@ -615,9 +615,11 @@ class CombatService {
       
       if (outcome === "win_bleeding") {
          stateUpdate.status = "Sangrando";
-         stateUpdate.status_ends_at = new Date(Date.now() + 15 * 60000).toISOString();
-         stateUpdate.recovery_ends_at = new Date(Date.now() + 15 * 60000).toISOString();
-         stateUpdate.shield_ends_at = new Date(Date.now() + 15 * 60000).toISOString();
+         // Audit: Limitando a 15 minutos para evitar bugs de offset (330 min)
+         const bleedingMs = 15 * 60000;
+         stateUpdate.status_ends_at = new Date(Date.now() + bleedingMs).toISOString();
+         stateUpdate.recovery_ends_at = new Date(Date.now() + bleedingMs).toISOString();
+         stateUpdate.shield_ends_at = new Date(Date.now() + bleedingMs).toISOString();
       }
 
       await playerStateService.updatePlayerState(userId, stateUpdate);
@@ -637,8 +639,12 @@ class CombatService {
         });
       }
     } else if (isLoss) {
-      const recoveryEndsAt = new Date(Date.now() + loot.recoveryDuration * 60000).toISOString();
-      const shieldEndsAt   = new Date(Date.now() + loot.shieldDuration * 60000).toISOString();
+      // Audit: Garantir que o tempo de recuperação não exceda 30 minutos conforme as regras de negócio
+      const safeDuration = Math.min(30, loot.recoveryDuration || 30);
+      const recoveryEndsAt = new Date(Date.now() + safeDuration * 60000).toISOString();
+      // Shield pode ser maior (até 45), mas vamos garantir que não seja abusivo
+      const safeShield = Math.min(45, loot.shieldDuration || 45);
+      const shieldEndsAt   = new Date(Date.now() + safeShield * 60000).toISOString();
 
       await playerStateService.updatePlayerState(userId, {
         action_points:    -300,

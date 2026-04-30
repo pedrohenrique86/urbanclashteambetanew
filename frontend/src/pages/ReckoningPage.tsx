@@ -21,6 +21,7 @@ import {
   HeartIcon
 } from "@heroicons/react/24/outline";
 import NPCCountdown from "../components/combat/NPCCountdown";
+import { FACTION_ALIAS_MAP_FRONTEND } from "../utils/faction";
 
 const MILITARY_CLIP = { clipPath: "polygon(8px 0%, 100% 0%, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0% 100%, 0% 8px)" };
 
@@ -106,16 +107,21 @@ const BattleRulesInfo = () => {
       <AnimatePresence>
         {isOpen && (
           <>
+            {/* Backdrop */}
             <motion.div 
-              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
               onClick={() => setIsOpen(false)}
-              className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm"
+              className="fixed inset-0 bg-black/80 backdrop-blur-md z-[1000]"
             />
+
+            {/* Content */}
             <motion.div 
-              initial={{ opacity: 0, y: 10, scale: 0.95 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 10, scale: 0.95 }}
-              className="absolute right-0 top-12 w-80 md:w-96 bg-slate-950 border border-cyan-500/30 p-6 z-50 shadow-[0_0_50px_rgba(34,211,238,0.15)]"
+              initial={{ opacity: 0, scale: 0.9, x: "-50%", y: "-50%" }}
+              animate={{ opacity: 1, scale: 1, x: "-50%", y: "-50%" }}
+              exit={{ opacity: 0, scale: 0.9, x: "-50%", y: "-50%" }}
+              className="fixed top-1/2 left-1/2 w-[90%] max-w-lg bg-slate-900 border border-slate-700 p-6 md:p-8 z-[1001] shadow-2xl overflow-y-auto max-h-[80vh]"
               style={MILITARY_CLIP}
             >
               <h3 className="font-orbitron font-black text-cyan-400 uppercase text-sm mb-4 flex items-center gap-2 border-b border-cyan-500/20 pb-2">
@@ -211,6 +217,7 @@ export default function ReckoningPage() {
   const [countdownMessage, setCountdownMessage] = useState("");
   const [combatHP, setCombatHP] = useState<{ pHP: number; pMax: number; tHP: number; tMax: number } | null>(null);
   const [isFinalizing, setIsFinalizing] = useState(false);
+  const [bleedingTime, setBleedingTime] = useState<string | null>(null);
   const navigate = useNavigate();
 
   const closeResult = useCallback(() => {
@@ -241,6 +248,33 @@ export default function ReckoningPage() {
       return () => clearInterval(timer);
     }
   }, [combatPhase, finalResult, navigate, closeResult]);
+
+  // Sincronização do cronômetro de sangramento/status
+  useEffect(() => {
+    if (userProfile?.status === 'Sangrando' && userProfile?.status_ends_at) {
+      const updateTimer = () => {
+        const now = Date.now();
+        const end = new Date(userProfile.status_ends_at!).getTime();
+        const diff = end - now;
+
+        if (diff <= 0) {
+          setBleedingTime(null);
+          // O playerStateService resetará automaticamente no próximo pull, 
+          // mas o useUserProfile já tem o SSE ouvindo mudanças.
+        } else {
+          const m = Math.floor(diff / 60000);
+          const s = Math.floor((diff % 60000) / 1000);
+          setBleedingTime(`${m}m ${s}s`);
+        }
+      };
+
+      updateTimer();
+      const interval = setInterval(updateTimer, 1000);
+      return () => clearInterval(interval);
+    } else {
+      setBleedingTime(null);
+    }
+  }, [userProfile?.status, userProfile?.status_ends_at]);
   
   const handleSelectTarget = async (target: RadarTarget) => {
     if ((userProfile?.action_points || 0) < 300) {
@@ -438,11 +472,101 @@ export default function ReckoningPage() {
   if (isFinalizing) return null;
 
   if ((userProfile?.level || 1) < 10 && combatPhase === "radar") {
+    // Lógica idêntica ao UnderConstruction para extrair tema por facção
+    const rawFaction = userProfile?.faction as any;
+    const factionName = typeof rawFaction === 'string' ? rawFaction : (rawFaction?.name || 'gangsters');
+    const factionKey = String(factionName).toLowerCase().trim();
+    const canonicalFaction = FACTION_ALIAS_MAP_FRONTEND[factionKey] || 'gangsters';
+    const isGangster = canonicalFaction === "gangsters";
+
+    const theme = isGangster 
+    ? {
+        color: "orange",
+        text: "text-orange-400",
+        bg: "from-orange-500/20 to-red-500/20",
+        glow: "drop-shadow-[0_0_10px_rgba(249,115,22,0.5)]",
+        gradient: "from-orange-400 to-red-400",
+        accent: "bg-orange-500",
+        light: "bg-orange-500/10"
+      }
+    : {
+        color: "blue",
+        text: "text-blue-400",
+        bg: "from-blue-500/20 to-purple-500/20",
+        glow: "drop-shadow-[0_0_10px_rgba(59,130,246,0.5)]",
+        gradient: "from-blue-400 to-cyan-400",
+        accent: "bg-blue-500",
+        light: "bg-blue-500/10"
+      };
+
     return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-4">
-        <ShieldExclamationIcon className="w-20 h-20 text-red-500 mb-6 animate-pulse" />
-        <h1 className="text-3xl font-orbitron font-black text-white uppercase tracking-widest mb-4">ACESSO NEGADO</h1>
-        <p className="text-slate-400 font-mono">Nível 10 requerido para acessar o Radar do Spectro.</p>
+      <div className="flex items-center justify-center min-h-[70vh] px-4">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.6, ease: "easeOut" }}
+          className="w-full max-w-md bg-black/30 backdrop-blur-xl border border-white/10 rounded-2xl p-6 md:p-8 shadow-2xl relative overflow-hidden"
+          style={{
+            boxShadow: "0 0 30px rgba(0, 0, 0, 0.4), inset 0 1px 1px rgba(255, 255, 255, 0.1)",
+          }}
+        >
+          <div className={`absolute -top-24 -left-24 w-40 h-40 ${theme.light} blur-[80px] rounded-full`} />
+          <div className={`absolute -bottom-24 -right-24 w-40 h-40 ${theme.light} blur-[80px] rounded-full`} />
+
+          <div className="relative z-10 text-center space-y-4">
+            <motion.div
+              initial={{ y: -15, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ delay: 0.2 }}
+              className={`inline-flex items-center justify-center w-14 h-14 rounded-xl bg-gradient-to-br ${theme.bg} border border-white/10 mb-0`}
+            >
+              <ShieldExclamationIcon className={`w-7 h-7 ${theme.text} ${theme.glow}`} />
+            </motion.div>
+
+            <motion.div
+              initial={{ y: 10, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ delay: 0.3 }}
+            >
+              <h1 className="text-xl md:text-2xl font-bold font-orbitron tracking-tight text-white mb-2 uppercase">
+                Spectro <span className={`text-transparent bg-gradient-to-r ${theme.gradient} bg-clip-text`}>Reckoning</span>
+              </h1>
+              <div className={`w-12 h-1 bg-gradient-to-r ${isGangster ? 'from-orange-500' : 'from-blue-500'} to-transparent mx-auto rounded-full mb-3`} />
+            </motion.div>
+
+            <motion.p
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.4 }}
+              className="text-slate-300 text-sm font-light leading-relaxed max-w-xs mx-auto"
+            >
+              A arena definitiva de elite para interceptação tática e caça de recompensas. Rastreie alvos de alto valor e domine os setores de Neon City.
+            </motion.p>
+            
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.45 }}
+              className="py-5 px-6 bg-red-500/10 border-y border-red-500/30 my-4"
+            >
+              <p className="text-red-400 font-black text-xs leading-relaxed uppercase italic tracking-tight">
+                &quot;Você está fraco demais para acessar essa página! Vá treinar antes que o Spectro frite seus circuitos.&quot;
+              </p>
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.5 }}
+              className="pt-2 flex flex-col items-center gap-4"
+            >
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">
+                <span className={`w-2 h-2 rounded-full ${theme.accent} animate-pulse shadow-[0_0_10px_rgba(239,68,68,0.8)]`} />
+                Requer Nível 10
+              </div>
+            </motion.div>
+          </div>
+        </motion.div>
       </div>
     );
   }
@@ -496,16 +620,40 @@ export default function ReckoningPage() {
 
       {userProfile?.status === 'Sangrando' && (
         <motion.div 
-          initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
-          className="max-w-6xl mx-auto mb-6 bg-rose-500/10 border border-rose-500/50 p-4 flex items-center gap-4 text-rose-400" 
+          initial={{ opacity: 0, y: -20 }} 
+          animate={{ opacity: 1, y: 0 }}
+          className="max-w-6xl mx-auto mb-8 bg-black border-2 border-rose-600 p-6 flex items-center gap-6 text-rose-500 shadow-[0_0_40px_rgba(225,29,72,0.3)] relative overflow-hidden group" 
           style={MILITARY_CLIP}
         >
-          <ExclamationTriangleIcon className="w-8 h-8 animate-pulse text-rose-500 hidden md:block" />
-          <div>
-            <h3 className="font-orbitron font-black uppercase text-sm drop-shadow-[0_0_8px_rgba(244,63,94,0.8)] text-rose-400">AVISO TÁTICO: SANGRANDO</h3>
-            <p className="font-mono text-[10px] text-rose-400/80 uppercase leading-relaxed mt-1">
-               Sua unidade de combate está com hemorragia progressiva (-20% em base de atributos). Iniciar caçadas e acertos de contas neste estado representa risco crítico.
+          {/* Animated Background Overlay */}
+          <div className="absolute inset-0 bg-rose-600/5 animate-pulse pointer-events-none"></div>
+          <div className="absolute top-0 left-0 w-1.5 h-full bg-rose-600 shadow-[0_0_20px_rgba(225,29,72,1)]"></div>
+          
+          <div className="relative z-10 flex items-center justify-center w-14 h-14 bg-rose-600/20 border border-rose-600/40 shrink-0">
+            <ExclamationTriangleIcon className="w-10 h-10 animate-pulse text-rose-500" />
+          </div>
+
+          <div className="relative z-10">
+            <h3 className="font-orbitron font-black uppercase text-sm tracking-[0.2em] drop-shadow-[0_0_10px_rgba(225,29,72,0.8)] text-rose-500">
+              ESTADO CRÍTICO: UNIDADE SANGRANDO
+            </h3>
+            <p className="font-mono text-[10px] text-rose-500/90 uppercase leading-relaxed mt-1 max-w-4xl">
+               Hemorragia sistêmica detectada. Penalidade de <span className="font-black text-rose-400">-20% em todos os atributos base</span>. 
+               O engajamento em combate neste estado é classificado como protocolo de autodestruição.
             </p>
+            {bleedingTime && (
+              <div className="flex items-center gap-2 mt-3 bg-rose-600/20 border border-rose-600/40 px-3 py-1 w-fit">
+                <ClockIcon className="w-3 h-3 text-rose-400" />
+                <span className="text-[10px] font-black font-orbitron text-rose-400 uppercase tracking-widest leading-none">
+                  Sincronia Estável em: <span className="text-white drop-shadow-[0_0_5px_rgba(255,255,255,0.5)]">{bleedingTime}</span>
+                </span>
+              </div>
+            )}
+          </div>
+
+          {/* Decorative Corner */}
+          <div className="absolute bottom-0 right-0 p-1 opacity-20">
+             <div className="w-4 h-4 border-b-2 border-r-2 border-rose-600"></div>
           </div>
         </motion.div>
       )}

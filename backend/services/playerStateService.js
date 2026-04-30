@@ -962,7 +962,15 @@ async function setPlayerStatus(userId, newStatus, durationSeconds = null) {
   // Cálculo de Tempo de Expiração
   let status_ends_at = null;
   if (durationSeconds && durationSeconds > 0) {
-    status_ends_at = new Date(Date.now() + (durationSeconds * 1000)).toISOString();
+    // SÊNIOR: Trava de segurança para evitar bugs de offset/duration exagerada
+    // O máximo permitido para qualquer status temporário comum é 2 horas (7200s), 
+    // exceto se for explicitamente um status de longa duração (ex: Preso).
+    let safeDuration = durationSeconds;
+    if (newStatus === 'Sangrando' || newStatus === 'Recondicionamento') {
+      safeDuration = Math.min(safeDuration, 1800); // Máximo 30 minutos
+    }
+    
+    status_ends_at = new Date(Date.now() + (safeDuration * 1000)).toISOString();
   }
 
   console.log(`[status] 🔄 Mudando ${userId}: ${currentStatus} -> ${newStatus} (Expira: ${status_ends_at || 'Nunca'})`);

@@ -221,13 +221,19 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   {formatValue(userProfile?.money || 0)}
                 </span>
               </div>
-              <div className={`${themeClasses.text} flex justify-between`}>
+              <div 
+                className={`${themeClasses.text} flex justify-between cursor-help hover:bg-gray-700/30 rounded transition-colors`}
+                title={(combatStats?.attack || userProfile?.attack || 0).toFixed(2)}
+              >
                 <span className="text-red-400">ATK</span>
                 <span className="font-bold">
                   {formatValue(combatStats?.attack || userProfile?.attack || 0)}
                 </span>
               </div>
-              <div className={`${themeClasses.text} flex justify-between`}>
+              <div 
+                className={`${themeClasses.text} flex justify-between cursor-help hover:bg-gray-700/30 rounded transition-colors`}
+                title={(combatStats?.defense || userProfile?.defense || 0).toFixed(2)}
+              >
                 <span className="text-blue-400">DEF</span>
                 <span className="font-bold">
                   {formatValue(
@@ -235,7 +241,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   )}
                 </span>
               </div>
-              <div className={`${themeClasses.text} flex justify-between`}>
+              <div 
+                className={`${themeClasses.text} flex justify-between cursor-help hover:bg-gray-700/30 rounded transition-colors`}
+                title={(combatStats?.focus || userProfile?.focus || 0).toFixed(2)}
+              >
                 <span className="text-purple-400">FOC</span>
                 <span className="font-bold">
                   {formatValue(combatStats?.focus || userProfile?.focus || 0)}

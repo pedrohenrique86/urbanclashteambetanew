@@ -112,12 +112,12 @@ const TopBar: React.FC<TopBarProps> = ({ userProfile }) => {
       isBattery: true
     },
     { label: "PA",       value: userProfile?.action_points ?? "-",                         className: "text-cyan-400",    glowColor: "#06b6d4", tooltip: "Pontos de Ação" },
-    { label: "ATK",      value: userProfile?.attack !== undefined ? Math.floor(Number(userProfile.attack)) : "-", className: "text-red-400", glowColor: "#ef4444", tooltip: "Ataque" },
-    { label: "DEF",      value: userProfile?.defense !== undefined ? Math.floor(Number(userProfile.defense)) : "-", className: "text-blue-400", glowColor: "#3b82f6", tooltip: "Defesa" },
-    { label: "FOC",      value: userProfile?.focus !== undefined ? Math.floor(Number(userProfile.focus)) : "-", className: "text-pink-400", glowColor: "#ec4899", tooltip: "Foco" },
+    { label: "ATK",      value: userProfile?.attack !== undefined ? Number(userProfile.attack).toFixed(1) : "-", className: "text-red-400", glowColor: "#ef4444", tooltip: `Ataque: ${Number(userProfile?.attack || 0).toFixed(2)}` },
+    { label: "DEF",      value: userProfile?.defense !== undefined ? Number(userProfile.defense).toFixed(1) : "-", className: "text-blue-400", glowColor: "#3b82f6", tooltip: `Defesa: ${Number(userProfile?.defense || 0).toFixed(2)}` },
+    { label: "FOC",      value: userProfile?.focus !== undefined ? Number(userProfile.focus).toFixed(1) : "-", className: "text-pink-400", glowColor: "#ec4899", tooltip: `Foco: ${Number(userProfile?.focus || 0).toFixed(2)}` },
     { label: "CRIT DMG", value: combat.criticalDamage ? Number(combat.criticalDamage.toFixed(2)) : "-", className: "text-rose-400",    glowColor: "#f43f5e", tooltipId: "topbar-crit-dmg-tooltip", showHint: true },
     { label: "CRIT%",    value: `${combat.criticalChance ? Number(combat.criticalChance.toFixed(2)) : 0}%`, className: "text-yellow-400",  glowColor: "#eab308", tooltipId: "topbar-crit-pct-tooltip", showHint: true },
-    { label: "LUCK",     value: `${Number(userProfile?.luck ?? 0).toFixed(2)}%`,          className: "text-emerald-400", glowColor: "#34d399", tooltip: "Sorte (Bônus de Loot & Drop)" },
+    { label: "LUCK",     value: `${Number(userProfile?.luck ?? 0).toFixed(1)}%`,          className: "text-emerald-400", glowColor: "#34d399", tooltip: `Sorte (Bônus de Loot): ${Number(userProfile?.luck || 0).toFixed(2)}%` },
     { 
       label: "Cash", 
       value: `$${formatCurrency(userProfile?.money ?? 0)}`, 
@@ -355,7 +355,7 @@ const TopBar: React.FC<TopBarProps> = ({ userProfile }) => {
                   <span className="text-white/90 font-medium">
                     Bônus de Atributos
                     <span className="text-white/40 ml-1.5 text-[9px] font-mono">
-                      ({levelBreakdown.totalStats} pts / 25)
+                      ({Math.floor(levelBreakdown.totalStats)} pts / 25)
                     </span>
                   </span>
                 </div>

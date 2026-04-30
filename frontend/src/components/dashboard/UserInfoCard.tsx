@@ -96,7 +96,8 @@ const UserInfoCard: React.FC<UserInfoCardProps> = ({
 
           {/* Linha 3 */}
           <div
-            className={`bg-gray-800/20 rounded p-1 text-center border-r border-t ${themeClasses.border}`}
+            className={`bg-gray-800/20 rounded p-1 text-center border-r border-t ${themeClasses.border} cursor-help hover:bg-gray-700/30 transition-colors`}
+            title={userProfile?.attack?.toFixed(2)}
           >
             <div className={`${themeClasses.textSecondary} text-xs`}>
               Ataque
@@ -104,7 +105,8 @@ const UserInfoCard: React.FC<UserInfoCardProps> = ({
             <div className="font-bold text-red-400">{userProfile?.attack}</div>
           </div>
           <div
-            className={`bg-gray-800/20 rounded p-1 text-center border-t ${themeClasses.border}`}
+            className={`bg-gray-800/20 rounded p-1 text-center border-t ${themeClasses.border} cursor-help hover:bg-gray-700/30 transition-colors`}
+            title={userProfile?.defense?.toFixed(2)}
           >
             <div className={`${themeClasses.textSecondary} text-xs`}>
               Defesa
@@ -116,7 +118,8 @@ const UserInfoCard: React.FC<UserInfoCardProps> = ({
 
           {/* Linha 4 */}
           <div
-            className={`bg-gray-800/20 rounded p-1 text-center border-r border-t ${themeClasses.border}`}
+            className={`bg-gray-800/20 rounded p-1 text-center border-r border-t ${themeClasses.border} cursor-help hover:bg-gray-700/30 transition-colors`}
+            title={userProfile?.focus?.toFixed(2)}
           >
             <div className={`${themeClasses.textSecondary} text-xs`}>Foco</div>
             <div className="font-bold text-purple-400">
@@ -222,7 +225,10 @@ const UserInfoCard: React.FC<UserInfoCardProps> = ({
         </div>
 
         {/* Linha 3 */}
-        <div className="stat-item bg-gray-800/50 rounded-lg p-3 text-center">
+        <div 
+          className="stat-item bg-gray-800/50 rounded-lg p-3 text-center cursor-help hover:bg-gray-700/30 transition-colors"
+          title={userProfile?.attack?.toFixed(2)}
+        >
           <div className={`${themeClasses.textSecondary} text-xs mb-1`}>
             Ataque
           </div>
@@ -231,7 +237,10 @@ const UserInfoCard: React.FC<UserInfoCardProps> = ({
           </div>
         </div>
 
-        <div className="stat-item bg-gray-800/50 rounded-lg p-3 text-center">
+        <div 
+          className="stat-item bg-gray-800/50 rounded-lg p-3 text-center cursor-help hover:bg-gray-700/30 transition-colors"
+          title={userProfile?.defense?.toFixed(2)}
+        >
           <div className={`${themeClasses.textSecondary} text-xs mb-1`}>
             Defesa
           </div>
@@ -241,7 +250,10 @@ const UserInfoCard: React.FC<UserInfoCardProps> = ({
         </div>
 
         {/* Linha 4 */}
-        <div className="stat-item bg-gray-800/50 rounded-lg p-3 text-center">
+        <div 
+          className="stat-item bg-gray-800/50 rounded-lg p-3 text-center cursor-help hover:bg-gray-700/30 transition-colors"
+          title={userProfile?.focus?.toFixed(2)}
+        >
           <div className={`${themeClasses.textSecondary} text-xs mb-1`}>
             Foco
           </div>

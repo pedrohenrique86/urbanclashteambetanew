@@ -173,7 +173,7 @@ const GlobalLayout: React.FC<GlobalLayoutProps> = ({ children }) => {
               userProfile={userProfile as any}
             />
 
-            <main className="focus:outline-none pt-2 md:pt-4 px-4 md:px-6 pb-[60px] md:pb-6 relative z-10 w-full">
+            <main className="focus:outline-none pt-2 md:pt-4 px-4 md:px-6 pb-[60px] md:pb-6 relative w-full">
               <div className="urban-container">
                 {children}
               </div>
