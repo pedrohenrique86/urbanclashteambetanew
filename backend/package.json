@@ -23,8 +23,8 @@
     "seed:dev": "node scripts/run-seed.js dev",
     "seed:prod": "node scripts/run-seed.js prod",
     "seed:all": "npm run seed:dev && npm run seed:prod",
-    "dev:local": "cross-env NODE_ENV=development PORT=3001 DATABASE_URL=\"postgresql://neondb_owner:npg_ZI7jQfsxEd6t@ep-delicate-cell-ac2ni9pz-pooler.sa-east-1.aws.neon.tech/neondb?sslmode=verify-full&channel_binding=require\" nodemon server.js",
-    "dev:prod": "cross-env NODE_ENV=production PORT=3001 DATABASE_URL=\"postgresql://neondb_owner:npg_Qvd18hbrASEt@ep-little-dream-ac8rjq4b-pooler.sa-east-1.aws.neon.tech/neondb?sslmode=verify-full&channel_binding=require\" nodemon server.js",
+    "dev:local": "cross-env NODE_ENV=development PORT=3001 nodemon server.js",
+    "dev:prod": "cross-env NODE_ENV=production PORT=3001 nodemon server.js",
     "dev:all": "concurrently --names \"LOCAL,PROD\" --prefix-colors \"bgBlue.bold,bgMagenta.bold\" \"npm run dev:local\" \"npm run dev:prod\""
   },
   "dependencies": {
