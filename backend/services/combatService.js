@@ -489,9 +489,8 @@ class CombatService {
         rare_drop: isRare ? "Nucleo_Sombrio" : null,
         outcome: outcome === "win_ko" ? "K.O. - Vitória Esmagadora" : 
                  (outcome === "win_bleeding" ? "Vitória Custo Alto (Sangrando)" : "Decisão - Vitória Tática"),
-        status: outcome === "win_bleeding" ? "Sangrando" : null,
-        recoveryDuration: outcome === "win_bleeding" ? 15 : null,
-        shieldDuration: outcome === "win_bleeding" ? 15 : null
+        status: outcome === "win_bleeding" ? "Sangrando" : null
+        // Nota: win_bleeding usa BLEEDING_DURATION_MS diretamente na persistência (único ponto de verdade)
       };
 
     } else if (isLoss) {
@@ -499,15 +498,16 @@ class CombatService {
       const moneyLost      = Math.floor(attackerMoney * 0.05);
       
       const isBleeding = outcome === "loss_bleeding";
-      const recoveryDuration = isBleeding ? 15 : 30;
-      const shieldDuration   = isBleeding ? 15 : 45;
+      // Cap explícito: Sangrando = 15 min | K.O. = 30 min (máximo permitido pelas regras)
+      const recoveryDuration = isBleeding ? 15 : 30; // minutos
+      const shieldDuration   = isBleeding ? 15 : 45; // minutos
 
       loot = {
         xp:        -gameLogic.COMBAT.XP_LOSE_BASE,
         moneyLost: moneyLost,
         status:    isBleeding ? "Sangrando" : "Recondicionamento",
-        recoveryDuration,
-        shieldDuration,
+        recoveryDuration,  // em MINUTOS — usado diretamente em * 60000 abaixo
+        shieldDuration,    // em MINUTOS — usado diretamente em * 60000 abaixo
         outcome:   isBleeding ? "Derrota (Sangrando)" : "K.O. - Derrota Crítica"
       };
 
@@ -615,11 +615,14 @@ class CombatService {
       
       if (outcome === "win_bleeding") {
          stateUpdate.status = "Sangrando";
-         // Audit: Limitando a 15 minutos para evitar bugs de offset (330 min)
-         const bleedingMs = 15 * 60000;
-         stateUpdate.status_ends_at = new Date(Date.now() + bleedingMs).toISOString();
-         stateUpdate.recovery_ends_at = new Date(Date.now() + bleedingMs).toISOString();
-         stateUpdate.shield_ends_at = new Date(Date.now() + bleedingMs).toISOString();
+         // ÚNICO PONTO DE VERDADE para duração de sangramento:
+         // 15 minutos reais, cap garantido (não pode exceder 30 min por regra de negócio)
+         const BLEEDING_DURATION_MIN = 15; // minutos
+         const bleedingMs = Math.min(30, BLEEDING_DURATION_MIN) * 60 * 1000;
+         const bleedingEndsAt = new Date(Date.now() + bleedingMs).toISOString();
+         stateUpdate.status_ends_at    = bleedingEndsAt;
+         stateUpdate.recovery_ends_at  = bleedingEndsAt;
+         stateUpdate.shield_ends_at    = bleedingEndsAt;
       }
 
       await playerStateService.updatePlayerState(userId, stateUpdate);
@@ -639,12 +642,13 @@ class CombatService {
         });
       }
     } else if (isLoss) {
-      // Audit: Garantir que o tempo de recuperação não exceda 30 minutos conforme as regras de negócio
-      const safeDuration = Math.min(30, loot.recoveryDuration || 30);
-      const recoveryEndsAt = new Date(Date.now() + safeDuration * 60000).toISOString();
-      // Shield pode ser maior (até 45), mas vamos garantir que não seja abusivo
-      const safeShield = Math.min(45, loot.shieldDuration || 45);
-      const shieldEndsAt   = new Date(Date.now() + safeShield * 60000).toISOString();
+      // ÚNICO PONTO DE VERDADE para duração de derrota:
+      // loot.recoveryDuration já é o valor correto em MINUTOS (15 ou 30)
+      // Cap de segurança: Sangrando max 30 min | Recondicionamento max 30 min
+      const safeDuration = Math.min(30, loot.recoveryDuration ?? 30); // ?? evita colapso de 0
+      const safeShield   = Math.min(45, loot.shieldDuration   ?? 45);
+      const recoveryEndsAt = new Date(Date.now() + safeDuration * 60 * 1000).toISOString();
+      const shieldEndsAt   = new Date(Date.now() + safeShield   * 60 * 1000).toISOString();
 
       await playerStateService.updatePlayerState(userId, {
         action_points:    -300,

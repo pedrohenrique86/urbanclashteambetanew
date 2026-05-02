@@ -53,6 +53,7 @@ const DB_PERSIST_FIELDS = new Set([
   "money",
   "victories", "defeats", "winning_streak",
   "status", "status_ends_at",
+  "recovery_ends_at", "shield_ends_at",   // campos de PvP — persistidos para sobreviver restart/cache miss
   "training_ends_at", "daily_training_count", "last_training_reset", "active_training_type",
   "energy", "action_points", "last_ap_reset",
   "energy_updated_at", "toxicity"
