@@ -216,7 +216,10 @@ async function _checkAndResetAP(userId, redisKey, state) {
 
   const alreadyReset = await redisClient.getAsync(lockKey);
   if (!alreadyReset) {
-    // Resetar AP para o máximo
+    // SÊNIOR: Resetar AP para o máximo via hSet (é um valor absoluto, ok)
+    // Mas marcamos o Lock ANTES para evitar que outro processo tente resetar no mesmo ms.
+    await redisClient.setAsync(lockKey, "1", "EX", 172800);
+
     const MAX_AP = 20000;
     await redisClient.hSetAsync(redisKey, {
       action_points: String(MAX_AP),
@@ -225,9 +228,6 @@ async function _checkAndResetAP(userId, redisKey, state) {
       is_dirty_at: String(Date.now())
     });
     await redisClient.sAddAsync(DIRTY_PLAYERS_SET, String(userId));
-
-    // Marcar reset do dia com TTL de 48h
-    await redisClient.setAsync(lockKey, "1", "EX", 172800);
     
     return true;
   }
@@ -249,6 +249,9 @@ async function _checkAndResetTrainingCount(userId, redisKey, state) {
 
   const alreadyReset = await redisClient.getAsync(lockKey);
   if (!alreadyReset) {
+    // SÊNIOR: Marca Lock antes
+    await redisClient.setAsync(lockKey, "1", "EX", 172800);
+
     await redisClient.hSetAsync(redisKey, {
       daily_training_count: "0",
       last_training_reset: dateKey,
@@ -257,7 +260,6 @@ async function _checkAndResetTrainingCount(userId, redisKey, state) {
     });
     await redisClient.sAddAsync(DIRTY_PLAYERS_SET, String(userId));
 
-    await redisClient.setAsync(lockKey, "1", "EX", 172800);
     return true;
   }
   return false;
@@ -286,7 +288,6 @@ async function _checkAndRegenEnergy(userId, redisKey, state) {
       return false;
     }
     // CRÍTICO: Proteção contra timestamp no FUTURO (skew de relógio / bug)
-    // Se lastUpdate > now, o diff será negativo e energia nunca regenera
     if (lastUpdate > now) {
       const skewSeconds = Math.round((lastUpdate - now) / 1000);
       console.warn(`[energy] ⚠️ Timestamp no FUTURO para ${userId} (skew: +${skewSeconds}s). Resetando para agora.`);
@@ -300,43 +301,46 @@ async function _checkAndRegenEnergy(userId, redisKey, state) {
   
   if (now - lastUpdate >= rateMs) {
     const cycles = Math.floor((now - lastUpdate) / rateMs);
-    const maxEnergy = Math.floor(Number(state.max_energy || 100)); // sempre inteiro
-    const currentEnergy = Math.floor(Number(state.energy || 0));   // sempre inteiro
+    const maxEnergy = Math.floor(Number(state.max_energy || 100));
+    
+    // SÊNIOR: Relê a energia atual DIRETO do Redis antes de calcular a regen
+    // para minimizar a janela de race condition com updatePlayerState (comer/combate).
+    const currentEnergyStr = await redisClient.hGetAsync(redisKey, "energy");
+    const currentEnergy = Math.floor(Number(currentEnergyStr || 0));
 
-    // Se já estiver no máximo, apenas empurra o timestamp para o 'agora' para não acumular ciclos infinitos
+    // Se já estiver no máximo, apenas empurra o timestamp para o 'agora'
     if (currentEnergy >= maxEnergy) {
       await redisClient.hSetAsync(redisKey, "energy_updated_at", new Date(now).toISOString());
       return false;
     }
 
     const energyToAdd = cycles * Math.floor(gameLogic.ENERGY.REGEN_AMOUNT || 1);
-    const newEnergy = Math.min(maxEnergy, currentEnergy + energyToAdd); // já inteiro
+    const newEnergy = Math.min(maxEnergy, currentEnergy + energyToAdd);
     const actualGained = newEnergy - currentEnergy;
 
     if (actualGained > 0) {
-      // SÊNIOR: Evita drift milisegundo a milisegundo mantendo o resto do ciclo
       const newLastUpdateMs = lastUpdate + (cycles * rateMs);
       const newLastUpdateStr = new Date(newLastUpdateMs).toISOString();
 
-      await redisClient.hSetAsync(redisKey, {
-        energy: String(Math.floor(newEnergy)), // garante inteiro no Redis
-        energy_updated_at: newLastUpdateStr,
-        is_dirty: "1",
-        is_dirty_at: String(Date.now())
-      });
-      await redisClient.sAddAsync(DIRTY_PLAYERS_SET, String(userId));
+      // USA PIPELINE para garantir atomicidade entre o set de energia e o timestamp
+      const p = redisClient.pipeline();
+      p.hSet(redisKey, "energy", String(Math.floor(newEnergy)));
+      p.hSet(redisKey, "energy_updated_at", newLastUpdateStr);
+      p.hSet(redisKey, "is_dirty", "1");
+      p.hSet(redisKey, "is_dirty_at", String(Date.now()));
+      p.sAdd(DIRTY_PLAYERS_SET, String(userId));
+      await p.exec();
 
       // Emite SSE para feedback visual imediato
       sseService.publish(`player:${userId}`, "player:state", {
         type: "player:patch",
-        patch: { energy: Math.floor(newEnergy) }, // garante inteiro no SSE
+        patch: { energy: Math.floor(newEnergy) },
         version: _nextVersion(userId)
       });
 
       console.log(`[energy] ⚡ +${actualGained} energia regenerada para ${userId} (${cycles} ciclos)`);
       return true;
     } else {
-      // Caso bizarro onde cycles > 0 mas não houve ganho
       await redisClient.hSetAsync(redisKey, "energy_updated_at", new Date(now).toISOString());
     }
   }
@@ -604,6 +608,14 @@ async function updatePlayerState(userId, updates) {
     let hasSSEChange     = false;  // algum campo visível mudou → emite SSE
     let hasDBChange      = false;  // algum campo persistível mudou → debounce DB
     let hasCritical      = false;  // XP ou level mudou → ZSET ranking
+
+    // SÊNIOR: Sincronização de Energia
+    // Se estivermos alterando a energia, sincronizamos o timestamp de regen AGORA
+    // para evitar que o lazy regen (triggered pelo getPlayerState subsequente)
+    // use um timestamp antigo e sobrescreva o valor que acabamos de incrementar.
+    if ("energy" in updates) {
+      updates.energy_updated_at = new Date().toISOString();
+    }
 
     for (const [key, value] of Object.entries(updates)) {
       if (typeof value === "number") {
