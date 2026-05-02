@@ -358,6 +358,12 @@ function getFactionStats(faction) {
 // GET /api/users/profile
 // =========================
 router.get("/profile", authenticateToken, async (req, res) => {
+  res.set({
+    "Cache-Control": "no-cache, no-store, must-revalidate",
+    Pragma: "no-cache",
+    Expires: "0",
+  });
+  
   try {
     const playerStateService = require("../services/playerStateService");
     let profile = await playerStateService.getPlayerState(req.user.id);

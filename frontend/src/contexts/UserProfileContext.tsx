@@ -329,7 +329,11 @@ export const UserProfileProvider = ({ children }: { children: ReactNode }) => {
   // Quando o backend emite player:state, atualiza o React state IMEDIATAMENTE
   // sem nenhuma chamada HTTP adicional.
   const handlePlayerStateUpdate = useCallback((payload: PlayerStatePayload) => {
-    setUserProfile((prev) => mergePlayerStateIntoProfile(prev, payload));
+    setUserProfile((prev) => {
+      const next = mergePlayerStateIntoProfile(prev, payload);
+      if (next) writeProfileCache(next);
+      return next;
+    });
   }, []);
 
   const handlePlayerStatusUpdate = useCallback((payload: { status: string; status_ends_at: string | null }) => {

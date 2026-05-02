@@ -67,7 +67,9 @@ const RootWrapper = () => (
 
 const AppLayout = () => (
   <GlobalLayout>
-    <Outlet />
+    <Suspense fallback={<PageLoader />}>
+      <Outlet />
+    </Suspense>
   </GlobalLayout>
 );
 
@@ -141,8 +143,8 @@ export default function App() {
         <GameClockProvider>
           <LoadingProvider>
             <HUDProvider>
+              <GlobalLoadingSpinner />
               <Suspense fallback={<PageLoader />}>
-                <GlobalLoadingSpinner />
                 <RouterProvider
                   router={router}
                   future={{ v7_startTransition: true }}
