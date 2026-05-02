@@ -54,9 +54,9 @@ jobs:
             npm run migrate:up:prod || true
 
             # Para instância anterior e reinicia com PM2 na porta 3001
-            pm2 delete urbanclash-backend 2>/dev/null || true
+            pm2 delete backend 2>/dev/null || true
             pm2 start server.js \
-              --name "urbanclash-backend" \
+              --name "backend" \
               --node-args="--max-old-space-size=512" \
               --log ~/urbanclashteambetanew/backend/logs/pm2-combined.log \
               --error ~/urbanclashteambetanew/backend/logs/pm2-error.log \
