@@ -324,16 +324,22 @@ export default function ReckoningPage() {
       
       // Inicializa HP bars
       // Inicializa HP bars (Estimativa inicial baseada nos níveis e atributos conhecidos)
-      const getEstimate = (lvl: number, def: number, fac: string) => {
-        let h = 100 + (lvl * 5) + (def * 2);
+      const getEstimate = (lvl: number, def: number, atk: number, foc: number, fac: string) => {
+        const totalStats = atk + def + foc;
+        let h = 100 + (lvl * 15) + (def * 10) + (totalStats * 4);
         const f = fac.toLowerCase();
         if (f.includes("guard")) h *= 1.25;
         else if (f.includes("reneg") || f.includes("gang")) h *= 0.9;
         return Math.round(h);
       };
       
-      const pInitialMax = getEstimate(userProfile?.level || 1, userProfile?.defense || 0, String(userProfile?.faction || ""));
-      const tInitialMax = getEstimate(selectedTarget?.level || 1, userProfile?.defense || 0, String(preCalc?.targetInfo.faction || ""));
+      const pTotal = (userProfile?.attack || 0) + (userProfile?.defense || 0) + (userProfile?.focus || 0);
+      const estTgtAtk = selectedTarget?.level ? selectedTarget.level * 20 : 20;
+      const estTgtDef = selectedTarget?.level ? selectedTarget.level * 20 : 20;
+      const estTgtFoc = selectedTarget?.level ? selectedTarget.level * 20 : 20;
+
+      const pInitialMax = getEstimate(userProfile?.level || 1, userProfile?.defense || 0, userProfile?.attack || 0, userProfile?.focus || 0, String(userProfile?.faction || ""));
+      const tInitialMax = getEstimate(selectedTarget?.level || 1, estTgtDef, estTgtAtk, estTgtFoc, String(preCalc?.targetInfo.faction || ""));
       
       setCombatHP({
         pHP: pInitialMax,

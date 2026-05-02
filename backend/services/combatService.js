@@ -277,6 +277,15 @@ class CombatService {
 
     const attackerLevel = Number(attacker.level || 1);
 
+    const attackerFactionStr = String(attacker.faction || '').toLowerCase();
+    
+    let factionFilterQuery = "";
+    if (attackerFactionStr.includes('guard')) {
+      factionFilterQuery = "AND LOWER(p.faction) NOT LIKE '%guard%' AND LOWER(p.faction) NOT LIKE '%sentinela%'";
+    } else if (attackerFactionStr.includes('reneg') || attackerFactionStr.includes('gang')) {
+      factionFilterQuery = "AND LOWER(p.faction) NOT LIKE '%reneg%' AND LOWER(p.faction) NOT LIKE '%gang%'";
+    }
+
     const result = await query(
       `SELECT p.user_id, p.level, p.faction, p.status, p.recovery_ends_at, p.shield_ends_at, u.username
        FROM user_profiles p
@@ -286,6 +295,7 @@ class CombatService {
          AND (p.status IS NULL OR p.status != 'Recondicionamento')
          AND (p.recovery_ends_at IS NULL OR p.recovery_ends_at < NOW())
          AND (p.shield_ends_at IS NULL OR p.shield_ends_at < NOW())
+         ${factionFilterQuery}
        ORDER BY RANDOM() LIMIT 20`,
       [userId, attackerLevel - 5, attackerLevel + 5]
     );

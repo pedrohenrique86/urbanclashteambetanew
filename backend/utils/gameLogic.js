@@ -345,11 +345,15 @@ function scaleXpByLevel(baseXp, level) {
 function calculateMaxHP(player) {
   const def = Math.max(0, Number(player.defense) || 0);
   const lvl = Math.max(1, Number(player.level) || 1);
+  const atk = Math.max(0, Number(player.attack) || 0);
+  const foc = Math.max(0, Number(player.focus) || 0);
+  
+  const totalStats = atk + def + foc;
   const faction = String(player.faction || '').toLowerCase();
   
-  // Fórmula base equilibrada para o ATK_MULTIPLIER atual
-  // Reduzido levemente para garantir que o ATK_MULTIPLIER de 15 seja decisivo em 3 turnos
-  let hp = 80 + (lvl * 4) + (def * 1.5);
+  // Fórmula base reequilibrada para amortizar o COMBAT.ATK_MULTIPLIER = 15.
+  // Escala agora muito melhor com os atributos do jogador para evitar OHKO e DKOs no 1º turno.
+  let hp = 100 + (lvl * 15) + (def * 10) + (totalStats * 4);
 
   // Modificadores de Vitalidade por Facção (Compensa as afinidades de dano)
   if (faction === 'guardioes' || faction === 'guardas') {
