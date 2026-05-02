@@ -132,10 +132,12 @@ const BattleRulesInfo = () => {
               <div className="space-y-4 font-mono text-[10px] leading-relaxed">
                 <div>
                   <p className="text-white font-bold mb-1 uppercase flex items-center gap-2">
-                    <FireIcon className="w-3 h-3 text-red-500" /> Vitalidade (HP) & Combate Físico
+                    <FireIcon className="w-3 h-3 text-red-500" /> Vitalidade (HP) & Combate Assimétrico
                   </p>
                   <p className="text-slate-400">
-                    Sua <span className="text-emerald-400 font-bold">Vida (HP)</span> adviria do seu Nível + multiplicador de DEF. <span className="text-blue-400 font-bold"> Guardiões</span> ganham +25% bônus de tolerância de HP total, mas <span className="text-red-400 font-bold"> Renegados</span> recebem penalidade de -10% na estabilidade corporal (HP). A Defesa que você veste amortece o dano inimigo via Softcap.
+                    O Rastreador Spectro <span className="text-white font-bold">ignora facções aliadas</span>; você só encontrará alvos de corporações opostas (Ex: Guardiões x Renegados).
+                    Sua <span className="text-emerald-400 font-bold">Vida (HP)</span> agora escala massivamente com seu <span className="text-white">Nível</span>,  <span className="text-white">Defesa</span> e a soma total de <span className="text-white">todos os seus atributos combinados</span>. 
+                    <span className="text-blue-400 font-bold"> Guardiões</span> ganham +25% de bônus de constituição estrutural de HP, enquanto <span className="text-red-400 font-bold"> Renegados</span> sacrificam -10% de HP por alta letalidade. A Defesa que você veste amortece diretamente o dano bruto.
                   </p>
                 </div>
                 
