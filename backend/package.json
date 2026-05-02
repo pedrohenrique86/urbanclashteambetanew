@@ -23,9 +23,8 @@
     "seed:dev": "node scripts/run-seed.js dev",
     "seed:prod": "node scripts/run-seed.js prod",
     "seed:all": "npm run seed:dev && npm run seed:prod",
-    "dev:local": "cross-env NODE_ENV=development PORT=3001 nodemon server.js",
-    "dev:prod": "cross-env NODE_ENV=production PORT=3001 nodemon server.js",
-    "dev:all": "concurrently --names \"LOCAL,PROD\" --prefix-colors \"bgBlue.bold,bgMagenta.bold\" \"npm run dev:local\" \"npm run dev:prod\""
+    "dev:local": "cross-env NODE_ENV=development PORT=3002 nodemon server.js",
+    "dev:all": "npm run dev:local"
   },
   "dependencies": {
     "axios": "^1.6.8",
