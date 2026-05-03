@@ -299,6 +299,24 @@ const redisWrapper = {
     }
   },
 
+  /**
+   * SÊNIOR: Executa um script Lua de forma atômica.
+   * Fundamental para garantir consistência em ambientes de alta concorrência
+   * (ex: regeneração de energia vs compra de itens).
+   */
+  runLuaAsync: async (script, keys = [], args = []) => {
+    if (!isReady) return null;
+    try {
+      return await client.eval(script, {
+        keys: keys.map(String),
+        arguments: args.map(String)
+      });
+    } catch (err) {
+      console.error("[RedisClient] Erro ao executar script Lua:", err.message);
+      throw err;
+    }
+  },
+
   // Expõe referências internas
   getRawClient,
   getIsUpstash,

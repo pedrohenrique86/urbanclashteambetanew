@@ -31,14 +31,51 @@ const gameLogic   = require("../utils/gameLogic");
 
 // ─── Constantes ──────────────────────────────────────────────────────────────────
 const PLAYER_STATE_PREFIX   = "playerState:";
-const BATCH_FLUSH_INTERVAL  = 3000;        // Ciclo de Flush Global (Write-Behind)
+const BATCH_FLUSH_INTERVAL  = 10000;       // Ciclo de Flush Global (Write-Behind) - Aumentado para performance
 module.exports.PLAYER_STATE_PREFIX = PLAYER_STATE_PREFIX;
 const RANKING_ZSET_KEY      = "ranking:users:zset";
-const PLAYER_STATE_TTL      = 60 * 60 * 24; // 24 horas (otimizado para Oracle VM) inatividade
+const PLAYER_STATE_TTL      = 60 * 60 * 24 * 7; // 7 dias (Redis como SSOT)
 const PERSIST_BATCH_SIZE    = 50;          // máx players por lote no safety-net
 const SAFETY_STALENESS_MS   = 12_000;      // safety-net só persiste dirty > 12s
 const DIRTY_PLAYERS_SET     = "player:dirty:set";
 const TRAINING_QUEUE_KEY    = "queue:trainings";
+
+/**
+ * SÊNIOR: Script LUA para Atualização Atômica de Estado.
+ * Garante que incrementos com CAP (energia, toxicidade) sejam calculados 
+ * no servidor Redis, evitando a corrida de dados 'Read-Modify-Write'.
+ * 
+ * ARGS: 
+ *   KEYS[1] = redisKey
+ *   ARGV[1] = fieldName (ex: energy)
+ *   ARGV[2] = incrementValue (ex: 40)
+ *   ARGV[3] = maxValue (ex: 100)
+ *   ARGV[4] = timestampFieldName (ex: energy_updated_at)
+ *   ARGV[5] = timestampValue (ex: 2026-05-03T...)
+ *   ARGV[6] = dirtyAtValue (Date.now())
+ *   ARGV[7] = dirtyPlayersSetKey
+ *   ARGV[8] = userId
+ */
+const UPDATE_STATE_LUA = `
+  local key = KEYS[1]
+  local field = ARGV[1]
+  local inc = tonumber(ARGV[2])
+  local maxVal = tonumber(ARGV[3]) or 9999999
+  
+  local current = tonumber(redis.call('HGET', key, field) or 0)
+  local newVal = math.min(maxVal, math.max(0, current + inc))
+  
+  redis.call('HSET', key, field, tostring(newVal))
+  if ARGV[4] ~= "" and ARGV[5] ~= "" then
+    redis.call('HSET', key, ARGV[4], ARGV[5])
+  end
+  
+  redis.call('HSET', key, 'is_dirty', '1')
+  redis.call('HSET', key, 'is_dirty_at', ARGV[6])
+  redis.call('SADD', ARGV[7], ARGV[8])
+  
+  return tostring(newVal)
+`;
 
 // ─── Campos que afetam o ranking (ZSET) e o Nível Dinâmico ────────────────────────
 const RANKING_FIELDS = new Set(["total_xp", "level", "attack", "defense", "focus", "money"]);
@@ -303,9 +340,9 @@ async function _checkAndRegenEnergy(userId, redisKey, state, suppressSSE = false
     const cycles = Math.floor((now - lastUpdate) / rateMs);
     const maxEnergy = Math.floor(Number(state.max_energy || 100));
     
-    // Relê a energia atual DIRETO do Redis
-    const currentEnergyStr = await redisClient.hGetAsync(redisKey, "energy");
-    const currentEnergy = Math.floor(Number(currentEnergyStr || 0));
+    // SÊNIOR: Já temos a energia no 'state' vindo do hGetAll do chamador.
+    // Usamos ela em vez de outro hGetAsync para evitar corridas de dados no heartbeat.
+    const currentEnergy = Math.floor(Number(state.energy || 0));
 
     if (currentEnergy >= maxEnergy) {
       // Se já está cheio, apenas empurra o timestamp para o 'agora' para não acumular ciclos infinitos
@@ -323,19 +360,26 @@ async function _checkAndRegenEnergy(userId, redisKey, state, suppressSSE = false
     if (actualGained > 0) {
       const newLastUpdateMs = lastUpdate + (cycles * rateMs);
       const newLastUpdateStr = new Date(newLastUpdateMs).toISOString();
+      const nowMs = String(Date.now());
 
-      const p = redisClient.pipeline();
-      p.hSet(redisKey, "energy", String(Math.floor(newEnergy)));
-      p.hSet(redisKey, "energy_updated_at", newLastUpdateStr);
-      p.hSet(redisKey, "is_dirty", "1");
-      p.hSet(redisKey, "is_dirty_at", String(Date.now()));
-      p.sAdd(DIRTY_PLAYERS_SET, String(userId));
-      await p.exec();
+      // SÊNIOR: Transição para Lua Script Atômico
+      // Garante que se o usuário ganhou energia via compra NO MESMO MILISSEGUNDO,
+      // a regeneração não sobrescreva o valor.
+      const newEnergy = await redisClient.runLuaAsync(UPDATE_STATE_LUA, [redisKey], [
+        "energy", 
+        String(energyToAdd), 
+        String(maxEnergy),
+        "energy_updated_at",
+        newLastUpdateStr,
+        nowMs,
+        DIRTY_PLAYERS_SET,
+        String(userId)
+      ]);
 
       if (!suppressSSE) {
         sseService.publish(`player:${userId}`, "player:state", {
           type: "player:patch",
-          patch: { energy: Math.floor(newEnergy) },
+          patch: { energy: Math.floor(Number(newEnergy)) },
           version: _nextVersion(userId)
         });
       }
@@ -523,7 +567,9 @@ async function getPlayerState(userId, { suppressRegenSSE = false } = {}) {
   const redisKey = `${PLAYER_STATE_PREFIX}${userId}`;
   const raw = await redisClient.hGetAllAsync(redisKey);
 
-  if (raw && Object.keys(raw).length > 0) {
+  // SÊNIOR: 'Skeleton Cache' Protection. 
+  // Se o cache existir mas faltar o username, é um estado inconsistente que deve ser recarregado do banco.
+  if (raw && Object.keys(raw).length > 0 && raw.username) {
     const state = _parseState(raw);
     
     // Executa Lazy Resets em background
@@ -627,17 +673,42 @@ async function updatePlayerState(userId, updates, options = {}) {
       updates.energy_updated_at = new Date().toISOString();
     }
 
-    const maxEnergy = Math.floor(Number(await redisClient.hGetAsync(redisKey, "max_energy") || 100));
+    // SÊNIOR: Hidratação do Estado para Cálculo de Caps (Energia/Toxicidade)
+    // Se não tivermos o estado em mãos, buscamos do Redis (ou DB se cache miss)
+    // Isso garante que incrementos como 'energy' respeitem o max_energy atual.
+    const rawState = await redisClient.hGetAllAsync(redisKey);
+    const fullState = (rawState && Object.keys(rawState).length > 0 && rawState.username)
+      ? _parseState(rawState)
+      : await loadPlayerState(userId);
+
+    const maxEnergy = Math.floor(Number(fullState?.max_energy || 100));
+    const nowMs = String(Date.now());
 
     for (const [key, value] of Object.entries(updates)) {
       if (typeof value === "number") {
         if (key === "energy") {
-          // SÊNIOR: Gatilho de Segurança para Energia
-          // Lemos o valor atual direto (atomicidade não é crítica aqui, mas o cap é)
-          const currentEnergy = Math.floor(Number(await redisClient.hGetAsync(redisKey, "energy") || 0));
-          const energyToAdd = value;
-          const newEnergy = Math.min(maxEnergy, Math.max(0, currentEnergy + energyToAdd));
-          pipeline.hSet(redisKey, "energy", String(newEnergy));
+          // Usa LUA para incremento atômico com CAP
+          await redisClient.runLuaAsync(UPDATE_STATE_LUA, [redisKey], [
+            "energy", 
+            String(value), 
+            String(maxEnergy),
+            "energy_updated_at",
+            new Date().toISOString(),
+            nowMs,
+            DIRTY_PLAYERS_SET,
+            String(userId)
+          ]);
+        } else if (key === "toxicity") {
+          // Usa LUA para toxicidade (cap 100)
+          await redisClient.runLuaAsync(UPDATE_STATE_LUA, [redisKey], [
+            "toxicity", 
+            String(value), 
+            "100",
+            "", "", // sem campo extra de timestamp
+            nowMs,
+            DIRTY_PLAYERS_SET,
+            String(userId)
+          ]);
         } else if (!Number.isInteger(value)) {
           pipeline.hIncrByFloat(redisKey, key, value);
         } else {
@@ -763,11 +834,9 @@ async function updatePlayerState(userId, updates, options = {}) {
       }
     }
 
-    // Persistência Imediata (Opcional para ações críticas como Comer/Treinar)
-    if (options.forcePersist) {
-      console.log(`[playerState] 💾 Persistência imediata solicitada para ${userId}`);
-      await persistPlayerState(userId);
-    }
+    // SÊNIOR: Persistência Direta Removida.
+    // Agora o sistema confia 100% no Write-Behind (persistDirtyStates) para 
+    // garantir performance em escala (5.000+ players).
     
     return newState;
   } catch (err) {

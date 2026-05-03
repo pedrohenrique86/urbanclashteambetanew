@@ -1,6 +1,8 @@
 const topics = new Map(); // Armazena clientes por tópico
 let redisPublisher = null;
 let redisSubscriber = null;
+const redisClient = require("../config/redisClient"); // SÊNIOR: Reutiliza o wrapper central
+const ONLINE_SET_KEY = "online_players_set";
 
 /**
  * SÊNIOR: Inicializa a ponte Redis Pub/Sub para que o SSE funcione 
@@ -49,6 +51,12 @@ async function initRedisBridge() {
 function subscribe(client, topic) {
   if (!topics.has(topic)) {
     topics.set(topic, new Set());
+    
+    // SÊNIOR: Se é um novo canal de jogador, marca como online no Redis
+    if (topic.startsWith("player:")) {
+      const userId = topic.replace("player:", "");
+      redisClient.sAddAsync(ONLINE_SET_KEY, userId).catch(() => {});
+    }
   }
   topics.get(topic).add(client);
 }
@@ -58,6 +66,12 @@ function unsubscribe(client, topic) {
     topics.get(topic).delete(client);
     if (topics.get(topic).size === 0) {
       topics.delete(topic);
+      
+      // SÊNIOR: Se ninguém mais ouve este jogador, remove do set de online
+      if (topic.startsWith("player:")) {
+        const userId = topic.replace("player:", "");
+        redisClient.sRemAsync(ONLINE_SET_KEY, userId).catch(() => {});
+      }
     }
   }
 }

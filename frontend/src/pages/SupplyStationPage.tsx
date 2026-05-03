@@ -169,6 +169,9 @@ export default function SupplyStationPage() {
         5000
       );
       
+      // Force profile refresh to update UI immediately
+      await refreshProfile();
+      
       // Set local cooldown with a random flavor text
       const flavor = optionItem.flavorTexts[Math.floor(Math.random() * optionItem.flavorTexts.length)] || "Aguardando digestão...";
       const endTime = Date.now() + optionItem.cooldownMs;
@@ -192,6 +195,7 @@ export default function SupplyStationPage() {
     try {
       const res = await supplyService.buyAntidote();
       showToast(res.message, "success", 5000);
+      await refreshProfile();
     } catch (err: any) {
       showToast(err.response?.data?.error || err.message, "error");
     } finally {

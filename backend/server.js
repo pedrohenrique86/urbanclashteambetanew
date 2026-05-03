@@ -88,6 +88,15 @@ async function startServer() {
   try {
     await connectDB();
     await redisReadyPromise;
+    
+    // SÊNIOR: Limpa a lista de jogadores online no Redis durante o boot.
+    // Isso evita que jogadores que estavam conectados fiquem 'presos' no set
+    // caso o servidor tenha caído sem fechar as conexões SSE.
+    const redisClient = require("./config/redisClient");
+    if (redisClient.client.isReady) {
+      await redisClient.delAsync("online_players_set");
+      console.log("🧹 Set de jogadores online resetado no Redis.");
+    }
     const io = new Server(server, { cors: { origin: allowedOrigins }, transports: ["websocket"] });
     initializeSocket(io);
     schedulePersistence();
