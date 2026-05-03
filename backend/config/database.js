@@ -466,7 +466,7 @@ async function runPlayerStatusMigrations() {
           ALTER TABLE user_profiles ADD COLUMN status VARCHAR(20) NOT NULL DEFAULT 'livre';
         END IF;
         IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='user_profiles' AND column_name='status_ends_at') THEN
-          ALTER TABLE user_profiles ADD COLUMN status_ends_at TIMESTAMP NULL;
+          ALTER TABLE user_profiles ADD COLUMN status_ends_at TIMESTAMPTZ NULL;
         END IF;
       END $$;
     `);
@@ -477,9 +477,9 @@ async function runPlayerStatusMigrations() {
         id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
         user_id UUID REFERENCES users(id) ON DELETE CASCADE,
         status VARCHAR(20) NOT NULL,
-        started_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        ended_at TIMESTAMP NULL,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        started_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        ended_at TIMESTAMPTZ NULL,
+        created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
       );
     `);
 

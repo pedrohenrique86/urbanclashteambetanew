@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect } from "react";
+import React, { useMemo, useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   Shield, 
@@ -202,7 +202,7 @@ const StatusBanner = ({ status, endsAt }: { status?: string; endsAt?: string | n
     }
   }, [status]);
 
-  const timeRemaining = useMemo(() => {
+  const calculateDiff = useCallback(() => {
     if (!endsAt) return null;
     const time = new Date(endsAt).getTime();
     if (isNaN(time)) return null;
@@ -210,38 +210,28 @@ const StatusBanner = ({ status, endsAt }: { status?: string; endsAt?: string | n
     const diff = time - Date.now();
     if (diff <= 0) return null;
     
-    const mins = Math.floor(diff / 60000);
-    const secs = Math.floor((diff % 60000) / 1000);
-    return `${mins}m ${secs}s`;
+    const h = Math.floor(diff / 3600000);
+    const m = Math.floor((diff % 3600000) / 60000);
+    const s = Math.floor((diff % 60000) / 1000);
+    
+    if (h > 0) return `${h}h ${m}m ${s}s`;
+    return `${m}m ${s}s`;
   }, [endsAt]);
 
-  const [displayTime, setDisplayTime] = useState(timeRemaining);
+  const [displayTime, setDisplayTime] = useState(calculateDiff());
 
   useEffect(() => {
-    setDisplayTime(timeRemaining);
-  }, [timeRemaining, status]);
-
-  useEffect(() => {
+    setDisplayTime(calculateDiff());
+    
     if (!endsAt) return;
     const interval = setInterval(() => {
-      const time = new Date(endsAt).getTime();
-      if (isNaN(time)) {
-          setDisplayTime(null);
-          clearInterval(interval);
-          return;
-      }
-      const diff = time - Date.now();
-      if (diff <= 0) {
-        setDisplayTime(null);
-        clearInterval(interval);
-        return;
-      }
-      const m = Math.floor(diff / 60000);
-      const s = Math.floor((diff % 60000) / 1000);
-      setDisplayTime(`${m}m ${s}s`);
+      const nextTime = calculateDiff();
+      setDisplayTime(nextTime);
+      if (!nextTime) clearInterval(interval);
     }, 1000);
+    
     return () => clearInterval(interval);
-  }, [endsAt]);
+  }, [endsAt, calculateDiff, status]);
 
   return (
     <div className={`mt-3 flex items-center gap-3 px-4 py-2.5 rounded-xl border-2 ${config.border} ${config.bg} ${config.glow} ${config.animate} transition-all duration-500 relative group`}>

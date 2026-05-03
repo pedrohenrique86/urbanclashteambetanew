@@ -111,7 +111,7 @@ const TopBar: React.FC<TopBarProps> = ({ userProfile }) => {
       barColor: "bg-orange-500/50",
       isBattery: true
     },
-    { label: "PA",       value: userProfile?.action_points ?? "-",                         className: "text-cyan-400",    glowColor: "#06b6d4", tooltip: "Pontos de Ação" },
+    { label: "PA",       value: userProfile?.action_points ?? "-",                         className: "text-cyan-400",    glowColor: "#06b6d4", tooltip: "Pontos de Ação:20.000 reset diário 00:00h" },
     { label: "ATK",      value: userProfile?.attack !== undefined ? Number(userProfile.attack).toFixed(1) : "-", className: "text-red-400", glowColor: "#ef4444", tooltip: `Ataque: ${Number(userProfile?.attack || 0).toFixed(2)}` },
     { label: "DEF",      value: userProfile?.defense !== undefined ? Number(userProfile.defense).toFixed(1) : "-", className: "text-blue-400", glowColor: "#3b82f6", tooltip: `Defesa: ${Number(userProfile?.defense || 0).toFixed(2)}` },
     { label: "FOC",      value: userProfile?.focus !== undefined ? Number(userProfile.focus).toFixed(1) : "-", className: "text-pink-400", glowColor: "#ec4899", tooltip: `Foco: ${Number(userProfile?.focus || 0).toFixed(2)}` },
