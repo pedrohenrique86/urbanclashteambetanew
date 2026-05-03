@@ -71,7 +71,7 @@ const TRAINING_TYPES = {
 const MAX_DAILY_TRAININGS = 8;
 
 const TRAINING_HUMOR = [
-  "Treino iniciado. Seus músculos reclamaram, mas o sistema aprovou.",
+  "Seus músculos reclamaram, mas o sistema aprovou.",
   "Parabéns, você trocou conforto por estatística.",
   "Mais XP, menos dignidade. Excelente progresso.",
   "ATK subiu. O bom senso não acompanhou.",
