@@ -597,11 +597,25 @@ export default function ReckoningPage() {
           <h1 className="text-4xl md:text-6xl font-orbitron font-black tracking-widest text-white uppercase" style={{ textShadow: "2px 0px 0px rgba(234,179,8,0.7), -2px 0px 0px rgba(139,92,246,0.7)" }}>
             Spectro <span className="text-yellow-500">Reckoning</span>
           </h1>
-          <div className="flex items-center gap-4 mt-2">
-            <span className="text-[10px] font-mono bg-white/10 px-2 py-0.5 text-slate-300">SEC_LEVEL: 10</span>
-            <span className="text-[10px] font-mono text-yellow-500 animate-pulse tracking-widest">● LIVE_TARGETS</span>
-            <p className="text-slate-400 text-xs font-mono hidden md:block uppercase tracking-tighter">
-              SISTEMA DE RASTREAMENTO TÁTICO E INTERCEPTAÇÃO.
+          <div className="flex flex-col gap-3 mt-4">
+            <div className="flex items-center gap-4">
+              {/* Badge SEC LEVEL Estilizado */}
+              <div className="flex items-center overflow-hidden border border-yellow-500/40 bg-black/60" style={MILITARY_CLIP}>
+                <div className="bg-yellow-500 px-2 py-0.5">
+                   <span className="text-[9px] font-black text-black uppercase">SEC_LEVEL</span>
+                </div>
+                <div className="px-3 py-0.5">
+                   <span className="text-[10px] font-mono text-yellow-400 font-bold tracking-widest">10_S_THREAT</span>
+                </div>
+              </div>
+
+              <div className="h-4 w-px bg-slate-800"></div>
+
+              <span className="text-[10px] font-mono text-yellow-500/80 animate-pulse tracking-widest font-bold uppercase">● Live_Radar_Active</span>
+            </div>
+            
+            <p className="text-slate-300 text-[10px] font-mono tracking-[0.2em] uppercase bg-white/5 py-1 px-3 border-l-2 border-yellow-500/50 w-fit backdrop-blur-sm">
+              Sistema de Rastreamento Tático e Interceptação Setorial
             </p>
           </div>
         </motion.div>
