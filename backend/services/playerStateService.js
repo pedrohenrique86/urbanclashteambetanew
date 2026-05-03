@@ -757,9 +757,9 @@ async function updatePlayerState(userId, updates) {
       }
     }
 
-    // ── 6. Agenda debounce para DB apenas se campos persistíveis mudaram ─────────
+    // ── 6. Salva no DB IMEDIATAMENTE (override do debounce) ─────────
     if (hasDBChange) {
-      _scheduleDebounce(userId);
+      persistPlayerState(userId).catch(err => console.error("[debounce override] Erro ao persistir:", err.message));
     }
 
     return newState;
