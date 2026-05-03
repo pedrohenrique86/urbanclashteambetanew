@@ -267,7 +267,7 @@ export const UserProfileProvider = ({ children }: { children: ReactNode }) => {
     setLoading(true);
 
     try {
-      const response = await api.get("/users/profile");
+      const response = await api.get(`/users/profile?_t=${Date.now()}`);
       const profileData = response.data;
 
       if (profileData) {
