@@ -860,7 +860,16 @@ async function persistPlayerState(userId) {
       return;
     }
 
-    const setClauses = safeFields.map(([k], i) => `${k} = $${i + 1}`);
+    const setClauses = safeFields.map(([k], i) => {
+      const col = `"${k}"`;
+      if (k === "status") return `${col} = $${i + 1}::player_status_type`;
+      if (k.endsWith("_at")) return `${col} = $${i + 1}::timestamp`;
+      if (["level", "total_xp", "money", "energy", "action_points", "victories", "defeats", "winning_streak", "daily_training_count"].includes(k)) {
+        return `${col} = $${i + 1}::numeric`;
+      }
+      return `${col} = $${i + 1}`;
+    });
+
     const values     = safeFields.map(([, v]) => {
       if (v === "" || v === "null" || v === null) return null;
       return v;
@@ -870,7 +879,7 @@ async function persistPlayerState(userId) {
     await query(
       `UPDATE user_profiles
        SET ${setClauses.join(", ")}, updated_at = CURRENT_TIMESTAMP
-       WHERE user_id = $${safeFields.length + 1}`,
+       WHERE user_id = $${safeFields.length + 1}::uuid`,
       values,
     );
 
@@ -959,8 +968,16 @@ async function _bulkPersistChunk(userIds) {
       valuePlaceholders.push(`(${rowParams.join(", ")})`);
     });
 
-    // SÊNIOR: Escapa nomes de campos para evitar conflitos com palavras reservadas (ex: status, level)
-    const setClauses = fields.map(f => `"${f}" = v."${f}"`);
+    // SÊNIOR: Mapeia tipos específicos para garantir que o PostgreSQL aceite o lote (Casts Explícitos)
+    const setClauses = fields.map(f => {
+      if (f === "status") return `"${f}" = v."${f}"::player_status_type`;
+      if (f.endsWith("_at")) return `"${f}" = v."${f}"::timestamp`;
+      if (["level", "total_xp", "money", "energy", "action_points", "victories", "defeats", "winning_streak", "daily_training_count"].includes(f)) {
+        return `"${f}" = v."${f}"::numeric`;
+      }
+      return `"${f}" = v."${f}"`;
+    });
+    
     const columnNames = fields.map(f => `"${f}"`).join(", ");
 
     const sql = `
