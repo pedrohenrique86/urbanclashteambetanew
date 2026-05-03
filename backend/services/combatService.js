@@ -1,4 +1,5 @@
 const { query } = require("../config/database");
+const redisClient = require("../config/redisClient");
 const playerStateService = require("./playerStateService");
 const gameLogic = require("../utils/gameLogic");
 const spectroEngine = require("../utils/spectroEngine");
@@ -272,6 +273,7 @@ function generateFauxTurns(attacker, defender, outcome) {
 class CombatService {
 
   async getRadarTargets(userId) {
+    const attacker = await playerStateService.getPlayerState(userId);
     const ONLINE_SET_KEY = "online_players_set";
     const rawIds = await redisClient.sRandMemberAsync(ONLINE_SET_KEY, 45);
     const onlineIds = (rawIds || []).filter(id => id !== String(userId));
@@ -499,6 +501,8 @@ class CombatService {
 
         // 2. DINHEIRO ESCALONADO
         let moneyReceived = 0;
+        let taxPvP = 0;
+
         if (isNpc) {
           if (isRare) {
              // Bosses: $25/nível + bônus randômico
@@ -509,7 +513,9 @@ class CombatService {
           }
         } else {
           const defMoney = Number(defender.money || 0);
-          moneyReceived = Math.floor(defMoney * 0.09); // 9% do inimigo (Sênior balance)
+          const totalLossPvP = Math.floor(defMoney * 0.10); // Loser loses 10%
+          moneyReceived = Math.floor(totalLossPvP * 0.90);  // Winner gets 90% of that loss
+          taxPvP = totalLossPvP - moneyReceived;           // The rest is tax
         }
 
         // 3. ATRIBUTOS DINÂMICOS (Fator Aprendizado)
@@ -528,6 +534,7 @@ class CombatService {
           xp:    xpGain,
           is_xp_crit: isCriticalInsight,
           money: moneyReceived,
+          tax: taxPvP,
           stats: { attack: atkGain, defense: defGain, focus: focGain },
           rare_drop: isRare ? "Nucleo_Sombrio" : null,
           outcome: outcome === "win_ko" ? "K.O. - Vitória Esmagadora" : 

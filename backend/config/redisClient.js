@@ -279,6 +279,20 @@ const redisWrapper = {
     }
   },
 
+  sRandMemberAsync: async (key, count) => {
+    if (!key || !isReady) return count ? [] : null;
+    try {
+      const k = String(key);
+      if (count) {
+        return await client.sRandMember(k, count);
+      }
+      return await client.sRandMember(k);
+    } catch (err) {
+      console.error(`[RedisClient] Erro em sRandMemberAsync key=${key}:`, err.message);
+      return count ? [] : null;
+    }
+  },
+
   sMembersAsync: async (key) => {
     if (!key || !isReady) return [];
     try {
