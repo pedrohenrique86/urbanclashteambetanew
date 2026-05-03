@@ -6,9 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { 
   ClipboardList, 
   ChevronRight, 
-  Bolt, 
   Flame, 
-  Swords, 
   ShieldCheck,
   Cake,
   Beaker,
