@@ -274,6 +274,11 @@ class CombatService {
 
   async getRadarTargets(userId) {
     const attacker = await playerStateService.getPlayerState(userId);
+    if (!attacker) {
+      console.error(`[combat/radar] ❌ Estado do atacante não encontrado para UID: ${userId}`);
+      throw new Error("Não foi possível carregar seu estado de jogador. Tente novamente em instantes.");
+    }
+
     const ONLINE_SET_KEY = "online_players_set";
     const rawIds = await redisClient.sRandMemberAsync(ONLINE_SET_KEY, 45);
     const onlineIds = (rawIds || []).filter(id => id !== String(userId));

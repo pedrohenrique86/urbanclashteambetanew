@@ -872,7 +872,8 @@ async function persistPlayerState(userId) {
         "level", "total_xp", "money", "energy", "action_points", 
         "victories", "defeats", "winning_streak", "daily_training_count",
         "attack", "defense", "focus", "luck", "intimidation", "discipline",
-        "critical_chance", "critical_damage", "toxicity"
+        "critical_chance", "critical_damage", "toxicity",
+        "faction_id", "premium_coins", "login_streak"
       ].includes(k);
 
       if (isNumeric) return `${col} = $${i + 1}::numeric`;
@@ -995,7 +996,8 @@ async function _bulkPersistChunk(userIds) {
         "level", "total_xp", "money", "energy", "action_points", 
         "victories", "defeats", "winning_streak", "daily_training_count",
         "attack", "defense", "focus", "luck", "intimidation", "discipline",
-        "critical_chance", "critical_damage", "toxicity"
+        "critical_chance", "critical_damage", "toxicity",
+        "faction_id", "premium_coins", "login_streak"
       ].includes(f);
 
       if (isNumeric) return `"${f}" = v."${f}"::numeric`;
