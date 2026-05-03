@@ -14,6 +14,8 @@ import {
   ExclamationTriangleIcon
 } from "@heroicons/react/24/outline";
 import { motion, AnimatePresence } from "framer-motion";
+import { calculateTrainingCost } from "../utils/leveling";
+
 
 /**
  * TRAINING PAGE - AAA Military Cyberpunk Aesthetic
@@ -345,7 +347,9 @@ export default function TrainingPage() {
                       </div>
                       <div className="bg-green-500/10 border border-green-500/20 p-2 flex flex-col items-center">
                         <BanknotesIcon className="w-3 h-3 text-green-500 mb-1" />
-                        <span className="text-[10px] font-bold text-green-200">${opt.costs.cash}</span>
+                        <span className="text-[10px] font-bold text-green-200">
+                          ${calculateTrainingCost(opt.costs.cash, userProfile?.level || 1).toLocaleString()}
+                        </span>
                       </div>
                       <div className="bg-yellow-500/10 border border-yellow-500/20 p-2 flex flex-col items-center">
                         <FireIcon className="w-3 h-3 text-yellow-500 mb-1" />

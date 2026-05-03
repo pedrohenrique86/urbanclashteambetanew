@@ -118,3 +118,18 @@ export const getXPForNextLevel = (currentXP: number): number => {
   const levelInfo = calculateLevel(currentXP);
   return levelInfo.xpForNextLevel;
 };
+/**
+ * Calculate dynamic training cost based on player level (Synchronized with Backend)
+ * 
+ * @param baseMoney - Original base cost
+ * @param level - Current player level
+ * @returns Scaled cost
+ */
+export const calculateTrainingCost = (baseMoney: number, level: number): number => {
+  const lvl = Math.max(1, Math.floor(level) || 1);
+  const base = Math.max(0, baseMoney || 0);
+
+  // Escala: 0.8% de aumento por nível (Mesma fórmula do backend/utils/gameLogic.js)
+  const multiplier = 1 + (lvl - 1) * 0.008; 
+  return Math.floor(base * multiplier);
+};

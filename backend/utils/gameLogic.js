@@ -337,6 +337,26 @@ function scaleXpByLevel(baseXp, level) {
 }
 
 /**
+ * Calcula o custo dinâmico de dinheiro para treinamento baseado no nível.
+ * O custo escala proporcionalmente à progressão de XP para manter o desafio econômico.
+ * 
+ * @param {number} baseMoney - Custo base em dinheiro
+ * @param {number} level - Nível atual do jogador
+ * @returns {number} - Custo escalonado
+ */
+function calculateTrainingCost(baseMoney, level) {
+  const lvl = Math.max(1, Number(level) || 1);
+  const base = Math.max(0, Number(baseMoney) || 0);
+
+  // Escala: 0.8% de aumento por nível. 
+  // Nível 100 = ~1.8x o custo base.
+  // Nível 1000 = ~9x o custo base.
+  // Isso garante que o dinheiro não perca valor conforme o jogador progride e ganha mais.
+  const multiplier = 1 + (lvl - 1) * 0.008; 
+  return Math.floor(base * multiplier);
+}
+
+/**
  * Calcula o HP máximo virtual para fins de simulação de combate.
  * Junior: "Por que não salvar no BD?"
  * Senior: "Porque HP que regenera instantaneamente é estado volátil. 
@@ -405,8 +425,10 @@ module.exports = {
   calcCritDamageMultiplier,
   resolveCombatHit,
   scaleXpByLevel,
+  calculateTrainingCost,
   // Constantes exportadas para uso em rotas/serviços
   COMBAT,
   XP_SCALING,
   ENERGY,
 };
+

@@ -1,4 +1,5 @@
 const playerStateService = require("./playerStateService.js");
+const redisClient = require("../config/redisClient");
 const { TRAINING_TYPES, MAX_DAILY_TRAININGS, TRAINING_HUMOR } = require("../utils/trainingConstants.js");
 const gameLogic = require("../utils/gameLogic");
 
@@ -14,7 +15,7 @@ class TrainingService {
    */
   async startTraining(userId, type) {
     const LOCK_KEY = `lock:training:${userId}`;
-    const hasLock = await playerStateService.redisClient.setNXAsync(LOCK_KEY, "1", 3000);
+    const hasLock = await redisClient.setNXAsync(LOCK_KEY, "1", 3000);
     if (!hasLock) throw new Error("Operação de treinamento já em processamento.");
 
     try {
@@ -36,8 +37,9 @@ class TrainingService {
         throw new Error("Pontos de ação insuficientes.");
       }
 
-      if (state.money < training.costs.money) {
-        throw new Error("Dinheiro insuficiente.");
+      const dynamicMoneyCost = gameLogic.calculateTrainingCost(training.costs.money, state.level);
+      if (state.money < dynamicMoneyCost) {
+        throw new Error(`Dinheiro insuficiente. Custo atual: $${dynamicMoneyCost}`);
       }
 
       if (state.energy < training.costs.energy) {
@@ -49,7 +51,7 @@ class TrainingService {
 
       const updates = {
         action_points: -training.costs.actionPoints,
-        money: -training.costs.money,
+        money: -dynamicMoneyCost,
         energy: -training.costs.energy,
         training_ends_at: endsAt.toISOString(),
         active_training_type: type,
@@ -66,13 +68,13 @@ class TrainingService {
         player: newState,
       };
     } finally {
-      await playerStateService.redisClient.delAsync(LOCK_KEY);
+      await redisClient.delAsync(LOCK_KEY);
     }
   }
 
   async completeTraining(userId) {
     const LOCK_KEY = `lock:training:${userId}`;
-    const hasLock = await playerStateService.redisClient.setNXAsync(LOCK_KEY, "1", 3000);
+    const hasLock = await redisClient.setNXAsync(LOCK_KEY, "1", 3000);
     if (!hasLock) throw new Error("Aguarde o processamento do treinamento anterior.");
 
     try {
@@ -120,9 +122,10 @@ class TrainingService {
         ...(isUnlock ? { unlock_acerto_de_contas: true } : {})
       };
     } finally {
-      await playerStateService.redisClient.delAsync(LOCK_KEY);
+      await redisClient.delAsync(LOCK_KEY);
     }
   }
 }
 
 module.exports = new TrainingService();
+
