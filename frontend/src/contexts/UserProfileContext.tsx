@@ -366,14 +366,17 @@ export const UserProfileProvider = ({ children }: { children: ReactNode }) => {
     return userProfile;
   }, [userProfile]);
 
+  const currentStatusEndsAt = userProfile?.status_ends_at;
+  const currentStatus = userProfile?.status;
+
   // SÊNIOR: Zero-Cron Client-Side Status Auto-Resolve
   // Quando uma expiração de status corre, nós transicionamos localmente para "Operacional"
   // sem qualquer custo de bateria ou requisição de polling. AAA Standard.
   useEffect(() => {
-    if (!userProfile || !userProfile.status_ends_at || userProfile.status === 'Operacional') return;
+    if (!currentStatusEndsAt || currentStatus === 'Operacional') return;
 
     let timerId: NodeJS.Timeout;
-    const endsAt = new Date(userProfile.status_ends_at).getTime();
+    const endsAt = new Date(currentStatusEndsAt).getTime();
     const delay = Math.max(0, endsAt - Date.now());
 
     // Timeout máximo suportado é ~24.8 dias, check para segurança
@@ -382,7 +385,7 @@ export const UserProfileProvider = ({ children }: { children: ReactNode }) => {
         setUserProfile(prev => {
           if (!prev) return prev;
           // Verifica se ainda é o mesmo timer (contra race conditions)
-          if (prev.status_ends_at !== userProfile.status_ends_at) return prev;
+          if (prev.status_ends_at !== currentStatusEndsAt) return prev;
           
           const next = { ...prev, status: 'Operacional', status_ends_at: null };
           writeProfileCache(next);
@@ -392,7 +395,7 @@ export const UserProfileProvider = ({ children }: { children: ReactNode }) => {
     } else if (delay <= 0) {
        // Se o cálculo inicial já provar que acabou, vira operacional instantâneo
        setUserProfile(prev => {
-          if (!prev || prev.status_ends_at !== userProfile.status_ends_at) return prev;
+          if (!prev || prev.status_ends_at !== currentStatusEndsAt) return prev;
           const next = { ...prev, status: 'Operacional', status_ends_at: null };
           writeProfileCache(next);
           return next;
@@ -402,7 +405,7 @@ export const UserProfileProvider = ({ children }: { children: ReactNode }) => {
     return () => {
       if (timerId) clearTimeout(timerId);
     };
-  }, [userProfile?.status_ends_at, userProfile?.status]);
+  }, [currentStatusEndsAt, currentStatus]);
 
   const contextValue = useMemo(
     () => ({
