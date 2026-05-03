@@ -366,6 +366,44 @@ export const UserProfileProvider = ({ children }: { children: ReactNode }) => {
     return userProfile;
   }, [userProfile]);
 
+  // SÊNIOR: Zero-Cron Client-Side Status Auto-Resolve
+  // Quando uma expiração de status corre, nós transicionamos localmente para "Operacional"
+  // sem qualquer custo de bateria ou requisição de polling. AAA Standard.
+  useEffect(() => {
+    if (!userProfile || !userProfile.status_ends_at || userProfile.status === 'Operacional') return;
+
+    let timerId: NodeJS.Timeout;
+    const endsAt = new Date(userProfile.status_ends_at).getTime();
+    const delay = Math.max(0, endsAt - Date.now());
+
+    // Timeout máximo suportado é ~24.8 dias, check para segurança
+    if (delay > 0 && delay < 2147483647) {
+      timerId = setTimeout(() => {
+        setUserProfile(prev => {
+          if (!prev) return prev;
+          // Verifica se ainda é o mesmo timer (contra race conditions)
+          if (prev.status_ends_at !== userProfile.status_ends_at) return prev;
+          
+          const next = { ...prev, status: 'Operacional', status_ends_at: null };
+          writeProfileCache(next);
+          return next;
+        });
+      }, delay + 150); // Mínimo atraso para garantir pass-through
+    } else if (delay <= 0) {
+       // Se o cálculo inicial já provar que acabou, vira operacional instantâneo
+       setUserProfile(prev => {
+          if (!prev || prev.status_ends_at !== userProfile.status_ends_at) return prev;
+          const next = { ...prev, status: 'Operacional', status_ends_at: null };
+          writeProfileCache(next);
+          return next;
+       });
+    }
+
+    return () => {
+      if (timerId) clearTimeout(timerId);
+    };
+  }, [userProfile?.status_ends_at, userProfile?.status]);
+
   const contextValue = useMemo(
     () => ({
       userProfile: effectiveProfile,
