@@ -22,6 +22,20 @@ const morgan = require("morgan");
 const http = require("http");
 const { Server } = require("socket.io");
 
+// SÊNIOR: Global Error Handlers para depuração de crash loops
+process.on("unhandledRejection", (reason, promise) => {
+  console.error("🚨 Unhandled Rejection at:", promise, "reason:", reason);
+});
+
+process.on("uncaughtException", (err) => {
+  console.error("🚨 Uncaught Exception:", err);
+  // Em produção, queremos logar e talvez sair graciosamente
+  if (process.env.NODE_ENV === "production") {
+    // O PM2 reiniciará o processo
+    setTimeout(() => process.exit(1), 1000);
+  }
+});
+
 const timeRoutes = require("./routes/time");
 const adminRoutes = require("./routes/admin");
 const combatRoutes = require("./routes/combat");
@@ -79,13 +93,22 @@ async function startServer() {
     schedulePersistence();
     server.listen(PORT, () => {
       console.log(`🚀 SERVIDOR INICIADO NA PORTA ${PORT} [${isProduction ? 'PROD' : 'DEV'}]`);
-      (async () => {
-        await checkAutoStart();
-        await rankingCacheService.initializeRankingZSet();
-        await rankingCacheService.warmupRankings();
-        rankingCacheService.startPeriodicRefresh();
-        require("./services/energyRegenService").startEnergyRegenHeartbeat();
-      })();
+      
+      // SÊNIOR: Tarefas de background movidas para um contexto que não bloqueia o listen
+      // e com delay para permitir que o processo estabilize (passar health checks do Oracle/Cloud)
+      setTimeout(async () => {
+        try {
+          console.log("🌌 Iniciando subsistemas de background...");
+          await checkAutoStart();
+          await rankingCacheService.initializeRankingZSet();
+          await rankingCacheService.warmupRankings();
+          rankingCacheService.startPeriodicRefresh();
+          require("./services/energyRegenService").startEnergyRegenHeartbeat();
+          console.log("✅ Todos os subsistemas operacionais.");
+        } catch (bgError) {
+          console.error("⚠️ Erro nos processos de background:", bgError);
+        }
+      }, 5000); 
     });
   } catch (error) {
     console.error("❌ Erro fatal:", error);

@@ -73,11 +73,11 @@ async function connectDB() {
 
     await client.query("SELECT NOW()");
     
-    // Executa migrações críticas
-    await runPlayerStatusMigrations();
+    // Executa migrações críticas em modo silencioso
+    await runPlayerStatusMigrations(true);
     
-    // Inicia a primeira operação de manutenção após conectar
-    runMaintenanceOperations();
+    // SÊNIOR: NÃO iniciamos a manutenção pesada aqui. 
+    // Ela será iniciada apenas pelo agendador de intervalo para evitar picos no Neon durante restarts.
     
     return true;
   } catch (error) {
@@ -95,11 +95,22 @@ async function query(text, params) {
   const start = Date.now();
   try {
     const res = await pool.query(text, params);
+    
+    // SÊNIOR: Logging apenas em desenvolvimento ou para queries lentas em produção
     const duration = Date.now() - start;
-    console.log("📊 Query executada:", { text, duration, rows: res.rowCount });
+    if (process.env.NODE_ENV !== "production" || duration > 1000) {
+      console.log("📊 Query executada:", { 
+        text: text.substring(0, 100) + (text.length > 100 ? "..." : ""), 
+        duration: `${duration}ms`, 
+        rows: res.rowCount 
+      });
+    }
     return res;
   } catch (error) {
-    console.error("❌ Erro na query:", { text, error: error.message });
+    console.error("❌ Erro na query:", { 
+      text: text.substring(0, 200), 
+      error: error.message 
+    });
     throw error;
   }
 }
@@ -455,8 +466,8 @@ async function seedClans() {
 }
 
 // MIGRATION SENIOR: Idempotente para Sistema de Status
-async function runPlayerStatusMigrations() {
-  console.log("🛠️ Verificando migrações de Status do Jogador...");
+async function runPlayerStatusMigrations(silent = false) {
+  if (!silent) console.log("🛠️ Verificando migrações de Status do Jogador...");
   try {
     // 1. Colunas em user_profiles
     await query(`
@@ -489,7 +500,7 @@ async function runPlayerStatusMigrations() {
     await query(`CREATE INDEX IF NOT EXISTS idx_status_logs_composite ON player_status_logs(user_id, ended_at);`);
     await query(`CREATE INDEX IF NOT EXISTS idx_status_logs_started_at ON player_status_logs(started_at);`);
 
-    console.log("✅ Verificação básica de tabelas de Status concluída. Use 'npm run migrate:up:all' para conversão ENUM oficial.");
+    if (!silent) console.log("✅ Verificação básica de tabelas de Status concluída.");
   } catch (error) {
     console.error("❌ Erro na verificação de Status:", error.message);
   }
