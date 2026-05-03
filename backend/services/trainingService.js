@@ -51,6 +51,8 @@ class TrainingService {
       energy: -training.costs.energy,
       training_ends_at: endsAt.toISOString(),
       active_training_type: type,
+      status: 'Aprimoramento',
+      status_ends_at: endsAt.toISOString(),
     };
 
     const newState = await playerStateService.updatePlayerState(userId, updates);
@@ -103,6 +105,8 @@ class TrainingService {
       daily_training_count: 1, // Incrementa contador
       training_ends_at : "",   // Limpa estado
       active_training_type: "",
+      status: "Operacional",
+      status_ends_at: "",
     };
 
     const oldLevel = Number(state.level || 1);
