@@ -180,8 +180,6 @@ export default function SupplyStationPage() {
       localStorage.setItem('supply_cooldown_flavor', flavor);
       localStorage.setItem('supply_cooldown_item', optionItem.id);
       localStorage.setItem('supply_cooldown_end', endTime.toString());
-      
-      await refreshProfile();
     } catch (err: any) {
       showToast(err.response?.data?.error || err.message, "error");
     } finally {
@@ -194,7 +192,6 @@ export default function SupplyStationPage() {
     try {
       const res = await supplyService.buyAntidote();
       showToast(res.message, "success", 5000);
-      await refreshProfile();
     } catch (err: any) {
       showToast(err.response?.data?.error || err.message, "error");
     } finally {

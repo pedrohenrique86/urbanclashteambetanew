@@ -144,12 +144,10 @@ export default function App() {
           <LoadingProvider>
             <HUDProvider>
               <GlobalLoadingSpinner />
-              <Suspense fallback={<PageLoader />}>
-                <RouterProvider
-                  router={router}
-                  future={{ v7_startTransition: true }}
-                />
-              </Suspense>
+              <RouterProvider
+                router={router}
+                future={{ v7_startTransition: true }}
+              />
             </HUDProvider>
           </LoadingProvider>
         </GameClockProvider>
