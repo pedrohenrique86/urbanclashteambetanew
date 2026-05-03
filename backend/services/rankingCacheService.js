@@ -212,7 +212,8 @@ async function refreshUsersRanking() {
     const redisResults = await pipeline.exec();
 
     validEntries.forEach((entry, idx) => {
-      const raw = redisResults[idx][1]; // Pipeline returns [err, result]
+      // SÊNIOR FIX: v4 format
+      const raw = redisResults[idx]; 
       if (raw && Object.keys(raw).length > 0) {
         const state = playerStateService._parseState(raw);
         hydratedAll.push({

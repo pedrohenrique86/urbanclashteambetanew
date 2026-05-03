@@ -284,7 +284,8 @@ class CombatService {
       const redisStates = await pipeline.exec();
 
       onlineIds.forEach((id, idx) => {
-        const state = redisStates[idx][1];
+        // SÊNIOR FIX: v4 format
+        const state = redisResults[idx];
         if (state && Object.keys(state).length > 0) {
           const isEligible = 
             (state.status !== 'Recondicionamento' && state.status !== 'Isolamento') &&

@@ -31,12 +31,13 @@ const gameLogic   = require("../utils/gameLogic");
 
 // ─── Constantes ──────────────────────────────────────────────────────────────────
 const PLAYER_STATE_PREFIX   = "playerState:";
-const BATCH_FLUSH_INTERVAL  = 10000;       // Ciclo de Flush Global (Write-Behind) - Aumentado para performance
+const BATCH_FLUSH_INTERVAL  = 5000;        // Reduzido para 5s para maior responsividade
 module.exports.PLAYER_STATE_PREFIX = PLAYER_STATE_PREFIX;
 const RANKING_ZSET_KEY      = "ranking:users:zset";
-const PLAYER_STATE_TTL      = 60 * 60 * 24 * 7; // 7 dias (Redis como SSOT)
-const PERSIST_BATCH_SIZE    = 50;          // máx players por lote no safety-net
-const SAFETY_STALENESS_MS   = 12_000;      // safety-net só persiste dirty > 12s
+const PLAYER_STATE_TTL      = 60 * 60 * 24 * 7; 
+const PERSIST_BATCH_SIZE    = 50;          
+const SAFETY_STALENESS_MS   = 5000;        // Reduzido para 5s
+const DEBOUNCE_MS           = 2000;        // Tempo de espera após última ação para salvar (2s)
 const DIRTY_PLAYERS_SET     = "player:dirty:set";
 const TRAINING_QUEUE_KEY    = "queue:trainings";
 
@@ -948,7 +949,8 @@ async function _bulkPersistChunk(userIds) {
   const fields = Array.from(DB_PERSIST_FIELDS);
 
   redisResults.forEach((res, i) => {
-    const raw = res[1];
+    // SÊNIOR FIX: No node-redis v4, o resultado do exec() é o valor direto, não [err, res]
+    const raw = res;
     if (raw && raw.is_dirty === "1") {
       toUpdate.push({ uid: userIds[i], state: raw, loadedDirtyAt: raw.is_dirty_at });
     }
@@ -999,7 +1001,8 @@ async function _bulkPersistChunk(userIds) {
     const finalCleanup = redisClient.pipeline();
     
     toUpdate.forEach((item, i) => {
-      const currentAt = currentDirtyAtRes[i][1];
+      // SÊNIOR FIX: v4 format
+      const currentAt = currentDirtyAtRes[i];
       if (currentAt === item.loadedDirtyAt) {
         const redisKey = `${PLAYER_STATE_PREFIX}${item.uid}`;
         finalCleanup.hSet(redisKey, "is_dirty", "0");
