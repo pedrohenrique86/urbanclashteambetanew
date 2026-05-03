@@ -30,7 +30,6 @@ if (databaseUrl) {
     connectionString: databaseUrl,
     ssl: {
       rejectUnauthorized: false,
-      mode: "require",
     },
   };
 } else {

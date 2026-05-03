@@ -867,6 +867,7 @@ async function persistPlayerState(userId) {
       const col = `"${k}"`;
       if (k === "status") return `${col} = $${i + 1}::player_status_type`;
       if (k.endsWith("_at")) return `${col} = $${i + 1}::timestamp`;
+      if (k === "last_training_reset" || k === "last_ap_reset") return `${col} = $${i + 1}::date`;
       
       const isNumeric = [
         "level", "total_xp", "money", "energy", "action_points", 
@@ -990,6 +991,7 @@ async function _bulkPersistChunk(userIds) {
     const setClauses = fields.map(f => {
       if (f === "status") return `"${f}" = v."${f}"::player_status_type`;
       if (f.endsWith("_at")) return `"${f}" = v."${f}"::timestamp`;
+      if (f === "last_training_reset" || f === "last_ap_reset") return `"${f}" = v."${f}"::date`;
       
       // Lista exaustiva de campos numéricos para evitar erro de "expression is of type text"
       const isNumeric = [

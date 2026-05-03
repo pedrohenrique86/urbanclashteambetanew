@@ -45,6 +45,7 @@ const { router: clanRoutes } = require("./routes/clans");
 const publicRoutes = require("./routes/public");
 const trainingRoutes = require("./routes/training");
 const supplyRoutes = require("./routes/supply");
+const logsRoutes = require("./routes/logs");
 const { connectDB } = require("./config/database");
 const { redisReadyPromise } = require("./config/redisClient");
 const { checkAutoStart } = require("./services/gameStateService");
@@ -79,6 +80,7 @@ app.use("/api/supply", supplyRoutes);
 app.use("/api/time", timeRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/combat", combatRoutes);
+app.use("/api/logs", logsRoutes);
 
 app.get("/health", (req, res) => {
   res.json({ status: "OK", env: isProduction ? "production" : "development", port: PORT });

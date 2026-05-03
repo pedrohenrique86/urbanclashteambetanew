@@ -1,4 +1,5 @@
 const playerStateService = require("./playerStateService.js");
+const actionLogService = require("./actionLogService.js");
 const redisClient = require("../config/redisClient");
 const { TRAINING_TYPES, MAX_DAILY_TRAININGS, TRAINING_HUMOR } = require("../utils/trainingConstants.js");
 const gameLogic = require("../utils/gameLogic");
@@ -114,6 +115,16 @@ class TrainingService {
       playerStateService.cancelScheduledTraining(userId);
 
       const isUnlock = oldLevel < 10 && newLevel >= 10;
+
+      // REGISTRO DE LOG
+      actionLogService.log(userId, "training", "exercise", state.active_training_type, {
+        xp_gain: scaledXp,
+        stats_gained: {
+          atk: training.gains.attack,
+          def: training.gains.defense,
+          foc: training.gains.focus
+        }
+      });
 
       return {
         message: TRAINING_HUMOR[Math.floor(Math.random() * TRAINING_HUMOR.length)],

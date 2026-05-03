@@ -1,4 +1,5 @@
 const playerStateService = require("../services/playerStateService");
+const actionLogService = require("../services/actionLogService");
 
 const SUPPLY_ITEMS = {
   cafe: {
@@ -118,6 +119,13 @@ async function buySupply(userId, itemId) {
   // para garantir que um F5 instantâneo não resulte em rollback se o cluster Redis oscilar.
   const newState = await playerStateService.updatePlayerState(userId, updates);
 
+  // REGISTRO DE LOG
+  actionLogService.log(userId, "supply", "item", itemId, {
+    energy_gained: energyToAdd,
+    toxicity_added: toxToAdd,
+    collapsed: collapsed
+  });
+
   if (collapsed) {
     return {
       message: "ALERTA CRÍTICO: Sobrecarga Torácica! Unidade entrou em Recondicionamento de emergência (20min).",
@@ -159,6 +167,12 @@ async function buyAntidote(userId) {
   };
 
   await playerStateService.updatePlayerState(userId, updates);
+
+  // REGISTRO DE LOG
+  actionLogService.log(userId, "poison_clear", "antidote", "purificar_sistema", {
+    cost_cash: costCash,
+    toxicity_cleared: currentTox
+  });
 
   return {
     message: "Sistema purgado. Toxicidade zerada com sucesso.",

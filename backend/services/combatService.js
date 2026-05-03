@@ -1,6 +1,7 @@
 const { query } = require("../config/database");
 const redisClient = require("../config/redisClient");
 const playerStateService = require("./playerStateService");
+const actionLogService = require("./actionLogService");
 const gameLogic = require("../utils/gameLogic");
 const spectroEngine = require("../utils/spectroEngine");
 const CYBER_SETORS = [
@@ -790,6 +791,16 @@ class CombatService {
         await playerStateService.updatePlayerState(userId,   { action_points: -300, energy: -50 });
         if (!isNpc) await playerStateService.updatePlayerState(targetId, { energy: -10 });
       }
+
+      // ── 3. Registro de Log de Auditoria & Histórico ──────────────────────────
+      actionLogService.log(userId, "combat", isNpc ? "npc" : "player", targetId, {
+        outcome: outcome,
+        target_name: defender.username,
+        xp_gain: loot?.xp || 0,
+        money_gain: loot?.money || 0,
+        money_loss: loot?.moneyLost || 0,
+        is_rare: isRare
+      });
 
       return {
         outcome,
