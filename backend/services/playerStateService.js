@@ -959,16 +959,31 @@ async function _bulkPersistChunk(userIds) {
       valuePlaceholders.push(`(${rowParams.join(", ")})`);
     });
 
-    const setClauses = fields.map(f => `${f} = v.${f}`);
+    // SÊNIOR: Escapa nomes de campos para evitar conflitos com palavras reservadas (ex: status, level)
+    const setClauses = fields.map(f => `"${f}" = v."${f}"`);
+    const columnNames = fields.map(f => `"${f}"`).join(", ");
 
     const sql = `
       UPDATE user_profiles AS p
       SET ${setClauses.join(", ")}, updated_at = CURRENT_TIMESTAMP
-      FROM (VALUES ${valuePlaceholders.join(", ")}) AS v(user_id, ${fields.join(", ")})
+      FROM (VALUES ${valuePlaceholders.join(", ")}) AS v(user_id, ${columnNames})
       WHERE p.user_id = v.user_id::uuid
     `;
 
-    await query(sql, flatValues);
+    try {
+      await query(sql, flatValues);
+    } catch (dbErr) {
+      console.error(`[playerState] ❌ Erro crítico na persistência em lote (${toUpdate.length} jogadores):`, dbErr.message);
+      // Fallback: se o lote falhou, tentamos persistir um por um para não perder tudo
+      for (const item of toUpdate) {
+        try {
+          await persistPlayerState(item.uid);
+        } catch (singleErr) {
+          console.error(`[playerState] ❌ Falha persistência individual fallback para ${item.uid}:`, singleErr.message);
+        }
+      }
+      return; // Interrompe para evitar limpeza indevida do dirty
+    }
 
     // SÊNIOR: Limpeza atômica do is_dirty apenas se o dado não mudou durante a escrita (Optimistic Locking)
     const cleanupPipeline = redisClient.pipeline();
