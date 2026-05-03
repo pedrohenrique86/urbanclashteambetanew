@@ -13,121 +13,115 @@ class TrainingService {
    * Inicia um novo treinamento.
    */
   async startTraining(userId, type) {
-    const training = TRAINING_TYPES[type];
-    if (!training) throw new Error("Tipo de treinamento inválido.");
+    const LOCK_KEY = `lock:training:${userId}`;
+    const hasLock = await playerStateService.redisClient.setNXAsync(LOCK_KEY, "1", 3000);
+    if (!hasLock) throw new Error("Operação de treinamento já em processamento.");
 
-    const state = await playerStateService.getPlayerState(userId);
-    if (!state) throw new Error("Jogador não encontrado.");
+    try {
+      const training = TRAINING_TYPES[type];
+      if (!training) throw new Error("Tipo de treinamento inválido.");
 
-    // 1. Verificações de robustez
-    if (state.training_ends_at && new Date(state.training_ends_at) > new Date()) {
-      throw new Error("Você já tem um treinamento em andamento.");
+      const state = await playerStateService.getPlayerState(userId);
+      if (!state) throw new Error("Jogador não encontrado.");
+
+      if (state.training_ends_at && new Date(state.training_ends_at) > new Date()) {
+        throw new Error("Você já tem um treinamento em andamento.");
+      }
+
+      if (state.daily_training_count >= MAX_DAILY_TRAININGS) {
+        throw new Error(`Limite diário de ${MAX_DAILY_TRAININGS} treinos atingido.`);
+      }
+
+      if (state.action_points < training.costs.actionPoints) {
+        throw new Error("Pontos de ação insuficientes.");
+      }
+
+      if (state.money < training.costs.money) {
+        throw new Error("Dinheiro insuficiente.");
+      }
+
+      if (state.energy < training.costs.energy) {
+        throw new Error("Energia insuficiente.");
+      }
+
+      const now = new Date();
+      const endsAt = new Date(now.getTime() + training.durationMinutes * 60 * 1000);
+
+      const updates = {
+        action_points: -training.costs.actionPoints,
+        money: -training.costs.money,
+        energy: -training.costs.energy,
+        training_ends_at: endsAt.toISOString(),
+        active_training_type: type,
+        status: 'Aprimoramento',
+        status_ends_at: endsAt.toISOString(),
+      };
+
+      const newState = await playerStateService.updatePlayerState(userId, updates);
+      playerStateService.scheduleTraining(userId, endsAt.getTime());
+      
+      return {
+        message: TRAINING_HUMOR[Math.floor(Math.random() * TRAINING_HUMOR.length)],
+        training: { type, endsAt: endsAt.toISOString(), durationMinutes: training.durationMinutes },
+        player: newState,
+      };
+    } finally {
+      await playerStateService.redisClient.delAsync(LOCK_KEY);
     }
-
-    if (state.daily_training_count >= MAX_DAILY_TRAININGS) {
-      throw new Error(`Limite diário de ${MAX_DAILY_TRAININGS} treinos atingido.`);
-    }
-
-    if (state.action_points < training.costs.actionPoints) {
-      throw new Error("Pontos de ação insuficientes.");
-    }
-
-    if (state.money < training.costs.money) {
-      throw new Error("Dinheiro insuficiente.");
-    }
-
-    if (state.energy < training.costs.energy) {
-      throw new Error("Energia insuficiente.");
-    }
-
-    // 2. Cálculo do término
-    const now = new Date();
-    const endsAt = new Date(now.getTime() + training.durationMinutes * 60 * 1000);
-
-    // 3. Aplica custos e define estado de treino
-    const updates = {
-      action_points: -training.costs.actionPoints,
-      money: -training.costs.money,
-      energy: -training.costs.energy,
-      training_ends_at: endsAt.toISOString(),
-      active_training_type: type,
-      status: 'Aprimoramento',
-      status_ends_at: endsAt.toISOString(),
-    };
-
-    const newState = await playerStateService.updatePlayerState(userId, updates);
-
-    // Adiciona à fila de processamento ZSET!
-    playerStateService.scheduleTraining(userId, endsAt.getTime());
-    
-    return {
-      message: TRAINING_HUMOR[Math.floor(Math.random() * TRAINING_HUMOR.length)],
-      training: {
-        type,
-        endsAt: endsAt.toISOString(),
-        durationMinutes: training.durationMinutes,
-      },
-      player: newState,
-    };
   }
 
-  /**
-   * Finaliza o treinamento e aplica recompensas.
-   */
   async completeTraining(userId) {
-    const state = await playerStateService.getPlayerState(userId);
-    if (!state) throw new Error("Jogador não encontrado.");
+    const LOCK_KEY = `lock:training:${userId}`;
+    const hasLock = await playerStateService.redisClient.setNXAsync(LOCK_KEY, "1", 3000);
+    if (!hasLock) throw new Error("Aguarde o processamento do treinamento anterior.");
 
-    if (!state.training_ends_at || !state.active_training_type) {
-      throw new Error("Nenhum treinamento ativo para completar.");
+    try {
+      const state = await playerStateService.getPlayerState(userId);
+      if (!state) throw new Error("Jogador não encontrado.");
+
+      if (!state.training_ends_at || !state.active_training_type) {
+        throw new Error("Nenhum treinamento ativo para completar.");
+      }
+
+      const endsAt = new Date(state.training_ends_at);
+      if (endsAt.getTime() > new Date().getTime() + 5000) {
+        throw new Error("O treinamento ainda não terminou.");
+      }
+
+      const training = TRAINING_TYPES[state.active_training_type];
+      const scaledXp = gameLogic.scaleXpByLevel(training.gains.xp, state.level);
+
+      const updates = {
+        attack: training.gains.attack,
+        defense: training.gains.defense,
+        focus: training.gains.focus,
+        critical_chance: training.gains.critical_chance  || 0,
+        critical_damage: training.gains.critical_damage  || 0,
+        total_xp: scaledXp,
+        daily_training_count: 1,
+        training_ends_at : "",
+        active_training_type: "",
+        status: "Operacional",
+        status_ends_at: "",
+      };
+
+      const oldLevel = Number(state.level || 1);
+      const newState = await playerStateService.updatePlayerState(userId, updates);
+      const newLevel = Number(newState.level || 1);
+
+      playerStateService.cancelScheduledTraining(userId);
+
+      const isUnlock = oldLevel < 10 && newLevel >= 10;
+
+      return {
+        message: TRAINING_HUMOR[Math.floor(Math.random() * TRAINING_HUMOR.length)],
+        gains: { ...training.gains, xp: scaledXp, xp_base: training.gains.xp, level_bonus_pct: Math.round(Number(state.level || 1) * gameLogic.XP_SCALING.LEVEL_FACTOR * 100) },
+        player: newState,
+        ...(isUnlock ? { unlock_acerto_de_contas: true } : {})
+      };
+    } finally {
+      await playerStateService.redisClient.delAsync(LOCK_KEY);
     }
-
-    const endsAt = new Date(state.training_ends_at);
-    // Grace period de 5 segundos para compensar skew de relógio entre frontend e servidor
-    if (endsAt.getTime() > new Date().getTime() + 5000) {
-      throw new Error("O treinamento ainda não terminou.");
-    }
-
-    const training = TRAINING_TYPES[state.active_training_type];
-    if (!training) throw new Error("Configuração de treino não encontrada.");
-
-    // XP escalado pelo nível atual do jogador
-    const scaledXp = gameLogic.scaleXpByLevel(training.gains.xp, state.level);
-
-    // Aplica ganhos — inclui CRIT acumulado + XP escalado
-    const updates = {
-      attack           : training.gains.attack,
-      defense          : training.gains.defense,
-      focus            : training.gains.focus,
-      critical_chance  : training.gains.critical_chance  || 0,
-      critical_damage  : training.gains.critical_damage  || 0,
-      total_xp         : scaledXp,
-      daily_training_count: 1, // Incrementa contador
-      training_ends_at : "",   // Limpa estado
-      active_training_type: "",
-      status: "Operacional",
-      status_ends_at: "",
-    };
-
-    const oldLevel = Number(state.level || 1);
-    const newState = await playerStateService.updatePlayerState(userId, updates);
-    const newLevel = Number(newState.level || 1);
-
-    playerStateService.cancelScheduledTraining(userId);
-
-    const isUnlock = oldLevel < 10 && newLevel >= 10;
-
-    return {
-      message: TRAINING_HUMOR[Math.floor(Math.random() * TRAINING_HUMOR.length)],
-      gains: {
-        ...training.gains,
-        xp            : scaledXp,        // XP real ganho (escalado)
-        xp_base       : training.gains.xp, // XP base original (para UI mostrar bônus)
-        level_bonus_pct: Math.round(Number(state.level || 1) * gameLogic.XP_SCALING.LEVEL_FACTOR * 100),
-      },
-      player: newState,
-      ...(isUnlock ? { unlock_acerto_de_contas: true } : {})
-    };
   }
 }
 
