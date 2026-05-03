@@ -31,24 +31,8 @@ const gameLogic   = require("../utils/gameLogic");
 
 // ─── Constantes ──────────────────────────────────────────────────────────────────
 const PLAYER_STATE_PREFIX   = "playerState:";
-const DEBOUNCE_MS           = 3000;        // debounce primário antes do DB
+const BATCH_FLUSH_INTERVAL  = 3000;        // Ciclo de Flush Global (Write-Behind)
 module.exports.PLAYER_STATE_PREFIX = PLAYER_STATE_PREFIX;
-
-const _debounceTimers = new Map();
-
-function _scheduleDebounce(userId) {
-  if (_debounceTimers.has(userId)) {
-    clearTimeout(_debounceTimers.get(userId));
-  }
-  const timer = setTimeout(() => {
-    _debounceTimers.delete(userId);
-    persistPlayerState(userId).catch(err => {
-      console.error(`[playerState] ❌ Erro no debounce persist para ${userId}:`, err.message);
-    });
-  }, DEBOUNCE_MS);
-  _debounceTimers.set(userId, timer);
-}
-
 const RANKING_ZSET_KEY      = "ranking:users:zset";
 const PLAYER_STATE_TTL      = 60 * 60 * 24; // 24 horas (otimizado para Oracle VM) inatividade
 const PERSIST_BATCH_SIZE    = 50;          // máx players por lote no safety-net
@@ -773,10 +757,9 @@ async function updatePlayerState(userId, updates) {
     }
 
     // ── 6. Enfileira Persistência de Baixo Custo (DEBOUNCE Assíncrono) ─────────
-    if (hasDBChange) {
-      _scheduleDebounce(userId);
-    }
-
+    // SÊNIOR: O Write-Behind agora é gerido pelo Cycle Worker global (3s).
+    // A flag is_dirty já foi setada na pipeline do Redis.
+    
     return newState;
   } catch (err) {
     console.error(`[playerState] Erro ao atualizar ${userId}:`, err.message);
@@ -847,69 +830,40 @@ async function persistPlayerState(userId) {
 }
 
 /**
- * Safety-net: persiste apenas estados dirty há mais de SAFETY_STALENESS_MS.
- * NÃO processa todos os jogadores — verifica o timestamp is_dirty_at.
- * NÃO duplica debounce: ignora entradas com debounce ativo.
+ * Ciclo de Escrita em Lote (Write-Behind): 
+ * Persiste todos os estados marcados como dirty a cada 3s.
  */
 async function persistDirtyStates() {
   if (!redisClient.client.isReady) return;
-
-  const now      = Date.now();
-  const staleMin = now - SAFETY_STALENESS_MS;
 
   try {
     const dirtyIds = await redisClient.sMembersAsync(DIRTY_PLAYERS_SET);
     if (!dirtyIds || dirtyIds.length === 0) return;
 
-    const staleIds = [];
-
-    for (const uid of dirtyIds) {
-      const key = `${PLAYER_STATE_PREFIX}${uid}`;
-      const [isDirty, dirtyAt] = await Promise.all([
-        redisClient.hGetAsync(key, "is_dirty"),
-        redisClient.hGetAsync(key, "is_dirty_at"),
-      ]);
-
-      if (isDirty !== "1") {
-        // Limpeza de orfãos no set
-        await redisClient.sRemAsync(DIRTY_PLAYERS_SET, uid);
-        continue;
-      }
-
-      // Pula se ainda há um debounce ativo para este jogador
-      if (_debounceTimers.has(uid)) continue;
-
-      // Pula se ficou dirty há menos de SAFETY_STALENESS_MS
-      const dirtyAtMs = Number(dirtyAt || 0);
-      if (dirtyAtMs > staleMin) continue;
-
-      staleIds.push(uid);
+    // SÊNIOR: Processamos em chunks para não saturar a pool de conexões
+    for (let i = 0; i < dirtyIds.length; i += PERSIST_BATCH_SIZE) {
+      const chunk = dirtyIds.slice(i, i + PERSIST_BATCH_SIZE);
+      // Cada chamada tem proteção TOCTOU interna (is_dirty_at)
+      await Promise.allSettled(chunk.map(uid => persistPlayerState(uid)));
     }
 
-    if (staleIds.length === 0) return;
-
-    console.log(`[playerState] 🔄 Safety-net: ${staleIds.length} estados stale para persistir.`);
-
-    for (let i = 0; i < staleIds.length; i += PERSIST_BATCH_SIZE) {
-      const batch = staleIds.slice(i, i + PERSIST_BATCH_SIZE);
-      await Promise.allSettled(batch.map((uid) => persistPlayerState(uid)));
-    }
-
-    console.log("[playerState] ✅ Safety-net concluído.");
   } catch (err) {
-    console.error("[playerState] ❌ Erro no safety-net:", err.message);
+    console.error(`[playerState] ❌ Erro no ciclo de persistência:`, err.message);
   }
 }
 
 /**
- * Inicia o safety-net de persistência a cada 2 minutos.
- * O debounce de 3s é o mecanismo primário — este é o fallback para
- * casos onde o debounce não disparou (ex: servidor reiniciou).
+ * Inicia o ciclo de persistência Write-Behind.
  */
 function schedulePersistence() {
-  const INTERVAL_MS = 2 * 60 * 1000;
-  console.log(`[playerState] 🚀 Safety-net ativo (a cada ${INTERVAL_MS / 1000}s, staleness >${SAFETY_STALENESS_MS / 1000}s).`);
-  const t = setInterval(persistDirtyStates, INTERVAL_MS);
+  console.log(`[playerState] 🚀 Buffered Write-Behind Ativo (Flush a cada ${BATCH_FLUSH_INTERVAL / 1000}s).`);
+  const t = setInterval(async () => {
+    try {
+      await persistDirtyStates();
+    } catch (e) {
+      console.error("[worker] ❌ Ciclo Write-Behind falhou:", e.message);
+    }
+  }, BATCH_FLUSH_INTERVAL);
   if (t.unref) t.unref();
 }
 
