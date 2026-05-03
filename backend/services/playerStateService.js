@@ -757,22 +757,9 @@ async function updatePlayerState(userId, updates) {
       }
     }
 
-    // ── 6. Salva no DB IMEDIATAMENTE os dados processados (Bypass Seguro) ─────────
+    // ── 6. Salva no DB IMEDIATAMENTE (override do debounce) ─────────
     if (hasDBChange) {
-      try {
-        const updateKeys = Object.keys(updates).filter(k => DB_PERSIST_FIELDS.has(k) && newState[k] !== undefined);
-        if (updateKeys.length > 0) {
-          const setClauses = updateKeys.map((k, i) => `${k} = $${i + 1}`);
-          const vals = updateKeys.map(k => newState[k] === "" ? null : newState[k]);
-          vals.push(userId);
-          const q = `UPDATE user_profiles SET ${setClauses.join(", ")}, updated_at = CURRENT_TIMESTAMP WHERE user_id = $${vals.length}`;
-          await require("../config/database").query(q, vals);
-          await redisClient.hSetAsync(redisKey, { is_dirty: "0", is_dirty_at: "" });
-	        await redisClient.sRemAsync(DIRTY_PLAYERS_SET, String(userId));
-        }
-      } catch (err) {
-        console.error("[inline-persist] Erro ao persistir DB sincronamente:", err.message);
-      }
+      persistPlayerState(userId).catch(err => console.error("[debounce override] Erro ao persistir:", err.message));
     }
 
     return newState;
