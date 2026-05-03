@@ -552,22 +552,28 @@ async function getPlayerState(userId, { suppressRegenSSE = false } = {}) {
     // SÊNIOR: Executa Lazy Reset de Status se necessário
     if (finalState && finalState._status_expired) {
       delete finalState._status_expired;
+      // Dispara persistência assíncrona, mas atualiza o objeto de retorno IMEDIATAMENTE
       setPlayerStatus(userId, 'Operacional').catch(e => console.error("[statusReset] Falha:", e.message));
       finalState.status = 'Operacional';
       finalState.status_ends_at = null;
     }
 
-    // SÊNIOR: Lazy Training Completion
-    // Se o treinamento já terminou e NÃO está sendo processado pelo worker,
-    // completamos agora na leitura (robusto a worker crashes/delays)
+    // SÊNIOR: Lazy Training Completion (Zero-Cron & Synchronous for Caller)
+    // Se o treinamento já terminou, garantimos que o objeto retornado reflete a conclusão,
+    // resolvendo o erro de "Consumo restrito" imediatamente após o cronômetro zerar.
     if (finalState && finalState.training_ends_at && finalState.active_training_type) {
       const endsAt = new Date(finalState.training_ends_at);
       const uid = String(userId);
       if (!isNaN(endsAt.getTime()) && endsAt.getTime() <= Date.now() && !_inProgressCompletions.has(uid)) {
+        // Marcamos como Operacional localmente para o chamador imediato (ex: Supply Station)
+        // enquanto o processamento pesado de XP/Atributos ocorre no setImmediate.
+        finalState.status = 'Operacional';
+        finalState.training_ends_at = null;
+        finalState.active_training_type = null;
+
         _inProgressCompletions.add(uid);
         try {
           const trainingService = require("./trainingService");
-          // Executa assíncrono — SSE/Ranking atualizarão em ms após conclusion.
           setImmediate(async () => {
             try {
               await trainingService.completeTraining(uid);
