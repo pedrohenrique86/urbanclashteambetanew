@@ -867,9 +867,15 @@ async function persistPlayerState(userId) {
       const col = `"${k}"`;
       if (k === "status") return `${col} = $${i + 1}::player_status_type`;
       if (k.endsWith("_at")) return `${col} = $${i + 1}::timestamp`;
-      if (["level", "total_xp", "money", "energy", "action_points", "victories", "defeats", "winning_streak", "daily_training_count"].includes(k)) {
-        return `${col} = $${i + 1}::numeric`;
-      }
+      
+      const isNumeric = [
+        "level", "total_xp", "money", "energy", "action_points", 
+        "victories", "defeats", "winning_streak", "daily_training_count",
+        "attack", "defense", "focus", "luck", "intimidation", "discipline",
+        "critical_chance", "critical_damage", "toxicity"
+      ].includes(k);
+
+      if (isNumeric) return `${col} = $${i + 1}::numeric`;
       return `${col} = $${i + 1}`;
     });
 
@@ -976,9 +982,17 @@ async function _bulkPersistChunk(userIds) {
     const setClauses = fields.map(f => {
       if (f === "status") return `"${f}" = v."${f}"::player_status_type`;
       if (f.endsWith("_at")) return `"${f}" = v."${f}"::timestamp`;
-      if (["level", "total_xp", "money", "energy", "action_points", "victories", "defeats", "winning_streak", "daily_training_count"].includes(f)) {
-        return `"${f}" = v."${f}"::numeric`;
-      }
+      
+      // Lista exaustiva de campos numéricos para evitar erro de "expression is of type text"
+      const isNumeric = [
+        "level", "total_xp", "money", "energy", "action_points", 
+        "victories", "defeats", "winning_streak", "daily_training_count",
+        "attack", "defense", "focus", "luck", "intimidation", "discipline",
+        "critical_chance", "critical_damage", "toxicity"
+      ].includes(f);
+
+      if (isNumeric) return `"${f}" = v."${f}"::numeric`;
+      
       return `"${f}" = v."${f}"`;
     });
     
