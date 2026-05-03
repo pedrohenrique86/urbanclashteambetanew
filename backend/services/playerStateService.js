@@ -914,26 +914,31 @@ async function persistPlayerState(userId) {
  * Persiste todos os estados marcados como dirty a cada 3s.
  */
 async function persistDirtyStates() {
-  if (!redisClient.client.isReady) return;
+  if (!redisClient.client.isReady) {
+    setTimeout(persistDirtyStates, BATCH_FLUSH_INTERVAL);
+    return;
+  }
 
   try {
     const dirtyIds = await redisClient.sMembersAsync(DIRTY_PLAYERS_SET);
-    if (!dirtyIds || dirtyIds.length === 0) return;
-
-    console.log(`[playerState] 🔍 Ciclo de Persistência: ${dirtyIds.length} jogadores pendentes.`);
-
-    const CHUNK_SIZE = 50;
-    for (let i = 0; i < dirtyIds.length; i += CHUNK_SIZE) {
-      const chunk = dirtyIds.slice(i, i + CHUNK_SIZE);
-      await _bulkPersistChunk(chunk);
-    }
     
-    // Log apenas se o lote for significativo ou em modo debug explícito
-    if (dirtyIds.length > 10) {
-      console.log(`[playerState] 📦 Arquivado batch de ${dirtyIds.length} jogadores.`);
+    // Heartbeat log a cada ciclo (visível no terminal)
+    const time = new Date().toLocaleTimeString();
+    if (dirtyIds && dirtyIds.length > 0) {
+      console.log(`[playerState] 💓 [${time}] Ciclo de Persistência Ativo: ${dirtyIds.length} pendentes.`);
+      
+      const CHUNK_SIZE = 50;
+      for (let i = 0; i < dirtyIds.length; i += CHUNK_SIZE) {
+        const chunk = dirtyIds.slice(i, i + CHUNK_SIZE);
+        await _bulkPersistChunk(chunk);
+      }
     }
   } catch (err) {
     console.error(`[playerState] ❌ Erro no ciclo de persistência:`, err.message);
+  } finally {
+    // SÊNIOR: SEMPRE reagenda o próximo batimento, mesmo se houver erro crítico acima.
+    // Isso garante que a persistência NUNCA "morra" na produção.
+    setTimeout(persistDirtyStates, BATCH_FLUSH_INTERVAL);
   }
 }
 
