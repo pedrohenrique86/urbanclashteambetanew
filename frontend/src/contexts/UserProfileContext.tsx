@@ -175,6 +175,11 @@ export const UserProfileProvider = ({ children }: { children: ReactNode }) => {
   const isFetching = useRef(false);
   const cooldownUntil = useRef(0);
   const fetchedForUser = useRef<string | null>(null);
+  // SÊNIOR: Timestamp da última atualização recebida via SSE.
+  // Usado para evitar que um fetch HTTP subsequente sobrescreva estado correto
+  // com dados stale do banco (debounce de 3s ainda não persistiu).
+  const lastSSEUpdateRef = useRef<number>(0);
+  const SSE_FRESHNESS_WINDOW_MS = 4000; // 4s > debounce de 3s do backend
 
   const processProfileData = useCallback(
     (profileData: any, currentUser: any): UserProfile | null => {
@@ -312,9 +317,20 @@ export const UserProfileProvider = ({ children }: { children: ReactNode }) => {
   }, [user, fetchProfile]);
 
   const refreshProfile = useCallback(async () => {
+    // SÊNIOR: Se o SSE atualizou o estado recentemente (dentro da janela de
+    // proteção), o estado React já está correto e mais recente que o banco
+    // (debounce de 3s ainda pode estar pendente). Retornar sem fazer fetch
+    // evita o rollback de estado observado ao navegar entre páginas.
+    const msSinceSSE = Date.now() - lastSSEUpdateRef.current;
+    if (lastSSEUpdateRef.current > 0 && msSinceSSE < SSE_FRESHNESS_WINDOW_MS) {
+      if (import.meta.env.DEV) {
+        console.debug(`[refreshProfile] SSE recente (${msSinceSSE}ms atrás). Fetch ignorado para evitar rollback de estado.`);
+      }
+      return userProfile;
+    }
     fetchedForUser.current = null;
     return await fetchProfile();
-  }, [fetchProfile]);
+  }, [fetchProfile, userProfile]);
 
   const handleLogout = useCallback(() => {
     HUDCache.clear();
@@ -329,6 +345,9 @@ export const UserProfileProvider = ({ children }: { children: ReactNode }) => {
   // Quando o backend emite player:state, atualiza o React state IMEDIATAMENTE
   // sem nenhuma chamada HTTP adicional.
   const handlePlayerStateUpdate = useCallback((payload: PlayerStatePayload) => {
+    // Registra o timestamp da última atualização SSE para proteger contra
+    // fetches HTTP subsequentes que sobrescrevam estado correto com dados stale.
+    lastSSEUpdateRef.current = Date.now();
     setUserProfile((prev) => {
       const next = mergePlayerStateIntoProfile(prev, payload);
       if (next) writeProfileCache(next);
