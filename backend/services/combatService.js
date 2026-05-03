@@ -285,7 +285,7 @@ class CombatService {
 
       onlineIds.forEach((id, idx) => {
         // SÊNIOR FIX: v4 format
-        const state = redisResults[idx];
+        const state = redisStates[idx];
         if (state && Object.keys(state).length > 0) {
           const isEligible = 
             (state.status !== 'Recondicionamento' && state.status !== 'Isolamento') &&
