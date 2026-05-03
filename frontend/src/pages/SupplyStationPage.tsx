@@ -188,7 +188,7 @@ export default function SupplyStationPage() {
     } finally {
       setLoading(null);
     }
-  }, [cooldownEnd, showToast]);
+  }, [cooldownEnd, showToast, refreshProfile]);
 
   const handleAntidotePurchase = useCallback(async () => {
     setLoading("antidote");
@@ -201,7 +201,7 @@ export default function SupplyStationPage() {
     } finally {
       setLoading(null);
     }
-  }, [showToast]);
+  }, [showToast, refreshProfile]);
 
   const currentEnergy = Math.floor(userProfile?.energy || 0);
   const maxEnergy = Math.floor(userProfile?.max_energy || 100);
