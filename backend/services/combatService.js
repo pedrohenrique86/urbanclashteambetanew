@@ -63,14 +63,17 @@ function getNpcData(targetId, attacker) {
     hash |= 0;
   }
   
-  const attackerFaction = String(attacker.faction || '').toLowerCase();
+  // SÊNIOR: Blindagem contra dados corrompidos no Redis
+  const rawFaction = attacker?.faction || 'gangsters';
+  const attackerFaction = String(rawFaction).toLowerCase().trim();
+  
   let pool = [];
   let botFaction = "Neutral";
   
-  if (attackerFaction === 'guardioes' || attackerFaction === 'guardas') {
+  if (attackerFaction === 'guardioes' || attackerFaction === 'guardas' || attackerFaction.includes('guard')) {
     botFaction = "Renegados";
     pool = RENEGADO_BOT_NAMES;
-  } else if (attackerFaction === 'renegados' || attackerFaction === 'gangsters') {
+  } else if (attackerFaction === 'renegados' || attackerFaction === 'gangsters' || attackerFaction.includes('renegad')) {
     botFaction = "Guardiões";
     pool = GUARDIAO_BOT_NAMES;
   } else {
@@ -82,8 +85,9 @@ function getNpcData(targetId, attacker) {
   const name = isRare ? `[BOSS] ${rawName}` : `[BOT] ${rawName}`;
 
   // Deterministic level based on hash: level +/- 2
+  const attackerLevel = Number(attacker?.level || 10);
   const levelOff = (Math.abs(hash * 31) % 5) - 2; // -2 to +2
-  const level = Math.max(1, Number(attacker.level) + levelOff);
+  const level = Math.max(1, (isNaN(attackerLevel) ? 10 : attackerLevel) + levelOff);
 
   const isRenegado = botFaction.toLowerCase().includes("renegado") || botFaction.toLowerCase().includes("gangster");
   const isGuardiao = botFaction.toLowerCase().includes("guard") || botFaction.toLowerCase().includes("sentinela");
@@ -280,8 +284,16 @@ class CombatService {
     }
 
     // SÊNIOR: Trava de Nível para o Radar
-    if (Number(attacker.level || 1) < 10) {
+    const attackerLevel = Number(attacker?.level || 1);
+    if (attackerLevel < 10) {
+      console.warn(`[combat/radar] ⚠️ Bloqueio por nível: UID ${userId} tentou acessar com nível ${attackerLevel}`);
       throw new Error("Acesso negado: Você precisa atingir o nível 10 para operar o Rastreador Spectro.");
+    }
+
+    // SÊNIOR: Se o estado no Redis estiver capado, apenas ignoramos para performance.
+    // O auto-reparo acontece no getPlayerState, não aqui no loop de radar.
+    if (!attacker.username || !attacker.faction) {
+      console.warn(`[combat/radar] ⚠️ Estado incompleto no Redis para ${userId}. Ignorando processamento pesado.`);
     }
 
     const ONLINE_SET_KEY = "online_players_set";
