@@ -920,6 +920,8 @@ async function persistDirtyStates() {
     const dirtyIds = await redisClient.sMembersAsync(DIRTY_PLAYERS_SET);
     if (!dirtyIds || dirtyIds.length === 0) return;
 
+    console.log(`[playerState] 🔍 Ciclo de Persistência: ${dirtyIds.length} jogadores pendentes.`);
+
     const CHUNK_SIZE = 50;
     for (let i = 0; i < dirtyIds.length; i += CHUNK_SIZE) {
       const chunk = dirtyIds.slice(i, i + CHUNK_SIZE);
@@ -1007,17 +1009,24 @@ async function _bulkPersistChunk(userIds) {
 
     try {
       await query(sql, flatValues);
+      // console.log(`[playerState] ✅ Persistência de lote concluída com sucesso.`);
     } catch (dbErr) {
-      console.error(`[playerState] ❌ Erro crítico na persistência em lote (${toUpdate.length} jogadores):`, dbErr.message);
-      // Fallback: se o lote falhou, tentamos persistir um por um para não perder tudo
+      console.error(`[playerState] ❌ ERRO DE PRODUÇÃO NO LOTE:`, dbErr.message);
+      console.error(`[playerState] Detalhes da Query falha na primeira linha do lote:`, {
+        fields: fields,
+        sample_uid: toUpdate[0].uid,
+        sql: sql.substring(0, 500) + "..."
+      });
+      
+      // Fallback: Tentativa individual
       for (const item of toUpdate) {
         try {
           await persistPlayerState(item.uid);
         } catch (singleErr) {
-          console.error(`[playerState] ❌ Falha persistência individual fallback para ${item.uid}:`, singleErr.message);
+          console.error(`[playerState] ❌ Falha persistência individual (ID: ${item.uid}):`, singleErr.message);
         }
       }
-      return; // Interrompe para evitar limpeza indevida do dirty
+      return; 
     }
 
     // SÊNIOR: Limpeza atômica do is_dirty apenas se o dado não mudou durante a escrita (Optimistic Locking)
