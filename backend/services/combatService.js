@@ -109,9 +109,9 @@ function getNpcData(targetId, attacker) {
   return {
     username: name,
     level: level,
-    attack:  Math.max(1, attacker.attack  * atkMult),
-    defense: Math.max(1, attacker.defense * defMult),
-    focus:   Math.max(1, attacker.focus   * focMult),
+    attack:  Math.max(1, Math.round((Number(attacker.attack) || 1)  * atkMult)),
+    defense: Math.max(1, Math.round((Number(attacker.defense) || 1) * defMult)),
+    focus:   Math.max(1, Math.round((Number(attacker.focus) || 1)   * focMult)),
     intimidation: isRenegado ? 35.0 : 0.0,
     discipline: isGuardiao ? 40.0 : 0.0,
     energy: 100,
@@ -291,26 +291,41 @@ class CombatService {
     }
 
     // SÊNIOR: Se o estado no Redis estiver capado, apenas ignoramos para performance.
-    // O auto-reparo acontece no getPlayerState, não aqui no loop de radar.
     if (!attacker.username || !attacker.faction) {
       console.warn(`[combat/radar] ⚠️ Estado incompleto no Redis para ${userId}. Ignorando processamento pesado.`);
     }
 
     const ONLINE_SET_KEY = "online_players_set";
-    const rawIds = await redisClient.sRandMemberAsync(ONLINE_SET_KEY, 45);
-    const onlineIds = (rawIds || []).filter(id => id !== String(userId));
-
     let targets = [];
 
-    if (onlineIds.length > 0) {
-      const pipeline = redisClient.pipeline();
-      onlineIds.forEach(id => pipeline.hGetAll(`${playerStateService.PLAYER_STATE_PREFIX}${id}`));
-      const redisStates = await pipeline.exec();
+    // ── 1. Busca jogadores ONLINE no Redis ──────────────────────────────────────
+    // SÊNIOR FIX: Usa chamadas individuais com hGetAllAsync ao invés de
+    // redisClient.pipeline() (que é client.multi() — transação MULTI/EXEC).
+    // O MULTI/EXEC falha ATOMICAMENTE se qualquer comando interno retornar erro
+    // (ex: key com tipo errado, WRONGTYPE), crashando o radar inteiro.
+    // Chamadas individuais com try/catch isolam falhas por jogador.
+    try {
+      const rawIds = await redisClient.sRandMemberAsync(ONLINE_SET_KEY, 45);
+      const onlineIds = (rawIds || []).filter(id => id !== String(userId));
 
-      onlineIds.forEach((id, idx) => {
-        // SÊNIOR FIX: v4 format
-        const state = redisStates[idx];
-        if (state && Object.keys(state).length > 0) {
+      if (onlineIds.length > 0) {
+        const statePromises = onlineIds.map(async (id) => {
+          try {
+            const state = await redisClient.hGetAllAsync(`${playerStateService.PLAYER_STATE_PREFIX}${id}`);
+            return { id, state };
+          } catch (err) {
+            console.warn(`[combat/radar] ⚠️ Falha ao ler estado Redis de ${id}: ${err.message}`);
+            return { id, state: null };
+          }
+        });
+
+        const redisResults = await Promise.all(statePromises);
+
+        for (const { id, state } of redisResults) {
+          if (!state || Object.keys(state).length === 0) continue;
+          // Valida que o estado tem campos mínimos necessários
+          if (!state.username || !state.level) continue;
+
           const isEligible = 
             (state.status !== 'Recondicionamento' && state.status !== 'Isolamento') &&
             (!state.shield_ends_at || new Date(state.shield_ends_at) < new Date());
@@ -319,68 +334,82 @@ class CombatService {
             targets.push({
               id,
               level: Number(state.level || 1),
-              faction: state.faction,
+              faction: state.faction || 'Neutral',
               name: censorName(state.username),
               online: true,
               is_npc: false
             });
           }
         }
-      });
+      }
+    } catch (redisError) {
+      console.error(`[combat/radar] ⚠️ Falha na busca de jogadores online (Redis): ${redisError.message}`);
+      // Continua sem targets online — o fallback ao DB + NPCs cobre
     }
 
+    // ── 2. Fallback ao Banco de Dados se poucos targets ─────────────────────────
     if (targets.length < 5) {
-      const dbResult = await query(
-        `SELECT p.user_id, p.level, p.faction, u.username
-         FROM user_profiles p
-         JOIN users u ON p.user_id = u.id
-         WHERE p.user_id != $1
-           AND (p.status IS NULL OR (p.status != 'Recondicionamento' AND p.status != 'Isolamento'))
-           AND (p.shield_ends_at IS NULL OR p.shield_ends_at < NOW())
-         LIMIT 10`,
-        [userId]
-      );
-      
-      dbResult.rows.forEach(row => {
-        if (!targets.find(t => t.id === row.user_id)) {
-          targets.push({
-            id:      row.user_id,
-            level:   row.level,
-            faction: row.faction,
-            name:    censorName(row.username),
-            online:  false,
-            is_npc:  false
-          });
-        }
-      });
+      try {
+        const dbResult = await query(
+          `SELECT p.user_id, p.level, p.faction, u.username
+           FROM user_profiles p
+           JOIN users u ON p.user_id = u.id
+           WHERE p.user_id != $1
+             AND p.status NOT IN ('Recondicionamento', 'Isolamento')
+             AND (p.shield_ends_at IS NULL OR p.shield_ends_at < NOW())
+           ORDER BY RANDOM()
+           LIMIT 10`,
+          [userId]
+        );
+        
+        dbResult.rows.forEach(row => {
+          if (!targets.find(t => t.id === row.user_id)) {
+            targets.push({
+              id:      row.user_id,
+              level:   Number(row.level || 1),
+              faction: row.faction || 'Neutral',
+              name:    censorName(row.username),
+              online:  false,
+              is_npc:  false
+            });
+          }
+        });
+      } catch (dbError) {
+        console.error(`[combat/radar] ⚠️ Falha na busca de jogadores no DB: ${dbError.message}`);
+        // Continua sem targets do DB — NPCs cobrirão como fallback
+      }
     }
 
     targets = targets.slice(0, 20);
 
-    // Lógica de NPCs: Se houver < 5 targets, gerar NPCs
+    // ── 3. Geração de NPCs (fallback garantido) ─────────────────────────────────
     if (targets.length < 5) {
       const npcCount = 5 - targets.length;
       
       for (let i = 0; i < npcCount; i++) {
-        const isRare = Math.random() < 0.05; // HVT: 5% de chance
-        const npcId = `npc_${Math.random().toString(36).substr(2, 9)}${isRare ? '_rare' : ''}`;
-        const npcData = getNpcData(npcId, attacker);
+        try {
+          const isRare = Math.random() < 0.05; // HVT: 5% de chance
+          const npcId = `npc_${Math.random().toString(36).substr(2, 9)}${isRare ? '_rare' : ''}`;
+          const npcData = getNpcData(npcId, attacker);
 
-        const npc = {
-          id:      npcId,
-          level:   npcData.level,
-          faction: npcData.faction,
-          name:    npcData.username,
-          online:  true,
-          is_npc:  true,
-          is_rare: isRare
-        };
+          const npc = {
+            id:      npcId,
+            level:   npcData.level || attackerLevel,
+            faction: npcData.faction || 'Neutral',
+            name:    npcData.username || `[BOT] Unit_${i}`,
+            online:  true,
+            is_npc:  true,
+            is_rare: isRare
+          };
 
-        if (isRare) {
-          npc.expires_at = new Date(Date.now() + 60000).toISOString(); // 60 segundos
+          if (isRare) {
+            npc.expires_at = new Date(Date.now() + 60000).toISOString(); // 60 segundos
+          }
+
+          targets.push(npc);
+        } catch (npcError) {
+          console.error(`[combat/radar] ⚠️ Falha ao gerar NPC ${i}: ${npcError.message}`);
         }
-
-        targets.push(npc);
       }
     }
 

@@ -258,7 +258,10 @@ const requireMinLevel = (minLevel) => {
       next();
     } catch (error) {
       console.error("❌ Erro na verificação de nível mínimo:", error.message);
-      next();
+      return res.status(503).json({
+        error: "Erro temporário ao verificar nível. Tente novamente em instantes.",
+        code: "LEVEL_CHECK_FAILED"
+      });
     }
   };
 };

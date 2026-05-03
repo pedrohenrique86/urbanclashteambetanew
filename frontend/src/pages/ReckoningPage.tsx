@@ -205,7 +205,21 @@ export default function ReckoningPage() {
   const { userProfile, refreshProfile } = useUserProfile();
   const { showToast } = useToast();
   
-  const { data: targets, error, mutate } = useSWR("/combat/radar", combatService.getRadarTokens);
+  const playerLevel = userProfile?.level || 1;
+  const { data: targets, error, mutate, isValidating } = useSWR(
+    playerLevel >= 10 ? "/combat/radar" : null, 
+    combatService.getRadarTokens,
+    { 
+      revalidateOnFocus: false,
+      errorRetryCount: 3,
+      errorRetryInterval: 5000,
+      shouldRetryOnError: (err) => {
+        // Não retenta se for erro de negócio (403/400 com level insuficiente)
+        const status = err?.response?.status;
+        return status !== 403 && status !== 401;
+      }
+    }
+  );
   
   const [selectedTarget, setSelectedTarget] = useState<RadarTarget | null>(null);
   const [preCalc, setPreCalc] = useState<PreCombatInfo | null>(null);
@@ -677,7 +691,19 @@ export default function ReckoningPage() {
                  </div>
                )}
                {error && (
-                 <p className="text-center text-red-400 py-10 font-mono">Erro ao varrer a rede por alvos.</p>
+                 <div className="text-center py-10 border border-red-500/30 bg-red-500/5" style={MILITARY_CLIP}>
+                   <ExclamationTriangleIcon className="w-10 h-10 text-red-500 mx-auto mb-3" />
+                   <p className="font-mono text-red-400 text-sm mb-1">Erro ao varrer a rede por alvos.</p>
+                   <p className="font-mono text-red-500/60 text-[10px] mb-4 uppercase">{error?.response?.data?.error || error?.message || 'Falha na conexão com o servidor.'}</p>
+                   <button 
+                     onClick={() => mutate()} 
+                     disabled={isValidating}
+                     className="px-6 py-2 bg-red-500/10 border border-red-500/40 text-red-400 text-[10px] font-black uppercase tracking-widest hover:bg-red-500/20 transition-all disabled:opacity-50"
+                     style={MILITARY_CLIP}
+                   >
+                     {isValidating ? 'REESCANEANDO...' : 'REESCANEAR REDE'}
+                   </button>
+                 </div>
                )}
                {targets && targets.length === 0 && (
                  <div className="text-center py-20 border border-slate-800 bg-black/40">

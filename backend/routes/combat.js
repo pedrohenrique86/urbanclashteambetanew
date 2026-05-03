@@ -13,7 +13,13 @@ router.get("/radar", authenticateToken, requireMinLevel(10), async (req, res) =>
     res.json(targets);
   } catch (error) {
     console.error("[combat/radar] ❌ Erro:", error.message, error.stack);
-    res.status(400).json({ error: error.message });
+    // Erros de negócio (ex: nível insuficiente, estado não encontrado) → 400
+    // Erros de infraestrutura (Redis/DB crash) → 500
+    const isBusinessError = error.message?.includes("Acesso negado") 
+      || error.message?.includes("estado de jogador")
+      || error.message?.includes("nível 10");
+    const status = isBusinessError ? 400 : 500;
+    res.status(status).json({ error: error.message || "Erro interno ao carregar radar." });
   }
 });
 
