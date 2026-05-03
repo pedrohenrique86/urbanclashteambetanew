@@ -680,7 +680,8 @@ async function updatePlayerState(userId, updates, options = {}) {
             new Date().toISOString(),
             nowMs,
             DIRTY_PLAYERS_SET,
-            String(userId)
+            String(userId),
+            "0" // isSilent=false para vir pro banco
           ]);
         } else if (key === "toxicity") {
           // Usa LUA para toxicidade (cap 100)
@@ -691,7 +692,8 @@ async function updatePlayerState(userId, updates, options = {}) {
             "", "", // sem campo extra de timestamp
             nowMs,
             DIRTY_PLAYERS_SET,
-            String(userId)
+            String(userId),
+            "0" // isSilent=false
           ]);
         } else if (!Number.isInteger(value)) {
           pipeline.hIncrByFloat(redisKey, key, value);
@@ -735,8 +737,9 @@ async function updatePlayerState(userId, updates, options = {}) {
     // Marca dirty apenas para campos que precisam ir ao banco
     if (hasDBChange) {
       const now = String(Date.now());
+      console.log(`[playerState] 🛠️ Marcando ${userId} como DIRTY (DB_CHANGE detectado)`);
       pipeline.hSet(redisKey, "is_dirty", "1");
-      pipeline.hSet(redisKey, "is_dirty_at", now);  // timestamp para o safety-net
+      pipeline.hSet(redisKey, "is_dirty_at", now);
       pipeline.sAdd(DIRTY_PLAYERS_SET, String(userId));
     }
 
@@ -950,6 +953,7 @@ async function _bulkPersistChunk(userIds) {
 
   if (toUpdate.length === 0) return;
 
+  console.log(`[playerState] 💾 Iniciando persistência de ${toUpdate.length} jogadores para Postgres...`);
   try {
     const valuePlaceholders = [];
     const flatValues = [];
