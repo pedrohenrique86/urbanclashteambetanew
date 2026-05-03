@@ -269,7 +269,13 @@ async function _checkAndResetTrainingCount(userId, redisKey, state) {
  * Lazy Reset de Energia (Regeneração Passiva).
  * +1% (1 ponto) a cada 3 minutos (configurado em gameLogic).
  */
-async function _checkAndRegenEnergy(userId, redisKey, state) {
+/**
+ * @param {boolean} [suppressSSE=false] - Quando true, suprime a emissão de SSE.
+ *   DEVE ser true quando chamado a partir de updatePlayerState para evitar que
+ *   a regen emita um SSE com version > do que o SSE da própria ação, fazendo
+ *   o frontend aplicar energia stale e reverter o estado da compra/combate.
+ */
+async function _checkAndRegenEnergy(userId, redisKey, state, suppressSSE = false) {
   const now = Date.now();
   
   // SÊNIOR: Validação de Timestamp. Redis pode retornar "" ou "null".
@@ -331,14 +337,19 @@ async function _checkAndRegenEnergy(userId, redisKey, state) {
       p.sAdd(DIRTY_PLAYERS_SET, String(userId));
       await p.exec();
 
-      // Emite SSE para feedback visual imediato
-      sseService.publish(`player:${userId}`, "player:state", {
-        type: "player:patch",
-        patch: { energy: Math.floor(newEnergy) },
-        version: _nextVersion(userId)
-      });
+      // SÊNIOR: Suprime SSE quando chamado internamente pelo updatePlayerState.
+      // Se não suprimido, a regen emitiria um SSE com version MAIOR que o SSE da
+      // ação (ex: compra de suprimento), fazendo o frontend aceitar energia stale
+      // e revertendo o estado correto -- esse era o bug do supply station.
+      if (!suppressSSE) {
+        sseService.publish(`player:${userId}`, "player:state", {
+          type: "player:patch",
+          patch: { energy: Math.floor(newEnergy) },
+          version: _nextVersion(userId)
+        });
+      }
 
-      console.log(`[energy] ⚡ +${actualGained} energia regenerada para ${userId} (${cycles} ciclos)`);
+      console.log(`[energy] ⚡ +${actualGained} energia regenerada para ${userId} (${cycles} ciclos)${suppressSSE ? ' [SSE suprimido — updatePlayerState em progresso]' : ''}`);
       return true;
     } else {
       await redisClient.hSetAsync(redisKey, "energy_updated_at", new Date(now).toISOString());
@@ -515,7 +526,7 @@ async function loadPlayerState(userId) {
  * Obtém o estado atual de um jogador — sempre do Redis.
  * Fallback ao banco apenas em cache miss.
  */
-async function getPlayerState(userId) {
+async function getPlayerState(userId, { suppressRegenSSE = false } = {}) {
   if (!redisClient.client.isReady) return null;
 
   const redisKey = `${PLAYER_STATE_PREFIX}${userId}`;
@@ -528,9 +539,11 @@ async function getPlayerState(userId) {
     _checkAndResetAP(userId, redisKey, state).catch(e => console.error("[apReset] Falha:", e.message));
     _checkAndResetTrainingCount(userId, redisKey, state).catch(e => console.error("[trainingReset] Falha:", e.message));
     
-    // SÊNIOR: Regeneração de Energia
+    // SÊNIOR: Regeneração de Energia.
+    // suppressRegenSSE=true quando chamado de updatePlayerState para evitar que
+    // a regen emita um SSE com version maior antes do SSE da ação principal.
     if (state) {
-      await _checkAndRegenEnergy(userId, redisKey, state).catch(e => console.error("[energyRegen] Falha:", e.message));
+      await _checkAndRegenEnergy(userId, redisKey, state, suppressRegenSSE).catch(e => console.error("[energyRegen] Falha:", e.message));
     }
 
     // Relê do Redis caso a regeneração ou resets tenham alterado valores
@@ -673,8 +686,11 @@ async function updatePlayerState(userId, updates) {
     await _checkAndResetTrainingCount(userId, redisKey);
 
     // ── 3. Renova TTL e lê estado ────────────────────────────────────────────────
+    // SÊNIOR: suppressRegenSSE=true impede que _checkAndRegenEnergy emita SSE
+    // com version incrementada ANTES do SSE desta própria ação, o que causaria
+    // o frontend aceitar energia stale e reverter o estado (bug supply station).
     await redisClient.expireAsync(redisKey, PLAYER_STATE_TTL);
-    let newState = await getPlayerState(userId);
+    let newState = await getPlayerState(userId, { suppressRegenSSE: true });
     if (!newState) return null;
 
     // ── 4. Lógica de NÍVEL DINÂMICO (Prestígio) ──────────────────────────────────
