@@ -574,25 +574,14 @@ router.put(
 
       updateValues.push(req.user.id);
 
-      const result = await query(
-        `
-        UPDATE user_profiles
-        SET ${updateFields.join(", ")}, updated_at = CURRENT_TIMESTAMP
-        WHERE user_id = $${paramCount}
-        `,
-        updateValues,
-      );
+      const newState = await playerStateService.updatePlayerState(req.user.id, updateData);
 
-      if (result.rowCount === 0) {
+      if (!newState) {
         return res.status(404).json({ error: "Perfil não encontrado" });
       }
 
-      const updatedProfile = await query(`SELECT * FROM user_profiles WHERE user_id = $1`, [req.user.id]);
-
-      await invalidatePlayerCache(req.user.id);
       await refreshUserRankingCaches();
-
-      const converted = convertProfileData(updatedProfile.rows[0]);
+      const converted = convertProfileData(newState);
       res.json(converted);
     } catch (error) {
       console.error("❌ Erro ao atualizar perfil do usuário:", error.message);

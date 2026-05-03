@@ -50,13 +50,13 @@ const DB_PERSIST_FIELDS = new Set([
   "attack", "defense", "focus", "luck",
   "critical_chance", "critical_damage",
   "intimidation", "discipline",
-  "money",
+  "money", "display_name", "bio", "avatar_url", "faction", "faction_id",
   "victories", "defeats", "winning_streak",
   "status", "status_ends_at",
-  "recovery_ends_at", "shield_ends_at",   // campos de PvP — persistidos para sobreviver restart/cache miss
+  "recovery_ends_at", "shield_ends_at",
   "training_ends_at", "daily_training_count", "last_training_reset", "active_training_type",
   "energy", "action_points", "last_ap_reset",
-  "energy_updated_at", "toxicity"
+  "energy_updated_at", "toxicity", "premium_coins", "login_streak"
 ]);
 
 // ─── Dirty TIPO 2: campos voláteis (NÃO persistem no safety-net, só via debounce
@@ -285,17 +285,12 @@ async function _checkAndRegenEnergy(userId, redisKey, state, suppressSSE = false
     return false;
   } else {
     lastUpdate = new Date(state.energy_updated_at).getTime();
-    // Proteção contra data inválida que trava regeneração
     if (isNaN(lastUpdate)) {
-      console.error(`[energy] ⚠️ Data inválida para ${userId}: ${state.energy_updated_at}. Resetando.`);
       lastUpdate = now;
       await redisClient.hSetAsync(redisKey, "energy_updated_at", new Date(now).toISOString());
       return false;
     }
-    // CRÍTICO: Proteção contra timestamp no FUTURO (skew de relógio / bug)
     if (lastUpdate > now) {
-      const skewSeconds = Math.round((lastUpdate - now) / 1000);
-      console.warn(`[energy] ⚠️ Timestamp no FUTURO para ${userId} (skew: +${skewSeconds}s). Resetando para agora.`);
       lastUpdate = now;
       await redisClient.hSetAsync(redisKey, "energy_updated_at", new Date(now).toISOString());
       return false;
@@ -308,18 +303,20 @@ async function _checkAndRegenEnergy(userId, redisKey, state, suppressSSE = false
     const cycles = Math.floor((now - lastUpdate) / rateMs);
     const maxEnergy = Math.floor(Number(state.max_energy || 100));
     
-    // SÊNIOR: Relê a energia atual DIRETO do Redis antes de calcular a regen
-    // para minimizar a janela de race condition com updatePlayerState (comer/combate).
+    // Relê a energia atual DIRETO do Redis
     const currentEnergyStr = await redisClient.hGetAsync(redisKey, "energy");
     const currentEnergy = Math.floor(Number(currentEnergyStr || 0));
 
-    // Se já estiver no máximo, apenas empurra o timestamp para o 'agora'
     if (currentEnergy >= maxEnergy) {
+      // Se já está cheio, apenas empurra o timestamp para o 'agora' para não acumular ciclos infinitos
       await redisClient.hSetAsync(redisKey, "energy_updated_at", new Date(now).toISOString());
       return false;
     }
 
-    const energyToAdd = cycles * Math.floor(gameLogic.ENERGY.REGEN_AMOUNT || 1);
+    // Calcula 1% da energia máxima por ciclo (mínimo 1 unidade)
+    const pctAmount = Math.max(1, Math.floor(maxEnergy * 0.01));
+    const energyToAdd = cycles * pctAmount;
+    
     const newEnergy = Math.min(maxEnergy, currentEnergy + energyToAdd);
     const actualGained = newEnergy - currentEnergy;
 
@@ -327,7 +324,6 @@ async function _checkAndRegenEnergy(userId, redisKey, state, suppressSSE = false
       const newLastUpdateMs = lastUpdate + (cycles * rateMs);
       const newLastUpdateStr = new Date(newLastUpdateMs).toISOString();
 
-      // USA PIPELINE para garantir atomicidade entre o set de energia e o timestamp
       const p = redisClient.pipeline();
       p.hSet(redisKey, "energy", String(Math.floor(newEnergy)));
       p.hSet(redisKey, "energy_updated_at", newLastUpdateStr);
@@ -336,10 +332,6 @@ async function _checkAndRegenEnergy(userId, redisKey, state, suppressSSE = false
       p.sAdd(DIRTY_PLAYERS_SET, String(userId));
       await p.exec();
 
-      // SÊNIOR: Suprime SSE quando chamado internamente pelo updatePlayerState.
-      // Se não suprimido, a regen emitiria um SSE com version MAIOR que o SSE da
-      // ação (ex: compra de suprimento), fazendo o frontend aceitar energia stale
-      // e revertendo o estado correto -- esse era o bug do supply station.
       if (!suppressSSE) {
         sseService.publish(`player:${userId}`, "player:state", {
           type: "player:patch",
@@ -348,7 +340,7 @@ async function _checkAndRegenEnergy(userId, redisKey, state, suppressSSE = false
         });
       }
 
-      console.log(`[energy] ⚡ +${actualGained} energia regenerada para ${userId} (${cycles} ciclos)${suppressSSE ? ' [SSE suprimido — updatePlayerState em progresso]' : ''}`);
+      console.log(`[energy] ⚡ +${actualGained} energia regenerada (1%/ciclo) para ${userId} (${cycles} ciclos)`);
       return true;
     } else {
       await redisClient.hSetAsync(redisKey, "energy_updated_at", new Date(now).toISOString());
@@ -613,7 +605,7 @@ async function getPlayerState(userId, { suppressRegenSSE = false } = {}) {
  * @param {object} updates  Ex: { experience_points: 50, energy: -10 }
  * @returns {Promise<object|null>}
  */
-async function updatePlayerState(userId, updates) {
+async function updatePlayerState(userId, updates, options = {}) {
   if (!redisClient.client.isReady || !updates || Object.keys(updates).length === 0) {
     return null;
   }
@@ -635,9 +627,18 @@ async function updatePlayerState(userId, updates) {
       updates.energy_updated_at = new Date().toISOString();
     }
 
+    const maxEnergy = Math.floor(Number(await redisClient.hGetAsync(redisKey, "max_energy") || 100));
+
     for (const [key, value] of Object.entries(updates)) {
       if (typeof value === "number") {
-        if (!Number.isInteger(value)) {
+        if (key === "energy") {
+          // SÊNIOR: Gatilho de Segurança para Energia
+          // Lemos o valor atual direto (atomicidade não é crítica aqui, mas o cap é)
+          const currentEnergy = Math.floor(Number(await redisClient.hGetAsync(redisKey, "energy") || 0));
+          const energyToAdd = value;
+          const newEnergy = Math.min(maxEnergy, Math.max(0, currentEnergy + energyToAdd));
+          pipeline.hSet(redisKey, "energy", String(newEnergy));
+        } else if (!Number.isInteger(value)) {
           pipeline.hIncrByFloat(redisKey, key, value);
         } else {
           pipeline.hIncrBy(redisKey, key, value);
@@ -762,9 +763,11 @@ async function updatePlayerState(userId, updates) {
       }
     }
 
-    // ── 6. Enfileira Persistência de Baixo Custo (DEBOUNCE Assíncrono) ─────────
-    // SÊNIOR: O Write-Behind agora é gerido pelo Cycle Worker global (3s).
-    // A flag is_dirty já foi setada na pipeline do Redis.
+    // Persistência Imediata (Opcional para ações críticas como Comer/Treinar)
+    if (options.forcePersist) {
+      console.log(`[playerState] 💾 Persistência imediata solicitada para ${userId}`);
+      await persistPlayerState(userId);
+    }
     
     return newState;
   } catch (err) {

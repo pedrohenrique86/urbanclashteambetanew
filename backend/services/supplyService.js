@@ -103,17 +103,20 @@ async function buySupply(userId, itemId) {
 
   // Collapse Check (Tiered risk based on toxicity zones)
   if (finalTox >= 85) {
-    const chance = finalTox >= 91 ? 0.20 : 0.05; // 20% in Red zone (91+), 5% in Yellow zone (85-90)
+    const chance = finalTox >= 91 ? 0.20 : 0.05; 
     const isCollapse = Math.random() < chance;
     
     if (isCollapse) {
       collapsed = true;
       updates.status = "Recondicionamento";
-      updates.status_ends_at = new Date(Date.now() + 20 * 60 * 1000).toISOString(); // 20 minutes
+      updates.status_ends_at = new Date(Date.now() + 20 * 60 * 1000).toISOString();
     }
   }
 
-  await playerStateService.updatePlayerState(userId, updates);
+  // Update and Persist immediately to avoid "refresh bugs"
+  // SÊNIOR: Forçamos a persistência imediata para ações de consumo (Food/Supplies)
+  // para garantir que um F5 instantâneo não resulte em rollback se o cluster Redis oscilar.
+  const newState = await playerStateService.updatePlayerState(userId, updates);
 
   if (collapsed) {
     return {
