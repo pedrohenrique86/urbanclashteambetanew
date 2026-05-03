@@ -632,6 +632,32 @@ async function updatePlayerState(userId, updates) {
       if (RANKING_FIELDS.has(key)) hasCritical  = true;
     }
 
+    // SÊNIOR: Validação e Histórico de Status
+    // Se o status está sendo alterado via update geral (combate/treino), 
+    // garantimos que as regras de transição e o log de banco sejam respeitados.
+    if ("status" in updates) {
+      const rawCurrent = await redisClient.hGetAsync(redisKey, "status");
+      const currentStatus = rawCurrent || 'Operacional';
+      const newStatus = updates.status;
+
+      if (currentStatus !== newStatus) {
+        const validNext = VALID_TRANSITIONS[currentStatus] || [];
+        // SEGAURANÇA: Se a transição for inválida (ex: tentando sair do Isolamento via combate)
+        // ignoramos a mudança de status mas permitimos o resto do update (XP, etc).
+        if (!validNext.includes(newStatus)) {
+          console.warn(`[status] ⚠️ Mudança de status bloqueada via updatePlayerState: ${currentStatus} -> ${newStatus}`);
+          delete updates.status;
+          delete updates.status_ends_at;
+          // Remove da pipeline se já foi adicionado
+          pipeline.hDel(redisKey, "status"); 
+          pipeline.hDel(redisKey, "status_ends_at");
+        } else {
+          // Status Válido -> Grava Log (Execução Assíncrona para não travar o loop de combate)
+          _recordStatusLog(userId, newStatus).catch(e => console.error("[statusLog] Erro:", e.message));
+        }
+      }
+    }
+
     // Marca dirty apenas para campos que precisam ir ao banco
     if (hasDBChange) {
       const now = String(Date.now());
@@ -1041,6 +1067,30 @@ async function regenEnergyForPlayer(userId) {
   await _checkAndRegenEnergy(userId, redisKey, state).catch(e =>
     console.error(`[energy] ❌ regenEnergyForPlayer(${userId}):`, e.message)
   );
+}
+
+/**
+ * Registra a transição de status no histórico do banco de dados PostgreSQL.
+ * @param {string} userId 
+ * @param {string} newStatus 
+ */
+async function _recordStatusLog(userId, newStatus) {
+  try {
+    // 1. Encerra o log anterior
+    await query(`
+      UPDATE player_status_logs 
+      SET ended_at = NOW() 
+      WHERE user_id = $1 AND ended_at IS NULL
+    `, [userId]);
+
+    // 2. Cria o novo registro
+    await query(`
+      INSERT INTO player_status_logs (user_id, status, started_at) 
+      VALUES ($1, $2, NOW())
+    `, [userId, newStatus]);
+  } catch (err) {
+    console.error("[statusLog] ❌ Erro ao salvar histórico:", err.message);
+  }
 }
 
 module.exports = {

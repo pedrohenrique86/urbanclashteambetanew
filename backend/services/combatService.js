@@ -292,7 +292,7 @@ class CombatService {
        JOIN users u ON p.user_id = u.id
        WHERE p.user_id != $1
          AND p.level >= $2 AND p.level <= $3
-         AND (p.status IS NULL OR p.status != 'Recondicionamento')
+         AND (p.status IS NULL OR (p.status != 'Recondicionamento' AND p.status != 'Isolamento'))
          AND (p.recovery_ends_at IS NULL OR p.recovery_ends_at < NOW())
          AND (p.shield_ends_at IS NULL OR p.shield_ends_at < NOW())
          ${factionFilterQuery}
@@ -384,6 +384,10 @@ class CombatService {
       throw new Error("Você precisa estar no nível 10 para acessar o Acerto de Contas.");
     if (Number(attacker.energy || 0) < 50)
       throw new Error("Energia insuficiente (requer 50% para iniciar protocolo de combate).");
+    if (attacker.status === "Isolamento")
+      throw new Error("Você está em isolamento e não pode acessar a rede de combate.");
+    if (attacker.status === "Recondicionamento")
+      throw new Error("Seu sistema ainda está em recondicionamento.");
     if (Number(attacker.action_points || 0) < 300)
       throw new Error("Pontos de Ação (PA) insuficientes (requer 300 PA).");
     
