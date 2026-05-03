@@ -338,29 +338,16 @@ export default function ReckoningPage() {
       
       const result = await combatService.attack(selectedTarget.id);
       
-      // Inicializa HP bars
-      // Inicializa HP bars (Estimativa inicial baseada nos níveis e atributos conhecidos)
-      const getEstimate = (lvl: number, def: number, atk: number, foc: number, fac: string) => {
-        const totalStats = atk + def + foc;
-        let h = 100 + (lvl * 15) + (def * 10) + (totalStats * 4);
-        const f = fac.toLowerCase();
-        if (f.includes("guard")) h *= 1.25;
-        else if (f.includes("reneg") || f.includes("gang")) h *= 0.9;
-        return Math.round(h);
-      };
-      
-      const pTotal = (userProfile?.attack || 0) + (userProfile?.defense || 0) + (userProfile?.focus || 0);
-      const estTgtAtk = selectedTarget?.level ? selectedTarget.level * 20 : 20;
-      const estTgtDef = selectedTarget?.level ? selectedTarget.level * 20 : 20;
-      const estTgtFoc = selectedTarget?.level ? selectedTarget.level * 20 : 20;
-
-      const pInitialMax = getEstimate(userProfile?.level || 1, userProfile?.defense || 0, userProfile?.attack || 0, userProfile?.focus || 0, String(userProfile?.faction || ""));
-      const tInitialMax = getEstimate(selectedTarget?.level || 1, estTgtDef, estTgtAtk, estTgtFoc, String(preCalc?.targetInfo.faction || ""));
+      // Sincroniza HP real vindo do pré-cálculo para evitar discrepâncias visuais
+      const pInitialHP = preCalc?.playerInfo?.hp || 1000;
+      const pInitialMax = preCalc?.playerInfo?.maxHP || 1000;
+      const tInitialHP = preCalc?.targetInfo?.hp || 1000;
+      const tInitialMax = preCalc?.targetInfo?.maxHP || 1000;
       
       setCombatHP({
-        pHP: pInitialMax,
+        pHP: pInitialHP,
         pMax: pInitialMax,
-        tHP: tInitialMax,
+        tHP: tInitialHP,
         tMax: tInitialMax
       });
       

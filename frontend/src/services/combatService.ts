@@ -17,6 +17,12 @@ export interface PreCombatInfo {
     level: number;
     faction: string;
     name: string;
+    hp: number;
+    maxHP: number;
+  };
+  playerInfo: {
+    hp: number;
+    maxHP: number;
   };
 }
 

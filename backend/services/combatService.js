@@ -429,13 +429,21 @@ class CombatService {
     if (!attacker || !defender) throw new Error("Jogadores indisponíveis.");
 
     const defLevel = Number(defender.level || 1);
+    const pMaxHP = gameLogic.calculateMaxHP(attacker);
+    const tMaxHP = gameLogic.calculateMaxHP(defender);
 
     return {
       spectroHint: spectroEngine.generateSpectroTalk("detection"),
       targetInfo: {
         level:   defLevel,
         faction: defender.faction,
-        name:    censorName(defender.username)
+        name:    censorName(defender.username),
+        hp:      tMaxHP,
+        maxHP:   tMaxHP
+      },
+      playerInfo: {
+        hp:      pMaxHP,
+        maxHP:   pMaxHP
       }
     };
   }
