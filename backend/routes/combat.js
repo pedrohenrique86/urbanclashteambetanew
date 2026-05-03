@@ -1,13 +1,13 @@
 const express = require("express");
 const router = express.Router();
-const { authenticateToken } = require("../middleware/auth");
+const { authenticateToken, requireMinLevel } = require("../middleware/auth");
 const combatService = require("../services/combatService");
 
 /**
  * @route GET /api/combat/radar
  * @desc Get nearby targets for PvP
  */
-router.get("/radar", authenticateToken, async (req, res) => {
+router.get("/radar", authenticateToken, requireMinLevel(10), async (req, res) => {
   try {
     const targets = await combatService.getRadarTargets(req.user.id);
     res.json(targets);
@@ -21,7 +21,7 @@ router.get("/radar", authenticateToken, async (req, res) => {
  * @route GET /api/combat/precalc/:targetId
  * @desc Gives hint from Spectro and target context before confirming attack
  */
-router.get("/precalc/:targetId", authenticateToken, async (req, res) => {
+router.get("/precalc/:targetId", authenticateToken, requireMinLevel(10), async (req, res) => {
   try {
     const info = await combatService.getPreCombatStatus(req.user.id, req.params.targetId);
     res.json(info);
@@ -35,7 +35,7 @@ router.get("/precalc/:targetId", authenticateToken, async (req, res) => {
  * @route POST /api/combat/attack/:targetId
  * @desc Execute the attack
  */
-router.post("/attack/:targetId", authenticateToken, async (req, res) => {
+router.post("/attack/:targetId", authenticateToken, requireMinLevel(10), async (req, res) => {
   try {
     const result = await combatService.executeAttack(req.user.id, req.params.targetId);
     res.json(result);

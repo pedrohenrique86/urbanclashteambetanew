@@ -226,11 +226,49 @@ const requireOperational = async (req, res, next) => {
   }
 };
 
+/**
+ * Middleware para exigir um nível mínimo para acessar um recurso.
+ * @param {number} minLevel 
+ */
+const requireMinLevel = (minLevel) => {
+  return async (req, res, next) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ error: "Autenticação requerida" });
+      }
+
+      // Admins ignoram nível (para testes)
+      if (req.user.is_admin) return next();
+
+      const playerStateService = require("../services/playerStateService");
+      const state = await playerStateService.getPlayerState(req.user.id);
+      
+      const level = Number(state?.level || 1);
+
+      if (level < minLevel) {
+        return res.status(403).json({
+          error: "Acesso bloqueado",
+          message: `Você precisa atingir o nível ${minLevel} para acessar este recurso.`,
+          currentLevel: level,
+          minLevel: minLevel,
+          code: "LEVEL_INSUFFICIENT"
+        });
+      }
+
+      next();
+    } catch (error) {
+      console.error("❌ Erro na verificação de nível mínimo:", error.message);
+      next();
+    }
+  };
+};
+
 module.exports = {
   authenticateToken,
   optionalAuth,
   requireAdmin,
   requireOperational,
+  requireMinLevel,
   requireOwnership,
   generateToken,
   createSession,

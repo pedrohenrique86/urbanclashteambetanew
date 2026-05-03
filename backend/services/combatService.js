@@ -279,6 +279,11 @@ class CombatService {
       throw new Error("Não foi possível carregar seu estado de jogador. Tente novamente em instantes.");
     }
 
+    // SÊNIOR: Trava de Nível para o Radar
+    if (Number(attacker.level || 1) < 10) {
+      throw new Error("Acesso negado: Você precisa atingir o nível 10 para operar o Rastreador Spectro.");
+    }
+
     const ONLINE_SET_KEY = "online_players_set";
     const rawIds = await redisClient.sRandMemberAsync(ONLINE_SET_KEY, 45);
     const onlineIds = (rawIds || []).filter(id => id !== String(userId));

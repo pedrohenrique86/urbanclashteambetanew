@@ -61,6 +61,11 @@ interface NavItem {
   subItems?: SubMenuItem[];
 }
 
+// SÊNIOR: Mapa centralizado de requisitos de nível para o sidebar
+const LEVEL_REQUIREMENTS: Record<string, number> = {
+  "/reckoning": 10,
+};
+
 // Nova estrutura de dados do menu
 export const navItems: NavItem[] = [
   {
@@ -232,6 +237,9 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = React.memo(({
   const playerStatus = useMemo(() => userProfile?.status || 'Operacional', [userProfile?.status]);
 
   const isPathBlocked = useCallback((path: string) => {
+    const levelReq = LEVEL_REQUIREMENTS[path];
+    if (levelReq && (userProfile?.level || 1) < levelReq) return true;
+
     if (playerStatus === 'Operacional' || playerStatus === 'Sangrando') return false;
 
     const whitelist = [
@@ -249,7 +257,7 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = React.memo(({
     if (playerStatus === 'Aprimoramento') whitelist.push('/training');
 
     return !whitelist.some(p => path === p || path.startsWith(p + '/'));
-  }, [playerStatus]);
+  }, [playerStatus, userProfile?.level]);
 
   const [isCollapsed, setIsCollapsed] = useState(() => {
     try {
