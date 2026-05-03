@@ -82,7 +82,7 @@ export default function TrainingPage() {
     setLoading(type);
     try {
       await trainingService.startTraining(type);
-      showToast("TREINAMENTO INICIADO COM SUCESSO!", "success");
+      showToast("Treinamento iniciado!", "success");
       await refreshProfile();
     } catch (err: any) {
       showToast(err.response?.data?.error || err.message, "error");
