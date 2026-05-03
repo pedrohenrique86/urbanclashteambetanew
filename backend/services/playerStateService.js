@@ -30,6 +30,21 @@ const gameLogic   = require("../utils/gameLogic");
 // Removida dependência externa luxon para evitar crash; usando Intl nativo
 
 // ─── Constantes ──────────────────────────────────────────────────────────────────
+const _debounceTimers = new Map();
+
+function _scheduleDebounce(userId) {
+  if (_debounceTimers.has(userId)) {
+    clearTimeout(_debounceTimers.get(userId));
+  }
+  const timer = setTimeout(() => {
+    _debounceTimers.delete(userId);
+    persistPlayerState(userId).catch(err => {
+      console.error(`[playerState] ❌ Erro no debounce persist para ${userId}:`, err.message);
+    });
+  }, DEBOUNCE_MS);
+  _debounceTimers.set(userId, timer);
+}
+
 const PLAYER_STATE_PREFIX   = "playerState:";
 module.exports.PLAYER_STATE_PREFIX = PLAYER_STATE_PREFIX;
 const RANKING_ZSET_KEY      = "ranking:users:zset";
@@ -757,9 +772,9 @@ async function updatePlayerState(userId, updates) {
       }
     }
 
-    // ── 6. Salva no DB IMEDIATAMENTE (override do debounce) ─────────
+    // ── 6. Enfileira Persistência de Baixo Custo (DEBOUNCE Assíncrono) ─────────
     if (hasDBChange) {
-      persistPlayerState(userId).catch(err => console.error("[debounce override] Erro ao persistir:", err.message));
+      _scheduleDebounce(userId);
     }
 
     return newState;
@@ -780,6 +795,7 @@ async function persistPlayerState(userId) {
   const playerState = await redisClient.hGetAllAsync(redisKey);
 
   if (!playerState || playerState.is_dirty !== "1") return;
+  const loadedDirtyAt = playerState.is_dirty_at;
 
   try {
     // SÊNIOR: Permite strings vazias ou nulas para que o "limpar campos" de fato aconteça no PostgreSQL
@@ -788,7 +804,14 @@ async function persistPlayerState(userId) {
     );
 
     if (safeFields.length === 0) {
-      await redisClient.hSetAsync(redisKey, "is_dirty", "0");
+      const currentState = await redisClient.hGetAsync(redisKey, "is_dirty_at");
+      if (currentState === loadedDirtyAt) {
+        const p = redisClient.pipeline();
+        p.hSet(redisKey, "is_dirty", "0");
+        p.hSet(redisKey, "is_dirty_at", "");
+        p.sRem(DIRTY_PLAYERS_SET, String(userId));
+        await p.exec();
+      }
       return;
     }
 
@@ -806,9 +829,17 @@ async function persistPlayerState(userId) {
       values,
     );
 
-    await redisClient.hSetAsync(redisKey, { is_dirty: "0", is_dirty_at: "" });
-    await redisClient.sRemAsync(DIRTY_PLAYERS_SET, String(userId));
-    console.log(`[playerState] ✅ ${userId} persistido (${safeFields.length} campos).`);
+    // Limpa is_dirty APENAS se o estado não foi sujo por OUTRA requisição enquanto salvávamos!
+    const currentState = await redisClient.hGetAsync(redisKey, "is_dirty_at");
+    if (currentState === loadedDirtyAt) {
+      const p = redisClient.pipeline();
+      p.hSet(redisKey, "is_dirty", "0");
+      p.hSet(redisKey, "is_dirty_at", "");
+      p.sRem(DIRTY_PLAYERS_SET, String(userId));
+      await p.exec();
+    }
+
+    console.log(`[playerState] ✅ ${userId} persistido async (${safeFields.length} campos).`);
   } catch (err) {
     console.error(`[playerState] ❌ Erro ao persistir ${userId}:`, err.message);
     // is_dirty permanece "1" — retentado no próximo ciclo
