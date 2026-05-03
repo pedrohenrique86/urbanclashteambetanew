@@ -56,6 +56,7 @@ const TRAINING_QUEUE_KEY    = "queue:trainings";
  *   ARGV[6] = dirtyAtValue (Date.now())
  *   ARGV[7] = dirtyPlayersSetKey
  *   ARGV[8] = userId
+ *   ARGV[9] = isSilent ("1" para sim, "0" para não)
  */
 const UPDATE_STATE_LUA = `
   local key = KEYS[1]
@@ -71,9 +72,12 @@ const UPDATE_STATE_LUA = `
     redis.call('HSET', key, ARGV[4], ARGV[5])
   end
   
-  redis.call('HSET', key, 'is_dirty', '1')
-  redis.call('HSET', key, 'is_dirty_at', ARGV[6])
-  redis.call('SADD', ARGV[7], ARGV[8])
+  -- Se NÃO for silencioso, marca como dirty para o PostgreSQL
+  if ARGV[9] ~= "1" then
+    redis.call('HSET', key, 'is_dirty', '1')
+    redis.call('HSET', key, 'is_dirty_at', ARGV[6])
+    redis.call('SADD', ARGV[7], ARGV[8])
+  end
   
   return tostring(newVal)
 `;
@@ -312,27 +316,13 @@ async function _checkAndResetTrainingCount(userId, redisKey, state) {
  *   a regen emita um SSE com version > do que o SSE da própria ação, fazendo
  *   o frontend aplicar energia stale e reverter o estado da compra/combate.
  */
-async function _checkAndRegenEnergy(userId, redisKey, state, suppressSSE = false) {
+async function _checkAndRegenEnergy(userId, redisKey, state, suppressSSE = false, isSilent = false) {
   const now = Date.now();
-  
-  // SÊNIOR: Validação de Timestamp. Redis pode retornar "" ou "null".
-  let lastUpdate;
-  if (!state.energy_updated_at || state.energy_updated_at === "") {
-    lastUpdate = now;
+  let lastUpdate = state.energy_updated_at ? new Date(state.energy_updated_at).getTime() : 0;
+
+  if (lastUpdate === 0) {
     await redisClient.hSetAsync(redisKey, "energy_updated_at", new Date(now).toISOString());
     return false;
-  } else {
-    lastUpdate = new Date(state.energy_updated_at).getTime();
-    if (isNaN(lastUpdate)) {
-      lastUpdate = now;
-      await redisClient.hSetAsync(redisKey, "energy_updated_at", new Date(now).toISOString());
-      return false;
-    }
-    if (lastUpdate > now) {
-      lastUpdate = now;
-      await redisClient.hSetAsync(redisKey, "energy_updated_at", new Date(now).toISOString());
-      return false;
-    }
   }
 
   const rateMs = (gameLogic.ENERGY.REGEN_RATE_MINUTES || 3) * 60 * 1000;
@@ -340,13 +330,9 @@ async function _checkAndRegenEnergy(userId, redisKey, state, suppressSSE = false
   if (now - lastUpdate >= rateMs) {
     const cycles = Math.floor((now - lastUpdate) / rateMs);
     const maxEnergy = Math.floor(Number(state.max_energy || 100));
-    
-    // SÊNIOR: Já temos a energia no 'state' vindo do hGetAll do chamador.
-    // Usamos ela em vez de outro hGetAsync para evitar corridas de dados no heartbeat.
     const currentEnergy = Math.floor(Number(state.energy || 0));
 
     if (currentEnergy >= maxEnergy) {
-      // Se já está cheio, apenas empurra o timestamp para o 'agora' para não acumular ciclos infinitos
       await redisClient.hSetAsync(redisKey, "energy_updated_at", new Date(now).toISOString());
       return false;
     }
@@ -354,27 +340,24 @@ async function _checkAndRegenEnergy(userId, redisKey, state, suppressSSE = false
     // Calcula 1% da energia máxima por ciclo (mínimo 1 unidade)
     const pctAmount = Math.max(1, Math.floor(maxEnergy * 0.01));
     const energyToAdd = cycles * pctAmount;
-    
-    const newEnergy = Math.min(maxEnergy, currentEnergy + energyToAdd);
-    const actualGained = newEnergy - currentEnergy;
+    const newEnergyCalc = Math.min(maxEnergy, currentEnergy + energyToAdd);
+    const actualGained = newEnergyCalc - currentEnergy;
 
     if (actualGained > 0) {
       const newLastUpdateMs = lastUpdate + (cycles * rateMs);
       const newLastUpdateStr = new Date(newLastUpdateMs).toISOString();
       const nowMs = String(Date.now());
 
-      // SÊNIOR: Transição para Lua Script Atômico
-      // Garante que se o usuário ganhou energia via compra NO MESMO MILISSEGUNDO,
-      // a regeneração não sobrescreva o valor.
       const newEnergy = await redisClient.runLuaAsync(UPDATE_STATE_LUA, [redisKey], [
         "energy", 
-        String(energyToAdd), 
+        String(actualGained), 
         String(maxEnergy),
         "energy_updated_at",
         newLastUpdateStr,
         nowMs,
         DIRTY_PLAYERS_SET,
-        String(userId)
+        String(userId),
+        isSilent ? "1" : "0" // ARGV[9]
       ]);
 
       if (!suppressSSE) {
@@ -385,7 +368,7 @@ async function _checkAndRegenEnergy(userId, redisKey, state, suppressSSE = false
         });
       }
 
-      console.log(`[energy] ⚡ +${actualGained} energia regenerada (1%/ciclo) para ${userId} (${cycles} ciclos)`);
+      console.log(`[energy] ⚡ +${actualGained} energia regenerada (${isSilent ? 'SILENT' : 'DIRTY'}) para ${userId}`);
       return true;
     } else {
       await redisClient.hSetAsync(redisKey, "energy_updated_at", new Date(now).toISOString());
@@ -1248,7 +1231,9 @@ async function regenEnergyForPlayer(userId) {
   if (!raw || Object.keys(raw).length === 0) return;
   const state = _parseState(raw);
   if (!state) return;
-  await _checkAndRegenEnergy(userId, redisKey, state).catch(e =>
+  
+  // SÊNIOR: Regen via heartbeat é SILENCIOSA (não acorda o Postgres no Neon)
+  await _checkAndRegenEnergy(userId, redisKey, state, true, true).catch(e =>
     console.error(`[energy] ❌ regenEnergyForPlayer(${userId}):`, e.message)
   );
 }
