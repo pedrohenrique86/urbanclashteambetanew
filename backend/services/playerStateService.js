@@ -30,6 +30,10 @@ const gameLogic   = require("../utils/gameLogic");
 // Removida dependência externa luxon para evitar crash; usando Intl nativo
 
 // ─── Constantes ──────────────────────────────────────────────────────────────────
+const PLAYER_STATE_PREFIX   = "playerState:";
+const DEBOUNCE_MS           = 3000;        // debounce primário antes do DB
+module.exports.PLAYER_STATE_PREFIX = PLAYER_STATE_PREFIX;
+
 const _debounceTimers = new Map();
 
 function _scheduleDebounce(userId) {
@@ -45,11 +49,8 @@ function _scheduleDebounce(userId) {
   _debounceTimers.set(userId, timer);
 }
 
-const PLAYER_STATE_PREFIX   = "playerState:";
-module.exports.PLAYER_STATE_PREFIX = PLAYER_STATE_PREFIX;
 const RANKING_ZSET_KEY      = "ranking:users:zset";
 const PLAYER_STATE_TTL      = 60 * 60 * 24; // 24 horas (otimizado para Oracle VM) inatividade
-const DEBOUNCE_MS           = 3000;        // debounce primário antes do DB
 const PERSIST_BATCH_SIZE    = 50;          // máx players por lote no safety-net
 const SAFETY_STALENESS_MS   = 12_000;      // safety-net só persiste dirty > 12s
 const DIRTY_PLAYERS_SET     = "player:dirty:set";
@@ -121,7 +122,6 @@ const NUMERIC_FIELDS = new Set([
 ]);
 
 // ─── Estado interno ───────────────────────────────────────────────────────────────
-const _debounceTimers  = new Map();  // userId → timer handle
 const _memDirtyRanking = new Set();  // userId → mudança de XP/nível (para ranking)
 
 // Contador de versão por jogador para consistência do PATCH no frontend
