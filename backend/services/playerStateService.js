@@ -1255,22 +1255,27 @@ async function regenEnergyForPlayer(userId) {
  * @param {string} userId 
  * @param {string} newStatus 
  */
+/**
+ * SÊNIOR: Registra a transição de status de forma atômica no PostgreSQL.
+ * Resolve um Race Condition onde múltiplas chamadas rápidas poderiam 
+ * deixar vários logs com 'ended_at IS NULL'.
+ */
 async function _recordStatusLog(userId, newStatus) {
   try {
-    // 1. Encerra o log anterior
-    await query(`
-      UPDATE player_status_logs 
-      SET ended_at = NOW() 
-      WHERE user_id = $1 AND ended_at IS NULL
-    `, [userId]);
-
-    // 2. Cria o novo registro
-    await query(`
+    // Usamos uma única query atômica para encerrar e abrir logs
+    const sql = `
+      WITH closed_rows AS (
+        UPDATE player_status_logs 
+        SET ended_at = NOW() 
+        WHERE user_id = $1 AND ended_at IS NULL
+        RETURNING id
+      )
       INSERT INTO player_status_logs (user_id, status, started_at) 
-      VALUES ($1, $2, NOW())
-    `, [userId, newStatus]);
+      VALUES ($1, $2, NOW());
+    `;
+    await query(sql, [userId, newStatus]);
   } catch (err) {
-    console.error("[statusLog] ❌ Erro ao salvar histórico:", err.message);
+    console.error("[statusLog] ❌ Erro atômico ao salvar histórico:", err.message);
   }
 }
 

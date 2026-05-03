@@ -3,6 +3,8 @@ const redisClient = require("../config/redisClient");
 const sseService = require("./sseService");
 
 const CLAN_STATE_PREFIX = "clanState:";
+const DIRTY_CLANS_SET = "dirty:clans:set";
+const CLAN_STATE_TTL = 3600 * 24; // 24h as SSOT for clans during high traffic
 
 /**
  * Carrega o estado de um clã (incluindo member_count) do DB para o Redis.
@@ -14,7 +16,7 @@ async function loadClanState(clanId) {
     const result = await query(
       `
       SELECT 
-        c.id, c.points, c.faction, c.max_members, c.member_count
+        c.id, c.season_score, c.faction, c.max_members, c.member_count
       FROM clans c
       WHERE c.id = $1
       `,
@@ -27,7 +29,7 @@ async function loadClanState(clanId) {
     const redisKey = `${CLAN_STATE_PREFIX}${clanId}`;
 
     const stateForRedis = {
-       points: String(clanState.points),
+       score: String(clanState.season_score),
        member_count: String(clanState.member_count),
        faction: String(clanState.faction),
        is_dirty: "0"
@@ -60,7 +62,7 @@ async function getClanState(clanId) {
 /**
  * Atualiza o estado do clã no Redis de forma atômica.
  * @param {string} clanId 
- * @param {object} updates { points: number, member_count: number }
+ * @param {object} updates { score: number, member_count: number }
  */
 async function updateClanState(clanId, updates) {
   if (!redisClient.client.isReady) return null;
@@ -78,16 +80,19 @@ async function updateClanState(clanId, updates) {
     }
 
     if (hasChanges) {
+      const now = String(Date.now());
       pipeline.hSet(redisKey, "is_dirty", "1");
+      pipeline.hSet(redisKey, "is_dirty_at", now);
+      pipeline.sAdd(DIRTY_CLANS_SET, String(clanId));
       await pipeline.exec();
 
       const newState = await getClanState(clanId);
       
       // Emitir evento SSE se a pontuação mudou
-      if (updates.points) {
+      if (updates.score) {
         sseService.publish("ranking", "ranking:clan-score:update", {
           clanId,
-          score: parseInt(newState.points, 10),
+          score: parseInt(newState.score, 10),
           faction: newState.faction
         });
       }
@@ -102,31 +107,48 @@ async function updateClanState(clanId, updates) {
 }
 
 /**
- * Persiste todos os clãs marcados como "sujos" no PostgreSQL.
- * Deve ser chamado a cada 10 minutos (no fluxo do ranking).
+ * SÊNIOR: Persistência em Lote de Clãs (Write-Behind).
+ * Migrado de SCAN para Operação de Conjunto Atômico (O(N) onde N é clãs sujos apenas).
  */
 async function persistDirtyClanStates() {
   if (!redisClient.client.isReady) return;
 
   try {
-    const iterator = redisClient.scanIterator({
-      MATCH: `${CLAN_STATE_PREFIX}*`,
-      COUNT: 100
-    });
+    const dirtyIds = await redisClient.sMembersAsync(DIRTY_CLANS_SET);
+    if (!dirtyIds || dirtyIds.length === 0) return;
 
-    for await (const key of iterator) {
-      const state = await redisClient.hGetAllAsync(key);
+    for (const clanId of dirtyIds) {
+      const redisKey = `${CLAN_STATE_PREFIX}${clanId}`;
+      const state = await redisClient.hGetAllAsync(redisKey);
+
       if (state && state.is_dirty === "1") {
-        const clanId = key.split(":")[1];
-        const rawPoints = parseInt(state.points, 10);
-        const safePoints = isNaN(rawPoints) ? 0 : rawPoints;
+        const loadedDirtyAt = state.is_dirty_at;
+        const rawScore = parseInt(state.score, 10);
+        const safeScore = isNaN(rawScore) ? 0 : rawScore;
+
+        // Persiste no DB
         await query(
-           "UPDATE clans SET points = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2",
-           [safePoints, clanId]
+           "UPDATE clans SET season_score = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2",
+           [safeScore, clanId]
         );
-        await redisClient.hSetAsync(key, "is_dirty", "0");
-        console.log(`💾 Estado do clã ${clanId} persistido (Pontos: ${safePoints})`);
+
+        // Limpeza Segura (Optimistic Locking)
+        const currentDirtyAt = await redisClient.hGetAsync(redisKey, "is_dirty_at");
+        if (currentDirtyAt === loadedDirtyAt) {
+          const p = redisClient.pipeline();
+          p.hSet(redisKey, "is_dirty", "0");
+          p.hSet(redisKey, "is_dirty_at", "");
+          p.sRem(DIRTY_CLANS_SET, String(clanId));
+          await p.exec();
+        }
+      } else {
+        // Se por algum motivo não está dirty, remove do set de rastreio
+        await redisClient.sRemAsync(DIRTY_CLANS_SET, String(clanId));
       }
+    }
+    
+    if (dirtyIds.length > 0) {
+      console.log(`[clanState] 📦 Arquivado lote de ${dirtyIds.length} clãs.`);
     }
   } catch (error) {
     console.error("❌ Erro ao persistir estados dos clãs:", error);
