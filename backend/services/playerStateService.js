@@ -544,8 +544,12 @@ async function loadPlayerState(userId) {
 /**
  * Obtém o estado atual de um jogador — sempre do Redis.
  * Fallback ao banco apenas em cache miss.
+ * @param {string} userId
+ * @param {object} options
+ * @param {boolean} options.suppressRegenSSE - Se true, não emite SSE durante a regeneração (usado para evitar race conditions em ações simultâneas).
+ * @param {boolean} options.skipStatusCheck - Se true, pula a verificação de expiração de status e regeneração (usado para evitar recursão infinita).
  */
-async function getPlayerState(userId, { suppressRegenSSE = false } = {}) {
+async function getPlayerState(userId, { suppressRegenSSE = false, skipStatusCheck = false } = {}) {
   if (!redisClient.client.isReady) return null;
 
   const redisKey = `${PLAYER_STATE_PREFIX}${userId}`;
@@ -556,29 +560,32 @@ async function getPlayerState(userId, { suppressRegenSSE = false } = {}) {
   if (raw && Object.keys(raw).length > 0 && raw.username) {
     const state = _parseState(raw);
     
-    // Executa Lazy Resets em background
-    _checkAndResetAP(userId, redisKey, state).catch(e => console.error("[apReset] Falha:", e.message));
-    _checkAndResetTrainingCount(userId, redisKey, state).catch(e => console.error("[trainingReset] Falha:", e.message));
-    
-    // SÊNIOR: Regeneração de Energia.
-    // suppressRegenSSE=true quando chamado de updatePlayerState para evitar que
-    // a regen emita um SSE com version maior antes do SSE da ação principal.
-    if (state) {
-      await _checkAndRegenEnergy(userId, redisKey, state, suppressRegenSSE).catch(e => console.error("[energyRegen] Falha:", e.message));
+    // SÊNIOR: Executa Lazy Resets em background
+    if (!skipStatusCheck) {
+      _checkAndResetAP(userId, redisKey, state).catch(e => console.error("[apReset] Falha:", e.message));
+      _checkAndResetTrainingCount(userId, redisKey, state).catch(e => console.error("[trainingReset] Falha:", e.message));
+      
+      // SÊNIOR: Regeneração de Energia.
+      if (state) {
+        await _checkAndRegenEnergy(userId, redisKey, state, suppressRegenSSE).catch(e => console.error("[energyRegen] Falha:", e.message));
+      }
+
+      // Relê do Redis caso a regeneração ou resets tenham alterado valores
+      const finalRaw = await redisClient.hGetAllAsync(redisKey);
+      const finalState = _parseState(finalRaw);
+      
+      // SÊNIOR: Executa Lazy Reset de Status se necessário
+      if (finalState && finalState._status_expired) {
+        delete finalState._status_expired;
+        // Dispara persistência assíncrona, MAS evita recursão passando skipStatusCheck=true
+        setPlayerStatus(userId, 'Operacional').catch(e => console.error("[statusReset] Falha:", e.message));
+        finalState.status = 'Operacional';
+        finalState.status_ends_at = null;
+      }
+      return finalState;
     }
 
-    // Relê do Redis caso a regeneração ou resets tenham alterado valores
-    const finalRaw = await redisClient.hGetAllAsync(redisKey);
-    const finalState = _parseState(finalRaw);
-    
-    // SÊNIOR: Executa Lazy Reset de Status se necessário
-    if (finalState && finalState._status_expired) {
-      delete finalState._status_expired;
-      // Dispara persistência assíncrona, mas atualiza o objeto de retorno IMEDIATAMENTE
-      setPlayerStatus(userId, 'Operacional').catch(e => console.error("[statusReset] Falha:", e.message));
-      finalState.status = 'Operacional';
-      finalState.status_ends_at = null;
-    }
+    return state;
 
     // SÊNIOR: Lazy Training Completion (Zero-Cron & Synchronous for Caller)
     // Se o treinamento já terminou, garantimos que o objeto retornado reflete a conclusão,
@@ -599,8 +606,9 @@ async function getPlayerState(userId, { suppressRegenSSE = false } = {}) {
           setImmediate(async () => {
             try {
               await trainingService.completeTraining(uid);
-            } catch (ignored) {}
-            finally {
+            } catch (ignored) {
+              // Silencioso: o getPlayerState já marcou como concluído localmente para UX
+            } finally {
               _inProgressCompletions.delete(uid);
             }
           });
@@ -1220,7 +1228,8 @@ async function setPlayerStatus(userId, newStatus, durationSeconds = null) {
   }
 
   const redisKey = `${PLAYER_STATE_PREFIX}${userId}`;
-  const currentState = await getPlayerState(userId);
+  // IMPORTANTE: Para evitar RECURSÃO INFINITA, chamamos getPlayerState com skipStatusCheck=true
+  const currentState = await getPlayerState(userId, { skipStatusCheck: true });
   if (!currentState) throw new Error("👤 Jogador não encontrado.");
 
   // Validação de Transição

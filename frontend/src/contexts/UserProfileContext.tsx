@@ -299,9 +299,13 @@ export const UserProfileProvider = ({ children }: { children: ReactNode }) => {
             break;
           case 404:
             setUserProfile(null);
-            fetchedForUser.current = user.id;
+            fetchedForUser.current = user.id; // Marca que tentamos buscar, evitando loading infinito em 500
             break;
         }
+      } else {
+        // Erro genérico (500 ou rede) que não caiu nos status codes acima
+        setUserProfile(null);
+        fetchedForUser.current = user.id; 
       }
 
       return null;
