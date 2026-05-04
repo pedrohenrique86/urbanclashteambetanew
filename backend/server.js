@@ -60,11 +60,11 @@ const PORT = process.env.PORT || 3001;
 const allowedOrigins = [
   process.env.FRONTEND_URL,
   "https://www.urbanclashteam.com",
-  "https://urbanclashteam.com",
+  "https://urbanclashteam.com", // SÊNIOR: Adicionado para evitar falha se o usuário omitir o WWW
   "http://localhost:3000",
   "http://localhost:5173",
   "http://localhost:3002"
-].filter(Boolean).map(origin => origin.replace(/\/$/, "")); // SÊNIOR: Higienização de trailing slashes para CORS rígido
+].filter(Boolean);
 
 app.use(cors({ origin: allowedOrigins, credentials: true }));
 app.set("trust proxy", 1);
@@ -100,17 +100,7 @@ async function startServer() {
       await redisClient.delAsync("online_players_set");
       console.log("🧹 Set de jogadores online resetado no Redis.");
     }
-    const io = new Server(server, { 
-      cors: { 
-        origin: allowedOrigins,
-        credentials: true,
-        methods: ["GET", "POST"]
-      }, 
-      transports: ["websocket"], // SÊNIOR: Protocolo puro e direto
-      pingTimeout: 60000,        // 60s para manter conexões estáveis em VMs
-      pingInterval: 25000,       // Keep-alive a cada 25s
-      connectTimeout: 45000
-    });
+    const io = new Server(server, { cors: { origin: allowedOrigins } });
     initializeSocket(io);
     schedulePersistence();
     server.listen(PORT, () => {
