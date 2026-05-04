@@ -52,7 +52,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, requiresFacti
 
   // DECISÃO 2: REQUER FACÇÃO, MAS NÃO TEM
   // Se a rota exige facção e o perfil carregado não tem uma, redireciona para a seleção.
-  if (requiresFaction && userProfile && !userProfile.faction) {
+  if (requiresFaction && !userProfile?.faction) {
     // Exceção: não redirecionar se já estivermos na página de seleção.
     if (location.pathname !== '/faction-selection') {
       return <Navigate to="/faction-selection" state={{ from: location }} replace />;

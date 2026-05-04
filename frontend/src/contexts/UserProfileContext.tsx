@@ -345,11 +345,15 @@ export const UserProfileProvider = ({ children }: { children: ReactNode }) => {
 
   const handleLogout = useCallback(() => {
     HUDCache.clear();
-    writeProfileCache(null);   // ← limpa cache no logout
+    writeProfileCache(null);
+    
+    // SÊNIOR: Chamamos o logout primeiro para limpar o 'user' no AuthContext.
+    // Como o logout() agora é imediato, o ProtectedRoute verá user=null 
+    // antes de processar a falta de facção, evitando flickers.
+    logout(); 
     setUserProfile(null);
-    logout().then(() => {
-      navigate("/");
-    });
+    
+    navigate("/");
   }, [logout, navigate]);
 
   // ─── SSE: canal privado de estado do jogador ─────────────────────────────────
