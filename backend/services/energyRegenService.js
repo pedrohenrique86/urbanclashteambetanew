@@ -20,10 +20,10 @@ let regenIntervalId = null;
 function startEnergyRegenHeartbeat() {
   if (regenIntervalId) return;
 
-  const checkIntervalMs = 30000; // Verifica a cada 30 segundos para ser responsivo
-  const targetMinutes = gameLogic.ENERGY.REGEN_RATE_MINUTES || 3;
+   const checkIntervalMs = 60000; // SÊNIOR: Aumentado para 60s para reduzir carga no banco (Lazy eval garante o resto)
+   const targetMinutes = gameLogic.ENERGY.REGEN_RATE_MINUTES || 3;
 
-  console.log(`[energyService] 💓 Heartbeat de verificação iniciado (cada ${checkIntervalMs/1000}s). Alvo: +1 a cada ${targetMinutes}min`);
+   console.log(`[energyService] 💓 Heartbeat de verificação iniciado (cada ${checkIntervalMs/1000}s). Alvo: +1 a cada ${targetMinutes}min`);
 
   regenIntervalId = setInterval(async () => {
     try {

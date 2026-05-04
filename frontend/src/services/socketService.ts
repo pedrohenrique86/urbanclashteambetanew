@@ -47,11 +47,16 @@ class SocketService {
       // como sendo um "namespace" (/api), que não existe no backend.
       const socketUrl = (VITE_API_URL || "").replace(/\/api\/?$/, "");
 
+      console.log("🔌 [Socket.IO] Estabelecendo Tunel WebSocket SSH/SSL em:", socketUrl);
+
       this.socket = io(socketUrl, {
         reconnectionAttempts: 20,
         reconnectionDelay: 2000,
         path: "/socket.io/",
-        transports: ["websocket"],
+        transports: ["websocket"], // SÊNIOR: Apenas WebSocket para máxima performance e menor overhead
+        secure: socketUrl.startsWith("https"),
+        withCredentials: true,
+        upgrade: false, // Força a começar direto com WebSocket
       });
 
 

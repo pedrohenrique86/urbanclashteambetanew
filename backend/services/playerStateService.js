@@ -31,12 +31,12 @@ const gameLogic   = require("../utils/gameLogic");
 
 // ─── Constantes ──────────────────────────────────────────────────────────────────
 const PLAYER_STATE_PREFIX   = "playerState:";
-const BATCH_FLUSH_INTERVAL  = 5000;        // Reduzido para 5s para maior responsividade
+const BATCH_FLUSH_INTERVAL  = 15000;        // SÊNIOR: Aumentado para 15s para reduzir picos no Neon DB (1 CU)
 module.exports.PLAYER_STATE_PREFIX = PLAYER_STATE_PREFIX;
 const RANKING_ZSET_KEY      = "ranking:users:zset";
 const PLAYER_STATE_TTL      = 60 * 60 * 24 * 7; 
 const PERSIST_BATCH_SIZE    = 50;          
-const SAFETY_STALENESS_MS   = 5000;        // Reduzido para 5s
+const SAFETY_STALENESS_MS   = 15000;        // SÊNIOR: Aumentado para 15s para garantir que só salvemos em blocos maiores
 const DEBOUNCE_MS           = 2000;        // Tempo de espera após última ação para salvar (2s)
 const DIRTY_PLAYERS_SET     = "player:dirty:set";
 const TRAINING_QUEUE_KEY    = "queue:trainings";
@@ -538,8 +538,8 @@ async function loadPlayerState(userId) {
     console.log(`[playerState] Estado de ${userId} carregado. Score ranking: ${score}`);
     return playerState;
   } catch (err) {
-    console.error(`[playerState] Erro ao carregar ${userId}:`, err.message);
-    return null;
+    console.error(`[playerState] ❌ ERRO CRÍTICO ao carregar ${userId} do Banco:`, err.message);
+    throw err; // SÊNIOR: Propaga o erro para o chamador (evita retornar null e causar loop de redirecionamento)
   }
 }
 
@@ -837,8 +837,8 @@ async function updatePlayerState(userId, updates, options = {}) {
     
     return newState;
   } catch (err) {
-    console.error(`[playerState] Erro ao atualizar ${userId}:`, err.message);
-    return null;
+    console.error(`[playerState] ❌ Erro ao atualizar ${userId}:`, err.message);
+    throw err; // SÊNIOR: Propaga o erro para que a rota retorne 500
   }
 }
 

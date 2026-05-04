@@ -71,6 +71,7 @@ export interface UserProfile {
 export interface IUserProfileContext {
   userProfile: UserProfile | null;
   loading: boolean;
+  isError: boolean;
   fetchProfile: () => Promise<UserProfile | null>;
   refreshProfile: () => Promise<UserProfile | null>;
   processProfileData: (
@@ -171,6 +172,7 @@ export const UserProfileProvider = ({ children }: { children: ReactNode }) => {
   // Inicializa com o cache do localStorage — exibe sidebar instantaneamente no F5
   const [userProfile, setUserProfile] = useState<UserProfile | null>(() => readProfileCache());
   const [loading, setLoading] = useState(false);
+  const [isError, setIsError] = useState(false);
 
   const isFetching = useRef(false);
   const cooldownUntil = useRef(0);
@@ -278,15 +280,18 @@ export const UserProfileProvider = ({ children }: { children: ReactNode }) => {
         setUserProfile(processed);
         writeProfileCache(processed);   // ← persiste no localStorage
         fetchedForUser.current = user.id;
+        setIsError(false);
         return processed;
       } else {
         setUserProfile(null);
         writeProfileCache(null);
         fetchedForUser.current = user.id;
+        setIsError(false);
         return null;
       }
     } catch (error: any) {
       console.error("Falha ao buscar perfil do usuário:", error);
+      setIsError(true);
 
       if (error.response) {
         switch (error.response.status) {
@@ -436,6 +441,7 @@ export const UserProfileProvider = ({ children }: { children: ReactNode }) => {
     () => ({
       userProfile: effectiveProfile,
       loading: isProfileLoading,
+      isError,
       fetchProfile,
       refreshProfile,
       processProfileData,
@@ -445,6 +451,7 @@ export const UserProfileProvider = ({ children }: { children: ReactNode }) => {
     [
       effectiveProfile,
       isProfileLoading,
+      isError,
       fetchProfile,
       refreshProfile,
       processProfileData,
