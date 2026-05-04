@@ -59,6 +59,11 @@ const pool = new Pool({
   allowExitOnIdle: process.env.NODE_ENV !== "production", // Permite que o processo saia se apenas o pool estiver ativo (útil em dev)
 });
 
+// SÊNIOR: Impede que o Node.js "crashe" devido a quedas de conexões TCP de clientes ociosos (muito comum no auto-suspend do NeonDB)
+pool.on("error", (err, client) => {
+  console.error("⚠️ [Database] Desconexão de cliente ocioso do Pool:", err.message);
+});
+
 // Função para conectar ao banco
 async function connectDB() {
   console.log(
