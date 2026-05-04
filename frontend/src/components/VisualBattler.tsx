@@ -28,6 +28,7 @@ interface VisualBattlerProps {
   player: BattlerEntity;
   target: BattlerEntity;
   turns: CombatTurnData[];
+  logs: string[];
   onComplete: () => void;
   outcome: string;
 }
@@ -55,9 +56,10 @@ const FloatingText = ({ text, type }: { text: string; type: string }) => {
   );
 };
 
-export default function VisualBattler({ player, target, turns, onComplete, outcome }: VisualBattlerProps) {
+export default function VisualBattler({ player, target, turns, logs, onComplete, outcome }: VisualBattlerProps) {
   const [currentTurn, setCurrentTurn] = useState(-1); // -1 = Engage, 0+ = Returns
   const [subPhase, setSubPhase] = useState<'idle' | 'p-attack' | 'p-hit' | 't-attack' | 't-hit' | 'end'>('idle');
+  const [narrative, setNarrative] = useState("ESTABELECENDO TÚNEL NEURAL SEGURO...");
   
   const [pHP, setPHP] = useState(player.hp);
   const [tHP, setTHP] = useState(target.hp);
@@ -89,10 +91,12 @@ export default function VisualBattler({ player, target, turns, onComplete, outco
       
       // Delay initial start
       await new Promise(r => setTimeout(r, 1000));
-      setCurrentTurn(0);
 
       for (let i = 0; i < turns.length; i++) {
         if (!active) break;
+        setCurrentTurn(i);
+        setNarrative(logs[i] || "PROCESSANDO DADOS TÁTICOS...");
+        
         const turn = turns[i];
         
         // --- PLAYER ATTACKS TARGET ---
@@ -146,7 +150,7 @@ export default function VisualBattler({ player, target, turns, onComplete, outco
     runCombat();
 
     return () => { active = false; };
-  }, [turns]);
+  }, [turns, logs, onComplete]);
 
   const pAvatarAnim = {
     'idle': { x: 0, scale: 1 },
@@ -247,6 +251,13 @@ export default function VisualBattler({ player, target, turns, onComplete, outco
             </AnimatePresence>
           </motion.div>
         </div>
+      </div>
+
+      {/* Narrative Terminal */}
+      <div className="w-full bg-black/90 border-t border-cyan-500/30 p-3 z-10 min-h-[60px] flex items-center justify-center">
+         <p className="font-mono text-xs text-slate-300 text-center uppercase tracking-widest whitespace-pre-line leading-relaxed">
+            {narrative}
+         </p>
       </div>
     </div>
   );

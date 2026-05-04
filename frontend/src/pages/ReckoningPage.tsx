@@ -360,7 +360,7 @@ export default function ReckoningPage() {
     }
   };
 
-  const handleCombatComplete = async () => {
+  const handleCombatComplete = useCallback(async () => {
     if (!finalResult) return;
     const isWin = finalResult.winner;
     const isCriticalDirect = !isWin && finalResult.outcome !== "draw_flee";
@@ -390,7 +390,7 @@ export default function ReckoningPage() {
     }
 
     setCombatPhase("result");
-  };
+  }, [finalResult, navigate, refreshProfile, showToast]);
 
 
 
@@ -784,6 +784,7 @@ export default function ReckoningPage() {
                        player={{ name: userProfile?.username || 'Player', level: userProfile?.level || 1, hp: preCalc.playerInfo.hp, maxHP: preCalc.playerInfo.maxHP }}
                        target={{ name: selectedTarget?.name || 'Target', level: selectedTarget?.level || 1, hp: preCalc.targetInfo.maxHP, maxHP: preCalc.targetInfo.maxHP }}
                        turns={finalResult.details.turns}
+                       logs={finalResult.log}
                        onComplete={handleCombatComplete}
                        outcome={finalResult.outcome}
                      />
