@@ -1311,8 +1311,10 @@ async function regenEnergyForPlayer(userId) {
   const state = _parseState(raw);
   if (!state) return;
   
-  // SÊNIOR: Regen via heartbeat é SILENCIOSA (não acorda o Postgres no Neon)
-  await _checkAndRegenEnergy(userId, redisKey, state, true, true).catch(e =>
+  // SÊNIOR: Regen via heartbeat agora emite SSE (suppressSSE: false) 
+  // para que o jogador veja a energia subindo, mas continua SILENCIOSA (isSilent: true)
+  // para não disparar IO desnecessário no Neon DB.
+  await _checkAndRegenEnergy(userId, redisKey, state, false, true).catch(e =>
     console.error(`[energy] ❌ regenEnergyForPlayer(${userId}):`, e.message)
   );
 }
