@@ -386,7 +386,7 @@ export default function ReckoningPage() {
     }
 
     setCombatPhase("result");
-  }, [finalResult, navigate, refreshProfile, showToast]);
+  }, [finalResult, refreshProfile, showToast]);
 
 
 
