@@ -56,6 +56,16 @@ function subscribe(client, topic) {
     if (topic.startsWith("player:")) {
       const userId = topic.replace("player:", "");
       redisClient.sAddAsync(ONLINE_SET_KEY, userId).catch(() => {});
+
+      // SÊNIOR: Indexação por Facção para Matchmaking Ultra-Rápido (O(1))
+      // Buscamos a facção no Redis para categorizar o jogador online.
+      // Isso permite que o Radar busque diretamente inimigos sem filtrar 5000+ IDs no JS.
+      redisClient.hGetAsync(`playerState:${userId}`, "faction").then(faction => {
+        if (faction) {
+          const canonical = faction.toLowerCase().trim().includes('guard') ? 'guardas' : 'gangsters';
+          redisClient.sAddAsync(`${ONLINE_SET_KEY}:${canonical}`, userId).catch(() => {});
+        }
+      }).catch(() => {});
     }
   }
   topics.get(topic).add(client);
@@ -71,6 +81,9 @@ function unsubscribe(client, topic) {
       if (topic.startsWith("player:")) {
         const userId = topic.replace("player:", "");
         redisClient.sRemAsync(ONLINE_SET_KEY, userId).catch(() => {});
+        // Limpa de ambos os índices de facção por segurança
+        redisClient.sRemAsync(`${ONLINE_SET_KEY}:gangsters`, userId).catch(() => {});
+        redisClient.sRemAsync(`${ONLINE_SET_KEY}:guardas`, userId).catch(() => {});
       }
     }
   }

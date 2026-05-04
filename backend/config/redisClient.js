@@ -128,6 +128,17 @@ const redisWrapper = {
     }
   },
 
+  /** SÊNIOR: Busca múltiplos campos de um hash. Mais leve que hGetAll para matchmaking. */
+  hmGetAsync: async (k, fields) => {
+    if (!k || !fields || !isReady) return [];
+    try {
+      return await client.hmGet(String(k), fields.map(String));
+    } catch (err) {
+      console.error(`[RedisClient] Erro em hmGetAsync key=${k}:`, err.message);
+      return [];
+    }
+  },
+
   hDelAsync: async (k, ...fields) => {
     if (!k || !isReady) return null;
     try {

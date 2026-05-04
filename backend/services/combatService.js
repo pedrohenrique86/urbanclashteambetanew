@@ -85,9 +85,9 @@ function getNpcData(targetId, attacker) {
   const rawName = pool[nameIndex];
   const name = isRare ? `[BOSS] ${rawName}` : `[BOT] ${rawName}`;
 
-  // Deterministic level based on hash: level +/- 2
+  // Deterministic level based on hash: level +/- 3 (SÊNIOR: Ajustado de +/- 2 para +/- 3 conforme pedido)
   const attackerLevel = Number(attacker?.level || 10);
-  const levelOff = (Math.abs(hash * 31) % 5) - 2; // -2 to +2
+  const levelOff = (Math.abs(hash * 31) % 7) - 3; // -3 to +3
   const level = Math.max(1, (isNaN(attackerLevel) ? 10 : attackerLevel) + levelOff);
 
   const isRenegado = botFaction.toLowerCase().includes("renegado") || botFaction.toLowerCase().includes("gangster");
@@ -275,6 +275,21 @@ function generateFauxTurns(attacker, defender, outcome) {
 
 // ─── Serviço Principal ────────────────────────────────────────────────────────
 
+/**
+ * SÊNIOR: Verifica se duas facções são opostas (Guardiões x Renegados)
+ */
+function areFactionsOpposite(f1, f2) {
+  if (!f1 || !f2) return false;
+  const aliasMap = {
+    'gangsters': 'R', 'gangster': 'R', 'renegados': 'R', 'renegado': 'R',
+    'guardas': 'G', 'guarda': 'G', 'guardioes': 'G', 'guardiao': 'G', 'guardiões': 'G', 'guardião': 'G'
+  };
+  const type1 = aliasMap[String(f1).toLowerCase().trim()];
+  const type2 = aliasMap[String(f2).toLowerCase().trim()];
+  if (!type1 || !type2) return false;
+  return type1 !== type2;
+}
+
 class CombatService {
 
   async getRadarTargets(userId) {
@@ -298,89 +313,68 @@ class CombatService {
     const ONLINE_SET_KEY = "online_players_set";
     let targets = [];
 
-    // ── 1. Busca jogadores ONLINE no Redis ──────────────────────────────────────
-    // SÊNIOR FIX: Usa chamadas individuais com hGetAllAsync ao invés de
-    // redisClient.pipeline() (que é client.multi() — transação MULTI/EXEC).
-    // O MULTI/EXEC falha ATOMICAMENTE se qualquer comando interno retornar erro
-    // (ex: key com tipo errado, WRONGTYPE), crashando o radar inteiro.
-    // Chamadas individuais com try/catch isolam falhas por jogador.
+    // ── 1. Busca jogadores ONLINE no Redis (Pool de Alta Performance) ───────────
     try {
-      const rawIds = await redisClient.sRandMemberAsync(ONLINE_SET_KEY, 45);
+      // SÊNIOR: Identifica a facção oposta para busca direta via Índice O(1).
+      // Isso elimina a necessidade de filtrar facções no JS, economizando ciclos de CPU.
+      const myFaction = (attacker.faction || "").toLowerCase().trim();
+      const enemyFactionKey = myFaction.includes('guard') ? 'gangsters' : 'guardas';
+      const ENEMY_SET_KEY = `${ONLINE_SET_KEY}:${enemyFactionKey}`;
+
+      // Amostragem de IDs da facção rival
+      const rawIds = await redisClient.sRandMemberAsync(ENEMY_SET_KEY, 80);
       const onlineIds = (rawIds || []).filter(id => id !== String(userId));
 
       if (onlineIds.length > 0) {
-        const statePromises = onlineIds.map(async (id) => {
-          try {
-            const state = await redisClient.hGetAllAsync(`${playerStateService.PLAYER_STATE_PREFIX}${id}`);
-            return { id, state };
-          } catch (err) {
-            console.warn(`[combat/radar] ⚠️ Falha ao ler estado Redis de ${id}: ${err.message}`);
-            return { id, state: null };
-          }
+        // SÊNIOR: PIPELINE CIRÚRGICO
+        // Buscamos apenas os campos necessários. O range de 80 é suficiente 
+        // já que todos os 80 são garantidamente da facção oposta.
+        const TARGET_FIELDS = ['username', 'level', 'status', 'shield_ends_at'];
+        const multi = redisClient.pipeline();
+        
+        onlineIds.forEach(id => {
+          multi.hmGet(`${playerStateService.PLAYER_STATE_PREFIX}${id}`, TARGET_FIELDS);
         });
 
-        const redisResults = await Promise.all(statePromises);
+        const multiResults = await multi.exec();
 
-        for (const { id, state } of redisResults) {
-          if (!state || Object.keys(state).length === 0) continue;
-          // Valida que o estado tem campos mínimos necessários
-          if (!state.username || !state.level) continue;
+        onlineIds.forEach((id, idx) => {
+          const values = multiResults[idx];
+          if (!values || !values[0]) return; 
+
+          const [username, level, status, shield_ends_at] = values;
+          const targetLevel = Number(level || 1);
+
+          // SÊNIOR: Filtro de Nível (O(1) em memória)
+          const isLevelInRange = targetLevel >= 10 && targetLevel >= (attackerLevel - 3) && targetLevel <= (attackerLevel + 3);
 
           const isEligible = 
-            (state.status !== 'Recondicionamento' && state.status !== 'Isolamento') &&
-            (!state.shield_ends_at || new Date(state.shield_ends_at) < new Date());
+            isLevelInRange &&
+            (status !== 'Recondicionamento' && status !== 'Isolamento') &&
+            (!shield_ends_at || new Date(shield_ends_at) < new Date());
 
           if (isEligible) {
             targets.push({
               id,
-              level: Number(state.level || 1),
-              faction: state.faction || 'Neutral',
-              name: censorName(state.username),
-              online: true,
-              is_npc: false
-            });
-          }
-        }
-      }
-    } catch (redisError) {
-      console.error(`[combat/radar] ⚠️ Falha na busca de jogadores online (Redis): ${redisError.message}`);
-      // Continua sem targets online — o fallback ao DB + NPCs cobre
-    }
-
-    // ── 2. Fallback ao Banco de Dados se poucos targets ─────────────────────────
-    if (targets.length < 5) {
-      try {
-        const dbResult = await query(
-          `SELECT p.user_id, p.level, p.faction, u.username
-           FROM user_profiles p
-           JOIN users u ON p.user_id = u.id
-           WHERE p.user_id != $1
-             AND p.status NOT IN ('Recondicionamento', 'Isolamento')
-             AND (p.shield_ends_at IS NULL OR p.shield_ends_at < NOW())
-           ORDER BY RANDOM()
-           LIMIT 10`,
-          [userId]
-        );
-        
-        dbResult.rows.forEach(row => {
-          if (!targets.find(t => t.id === row.user_id)) {
-            targets.push({
-              id:      row.user_id,
-              level:   Number(row.level || 1),
-              faction: row.faction || 'Neutral',
-              name:    censorName(row.username),
-              online:  false,
+              level:   targetLevel,
+              faction: enemyFactionKey === 'gangsters' ? 'Renegados' : 'Guardiões',
+              name:    censorName(username),
+              online:  true,
               is_npc:  false
             });
           }
         });
-      } catch (dbError) {
-        console.error(`[combat/radar] ⚠️ Falha na busca de jogadores no DB: ${dbError.message}`);
-        // Continua sem targets do DB — NPCs cobrirão como fallback
       }
+    } catch (redisError) {
+      console.error(`[combat/radar] ⚠️ Falha crítica no processamento Redis: ${redisError.message}`);
     }
 
-    targets = targets.slice(0, 20);
+    // SÊNIOR: Fallback ao Banco de Dados REMOVIDO para suportar 5000+ jogadores.
+    // IO de disco em radar randômico é proibitivo e gera gargalos de travas no PostgreSQL.
+    // Se a rede estiver vazia de players reais no range, o sistema escala com NPCs.
+    
+    // Limita exibição para não poluir UI, priorizando jogadores reais
+    targets = targets.sort((a, b) => (a.is_npc ? 1 : -1)).slice(0, 20);
 
     // ── 3. Geração de NPCs (fallback garantido) ─────────────────────────────────
     if (targets.length < 5) {
@@ -388,7 +382,7 @@ class CombatService {
       
       for (let i = 0; i < npcCount; i++) {
         try {
-          const isRare = Math.random() < 0.05; // HVT: 5% de chance
+          const isRare = Math.random() < 0.02; // SÊNIOR: Frequência de BOSS reduzida para 2% (raro)
           const npcId = `npc_${Math.random().toString(36).substr(2, 9)}${isRare ? '_rare' : ''}`;
           const npcData = getNpcData(npcId, attacker);
 
@@ -482,6 +476,16 @@ class CombatService {
         throw new Error("Pontos de Ação (PA) insuficientes (requer 300 PA).");
       
       if (!isNpc) {
+        // SÊNIOR: Validação de Integridade de Matchmaking (Anti-Gambiarra)
+        const targetLevel = Number(defender.level || 1);
+        const attackerLevel = Number(attacker.level || 10);
+        const isLevelInRange = targetLevel >= 10 && targetLevel >= (attackerLevel - 3) && targetLevel <= (attackerLevel + 3);
+        const isOpposite = areFactionsOpposite(attacker.faction, defender.faction);
+
+        if (!isLevelInRange || !isOpposite) {
+          throw new Error("O alvo não é mais elegível para interceptação (Nível/Facção fora dos protocolos).");
+        }
+
         if (defender.status === "Recondicionamento")
           throw new Error("O alvo já está em recondicionamento.");
         if (defender.shield_ends_at && new Date(defender.shield_ends_at) > new Date())
