@@ -1,5 +1,5 @@
 /**
- * Configurações de Treinamento - Rebalanceadas (Protocolo de Elite v2)
+ * Configurações de Treinamento - Novo Equilíbrio (Protocolo de Elite v3)
  *
  * IDENTIDADES DE BUILD:
  *   pequeno → Sniper/Precisão: FOC alto + CRIT% acumulado (gains crit_chance)
@@ -27,7 +27,7 @@ const TRAINING_TYPES = {
       focus: 3,
       critical_chance: 0.3,
       critical_damage: 0.5,
-      xp: 120,
+      xp: 30,
     },
   },
   medio: {
@@ -45,7 +45,7 @@ const TRAINING_TYPES = {
       focus: 2,
       critical_chance: 0.15,
       critical_damage: 1.0,
-      xp: 350,
+      xp: 90,
     },
   },
   grande: {
@@ -63,7 +63,7 @@ const TRAINING_TYPES = {
       focus: 2,
       critical_chance: 0.05,
       critical_damage: 1.8,
-      xp: 800,
+      xp: 200,
     },
   },
 };
