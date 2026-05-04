@@ -22,6 +22,7 @@ import {
 } from "@heroicons/react/24/outline";
 import NPCCountdown from "../components/combat/NPCCountdown";
 import { FACTION_ALIAS_MAP_FRONTEND } from "../utils/faction";
+import VisualBattler from "../components/VisualBattler";
 
 const MILITARY_CLIP = { clipPath: "polygon(8px 0%, 100% 0%, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0% 100%, 0% 8px)" };
 
@@ -338,7 +339,6 @@ export default function ReckoningPage() {
       
       const result = await combatService.attack(selectedTarget.id);
       
-      // Sincroniza HP real vindo do pré-cálculo para evitar discrepâncias visuais
       const pInitialHP = preCalc?.playerInfo?.hp || 1000;
       const pInitialMax = preCalc?.playerInfo?.maxHP || 1000;
       const tInitialHP = preCalc?.targetInfo?.hp || 1000;
@@ -351,120 +351,47 @@ export default function ReckoningPage() {
         tMax: tInitialMax
       });
       
-      // Countdown Inicial (5 segundos)
-      const initPhrases = [
-        "ESTABELECENDO TÚNEL NEURAL SEGURO...",
-        "SINCRONIZANDO RELÓGIO DE COMBATE...",
-        "CARREGANDO MÓDULOS SPECTRO_v9.1...",
-        "INJETANDO SCRIPTS DE INTERCEPTAÇÃO...",
-        "LOCALIZANDO NÓ DE DEFESA DO ALVO..."
-      ];
-      setCountdownMessage(initPhrases[Math.floor(Math.random() * initPhrases.length)]);
-      for (let s = 5; s > 0; s--) {
-        setTurnCountdown(s);
-        await new Promise(r => setTimeout(r, 1000));
-      }
-      setTurnCountdown(null);
-      setCountdownMessage("");
-
-      const totalTurns = result.log.length;
-      for (let i = 0; i < totalTurns; i++) {
-        const turnText = result.log[i];
-        const turnHP = result.hpLog?.[i];
-
-        // 1. Exibe o texto do turno e inicia a digitação
-        setBattleLog(prev => [...prev, turnText]);
-        
-        // Sincroniza HP imediatamente (independente do texto terminar)
-        if (turnHP) {
-          setCombatHP({
-            pHP: turnHP.defenderHP,
-            pMax: turnHP.defenderMaxHP,
-            tHP: turnHP.attackerHP,
-            tMax: turnHP.attackerMaxHP
-          });
-        }
-        
-        // Aguarda a animação de digitação (20ms por caractere)
-        await new Promise(r => setTimeout(r, turnText.length * 20));
-        
-        // Aguarda um pequeno buffer antes de avançar para ler o resultado do golpe
-        await new Promise(r => setTimeout(r, 800));
-
-        // 2. Se NÃO for o último turno, abre contagem de 10s para o próximo
-        if (i < totalTurns - 1) {
-          let msg = "";
-          if (i === 0) {
-            if (result.outcome === "draw_dko") {
-               msg = "Bio-assinaturas colidindo... isso vai acabar mal para os dois!";
-            } else {
-               const pPwr = (userProfile?.attack || 0) + (userProfile?.defense || 0) + (userProfile?.focus || 0);
-               const tPwr = (preCalc?.targetInfo.level || 1) * 30;
-               const ratio = pPwr / tPwr;
-               const dominance = Math.min(99, Math.round(ratio * 100));
-               msg = `ANÁLISE DE PODER: ${dominance}% DOMINÂNCIA SOBRE ALVO...`;
-            }
-          } else {
-            msg = "SINCRONIZANDO PROTOCOLO FINAL DO SPECTRO...";
-          }
-          
-          setCountdownMessage(msg);
-          for (let s = 10; s > 0; s--) {
-            setTurnCountdown(s);
-            await new Promise(r => setTimeout(r, 1000));
-          }
-          setTurnCountdown(null);
-        }
-      }
-      
-      // 3. Após o último turno, aguarda 5 segundos antes de seguir o fluxo
-      setCountdownMessage("FINALIZANDO CONEXÃO...");
-      setTurnCountdown(5);
-      for (let s = 5; s > 0; s--) {
-        setTurnCountdown(s);
-        await new Promise(r => setTimeout(r, 1000));
-      }
-      setTurnCountdown(null);
-      
       const isWin = result.outcome.startsWith("win");
-      const isCriticalDirect = !isWin && result.outcome !== "draw_flee";
-      
-      // Sincroniza o perfil antes de decidir o fluxo
-      await refreshProfile();
-
-      if (isCriticalDirect) {
-        // Redirecionamento automático para perdas críticas (HP 0 ou hospitalização)
-        if (result.outcome === "loss_ko") {
-          showToast(`K.O. - Seus sistemas críticos falharam. Recondicionamento obrigatório.`, "error");
-        } else if (result.outcome === "loss_bleeding") {
-          showToast(`SANGRANDO - Você recuou com danos sistêmicos. Recuperação necessária.`, "warning");
-        } else {
-          showToast(`SISTEMA COMPROMETIDO - Redirecionando para Base de Recuperação...`, "warning");
-        }
-        
-        setIsFinalizing(true);
-        navigate("/recovery-base");
-        return;
-      }
-
       setFinalResult({ ...result, winner: isWin });
-      
-      // Toast notification for successful outcome
-      if (isWin) {
-        if (result.outcome === "win_bleeding") {
-           showToast(`VITÓRIA POR UM FIO! ${result.targetRealName} neutralizado, mas você está SANGRANDO.`, "warning");
-        } else {
-           showToast(`VITÓRIA! Você neutralizou ${result.targetRealName} com sucesso.`, "success");
-        }
-      }
-
-      // Ativa a tela de resultados com o timer para vencedores ou fugas
-      setCombatPhase("result");
+      setCombatPhase("fighting");
     } catch (err: any) {
       showToast(err.response?.data?.error || err.message, "error");
       cancelCombat();
     }
   };
+
+  const handleCombatComplete = async () => {
+    if (!finalResult) return;
+    const isWin = finalResult.winner;
+    const isCriticalDirect = !isWin && finalResult.outcome !== "draw_flee";
+      
+    await refreshProfile();
+
+    if (isCriticalDirect) {
+      if (finalResult.outcome === "loss_ko") {
+        showToast(`K.O. - Seus sistemas críticos falharam. Recondicionamento obrigatório.`, "error");
+      } else if (finalResult.outcome === "loss_bleeding") {
+        showToast(`SANGRANDO - Você recuou com danos sistêmicos. Recuperação necessária.`, "warning");
+      } else {
+        showToast(`SISTEMA COMPROMETIDO - Redirecionando para Base de Recuperação...`, "warning");
+      }
+      
+      setIsFinalizing(true);
+      navigate("/recovery-base");
+      return;
+    }
+
+    if (isWin) {
+      if (finalResult.outcome === "win_bleeding") {
+         showToast(`VITÓRIA POR UM FIO! ${finalResult.targetRealName} neutralizado, mas você está SANGRANDO.`, "warning");
+      } else {
+         showToast(`VITÓRIA! Você neutralizou ${finalResult.targetRealName} com sucesso.`, "success");
+      }
+    }
+
+    setCombatPhase("result");
+  };
+
 
 
 
@@ -849,177 +776,19 @@ export default function ReckoningPage() {
                    </div>
                 </div>
 
-                {/* ANIMATED HP BARS */}
-                <div className="mb-10 flex flex-col md:flex-row gap-6 md:gap-12 justify-between items-center relative z-10 px-2">
-                   <HPBar 
-                     current={combatHP?.pHP ?? 100} 
-                     max={combatHP?.pMax ?? 100} 
-                     label="Sistemas Vitais" 
-                     color="from-cyan-600 to-blue-500" 
-                   />
-                   
-                   <div className="hidden md:flex flex-col items-center justify-center opacity-40">
-                      <div className="text-[8px] font-black font-mono text-slate-500 uppercase tracking-[0.4em]">Sincronia_Neural</div>
-                      <div className="flex gap-1 mt-1">
-                         {[1,2,3,4,5].map(i => <div key={i} className="w-1 h-3 bg-red-500/50"></div>)}
-                      </div>
-                   </div>
-
-                   <HPBar 
-                     current={combatHP?.tHP ?? 100} 
-                     max={combatHP?.tMax ?? 100} 
-                     label="Nó de Defesa Inimigo" 
-                     color="from-red-600 to-orange-500" 
-                     isRight 
-                   />
-                </div>
-
-                {/* LOGS / FIGHTING AREA */}
+                {/* VISUAL BATTLER AREA E RESULT AREA */}
                 <div className="min-h-[300px] flex flex-col justify-center gap-4 relative z-10">
-                   {combatPhase === "fighting" && (
-                     <div className="space-y-4">
-                        {battleLog.length === 0 && (
-                          <div className="text-center p-8 border border-white/5 bg-white/5 animate-pulse">
-                             <p className="font-mono text-sm text-slate-400 uppercase tracking-widest">Estabelecendo Conexão Neural...</p>
-                          </div>
-                        )}
-                        {turnCountdown !== null && (
-                          <div className="flex flex-col items-center gap-2 py-6 border-y border-red-500/20 bg-red-500/5 mb-6">
-                             <div className="flex items-center gap-3">
-                                <div className="w-2 h-2 bg-red-500 animate-ping rounded-full"></div>
-                                <span className="text-xs font-mono text-red-500 uppercase tracking-[0.4em] font-black">
-                                    {countdownMessage} {turnCountdown}s
-                                </span>
-                             </div>
-                             <div className="w-64 h-1 bg-slate-800 rounded-full overflow-hidden">
-                                <motion.div 
-                                   initial={{ width: "100%" }}
-                                   animate={{ width: "0%" }}
-                                   transition={{ duration: 1, ease: "linear" }}
-                                   key={turnCountdown}
-                                   className="h-full bg-red-500 shadow-[0_0_10px_rgba(220,38,38,0.5)]"
-                                />
-                             </div>
-                          </div>
-                        )}
-                        {battleLog.map((log, idx) => {
-                          const pName = userProfile?.username || "";
-                          const tName = selectedTarget?.name || "";
-                          const realTName = finalResult?.targetRealName || "";
-                          
-                          // Procura nomes para destacar
-                          // Log V4 Hi-Fi Highlighting Engine
-                          const highlights = [
-                            { text: pName, className: "text-emerald-400 font-black drop-shadow-[0_0_8px_rgba(16,185,129,0.4)]" },
-                            { text: tName, className: "text-red-500 font-black drop-shadow-[0_0_8px_rgba(220,38,38,0.4)]" },
-                            { text: realTName, className: "text-red-500 font-black" },
-                            { text: "{SPECTRO}", className: "text-emerald-500 font-black bg-emerald-500/10 px-1 border border-emerald-500/20", label: "SPECTRO_" },
-                            { text: "{CRIT}", className: "text-red-600 font-black animate-pulse bg-red-600/10 px-1 border border-red-600/30", label: "CRITICO_" },
-                            { text: "{BREACH}", className: "text-cyan-400 font-black bg-cyan-400/10 px-1 border border-cyan-400/30", label: "BREACH_" },
-                            { text: "{MISS}", className: "text-blue-400 font-mono italic", label: "EVASÃO_" },
-                            { text: "{AMBIENT}", className: "text-slate-500 italic", label: "SITUACIONAL_" },
-                            { text: "BREACH:", className: "text-yellow-400 font-black" },
-                            { text: "EVASÃO:", className: "text-blue-400 font-black italic" },
-                            { text: "CONTRA-GOLPE:", className: "text-violet-400 font-black animate-pulse" },
-                            { text: "RECHAÇO:", className: "text-rose-500 font-black" },
-                            { text: "OVERLOAD!", className: "text-cyan-400 font-black animate-pulse" }
-                          ].filter(n => n.text.length > 0);
-
-                          const processSegments = (txt: string) => {
-                             if (!txt) return [];
-                             let result = [{ text: txt, highlight: false, className: "", label: null }];
-                             
-                             highlights.forEach(h => {
-                                const newResult: any[] = [];
-                                result.forEach(seg => {
-                                   if (seg.highlight) {
-                                      newResult.push(seg);
-                                      return;
-                                   }
-                                   const parts = seg.text.split(h.text);
-                                   parts.forEach((p, pIdx) => {
-                                      if (p) newResult.push({ text: p, highlight: false, className: "" });
-                                      if (pIdx < parts.length - 1) newResult.push({ 
-                                        text: h.label || h.text, 
-                                        highlight: true, 
-                                        className: h.className 
-                                      });
-                                   });
-                                });
-                                result = newResult;
-                             });
-                             return result;
-                          };
-
-                          const segments = processSegments(log);
-                          let globalCharIdx = 0;
-
-                          return (
-                            <motion.div 
-                              key={idx}
-                              initial={{ opacity: 0, x: -10 }}
-                              animate={{ opacity: 1, x: 0 }}
-                              className="bg-red-500/5 border-l-4 border-red-500 p-5 font-mono text-xs md:text-sm text-slate-200 leading-relaxed shadow-[0_0_20px_rgba(220,38,38,0.05)] whitespace-pre-line"
-                            >
-                              <span className="text-red-500 mr-3">[{idx + 1}]</span>
-                              {segments.map((seg, sIdx) => {
-                                 const part = seg.text;
-                                 const isTechnical = part.trim().startsWith(">>");
-                                 const spanClass = isTechnical ? "text-cyan-400 font-bold opacity-90" : seg.className;
-                                 const segmentStartIdx = globalCharIdx;
-
-                                 if (seg.highlight) {
-                                    // Para destaques (SPECTRO, CRITICO, etc), animamos o bloco inteiro
-                                    // para evitar o "retalho vazio" aparecendo antes do texto
-                                    return (
-                                      <motion.span
-                                        key={sIdx}
-                                        className={`${spanClass} inline-block`}
-                                        initial={{ opacity: 0, scale: 0.9 }}
-                                        animate={{ opacity: 1, scale: 1 }}
-                                        transition={{ 
-                                          duration: 0.2,
-                                          delay: segmentStartIdx * 0.02 
-                                        }}
-                                      >
-                                        {part}
-                                      </motion.span>
-                                    );
-                                 }
-
-                                 return (
-                                   <span key={sIdx} className={spanClass}>
-                                      {part.split("").map((char: string, cCharIdx: number) => {
-                                         const currentIdx = globalCharIdx++;
-                                         if (isTechnical) return char;
-                                         
-                                         return (
-                                           <motion.span
-                                             key={`${idx}-${sIdx}-${cCharIdx}`}
-                                             initial={{ opacity: 0 }}
-                                             animate={{ opacity: 1 }}
-                                             transition={{ 
-                                               duration: 0.01,
-                                               delay: currentIdx * 0.02 
-                                             }}
-                                            >
-                                              {char}
-                                           </motion.span>
-                                         );
-                                      })}
-                                   </span>
-                                 );
-                              })}
-                            </motion.div>
-                          );
-                        })}
-                        {battleLog.length > 0 && battleLog.length < 3 && (
-                          <div className="flex justify-center p-2">
-                             <div className="w-1 h-6 bg-red-500 animate-bounce"></div>
-                          </div>
-                        )}
-                     </div>
-                   )}
+                   {combatPhase === "fighting" && finalResult?.details?.turns && preCalc && (
+                   <div className="mb-10 relative z-10">
+                     <VisualBattler 
+                       player={{ name: userProfile?.username || 'Player', level: userProfile?.level || 1, hp: preCalc.playerInfo.hp, maxHP: preCalc.playerInfo.maxHP }}
+                       target={{ name: selectedTarget?.name || 'Target', level: selectedTarget?.level || 1, hp: preCalc.targetInfo.maxHP, maxHP: preCalc.targetInfo.maxHP }}
+                       turns={finalResult.details.turns}
+                       onComplete={handleCombatComplete}
+                       outcome={finalResult.outcome}
+                     />
+                   </div>
+                )}
 
                    {/* RESULT AREA (Inside Hub) */}
                    {combatPhase === "result" && finalResult && (

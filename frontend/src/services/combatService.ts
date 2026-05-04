@@ -65,7 +65,8 @@ export interface CombatResult {
       defAura: number;
       atkCritChance: number;
       defCritChance: number;
-    }
+    };
+    turns?: any[];
   };
   targetRealName: string;
   spectroComment: string;

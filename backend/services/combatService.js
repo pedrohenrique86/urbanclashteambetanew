@@ -825,7 +825,7 @@ class CombatService {
         log,
         hpLog,
         loot,
-        details: { totals: combatData.totals, metrics: combatData.metrics },
+        details: { totals: combatData.totals, metrics: combatData.metrics, turns: combatData.turns },
         targetRealName: defender.username,
         spectroComment: isWin ? spectroEngine.generateSpectroTalk("victory") : (outcome.startsWith("draw") ? spectroEngine.generateSpectroTalk("timeout") : spectroEngine.generateSpectroTalk("detection"))
       };
