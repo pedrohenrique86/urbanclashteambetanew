@@ -927,7 +927,7 @@ async function persistPlayerState(userId) {
  */
 async function persistDirtyStates() {
   if (!redisClient.client.isReady) {
-    setTimeout(persistDirtyStates, BATCH_FLUSH_INTERVAL);
+    // redis não está pronto, ignoramos e deixamos o setInterval engatar o próximo ciclo.
     return;
   }
 
@@ -947,11 +947,8 @@ async function persistDirtyStates() {
     }
   } catch (err) {
     console.error(`[playerState] ❌ Erro no ciclo de persistência:`, err.message);
-  } finally {
-    // SÊNIOR: SEMPRE reagenda o próximo batimento, mesmo se houver erro crítico acima.
-    // Isso garante que a persistência NUNCA "morra" na produção.
-    setTimeout(persistDirtyStates, BATCH_FLUSH_INTERVAL);
   }
+  // A chamada recursiva de setTimeout() foi removida daqui, pois schedulePersistence já está definindo um setInterval() para disparar periodicamente.
 }
 
 /**
@@ -1181,8 +1178,14 @@ async function processTrainingQueue() {
           console.log(`[worker] ✅ Treino concluído para ${uid} (online: ${hasActiveSubscriber}).`);
 
         } catch (e) {
-          // NÃO remove do ZSET — será re-tentado no próximo ciclo (5s)
-          console.warn(`[worker] ⚠️ Falha ao concluir treino para ${uid} (re-tentará):`, e.message);
+          if (e.message && e.message.includes("Jogador não encontrado")) {
+            console.warn(`[worker] ⚠️ Jogador ${uid} inexistente. Removendo da fila de treino (prevenção de ghost).`);
+            await redisClient.zRemAsync(TRAINING_QUEUE_KEY, uid).catch(() => {});
+            await deletePlayerState(uid).catch(() => {});
+          } else {
+            // Será re-tentado no próximo ciclo (5s)
+            console.warn(`[worker] ⚠️ Falha ao concluir treino para ${uid} (re-tentará):`, e.message);
+          }
         } finally {
           _inProgressCompletions.delete(uid);
         }
