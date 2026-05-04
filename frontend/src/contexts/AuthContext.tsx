@@ -91,13 +91,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const logout = useCallback(async () => {
-    // Limpeza local IMEDIATA para evitar flickers na UI
+    // SÊNIOR: Capturamos o token antes da limpeza para poder avisar o backend
+    // sem causar flicker na UI devido ao delay da rede.
+    const token = tokenStorage.getToken();
+
+    // Limpeza local IMEDIATA para a melhor UX possível
     tokenStorage.clearToken();
     localStorage.removeItem('cached_user');
     setUser(null);
 
+    if (!token) return;
+
     try {
-      await api.post('/auth/logout');
+      // Enviamos o token manualmente no cabeçalho pois o interceptor não o encontrará mais
+      await api.post('/auth/logout', {}, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
     } catch (err: any) {
       // Se a sessão já estava morta (401), não é um erro real para o usuário que apenas quer sair
       if (err.response?.status === 401) {
