@@ -584,43 +584,40 @@ async function getPlayerState(userId, { suppressRegenSSE = false, skipStatusChec
         finalState.status = 'Operacional';
         finalState.status_ends_at = null;
       }
+
+      // SÊNIOR: Lazy Training Completion (Zero-Cron & Synchronous for Caller)
+      // Se o treinamento já terminou, garantimos que o objeto retornado reflete a conclusão,
+      // resolvendo o erro de "Consumo restrito" imediatamente após o cronômetro zerar.
+      if (finalState && finalState.training_ends_at && finalState.active_training_type) {
+        const endsAt = new Date(finalState.training_ends_at);
+        const uid = String(userId);
+        if (!isNaN(endsAt.getTime()) && endsAt.getTime() <= Date.now() && !_inProgressCompletions.has(uid)) {
+          finalState.status = 'Operacional';
+          finalState.training_ends_at = null;
+          finalState.active_training_type = null;
+
+          _inProgressCompletions.add(uid);
+          try {
+            const trainingService = require("./trainingService");
+            setImmediate(async () => {
+              try {
+                await trainingService.completeTraining(uid);
+              } catch (ignored) {
+                // Silencioso: o getPlayerState já marcou como concluído localmente para UX
+              } finally {
+                _inProgressCompletions.delete(uid);
+              }
+            });
+          } catch (e) {
+            _inProgressCompletions.delete(uid);
+          }
+        }
+      }
+
       return finalState;
     }
 
     return state;
-
-    // SÊNIOR: Lazy Training Completion (Zero-Cron & Synchronous for Caller)
-    // Se o treinamento já terminou, garantimos que o objeto retornado reflete a conclusão,
-    // resolvendo o erro de "Consumo restrito" imediatamente após o cronômetro zerar.
-    if (finalState && finalState.training_ends_at && finalState.active_training_type) {
-      const endsAt = new Date(finalState.training_ends_at);
-      const uid = String(userId);
-      if (!isNaN(endsAt.getTime()) && endsAt.getTime() <= Date.now() && !_inProgressCompletions.has(uid)) {
-        // Marcamos como Operacional localmente para o chamador imediato (ex: Supply Station)
-        // enquanto o processamento pesado de XP/Atributos ocorre no setImmediate.
-        finalState.status = 'Operacional';
-        finalState.training_ends_at = null;
-        finalState.active_training_type = null;
-
-        _inProgressCompletions.add(uid);
-        try {
-          const trainingService = require("./trainingService");
-          setImmediate(async () => {
-            try {
-              await trainingService.completeTraining(uid);
-            } catch (ignored) {
-              // Silencioso: o getPlayerState já marcou como concluído localmente para UX
-            } finally {
-              _inProgressCompletions.delete(uid);
-            }
-          });
-        } catch (e) {
-          _inProgressCompletions.delete(uid);
-        }
-      }
-    }
-
-    return finalState;
   }
 
   // Cache miss → carrega do banco

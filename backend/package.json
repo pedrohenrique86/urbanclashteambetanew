@@ -24,7 +24,7 @@
     "seed:prod": "node scripts/run-seed.js prod",
     "seed:all": "npm run seed:dev && npm run seed:prod",
     "dev:local": "cross-env NODE_ENV=development PORT=3002 nodemon server.js",
-    "dev:all": "npm run dev:local"
+    "dev:all": "docker-compose -f ../docker-compose.yml up -d redis && npm run dev:local"
   },
   "dependencies": {
     "axios": "^1.6.8",

@@ -60,9 +60,10 @@ class ActionLogService {
       const cached = await redisClient.lRangeAsync(userLogsKey, start, end);
 
       if (cached && cached.length > 0) {
-        return cached.map(raw => {
+        return cached.map((raw, index) => {
           const parsed = JSON.parse(raw);
           return {
+            id:          parsed.id || `${parsed.createdAt}-${parsed.actionType}-${index}`,
             action_type: parsed.actionType,
             entity_type: parsed.entityType,
             entity_id:   parsed.entityId,
