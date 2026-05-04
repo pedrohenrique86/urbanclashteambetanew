@@ -419,6 +419,14 @@ async function ensureFreshRanking(type, faction) {
 async function warmupRankings() {
   console.log("[ranking] 🔥 Iniciando ciclo de 10 minutos...");
 
+  const redisClient = require("../config/redisClient");
+  const onlineCount = await redisClient.sCardAsync("online_players_set").catch(() => 0);
+  
+  if (!onlineCount || onlineCount === 0) {
+    console.log(`[ranking] 💤 Servidor vazio (0 online). Pulando ciclo do PostgreSQL para permitir Auto-Suspend do Neon DB.`);
+    return;
+  }
+
   // 1 & 2: Persiste estados sujos antes de gerar o ranking
   await Promise.allSettled([
     playerStateService.persistDirtyStates(),
