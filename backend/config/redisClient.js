@@ -325,6 +325,16 @@ const redisWrapper = {
     }
   },
 
+  sCardAsync: async (key) => {
+    if (!key || !isReady) return 0;
+    try {
+      return await client.sCard(String(key));
+    } catch (err) {
+      console.error(`[RedisClient] Erro em sCardAsync key=${key}:`, err.message);
+      return 0;
+    }
+  },
+
   sRemAsync: async (key, member) => {
     if (!key || !isReady) return null;
     try {
