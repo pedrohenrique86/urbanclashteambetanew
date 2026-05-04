@@ -247,7 +247,7 @@ export default function ReckoningPage() {
   // Countdown para redirecionamento automático pós-luta
   useEffect(() => {
     if (combatPhase === "result" && finalResult) {
-      setRedirectCountdown(15);
+      setRedirectCountdown(10);
       const timer = setInterval(() => {
         setRedirectCountdown(prev => {
           if (prev === null || prev <= 1) {
@@ -373,12 +373,8 @@ export default function ReckoningPage() {
       } else if (finalResult.outcome === "loss_bleeding") {
         showToast(`SANGRANDO - Você recuou com danos sistêmicos. Recuperação necessária.`, "warning");
       } else {
-        showToast(`SISTEMA COMPROMETIDO - Redirecionando para Base de Recuperação...`, "warning");
+        showToast(`SISTEMA COMPROMETIDO - Redirecionando para Base de Recuperação em alguns instantes...`, "warning");
       }
-      
-      setIsFinalizing(true);
-      navigate("/recovery-base");
-      return;
     }
 
     if (isWin) {
@@ -856,10 +852,30 @@ export default function ReckoningPage() {
                          </h2>
 
                          <div className="bg-slate-900/80 border border-white/10 p-6 text-left mb-8 space-y-6 overflow-hidden">
-                            <div>
-                               <span className="text-[10px] text-red-500 font-mono uppercase tracking-widest">Relatório do Spectro:</span>
-                               <p className="mt-2 text-slate-300 italic text-sm">&ldquo;{finalResult.spectroComment}&rdquo;</p>
-                            </div>
+                             <div>
+                                <span className="text-[10px] text-red-500 font-mono uppercase tracking-widest">Resumo Operacional:</span>
+                                <p className="mt-2 text-slate-300 italic text-sm border-l-2 border-red-500 pl-3">&ldquo;{finalResult.spectroComment}&rdquo;</p>
+                             </div>
+
+                             <div className="bg-black/60 border border-slate-700 p-4 relative" style={{ clipPath: "polygon(0 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%)" }}>
+                                <span className="text-[10px] text-slate-500 font-mono uppercase tracking-widest block mb-4 border-b border-white/5 pb-2">
+                                  Logs de Combate Arquivados
+                                </span>
+                                <div className="space-y-3">
+                                   {finalResult.log.map((logLine, idx) => {
+                                      const isCrit = logLine.includes("{CRIT}");
+                                      const isMiss = logLine.includes("{MISS}");
+                                      return (
+                                        <p key={idx} className="text-xs font-mono leading-relaxed text-slate-300">
+                                          <span className="text-red-500 mr-2 opacity-60">[{idx + 1}]</span>
+                                          <span className={`${isCrit ? 'text-yellow-400 font-bold' : isMiss ? 'text-slate-500 italic' : ''}`}>
+                                            {logLine.replace('{CRIT}', 'CRÍTICO').replace('{MISS}', 'FALHA').replace('{SPECTRO}', 'SPECTRO').replace('{BREACH}', 'BRECHA').replace('{AMBIENT}', 'AMBIENTE')}
+                                          </span>
+                                        </p>
+                                      );
+                                   })}
+                                </div>
+                             </div>
 
                             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                                {finalResult.loot?.xp !== undefined && (
