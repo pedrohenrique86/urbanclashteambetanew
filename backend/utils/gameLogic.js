@@ -32,8 +32,8 @@ const COMBAT = {
   CRIT_DMG_RAW_FACTOR   : 1.0,   // pontos brutos de critical_damage → 1:1 com %
 
   // COMBATE 1x1
-  XP_WIN_BASE           : 100,   // XP base por vitória em 1x1
-  XP_LOSE_BASE          : 20,    // XP por derrota (não punir totalmente)
+  XP_WIN_BASE           : 40,    // Reduzido de 100 para 40 para evitar saltos de nível no combate
+  XP_LOSE_BASE          : 15,    // Reduzido de 20 para 15
   XP_WIN_ATK_DIFF_FACTOR: 0.5,   // bônus de XP proporcional à diferença de ATK
 };
 

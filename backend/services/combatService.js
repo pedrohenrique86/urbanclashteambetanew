@@ -543,11 +543,11 @@ class CombatService {
         
         // 1. XP DINÂMICO (Baseado no esforço relativo e progressão)
         // Escala base acompanha o nível do jogador (mesma curva do treino)
-        const baseLevelReward = gameLogic.COMBAT.XP_WIN_BASE * (1 + Number(attacker.level) * 0.005);
+        const baseLevelReward = 15 + (Number(defender.level) * 0.5);
         const diffRatio = Number(defender.level) / Number(attacker.level);
         
         let xpGain = baseLevelReward * diffRatio;
-        if (isRare) xpGain *= 1.5; // Multiplicador de Boss
+        if (isRare) xpGain *= 1.8; // Multiplicador de Boss
         
         // Variância Natural (0.8x a 1.2x)
         xpGain *= (0.8 + Math.random() * 0.4);
@@ -559,8 +559,8 @@ class CombatService {
           isCriticalInsight = true;
         }
         
-        // Trava de Segurança: Piso 15, Teto 600
-        xpGain = Math.max(15, Math.min(600, Math.round(xpGain)));
+        // Trava de Segurança: Piso 10, Teto 300
+        xpGain = Math.max(10, Math.min(300, Math.round(xpGain)));
 
         // 2. DINHEIRO ESCALONADO
         let moneyReceived = 0;
@@ -568,11 +568,11 @@ class CombatService {
 
         if (isNpc) {
           if (isRare) {
-             // Bosses: $25/nível + bônus randômico
-             moneyReceived = Math.floor(Number(defender.level) * 25 + 50 + (Math.random() * 200));
+             // Bosses: $60/nível + bônus robusto
+             moneyReceived = Math.floor(Number(defender.level) * 60 + 200 + (Math.random() * 500));
           } else {
-             // Bots Comuns: Sucata tecnológica ($20 a $50)
-             moneyReceived = Math.floor(20 + Math.random() * 30);
+             // Bots Comuns: $40 + $10 por nível + bônus de sucata
+             moneyReceived = Math.floor(40 + (Number(defender.level) * 10) + (Math.random() * 20));
           }
         } else {
           const defMoney = Number(defender.money || 0);
