@@ -98,7 +98,7 @@ class ActionLogService {
     // Ciclo de Persistência em Lote
     setInterval(async () => {
       try {
-        const logsRaw = await redisClient.client.lRange(LOGS_QUEUE_KEY, 0, 99); // Processa até 100 logs por vez
+        const logsRaw = await redisClient.lRangeAsync(LOGS_QUEUE_KEY, 0, 99); // Processa até 100 logs por vez
         if (!logsRaw || logsRaw.length === 0) return;
 
         const logs = logsRaw.map(r => JSON.parse(r));
@@ -120,7 +120,7 @@ class ActionLogService {
         );
 
         // Remove apenas o que processamos
-        await redisClient.client.lTrim(LOGS_QUEUE_KEY, logs.length, -1);
+        await redisClient.lTrimAsync(LOGS_QUEUE_KEY, logs.length, -1);
         console.log(`[actionLogService] 💾 ${logs.length} logs persistidos no Postgres.`);
       } catch (err) {
         console.error(`[actionLogService] ❌ Erro no worker de persistência:`, err.message);

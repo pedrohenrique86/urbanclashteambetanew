@@ -183,6 +183,17 @@ const redisWrapper = {
     }
   },
 
+  lTrimAsync: async (k, start, stop) => {
+    if (!k || !isReady) return null;
+    try {
+      const key = String(k);
+      return await client.lTrim(key, start, stop);
+    } catch (err) {
+      console.error(`[RedisClient] Erro em lTrimAsync key=${k}:`, err.message);
+      return null;
+    }
+  },
+
   setNXAsync: async (k, v, exMs) => {
     if (!k || !isReady) return null;
     try {
