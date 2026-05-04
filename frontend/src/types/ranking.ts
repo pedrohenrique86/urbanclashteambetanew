@@ -38,12 +38,9 @@ export interface UserProfile {
   clan_id?: string;
   resources: number;
   money?: number;
-  wins: number;
-  losses: number;
-  streak: number;
-  victories?: number;
-  defeats?: number;
-  winning_streak?: number;
+  victories: number;
+  defeats: number;
+  winning_streak: number;
   health?: number;
   energy: number;
   max_energy?: number;

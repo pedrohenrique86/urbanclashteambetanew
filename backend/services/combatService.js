@@ -720,7 +720,8 @@ class CombatService {
           attack:    loot.stats.attack,
           defense:   loot.stats.defense,
           focus:     loot.stats.focus,
-          victories: 1
+          victories: 1,
+          winning_streak: 1 // hIncrBy will add 1
         };
         
         if (outcome === "win_bleeding") {
@@ -746,7 +747,8 @@ class CombatService {
             status_ends_at:   recoveryEndsAt,
             recovery_ends_at: recoveryEndsAt,
             shield_ends_at:   shieldEndsAt,
-            defeats:          1
+            defeats:          1,
+            winning_streak:   "0" // Overwrites with string "0" (reset)
           });
         }
       } else if (isLoss) {
@@ -763,7 +765,8 @@ class CombatService {
           status_ends_at:   recoveryEndsAt,
           recovery_ends_at: recoveryEndsAt,
           shield_ends_at:   shieldEndsAt,
-          defeats:          1
+          defeats:          1,
+          winning_streak:   "0" // Reset on loss
         });
       } else if (outcome === "draw_dko") {
         const halfRecovery = new Date(Date.now() + 7.5 * 60000).toISOString();
@@ -775,7 +778,8 @@ class CombatService {
           status:           "Recondicionamento",
           status_ends_at:   halfRecovery,
           recovery_ends_at: halfRecovery,
-          shield_ends_at:   halfShield
+          shield_ends_at:   halfShield,
+          winning_streak:   "0" // Reset on draw DKO (both fall)
         });
 
         if (!isNpc) {
@@ -784,7 +788,8 @@ class CombatService {
             status:           "Recondicionamento",
             status_ends_at:   halfRecovery,
             recovery_ends_at: halfRecovery,
-            shield_ends_at:   halfShield
+            shield_ends_at:   halfShield,
+            winning_streak:   "0"
           });
         }
       } else { // draw_flee

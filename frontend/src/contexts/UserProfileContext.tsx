@@ -39,9 +39,8 @@ export interface UserProfile {
   current_xp?: number;
   resources?: number;
   ucrypto?: number;
-  wins?: number;
-  losses?: number;
-  streak?: number;
+  victories?: number;
+  defeats?: number;
   winning_streak?: number;
   attack?: number;
   defense?: number;
@@ -65,6 +64,8 @@ export interface UserProfile {
   active_training_type?: string | null;
   pending_training_toast?: any;
   toxicity?: number;
+  avatar_url?: string;
+  bio?: string;
 }
 
 export interface IUserProfileContext {
@@ -120,12 +121,9 @@ function mergePlayerStateIntoProfile(
   if (patch.cash !== undefined) next.money = patch.cash;
   if (patch.intimidation !== undefined) next.intimidation = patch.intimidation;
   if (patch.discipline !== undefined) next.discipline = patch.discipline;
-  if (patch.victories !== undefined) next.wins = patch.victories;
-  if (patch.defeats !== undefined) next.losses = patch.defeats;
-  if (patch.winningStreak !== undefined) {
-    next.streak         = patch.winningStreak;
-    next.winning_streak = patch.winningStreak;
-  }
+  if (patch.victories !== undefined) next.victories = patch.victories;
+  if (patch.defeats !== undefined) next.defeats = patch.defeats;
+  if (patch.winningStreak !== undefined) next.winning_streak = patch.winningStreak;
  
   if (patch.status !== undefined) next.status = patch.status;
   if (patch.statusEndsAt !== undefined) next.status_ends_at = patch.statusEndsAt;
@@ -136,7 +134,9 @@ function mergePlayerStateIntoProfile(
   if (patch.activeTrainingType !== undefined) next.active_training_type = patch.activeTrainingType;
   if (patch.pending_training_toast !== undefined) next.pending_training_toast = patch.pending_training_toast;
   if (patch.toxicity !== undefined) next.toxicity = patch.toxicity;
-
+  if (patch.bio !== undefined) next.bio = patch.bio;
+  if (patch.avatar_url !== undefined) next.avatar_url = patch.avatar_url;
+  
   return next;
 }
 
@@ -223,9 +223,9 @@ export const UserProfileProvider = ({ children }: { children: ReactNode }) => {
         user_id: currentUser.id,
         current_xp: Number(profileData.current_xp) || 0,
         resources: Number(profileData.gold) || 0,
-        wins: Number(profileData.wins) || 0,
-        losses: Number(profileData.losses) || 0,
-        streak: Number(profileData.streak) || 0,
+        victories: Number(profileData.victories) || 0,
+        defeats: Number(profileData.defeats) || 0,
+        winning_streak: Number(profileData.winning_streak) || 0,
         status: profileData.status || 'Operacional',
         status_ends_at: profileData.status_ends_at || null,
         training_ends_at: profileData.training_ends_at || null,

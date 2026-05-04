@@ -377,12 +377,12 @@ const DigitalIdentity = React.memo(
               </div>
 
               <div className={!isCompact ? "lg:col-span-7 flex flex-col gap-4" : "mt-2"}>
-                 <div className="grid grid-cols-4 gap-2">
-                    <StatBox label="SCORE" value={player.victories} icon={Trophy} color="text-green-500" />
-                    <StatBox label="LOSSES" value={player.defeats} icon={Frown} color="text-red-500" />
-                    <StatBox label="W_RATE" value={`${winRate}%`} icon={Target} color={factionTheme.primary} />
-                    <StatBox label="STREAK" value={`x${player.winning_streak}`} icon={Zap} color={player.winning_streak >= 5 ? "text-yellow-400" : "text-zinc-500"} pulse={player.winning_streak >= 5} />
-                 </div>
+                  <div className="grid grid-cols-4 gap-2">
+                    <StatBox label="VITÓRIAS" value={player.victories} icon={Trophy} color="text-green-500" />
+                    <StatBox label="DERROTAS" value={player.defeats} icon={Frown} color="text-red-500" />
+                    <StatBox label="TX VITÓRIA" value={`${winRate}%`} icon={Target} color={factionTheme.primary} />
+                    <StatBox label="SEQUÊNCIA" value={`x${player.winning_streak}`} icon={Zap} color={player.winning_streak >= 5 ? "text-yellow-400" : "text-zinc-500"} pulse={player.winning_streak >= 5} />
+                  </div>
               </div>
            </div>
 

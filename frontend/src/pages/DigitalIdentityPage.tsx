@@ -188,6 +188,23 @@ export default function DigitalIdentityPage({
   const handleClose =
     forcedOnClose || (id ? () => navigate(-1) : undefined);
 
+  const mergedPlayer = useMemo(() => {
+    if (!isOwnProfile || !userProfile || !playerData) return playerData;
+    // SÊNIOR: Sincronização granular para evitar conflitos de tipos (ex: faction object vs string)
+    // Garante que o DigitalIdentity receba exatamente o que espera na interface PublicPlayer
+    return {
+      ...playerData,
+      level: userProfile.level ?? playerData.level,
+      victories: userProfile.victories ?? playerData.victories,
+      defeats: userProfile.defeats ?? playerData.defeats,
+      winning_streak: userProfile.winning_streak ?? playerData.winning_streak,
+      status: userProfile.status || playerData.status,
+      status_ends_at: userProfile.status_ends_at || playerData.status_ends_at,
+      avatar_url: userProfile.avatar_url || playerData.avatar_url,
+      bio: userProfile.bio || playerData.bio,
+    } as IdentityPlayer;
+  }, [isOwnProfile, userProfile, playerData]);
+
   if (loading) {
     return (
       <div className="flex min-h-[400px] items-center justify-center text-white">
@@ -214,7 +231,7 @@ export default function DigitalIdentityPage({
       
       {/* Sincronização em tempo real do status se for o perfil do próprio usuário */}
       <DigitalIdentity
-        player={isOwnProfile && userProfile ? { ...playerData, status: userProfile.status || playerData.status, status_ends_at: userProfile.status_ends_at || playerData.status_ends_at } : playerData}
+        player={mergedPlayer!}
         onClose={handleClose}
         isOwnProfile={isOwnProfile}
         isEditing={isEditing}

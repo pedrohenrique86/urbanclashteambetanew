@@ -19,21 +19,29 @@ const DashboardPanel: React.FC<{
   children: React.ReactNode;
   className?: string;
   icon?: React.ReactNode;
-}> = ({ title, children, className = "", icon }) => (
+  background?: React.ReactNode;
+}> = ({ title, children, className = "", icon, background }) => (
   <div
-    className={`bg-black/20 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-4 flex flex-col shadow-lg ${className}`}
+    className={`bg-black/20 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-4 flex flex-col shadow-lg relative overflow-hidden ${className}`}
     style={{
       boxShadow:
         "inset 0 1px 1px rgba(255, 255, 255, 0.05), 0 0 30px rgba(0, 0, 0, 0.5)",
     }}
   >
-    <div className="flex items-center justify-between mb-4">
+    {/* Background Chart Layer */}
+    {background && (
+      <div className="absolute inset-0 z-0 opacity-30 pointer-events-none">
+        {background}
+      </div>
+    )}
+    
+    <div className="relative z-10 flex items-center justify-between mb-4">
       <h2 className="text-lg font-bold text-slate-200 font-orbitron uppercase tracking-wider">
         {title}
       </h2>
       {icon}
     </div>
-    <div className="flex-1\">{children}</div>
+    <div className="relative z-10 flex-1">{children}</div>
   </div>
 );
 
@@ -210,53 +218,62 @@ const LevelPanel = React.memo(({ user }: { user: any }) => {
 });
 
 // --- Painel de Recursos ---
-const GreenLineChart: React.FC = () => (
-  <svg
-    viewBox="0 0 100 40"
-    className="w-full h-16"
-    style={{ filter: "drop-shadow(0 0 5px #22c55e)" }}
-  >
-    <defs>
-      <linearGradient id="greenGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-        <stop offset="0%" stopColor="#22c55e" stopOpacity="0.4" />
-        <stop offset="100%" stopColor="#22c55e" stopOpacity="0" />
-      </linearGradient>
-    </defs>
-    <path
-      d="M 0 30 L 10 25 L 20 28 L 30 20 L 40 22 L 50 15 L 60 18 L 70 25 L 80 22 L 90 28 L 100 20"
-      stroke="#22c55e"
-      strokeWidth="2"
-      fill="url(#greenGradient)"
-    />
-    <circle
-      cx="50"
-      cy="15"
-      r="3"
-      fill="#22c55e"
-      stroke="black"
-      strokeWidth="1"
-    />
-  </svg>
-);
+const GreenLineChart: React.FC<{ gain: number }> = ({ gain }) => {
+  const trend = gain > 0 ? 0.8 : 0.2;
+  const points = [
+    { x: 0, y: 100 },
+    { x: 25, y: 80 - trend * 10 },
+    { x: 50, y: 85 - trend * 30 },
+    { x: 75, y: 60 - trend * 40 },
+    { x: 100, y: 90 - trend * 60 }
+  ];
+  
+  const d = points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ');
+
+  return (
+    <svg
+      viewBox="0 0 100 100"
+      preserveAspectRatio="none"
+      className="w-full h-full"
+    >
+      <defs>
+        <linearGradient id="greenGradientFull" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stopColor="#22c55e" stopOpacity="0.6" />
+          <stop offset="100%" stopColor="#22c55e" stopOpacity="0" />
+        </linearGradient>
+      </defs>
+      <path
+        d={`${d} L 100 100 L 0 100 Z`}
+        fill="url(#greenGradientFull)"
+        className="transition-all duration-1000"
+      />
+      <path
+        d={d}
+        stroke="#22c55e"
+        strokeWidth="1"
+        fill="none"
+        className="transition-all duration-1000"
+      />
+    </svg>
+  );
+};
 
 const ResourcesPanel = React.memo(({ user }: { user: any }) => (
   <DashboardPanel
     title="RECURSOS"
     icon={<BanknotesIcon className="w-6 h-6 text-green-400" />}
+    background={<GreenLineChart gain={user.money_daily_gain || 0} />}
   >
-    <div className="h-full flex flex-col justify-between text-slate-300">
-      <div>
-        <p className="text-sm">
-          Cash:{" "}
-          <span className="font-bold text-white">
-            $ {(user?.money ?? 0).toLocaleString("pt-BR")}
-          </span>
-        </p>
-        <p className="text-sm">
-          Ganhos diários: <span className="font-bold text-white">+$0</span>
-        </p>
+    <div className="h-full flex flex-col justify-center text-slate-300 py-4">
+      <p className="text-xs uppercase tracking-widest opacity-60 mb-1">Total Disponível</p>
+      <p className="text-4xl font-black text-white font-orbitron">
+        $ {(user?.money ?? 0).toLocaleString("pt-BR")}
+      </p>
+      <div className="mt-4 flex items-center gap-2">
+        <div className="px-2 py-1 bg-green-500/20 rounded border border-green-500/30 text-[10px] font-bold text-green-400">
+          +${(user?.money_daily_gain ?? 0).toLocaleString("pt-BR")} / DIA
+        </div>
       </div>
-      <GreenLineChart />
     </div>
   </DashboardPanel>
 ));
@@ -311,50 +328,95 @@ const FactionPanel = React.memo(({ user }: { user: any }) => {
 });
 
 // --- Painel de Estatísticas ---
-const OrangeLineChart: React.FC = () => (
-  <svg
-    viewBox="0 0 100 25"
-    className="w-full h-12"
-    style={{ filter: "drop-shadow(0 0 4px #f97316)" }}
-  >
-    <path
-      d="M 0 20 L 20 15 L 40 18 L 60 10 L 80 15 L 100 5"
-      stroke="#f97316"
-      strokeWidth="1.5"
-      fill="none"
-    />
-  </svg>
-);
+const OrangeLineChart: React.FC<{ victories: number; defeats: number }> = ({ victories, defeats }) => {
+  const total = victories + defeats || 1;
+  const winRate = victories / total;
+  
+  const points = [
+    { x: 0, y: 100 },
+    { x: 20, y: 90 - winRate * 20 },
+    { x: 40, y: 95 - winRate * 40 },
+    { x: 60, y: 70 - winRate * 30 },
+    { x: 80, y: 80 - winRate * 50 },
+    { x: 100, y: 100 - winRate * 60 }
+  ];
+  
+  const d = points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ');
 
-const StatisticsPanel = React.memo(({ user }: { user: any }) => (
-  <DashboardPanel
-    title="ESTATÍSTICAS"
-    icon={<ChartBarIcon className="w-6 h-6 text-cyan-400" />}
-  >
-    <div className="h-full flex flex-col justify-between text-slate-300 text-sm">
-      <div className="grid grid-cols-3 text-center">
-        <div>
-          <p className="text-slate-400">Vitórias</p>
-          <p className="font-bold text-white text-lg">{user.wins ?? 0}</p>
+  return (
+    <svg
+      viewBox="0 0 100 100"
+      preserveAspectRatio="none"
+      className="w-full h-full"
+    >
+      <defs>
+        <linearGradient id="orangeGradientFull" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stopColor="#f97316" stopOpacity="0.5" />
+          <stop offset="100%" stopColor="#f97316" stopOpacity="0" />
+        </linearGradient>
+      </defs>
+      <path
+        d={`${d} L 100 100 L 0 100 Z`}
+        fill="url(#orangeGradientFull)"
+        className="transition-all duration-1000"
+      />
+      <path
+        d={d}
+        stroke="#f97316"
+        strokeWidth="1"
+        fill="none"
+        className="transition-all duration-1000"
+      />
+    </svg>
+  );
+};
+
+const StatisticsPanel = React.memo(({ user }: { user: any }) => {
+  const winRate =
+    (user?.victories ?? 0) + (user?.defeats ?? 0) > 0
+      ? Math.round(
+          ((user?.victories ?? 0) /
+            ((user?.victories ?? 0) + (user?.defeats ?? 0))) *
+            100,
+        )
+      : 0;
+
+  return (
+    <DashboardPanel
+      title="ESTATÍSTICAS"
+      icon={<ChartBarIcon className="w-6 h-6 text-cyan-400" />}
+    >
+      <div className="h-full flex flex-col justify-between text-slate-300 py-2">
+        <div className="grid grid-cols-3 gap-2">
+          <div className="bg-black/30 p-2 rounded-xl border border-white/5 backdrop-blur-sm">
+            <p className="text-slate-400 text-[9px] uppercase tracking-wider mb-1">Vitórias</p>
+            <p className="font-black text-green-400 text-xl font-orbitron">{user.victories ?? 0}</p>
+          </div>
+          <div className="bg-black/30 p-2 rounded-xl border border-white/5 backdrop-blur-sm">
+            <p className="text-slate-400 text-[9px] uppercase tracking-wider mb-1">Derrotas</p>
+            <p className="font-black text-red-500 text-xl font-orbitron">{user.defeats ?? 0}</p>
+          </div>
+          <div className="bg-black/30 p-2 rounded-xl border border-white/5 backdrop-blur-sm">
+            <p className="text-slate-400 text-[9px] uppercase tracking-wider mb-1">Streak</p>
+            <p className="font-black text-yellow-400 text-xl font-orbitron">x{user.winning_streak ?? 0}</p>
+          </div>
         </div>
-        <div>
-          <p className="text-slate-400">Derrotas</p>
-          <p className="font-bold text-white text-lg">{user.losses ?? 0}</p>
-        </div>
-        <div>
-          <p className="text-slate-400">Sequência</p>
-          <p className="font-bold text-white text-lg">{user.streak ?? 0}</p>
+        
+        <div className="mt-4 flex items-center justify-between">
+          <div className="font-orbitron">
+             <p className="text-[10px] text-slate-500 uppercase tracking-[0.2em]">Taxa de Eficiência</p>
+             <p className={`text-2xl font-black ${winRate >= 50 ? 'text-green-400' : 'text-orange-500'}`}>{winRate}%</p>
+          </div>
+          <div className="text-right">
+             <div className={`inline-block px-3 py-1 rounded-full text-[10px] font-bold border ${winRate >= 50 ? 'bg-green-500/10 border-green-500/20 text-green-500' : 'bg-red-500/10 border-red-500/20 text-red-500'}`}>
+               {winRate >= 50 ? 'OPERAÇÃO OK' : 'CRÍTICO'}
+             </div>
+          </div>
         </div>
       </div>
-      <div>
-        <OrangeLineChart />
-        <p className="text-center mt-1">
-          Taxa de Vitória: <span className="font-bold text-white">0%</span>
-        </p>
-      </div>
-    </div>
-  </DashboardPanel>
-));
+    </DashboardPanel>
+  );
+});
 
 // --- Painel de Poder de Combate (Power Solo/War) ---
 const PowerPanel = React.memo(({ user }: { user: any }) => {

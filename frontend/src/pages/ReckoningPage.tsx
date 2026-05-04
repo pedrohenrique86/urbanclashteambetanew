@@ -966,6 +966,26 @@ export default function ReckoningPage() {
                                  const part = seg.text;
                                  const isTechnical = part.trim().startsWith(">>");
                                  const spanClass = isTechnical ? "text-cyan-400 font-bold opacity-90" : seg.className;
+                                 const segmentStartIdx = globalCharIdx;
+
+                                 if (seg.highlight) {
+                                    // Para destaques (SPECTRO, CRITICO, etc), animamos o bloco inteiro
+                                    // para evitar o "retalho vazio" aparecendo antes do texto
+                                    return (
+                                      <motion.span
+                                        key={sIdx}
+                                        className={`${spanClass} inline-block`}
+                                        initial={{ opacity: 0, scale: 0.9 }}
+                                        animate={{ opacity: 1, scale: 1 }}
+                                        transition={{ 
+                                          duration: 0.2,
+                                          delay: segmentStartIdx * 0.02 
+                                        }}
+                                      >
+                                        {part}
+                                      </motion.span>
+                                    );
+                                 }
 
                                  return (
                                    <span key={sIdx} className={spanClass}>
@@ -979,11 +999,11 @@ export default function ReckoningPage() {
                                              initial={{ opacity: 0 }}
                                              animate={{ opacity: 1 }}
                                              transition={{ 
-                                               duration: 0.02,
+                                               duration: 0.01,
                                                delay: currentIdx * 0.02 
                                              }}
-                                           >
-                                             {char}
+                                            >
+                                              {char}
                                            </motion.span>
                                          );
                                       })}

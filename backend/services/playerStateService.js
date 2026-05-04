@@ -137,6 +137,8 @@ const FIELD_TO_SSE = {
   last_training_reset: "lastTrainingReset",
   active_training_type: "activeTrainingType",
   toxicity          : "toxicity",
+  bio               : "bio",
+  avatar_url        : "avatar_url"
 };
 
 // ─── Campos numéricos no Redis Hash ──────────────────────────────────────────────
