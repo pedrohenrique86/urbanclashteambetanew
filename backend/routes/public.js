@@ -5,8 +5,7 @@ const sseService = require("../services/sseService");
 
 const router = express.Router();
 
-// CORS permissivo para endpoint público
-router.use(cors({ origin: "*" }));
+// CORS já é tratado globalmente no server.js
 
 router.get("/rankings", async (req, res) => {
   try {
@@ -30,7 +29,6 @@ router.get("/rankings/subscribe", (req, res) => {
     "Content-Type": "text/event-stream",
     "Cache-Control": "no-cache",
     Connection: "keep-alive",
-    "Access-Control-Allow-Origin": "*",
   });
   if (res.flushHeaders) res.flushHeaders();
   res.write("\n");
