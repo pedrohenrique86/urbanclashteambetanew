@@ -636,7 +636,26 @@ export default function ReckoningPage() {
                    <button onClick={() => mutate()} className="text-xs text-red-400 font-bold hover:underline">REESCANEAR REDE</button>
                  </div>
                )}
-               
+               <div className="mb-6 bg-slate-900/40 border border-slate-800 p-3 pt-4 relative overflow-hidden" style={MILITARY_CLIP}>
+                 <div className="flex justify-between items-center mb-2 px-1 relative z-10">
+                   <div className="flex items-center gap-2">
+                     <div className="w-2 h-2 rounded-full bg-yellow-500 animate-ping"></div>
+                     <span className="text-[10px] sm:text-xs font-mono text-yellow-500 uppercase tracking-[0.2em] font-black">
+                       {isValidating ? 'Varredura de Satélite em Curso...' : 'Aguardando próximo escaneamento por satélite...'}
+                     </span>
+                   </div>
+                   <span className="text-[8px] font-mono text-slate-500 uppercase hidden sm:block">Update Cycle 20s</span>
+                 </div>
+                 
+                 <div className="w-full h-1 bg-slate-800 relative z-10">
+                   <motion.div 
+                     animate={{ width: ["0%", "100%"] }}
+                     transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+                     className="h-full bg-yellow-500 shadow-[0_0_10px_rgba(234,179,8,0.5)]"
+                   />
+                 </div>
+               </div>
+
                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                  {targets?.map((tgt) => (
                    <div 
