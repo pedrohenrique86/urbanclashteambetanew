@@ -53,7 +53,7 @@ class SocketService {
         reconnectionAttempts: 20,
         reconnectionDelay: 2000,
         path: "/socket.io/",
-        transports: ["websocket", "polling"], // SÊNIOR: Permite polling como fallback se o websocket direto falhar (comum em proxies/firewalls)
+        transports: ["websocket"], // SÊNIOR: Transport WebSocket puro obrigatório.
         secure: socketUrl.startsWith("https"),
         withCredentials: true,
       });
