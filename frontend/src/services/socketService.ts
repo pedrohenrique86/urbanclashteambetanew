@@ -53,7 +53,7 @@ class SocketService {
         reconnectionAttempts: 20,
         reconnectionDelay: 2000,
         path: "/socket.io/",
-        transports: ["polling", "websocket"], // SÊNIOR: Fallback seguro ativado. Jogadores limpos farão upgrade automático imediato para WebSocket.
+        transports: ["websocket"], // Apenas websocket como o usuário pediu
         secure: socketUrl.startsWith("https"),
         withCredentials: true,
       });
