@@ -55,6 +55,13 @@ const LogContent = ({ log }: { log: NetworkLog }) => {
             {meta.xp_gain < 0 && <span className="text-rose-400/80">{meta.xp_gain} XP</span>}
             {meta.money_gain > 0 && <span className="text-yellow-400/80">+${meta.money_gain}</span>}
             {meta.money_loss > 0 && <span className="text-rose-400/80">-${meta.money_loss}</span>}
+            {meta.stats_gained && (
+              <div className="flex items-center gap-1.5 border-l border-slate-700 pl-3 ml-1">
+                <span className="text-slate-400">ATK +{Number(meta.stats_gained.atk || 0).toFixed(2)}</span>
+                <span className="text-slate-400">DEF +{Number(meta.stats_gained.def || 0).toFixed(2)}</span>
+                <span className="text-slate-400">FOC +{Number(meta.stats_gained.foc || 0).toFixed(2)}</span>
+              </div>
+            )}
             {meta.is_rare && <span className="px-1.5 py-0.5 bg-red-500/20 text-red-500 border border-red-500/30 rounded-sm font-black tracking-tighter">ALVO_HVT</span>}
           </div>
         </div>

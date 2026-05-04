@@ -799,6 +799,11 @@ class CombatService {
         xp_gain: loot?.xp || 0,
         money_gain: loot?.money || 0,
         money_loss: loot?.moneyLost || 0,
+        stats_gained: loot?.stats ? {
+          atk: loot.stats.attack,
+          def: loot.stats.defense,
+          foc: loot.stats.focus
+        } : null,
         is_rare: isRare
       });
 
