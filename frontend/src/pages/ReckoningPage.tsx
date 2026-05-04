@@ -212,6 +212,7 @@ export default function ReckoningPage() {
     combatService.getRadarTokens,
     { 
       revalidateOnFocus: false,
+      refreshInterval: 20000,
       errorRetryCount: 3,
       errorRetryInterval: 5000,
       shouldRetryOnError: (err) => {

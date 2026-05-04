@@ -293,6 +293,16 @@ function areFactionsOpposite(f1, f2) {
 class CombatService {
 
   async getRadarTargets(userId) {
+    const CACHE_KEY = `radar_lock:${userId}`;
+    try {
+      const cached = await redisClient.get(CACHE_KEY);
+      if (cached) {
+        return JSON.parse(cached);
+      }
+    } catch(e) {
+      console.warn(`[combat/radar] Erro ao ler cache do radar: ${e.message}`);
+    }
+
     const attacker = await playerStateService.getPlayerState(userId);
     if (!attacker) {
       console.error(`[combat/radar] ❌ Estado do atacante não encontrado para UID: ${userId}`);
@@ -405,6 +415,13 @@ class CombatService {
           console.error(`[combat/radar] ⚠️ Falha ao gerar NPC ${i}: ${npcError.message}`);
         }
       }
+    }
+
+    // Trava do Radar: Salva no Redis por 18 segundos. F5 Spam retorna sempre a mesma lista.
+    try {
+      await redisClient.setEx(CACHE_KEY, 18, JSON.stringify(targets));
+    } catch(e) {
+      console.warn(`[combat/radar] Erro ao salvar cache do radar: ${e.message}`);
     }
 
     return targets;
