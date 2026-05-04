@@ -1121,9 +1121,9 @@ export default function ReckoningPage() {
                                  <div className="bg-black/40 p-3 border border-white/5">
                                     <span className="text-[8px] text-slate-500 block uppercase mb-1">ATRIBUTOS</span>
                                     <div className="flex gap-2">
-                                       <span className="text-cyan-400 font-bold text-[10px]">+{finalResult.loot.stats.attack.toFixed(0)}A</span>
-                                       <span className="text-cyan-400 font-bold text-[10px]">+{finalResult.loot.stats.defense.toFixed(0)}D</span>
-                                       <span className="text-cyan-400 font-bold text-[10px]">+{finalResult.loot.stats.focus.toFixed(0)}F</span>
+                                       <span className="text-cyan-400 font-bold text-[10px]">+{finalResult.loot.stats.attack.toFixed(2)}A</span>
+                                       <span className="text-cyan-400 font-bold text-[10px]">+{finalResult.loot.stats.defense.toFixed(2)}D</span>
+                                       <span className="text-cyan-400 font-bold text-[10px]">+{finalResult.loot.stats.focus.toFixed(2)}F</span>
                                     </div>
                                  </div>
                                )}

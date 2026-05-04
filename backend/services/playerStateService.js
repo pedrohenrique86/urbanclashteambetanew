@@ -187,7 +187,7 @@ function _parseState(raw) {
       let n = Number(out[field]);
       if (!isNaN(n)) {
         // Garantir que ATK, DEF e FOC sejam sempre inteiros para o frontend
-        if (['attack', 'defense', 'focus'].includes(field)) {
+        if (['luck'].includes(field)) {
           n = Math.floor(n);
         }
         out[field] = n;

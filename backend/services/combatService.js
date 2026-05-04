@@ -287,7 +287,6 @@ class CombatService {
     // SÊNIOR: Trava de Nível para o Radar
     const attackerLevel = Number(attacker?.level || 1);
     if (attackerLevel < 10) {
-      console.warn(`[combat/radar] ⚠️ Bloqueio por nível: UID ${userId} tentou acessar com nível ${attackerLevel}`);
       throw new Error("Acesso negado: Você precisa atingir o nível 10 para operar o Rastreador Spectro.");
     }
 
@@ -761,6 +760,7 @@ class CombatService {
           action_points:    -300,
           energy:           isKO ? -(Number(attacker.energy || 0)) : -50,
           money:            -loot.moneyLost,
+          total_xp:         loot.xp,
           status:           loot.status,
           status_ends_at:   recoveryEndsAt,
           recovery_ends_at: recoveryEndsAt,
