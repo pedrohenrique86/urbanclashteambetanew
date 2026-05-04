@@ -67,17 +67,15 @@ async function processAllActivePlayers() {
     const onlineIds = await redisClient.sMembersAsync(onlineSetKey);
 
     if (!onlineIds || onlineIds.length === 0) {
-      // Fallback para SCAN se o set estiver vazio, mas com COUNT maior para performance
-      for await (const key of redisClient.scanIterator({ MATCH: `${prefix}*`, COUNT: 250 })) {
-        const userId = key.replace(prefix, "");
-        processedCount++;
-        await playerStateService.regenEnergyForPlayer(userId);
-      }
-    } else {
-      for (const userId of onlineIds) {
-        processedCount++;
-        await playerStateService.regenEnergyForPlayer(userId);
-      }
+      // SÊNIOR FIX: Se ninguém está online, não fazemos nada!
+      // Os jogadores offline terão sua energia calculada por 'Lazy Evaluation' (tempo decorrido)
+      // no exato momento que abrirem o jogo novamente, mantendo o banco de dados Neon em 0% de uso.
+      return;
+    }
+
+    for (const userId of onlineIds) {
+      processedCount++;
+      await playerStateService.regenEnergyForPlayer(userId);
     }
   } catch (err) {
     console.error("[energyService] ❌ Erro no processamento de regeneração:", err.message);
