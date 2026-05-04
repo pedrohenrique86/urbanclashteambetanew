@@ -119,12 +119,15 @@ async function buySupply(userId, itemId) {
   // para garantir que um F5 instantâneo não resulte em rollback se o cluster Redis oscilar.
   const newState = await playerStateService.updatePlayerState(userId, updates);
 
-  // REGISTRO DE LOG
+  // REGISTRO DE LOG - SÊNIOR: Desativado a pedido do usuário para evitar poluição visual 
+  // e focar apenas em eventos macro (Combates/Treinos). 
+  /*
   actionLogService.log(userId, "supply", "item", itemId, {
     energy_gained: energyToAdd,
     toxicity_added: toxToAdd,
     collapsed: collapsed
   });
+  */
 
   if (collapsed) {
     return {

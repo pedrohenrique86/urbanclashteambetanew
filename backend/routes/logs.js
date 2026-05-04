@@ -10,7 +10,8 @@ const { authenticateToken } = require("../middleware/auth");
 router.get("/me", authenticateToken, async (req, res) => {
   try {
     const userId = req.user.id;
-    const logs = await actionLogService.getRecentLogs(userId, 50);
+    const page   = parseInt(req.query.page) || 1;
+    const logs   = await actionLogService.getRecentLogs(userId, page, 50);
     
     res.json({
       success: true,

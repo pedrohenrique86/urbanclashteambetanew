@@ -125,7 +125,9 @@ const LogContent = ({ log }: { log: NetworkLog }) => {
 
 export default function NetworkLogsPage() {
   const { userProfile } = useUserProfile();
-  const { data: logs, error, mutate, isValidating } = useSWR("/logs/me", logService.getMyLogs, {
+  const [page, setPage] = React.useState(1);
+
+  const { data: logs, error, mutate, isValidating } = useSWR(`/logs/me?page=${page}`, () => logService.getMyLogs(page), {
     refreshInterval: 30000, 
     revalidateOnFocus: true
   });
@@ -139,6 +141,20 @@ export default function NetworkLogsPage() {
     textShadow: "2px 0px 0px rgba(249,115,22,0.7), -1px 0px 0px rgba(255,255,255,0.2)"
   };
 
+  const PageButton = ({ p }: { p: number }) => (
+    <button
+      onClick={() => setPage(p)}
+      className={`px-4 py-1.5 font-orbitron text-[10px] font-black border transition-all ${
+        page === p 
+          ? "bg-orange-500 text-black border-orange-500 shadow-[0_0_15px_rgba(249,115,22,0.5)]" 
+          : "bg-black/40 text-orange-500/50 border-orange-500/20 hover:border-orange-500/50 hover:text-orange-500"
+      }`}
+      style={MILITARY_CLIP}
+    >
+      SETOR_0{p}
+    </button>
+  );
+
   return (
     <div className="min-h-[80vh] p-4 md:p-8 font-sans text-slate-300 relative selection:bg-orange-500/30 overflow-hidden">
       
@@ -150,7 +166,7 @@ export default function NetworkLogsPage() {
         <div className="absolute bottom-0 right-0 w-16 h-16 border-b-2 border-r-2 border-orange-500/50"></div>
       </div>
 
-      <header className="max-w-5xl mx-auto mb-10 relative z-10">
+      <header className="max-w-5xl mx-auto mb-6 relative z-10">
         <div className="absolute -left-6 top-1/2 -translate-y-1/2 w-1.5 h-16 bg-orange-500 shadow-[0_0_15px_rgba(249,115,22,1)] hidden lg:block"></div>
         <div className="flex flex-wrap gap-4 items-center justify-between">
           <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}>
@@ -198,6 +214,13 @@ export default function NetworkLogsPage() {
           </div>
         </div>
       </header>
+
+      {/* PAGINATION CONTROLS */}
+      <div className="max-w-5xl mx-auto mb-4 flex justify-end gap-2 relative z-10 px-1">
+         <span className="text-[9px] font-mono text-slate-500 uppercase self-center mr-4 tracking-widest opacity-60">Navegação de Setores:</span>
+         <PageButton p={1} />
+         <PageButton p={2} />
+      </div>
 
       <div className="max-w-5xl mx-auto relative z-10">
         <div className="bg-black/60 border border-slate-800 backdrop-blur-xl relative overflow-hidden shadow-2xl" style={MILITARY_CLIP}>

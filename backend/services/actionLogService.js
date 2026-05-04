@@ -11,7 +11,7 @@ const redisClient = require("../config/redisClient");
 
 const LOGS_USER_PREFIX  = "logs:user:";
 const LOGS_QUEUE_KEY    = "logs:pending:queue";
-const MAX_RECENT_LOGS   = 50;
+const MAX_RECENT_LOGS   = 100;
 const BATCH_INTERVAL_MS = 10000; // 10 segundos
 
 class ActionLogService {
@@ -33,7 +33,7 @@ class ActionLogService {
 
       const userLogsKey = `${LOGS_USER_PREFIX}${userId}`;
 
-      // 1. Camada UX: Salva no Redis para acesso instantâneo (50 últimos)
+      // 1. Camada UX: Salva no Redis para acesso instantâneo (100 últimos)
       const p = redisClient.pipeline();
       p.lPush(userLogsKey, JSON.stringify(logEntry));
       p.lTrim(userLogsKey, 0, MAX_RECENT_LOGS - 1);
@@ -49,12 +49,15 @@ class ActionLogService {
   }
 
   /**
-   * Recupera os logs recentes. Prioriza Redis.
+   * Recupera os logs recentes com suporte a Paginação.
    */
-  async getRecentLogs(userId, limit = 50) {
+  async getRecentLogs(userId, page = 1, limit = 50) {
     try {
       const userLogsKey = `${LOGS_USER_PREFIX}${userId}`;
-      const cached = await redisClient.lRangeAsync(userLogsKey, 0, limit - 1);
+      const start = (page - 1) * limit;
+      const end = start + limit - 1;
+
+      const cached = await redisClient.lRangeAsync(userLogsKey, start, end);
 
       if (cached && cached.length > 0) {
         return cached.map(raw => {
@@ -70,13 +73,14 @@ class ActionLogService {
       }
 
       // Fallback ao DB apenas se o Redis estiver vazio
+      // SÊNIOR: Offset e Limit no Postgres para paginação de segurança.
       const result = await query(
         `SELECT action_type, entity_type, entity_id, metadata, created_at
          FROM action_logs
          WHERE user_id = $1
          ORDER BY created_at DESC
-         LIMIT $2`,
-        [userId, limit]
+         LIMIT $2 OFFSET $3`,
+        [userId, limit, start]
       );
       return result.rows;
     } catch (err) {

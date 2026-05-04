@@ -10,8 +10,8 @@ export interface NetworkLog {
 }
 
 export const logService = {
-  getMyLogs: async (): Promise<NetworkLog[]> => {
-    const { data } = await api.get("/logs/me");
+  getMyLogs: async (page: number = 1): Promise<NetworkLog[]> => {
+    const { data } = await api.get(`/logs/me?page=${page}`);
     return data.data;
   }
 };
