@@ -301,16 +301,16 @@ export const UserProfileProvider = ({ children }: { children: ReactNode }) => {
             break;
           case 404:
             setUserProfile(null);
-            fetchedForUser.current = user.id; // Marca que tentamos buscar, evitando loading infinito em 500
+            fetchedForUser.current = user.id; // Marca que tentamos buscar, evitando loading infinito
             break;
         }
       } else {
-        // Erro genérico (500 ou rede) que não caiu nos status codes acima
-        setUserProfile(null);
+        // Erro genérico (500 ou falha de rede/backend offline)
+        // NÃO destruímos o userProfile atualizando para null (preserva o cache offline).
         fetchedForUser.current = user.id; 
       }
 
-      return null;
+      return userProfile; // Retorna o que sobrou (cache) em vez de forçar null
     } finally {
       isFetching.current = false;
       setLoading(false);
