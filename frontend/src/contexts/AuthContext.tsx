@@ -91,6 +91,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const logout = useCallback(async () => {
+    // Limpeza local IMEDIATA para evitar flickers na UI
+    tokenStorage.clearToken();
+    localStorage.removeItem('cached_user');
+    setUser(null);
+
     try {
       await api.post('/auth/logout');
     } catch (err: any) {
@@ -103,11 +108,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         // Erros graves (500) ou de rede
         console.error("[AuthContext] Falha externa ao tentar destruir sessão no backend:", err.message);
       }
-    } finally {
-      // Limpeza local é a prioridade para a experiência do usuário.
-      tokenStorage.clearToken();
-      localStorage.removeItem('cached_user');
-      setUser(null);
     }
   }, []);
 
