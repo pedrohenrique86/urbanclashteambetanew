@@ -295,7 +295,7 @@ class CombatService {
   async getRadarTargets(userId) {
     const CACHE_KEY = `radar_lock:${userId}`;
     try {
-      const cached = await redisClient.getAsync(CACHE_KEY);
+      const cached = await redisClient.get(CACHE_KEY);
       if (cached) {
         return JSON.parse(cached);
       }
@@ -419,7 +419,7 @@ class CombatService {
 
     // Trava do Radar: Salva no Redis por 18 segundos. F5 Spam retorna sempre a mesma lista.
     try {
-      await redisClient.setAsync(CACHE_KEY, JSON.stringify(targets), "EX", 18);
+      await redisClient.setEx(CACHE_KEY, 18, JSON.stringify(targets));
     } catch(e) {
       console.warn(`[combat/radar] Erro ao salvar cache do radar: ${e.message}`);
     }
