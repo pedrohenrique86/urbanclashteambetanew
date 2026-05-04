@@ -35,6 +35,7 @@ const COMBAT = {
   XP_WIN_BASE           : 40,    // Reduzido de 100 para 40 para evitar saltos de nível no combate
   XP_LOSE_BASE          : 15,    // Reduzido de 20 para 15
   XP_WIN_ATK_DIFF_FACTOR: 0.5,   // bônus de XP proporcional à diferença de ATK
+  MISS_CHANCE           : 6,     // 6% de chance base de errar o golpe (falha crítica)
 };
 
 // ─── Constantes de progressão XP ─────────────────────────────────────────────
@@ -304,11 +305,16 @@ function resolveCombatHit(attacker, defender, turnMomentum = 1.0) {
      }
   }
 
+  // 6. Chance de Erro (MISS)
+  const isMiss = Math.random() * 100 < COMBAT.MISS_CHANCE;
+  if (isMiss) resolvedDamage = 0;
+
   if (incident && incident.dmgMult !== undefined) resolvedDamage = Math.round(resolvedDamage * incident.dmgMult);
 
   return {
     damage: Math.max(0, resolvedDamage),
     isCrit,
+    isMiss,
     isBreach,
     isEvaded,
     isCounter,

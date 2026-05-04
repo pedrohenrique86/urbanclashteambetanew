@@ -375,10 +375,7 @@ export default function ReckoningPage() {
         // 1. Exibe o texto do turno e inicia a digitação
         setBattleLog(prev => [...prev, turnText]);
         
-        // Aguarda a animação de digitação (20ms por caractere)
-        await new Promise(r => setTimeout(r, turnText.length * 20));
-
-        // 2. Após o texto aparecer, atualizamos o HP para sincronizar com o impacto do golpe
+        // Sincroniza HP imediatamente (independente do texto terminar)
         if (turnHP) {
           setCombatHP({
             pHP: turnHP.defenderHP,
@@ -387,6 +384,9 @@ export default function ReckoningPage() {
             tMax: turnHP.attackerMaxHP
           });
         }
+        
+        // Aguarda a animação de digitação (20ms por caractere)
+        await new Promise(r => setTimeout(r, turnText.length * 20));
         
         // Aguarda um pequeno buffer antes de avançar para ler o resultado do golpe
         await new Promise(r => setTimeout(r, 800));

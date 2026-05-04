@@ -499,16 +499,16 @@ class CombatService {
       if (isNpc) {
         const roll = Math.random() * 100;
         if (isRare) {
-          if (roll < 35) outcome = "win_pure";
-          else if (roll < 65) outcome = "win_bleeding"; // 30%
-          else if (roll < 75) outcome = "draw_flee"; // 10%
-          else if (roll < 80) outcome = "draw_dko"; // 5%
-          else outcome = "loss_ko"; // 20%
+          if (roll < 25) outcome = "win_pure";
+          else if (roll < 45) outcome = "win_bleeding"; // Total Win: 45% (era 65%)
+          else if (roll < 65) outcome = "draw_flee"; // 20%
+          else if (roll < 75) outcome = "draw_dko"; // 10%
+          else outcome = "loss_ko"; // 25%
         } else {
-          if (roll < 60) outcome = "win_pure";
-          else if (roll < 75) outcome = "win_bleeding"; // 15%
-          else if (roll < 85) outcome = "draw_flee"; // 10%
-          else if (roll < 90) outcome = "draw_dko"; // 5%
+          if (roll < 45) outcome = "win_pure";
+          else if (roll < 60) outcome = "win_bleeding"; // Total Win: 60% (era 75%)
+          else if (roll < 80) outcome = "draw_flee"; // 20%
+          else if (roll < 90) outcome = "draw_dko"; // 10%
           else outcome = "loss_ko"; // 10%
         }
         combatData = generateFauxTurns(attacker, defender, outcome);
@@ -663,6 +663,9 @@ class CombatService {
         const atkCrit = turn.attacker.isCrit ? ` [CRÍTICO! ${turn.attacker.critChancePct}%]` : "";
         const defCrit = turn.defender.isCrit ? ` [CRÍTICO! ${turn.defender.critChancePct}%]` : "";
         
+        const atkMiss = turn.attacker.isMiss ? " [ERROU O GOLPE!]" : "";
+        const defMiss = turn.defender.isMiss ? " [ALVO ERROU O GOLPE!]" : "";
+        
         // Novos Eventos Robustos
         const atkBreach = turn.attacker.isBreach ? " [BREACH: Defesa Rompida!]" : "";
         const defBreach = turn.defender.isBreach ? " [BREACH: Defesa Inimiga Rompida!]" : "";
@@ -682,8 +685,8 @@ class CombatService {
         const pMomentum = turn.defender.modifiers?.momentum > 1 ? " [Inimigo Dominando]" : "";
         const aMomentum = turn.attacker.modifiers?.momentum > 1 ? " [Você no Ataque!]" : "";
 
-        narrative += `\n>> DANO: Você causou ${atkDmg}${atkCrit}${atkBreach}${defEvade}${atkCounter}${aIncident}`;
-        narrative += `\n>> DANO: Recebeu ${defDmg}${defCrit}${defBreach}${atkEvade}${defCounter}${pIncident}`;
+        narrative += `\n>> DANO: Você causou ${atkDmg}${atkCrit}${atkMiss}${atkBreach}${defEvade}${atkCounter}${aIncident}`;
+        narrative += `\n>> DANO: Recebeu ${defDmg}${defCrit}${defMiss}${defBreach}${atkEvade}${defCounter}${pIncident}`;
         narrative += `\n>> HP: Você [${pHP}/${pMax}]${pMomentum} | Oponente [${tHP}/${tMax}]${aMomentum}`;
         
         // EXIBIÇÃO DE RECOMPENSAS NO ÚLTIMO TURNO
