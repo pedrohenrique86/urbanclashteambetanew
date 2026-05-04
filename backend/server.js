@@ -100,7 +100,7 @@ async function startServer() {
       await redisClient.delAsync("online_players_set");
       console.log("🧹 Set de jogadores online resetado no Redis.");
     }
-    const io = new Server(server, { cors: { origin: allowedOrigins, credentials: true } });
+    const io = new Server(server, { cors: { origin: allowedOrigins } });
     initializeSocket(io);
     schedulePersistence();
     server.listen(PORT, () => {

@@ -5,7 +5,7 @@ const sseService = require("../services/sseService");
 
 const router = express.Router();
 
-// CORS já é tratado globalmente no server.js
+router.use(cors({ origin: "*" }));
 
 router.get("/rankings", async (req, res) => {
   try {
@@ -29,6 +29,7 @@ router.get("/rankings/subscribe", (req, res) => {
     "Content-Type": "text/event-stream",
     "Cache-Control": "no-cache",
     Connection: "keep-alive",
+    "Access-Control-Allow-Origin": "*",
   });
   if (res.flushHeaders) res.flushHeaders();
   res.write("\n");
