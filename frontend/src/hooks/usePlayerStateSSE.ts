@@ -46,6 +46,8 @@ export interface PlayerStatePatch {
   activeTrainingType?: string | null;
   pending_training_toast?: any;
   toxicity?      : number;
+  bio?           : string;
+  avatar_url?    : string;
 }
 
 /**

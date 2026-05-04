@@ -234,6 +234,8 @@ export const UserProfileProvider = ({ children }: { children: ReactNode }) => {
         active_training_type: profileData.active_training_type || null,
         pending_training_toast: profileData.pending_training_toast || null,
         toxicity: Number(profileData.toxicity) || 0,
+        bio: profileData.bio,
+        avatar_url: profileData.avatar_url,
       };
     },
     [],
