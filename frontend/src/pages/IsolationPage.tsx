@@ -123,9 +123,12 @@ export default function IsolationPage() {
               </span>
 
               {timeLeft !== null && (
-                <div className="bg-black/60 px-4 py-2 border border-white/10 flex flex-col items-end">
-                  <span className="text-[8px] font-mono text-white/40 uppercase">Contenção Restante</span>
-                  <span className="text-2xl font-orbitron font-black text-white">{formatTime(timeLeft)}</span>
+                <div className="bg-black/60 px-4 py-2 border border-red-500/20 flex flex-col items-end relative overflow-hidden" style={MILITARY_CLIP}>
+                  <div className="absolute inset-0 bg-red-500/5 animate-pulse pointer-events-none" />
+                  <span className="text-[8px] font-mono text-red-500/60 uppercase tracking-widest relative z-10">Tempo de Contenção</span>
+                  <span className="text-2xl font-orbitron font-black text-red-500 italic relative z-10" style={{ textShadow: "0 0 10px rgba(239, 68, 68, 0.5)" }}>
+                    {formatTime(timeLeft)}
+                  </span>
                 </div>
               )}
             </div>
