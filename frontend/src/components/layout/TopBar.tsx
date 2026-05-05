@@ -146,6 +146,33 @@ const TopBar: React.FC<TopBarProps> = ({ userProfile }) => {
           }}
         >
           <div className="flex flex-wrap items-center justify-center gap-1 sm:gap-2">
+            {userProfile?.status && userProfile.status !== 'Operacional' && userProfile.status !== 'Aprimoramento' && (
+              <motion.div
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                className={`flex items-center gap-1.5 border rounded-lg px-2.5 py-1 mb-1 sm:mb-0 ${
+                  userProfile.status === 'Sangrando' ? 'bg-red-500/10 border-red-500/30 text-red-500 shadow-[0_0_15px_rgba(239,68,68,0.15)]' :
+                  userProfile.status === 'Isolamento' ? 'bg-orange-500/10 border-orange-500/30 text-orange-500' :
+                  'bg-yellow-500/10 border-yellow-500/30 text-yellow-500'
+                }`}
+                data-tooltip-id="topbar-tooltip"
+                data-tooltip-content={
+                  userProfile.status === 'Sangrando' ? "SANGRAMENTO ATIVO: Visite a Base de Recuperação." :
+                  userProfile.status === 'Isolamento' ? "ISOLAMENTO: Acesso restrito." :
+                  `Status: ${userProfile.status}`
+                }
+              >
+                <div className={`w-1.5 h-1.5 rounded-full animate-pulse shadow-[0_0_8px_currentColor] ${
+                   userProfile.status === 'Sangrando' ? 'bg-red-500' :
+                   userProfile.status === 'Isolamento' ? 'bg-orange-500' :
+                   'bg-yellow-500'
+                }`} />
+                <span className="text-[9px] font-black uppercase tracking-widest font-orbitron">
+                  {userProfile.status === 'Sangrando' ? 'CRÍTICO' : userProfile.status}
+                </span>
+              </motion.div>
+            )}
+
             {metrics.map((metric, index) => (
               <React.Fragment key={metric.label}>
                 <div className="flex flex-col items-center justify-center text-center px-1">

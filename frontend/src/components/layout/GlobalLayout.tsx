@@ -27,6 +27,7 @@ const GlobalLayout: React.FC<GlobalLayoutProps> = ({ children }) => {
   const { currentPanel, closePanel, clearPanels, hasOpenPanel } = useHUD();
   const { showToast } = useToast();
   const completingRef = useRef(false);
+  const prevStatusRef = useRef<string | null>(null);
 
   // Estabiliza props do sidebar — evita re-render quando XP/dinheiro mudam
   const sidebarUsername = useMemo(() => userProfile?.username, [userProfile?.username]);
@@ -108,6 +109,65 @@ const GlobalLayout: React.FC<GlobalLayoutProps> = ({ children }) => {
       );
     }
   }, [userProfile?.pending_training_toast, showToast, setUserProfile]);
+
+  // SÊNIOR: Monitor de Mudança de Status (Feedback Narrativo)
+  // Notifica o usuário instantaneamente sobre mudanças críticas de estado.
+  useEffect(() => {
+    if (!userProfile) return;
+    
+    const currentStatus = userProfile.status || 'Operacional';
+    const prevStatus = prevStatusRef.current;
+
+    // Caso Inicial: Login ou Refresh
+    if (prevStatus === null) {
+      prevStatusRef.current = currentStatus;
+      // Se já começar em estado crítico no carregamento, avisa uma vez
+      if (currentStatus === 'Sangrando') {
+        showToast("ALERTA: Integridade comprometida. Sangramento ativo detectado. Visite a Base de Recuperação.", "error", 8000);
+      }
+      return;
+    }
+
+    // Mudança de Estado detectada
+    if (prevStatus !== currentStatus) {
+      prevStatusRef.current = currentStatus;
+
+      let message = '';
+      let type: 'success' | 'error' | 'warning' | 'info' = 'info';
+
+      switch (currentStatus) {
+        case 'Sangrando':
+          message = "⚠️ ALERTA: Hemorragia iniciada! Sua unidade está perdendo integridade. Vá à Base de Recuperação.";
+          type = 'error';
+          break;
+        case 'Isolamento':
+          message = "🔒 DETENÇÃO: Protocolo de Isolamento ativado. Acesso restrito a sistemas críticos.";
+          type = 'error';
+          break;
+        case 'Recondicionamento':
+          message = "🛠️ RECON: Iniciando protocolo de reparo e recondicionamento.";
+          type = 'warning';
+          break;
+        case 'Aprimoramento':
+          message = "⚡ SISTEMA: Sequência de aprimoramento físico/neural em curso.";
+          type = 'info';
+          break;
+        case 'Operacional':
+          // Evita duplicidade com o toast detalhado de fim de treino (outro useEffect)
+          if (prevStatus === 'Aprimoramento' && userProfile.pending_training_toast) return;
+          
+          if (['Sangrando', 'Recondicionamento', 'Isolamento', 'Aprimoramento'].includes(prevStatus)) {
+            message = "✅ SISTEMA: Estabilização concluída. Status operacional restaurado.";
+            type = 'success';
+          }
+          break;
+      }
+
+      if (message) {
+        showToast(message, type, 6000);
+      }
+    }
+  }, [userProfile?.status, userProfile?.pending_training_toast, showToast]);
 
   useEffect(() => {
     clearPanels();
