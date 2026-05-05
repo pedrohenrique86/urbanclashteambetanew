@@ -90,6 +90,57 @@ function initializeSocket(server) {
       }
     });
 
+    // ─── CHAT DO SETOR DE ISOLAMENTO ──────────────────────────────────────────
+    socket.on("isolation:authenticate", async (data) => {
+      try {
+        const token = data.token;
+        if (!token) throw new Error("Token não fornecido.");
+
+        const user = await authenticateSocket(token);
+        socket.user = user;
+        socket.join("isolation:room");
+
+        const ISOLATION_USERS_KEY = "online_players:isolation";
+        const userData = JSON.stringify({ id: user.id, username: user.username, avatar: user.avatar_url });
+        
+        await redisClient.saddAsync(ISOLATION_USERS_KEY, userData);
+
+        const emitIsolationUsers = async () => {
+          const rawUsers = await redisClient.smembersAsync(ISOLATION_USERS_KEY);
+          const users = rawUsers.map(u => JSON.parse(u));
+          io.to("isolation:room").emit("isolation:users", users);
+        };
+
+        await emitIsolationUsers();
+
+        const isolationChatService = require("./services/isolationChatService");
+        socket.emit("isolation:auth_success");
+        socket.emit("isolation:history", isolationChatService.getHistory());
+
+        socket.on("disconnect", async () => {
+          await redisClient.sremAsync(ISOLATION_USERS_KEY, userData);
+          await emitIsolationUsers();
+        });
+
+        if (!socket.hasIsolationListener) {
+          socket.hasIsolationListener = true;
+          socket.on("isolation:sendMessage", async (msgData) => {
+            const now = Date.now();
+            if (now - (socket.lastIsolationMsg || 0) < 2000) return; // Cooldown 2s
+            
+            const text = typeof msgData.text === "string" ? msgData.text.trim() : "";
+            if (text.length === 0) return;
+
+            socket.lastIsolationMsg = now;
+            const isolationChatService = require("./services/isolationChatService");
+            await isolationChatService.handleNewMessage(io, socket, text);
+          });
+        }
+      } catch (err) {
+        socket.emit("isolation:auth_failed", { message: err.message });
+      }
+    });
+
     // ─── CHAT DA BASE DE RECUPERAÇÃO (RECONDICIONAMENTO) ──────────────────────────
     socket.on("recovery:authenticate", async (data) => {
       try {

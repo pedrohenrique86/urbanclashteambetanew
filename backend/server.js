@@ -84,6 +84,7 @@ app.use("/api/combat", combatRoutes);
 app.use("/api/logs", logsRoutes);
 app.use("/api/daily-cards", require("./routes/dailyCards"));
 app.use("/api/recovery", require("./routes/recovery"));
+app.use("/api/isolation", require("./routes/isolation"));
 
 app.get("/health", (req, res) => {
   res.json({ status: "OK", env: isProduction ? "production" : "development", port: PORT });
@@ -101,7 +102,8 @@ async function startServer() {
     if (redisClient.client.isReady) {
       await redisClient.delAsync("online_players_set");
       await redisClient.delAsync("online_players:recovery");
-      console.log("🧹 Set de jogadores online e lista de recuperação resetados no Redis.");
+      await redisClient.delAsync("online_players:isolation");
+      console.log("🧹 Set de jogadores online, lista de recuperação e isolamento resetados no Redis.");
     }
     const io = new Server(server, { cors: { origin: allowedOrigins } });
     initializeSocket(io);

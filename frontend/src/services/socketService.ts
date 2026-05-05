@@ -203,6 +203,32 @@ class SocketService {
     this.on<any[]>("recovery:users", callback);
   }
 
+  // --- Métodos específicos do Chat de Isolamento ---
+
+  authenticateIsolation(token: string): void {
+    this.emit("isolation:authenticate", { token });
+  }
+
+  sendIsolationMessage(text: string): void {
+    this.emit("isolation:sendMessage", { text });
+  }
+
+  onIsolationAuthSuccess(callback: () => void): void {
+    this.on<void>("isolation:auth_success", callback);
+  }
+
+  onIsolationHistory(callback: (history: ChatMessage[]) => void): void {
+    this.on<ChatMessage[]>("isolation:history", callback);
+  }
+
+  onIsolationMessageReceived(callback: (message: ChatMessage) => void): void {
+    this.on<ChatMessage>("isolation:message", callback);
+  }
+
+  onIsolationUsers(callback: (users: any[]) => void): void {
+    this.on<any[]>("isolation:users", callback);
+  }
+
 }
 
 // Exporta uma instância única (singleton) do serviço
