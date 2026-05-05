@@ -18,6 +18,7 @@ import { tokenStorage } from "../lib/api";
 import { isolationService } from "../services/isolationService";
 import { socketService, ChatMessage } from "../services/socketService";
 import { format } from "date-fns";
+import { getFactionColor } from "./RecoveryBasePage";
 
 /**
  * ISOLATION PAGE - High Security Containment Unit
@@ -371,7 +372,7 @@ function IsolationChatView({ user }: { user: any }) {
                 <img src={msg.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${msg.username}`} className="w-8 h-8 bg-white/5 border border-white/10" style={MILITARY_CLIP} />
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
-                    <span className="text-[10px] font-black text-white/60 uppercase italic tracking-tighter">{msg.username}</span>
+                    <span className={`text-[10px] font-black uppercase italic tracking-tighter ${getFactionColor((msg as any).faction)}`}>{msg.username}</span>
                     <span className="text-[8px] font-mono text-slate-600">[{format(new Date(msg.timestamp), "HH:mm")}]</span>
                   </div>
                   <div className="bg-white/5 p-3 text-xs text-slate-300 border-l border-white/20 break-words" style={{ clipPath: "polygon(0 0, 100% 0, 100% 100%, 4px 100%, 0 calc(100% - 4px))" }}>
@@ -407,7 +408,7 @@ function IsolationChatView({ user }: { user: any }) {
             {onlineUsers.map(u => (
               <div key={u.id} className="flex items-center gap-2 p-1.5 bg-white/5 border border-white/5 group" style={MILITARY_CLIP}>
                 <div className="w-1 h-1 bg-white/20 rounded-full" />
-                <span className="text-[9px] font-black text-white/40 uppercase italic truncate">{u.username}</span>
+                <span className={`text-[9px] font-black uppercase italic truncate group-hover:text-white transition-colors ${getFactionColor(u.faction)}`}>{u.username}</span>
               </div>
             ))}
           </div>

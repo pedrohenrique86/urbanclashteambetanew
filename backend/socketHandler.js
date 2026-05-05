@@ -97,16 +97,21 @@ function initializeSocket(server) {
         if (!token) throw new Error("Token não fornecido.");
 
         const user = await authenticateSocket(token);
+        const playerStateService = require("./services/playerStateService");
+        const playerState = await playerStateService.getPlayerState(user.id);
+        user.faction = playerState ? playerState.faction : 'gangsters';
+        user.avatar_url = playerState ? playerState.avatar_url : user.avatar_url;
+
         socket.user = user;
         socket.join("isolation:room");
 
         const ISOLATION_USERS_KEY = "online_players:isolation";
-        const userData = JSON.stringify({ id: user.id, username: user.username, avatar: user.avatar_url });
+        const userData = JSON.stringify({ id: user.id, username: user.username, avatar: user.avatar_url, faction: user.faction });
         
-        await redisClient.saddAsync(ISOLATION_USERS_KEY, userData);
+        await redisClient.sAddAsync(ISOLATION_USERS_KEY, userData);
 
         const emitIsolationUsers = async () => {
-          const rawUsers = await redisClient.smembersAsync(ISOLATION_USERS_KEY);
+          const rawUsers = await redisClient.sMembersAsync(ISOLATION_USERS_KEY);
           const users = rawUsers.map(u => {
             try { return JSON.parse(u); } catch(e) { return null; }
           }).filter(Boolean);
@@ -120,7 +125,7 @@ function initializeSocket(server) {
         socket.emit("isolation:history", isolationChatService.getHistory());
 
         socket.on("disconnect", async () => {
-          await redisClient.sremAsync(ISOLATION_USERS_KEY, userData);
+          await redisClient.sRemAsync(ISOLATION_USERS_KEY, userData);
           await emitIsolationUsers();
         });
 
@@ -152,16 +157,21 @@ function initializeSocket(server) {
         if (!token) throw new Error("Token não fornecido.");
 
         const user = await authenticateSocket(token);
+        const playerStateService = require("./services/playerStateService");
+        const playerState = await playerStateService.getPlayerState(user.id);
+        user.faction = playerState ? playerState.faction : 'gangsters';
+        user.avatar_url = playerState ? playerState.avatar_url : user.avatar_url;
+
         socket.user = user;
         socket.join("recovery:room");
 
         const RECOVERY_USERS_KEY = "online_players:recovery";
-        const userData = JSON.stringify({ id: user.id, username: user.username, avatar: user.avatar_url });
+        const userData = JSON.stringify({ id: user.id, username: user.username, avatar: user.avatar_url, faction: user.faction });
         
-        await redisClient.saddAsync(RECOVERY_USERS_KEY, userData);
+        await redisClient.sAddAsync(RECOVERY_USERS_KEY, userData);
 
         const emitRecoveryUsers = async () => {
-          const rawUsers = await redisClient.smembersAsync(RECOVERY_USERS_KEY);
+          const rawUsers = await redisClient.sMembersAsync(RECOVERY_USERS_KEY);
           const users = rawUsers.map(u => {
             try { return JSON.parse(u); } catch(e) { return null; }
           }).filter(Boolean);
@@ -175,7 +185,7 @@ function initializeSocket(server) {
         socket.emit("recovery:history", recoveryChatService.getHistory());
 
         socket.on("disconnect", async () => {
-          await redisClient.sremAsync(RECOVERY_USERS_KEY, userData);
+          await redisClient.sRemAsync(RECOVERY_USERS_KEY, userData);
           await emitRecoveryUsers();
         });
 

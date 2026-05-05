@@ -356,7 +356,7 @@ function ReconditioningView({ user, timeLeft, formatTime }: { user: any, timeLef
                 />
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
-                    <span className="text-[10px] font-black text-red-500 uppercase italic tracking-tighter">{msg.username}</span>
+                    <span className={`text-[10px] font-black uppercase italic tracking-tighter ${getFactionColor((msg as any).faction)}`}>{msg.username}</span>
                     <span className="text-[8px] font-mono text-slate-600">[{format(new Date(msg.timestamp), "HH:mm")}]</span>
                   </div>
                   <div className="bg-white/5 p-3 text-xs text-slate-300 border-l-2 border-red-500/30 break-words" style={{ clipPath: "polygon(0 0, 100% 0, 100% 100%, 4px 100%, 0 calc(100% - 4px))" }}>
@@ -398,7 +398,7 @@ function ReconditioningView({ user, timeLeft, formatTime }: { user: any, timeLef
                 <div className="relative">
                   <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full shadow-[0_0_5px_rgba(16,185,129,0.8)] animate-pulse" />
                 </div>
-                <span className="text-[9px] font-black text-slate-400 uppercase italic truncate group-hover:text-white transition-colors">{u.username}</span>
+                <span className={`text-[9px] font-black uppercase italic truncate group-hover:text-white transition-colors ${getFactionColor(u.faction)}`}>{u.username}</span>
               </div>
             ))}
           </div>
@@ -517,8 +517,15 @@ function OperationalView({ onAction }: { onAction: () => void }) {
 function getStatusColor(status: string) {
   switch (status) {
     case 'Ruptura': return 'text-red-500';
-    case 'Recondicionamento': return 'text-blue-500';
+    case 'Recondicionamento': return 'text-yellow-500';
     case 'Operacional': return 'text-green-500';
     default: return 'text-gray-400';
   }
+}
+
+export function getFactionColor(faction?: string) {
+  const f = String(faction || "").toLowerCase().trim();
+  if (['gangsters', 'gangster', 'renegados', 'renegado'].includes(f)) return 'text-orange-500';
+  if (['guardas', 'guarda', 'guardioes', 'guardião', 'guardiões', 'guardiao'].includes(f)) return 'text-blue-400';
+  return 'text-slate-400';
 }
