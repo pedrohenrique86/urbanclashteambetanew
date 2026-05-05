@@ -396,7 +396,7 @@ export default function ReckoningPage() {
                           <FingerPrintIcon className="w-5 h-5 text-emerald-400" />
                         </div>
                         <div className="flex flex-col">
-                          <span className="text-[8px] font-mono text-slate-500 uppercase">Custo PA</span>
+                          <span className="text-[8px] font-mono text-slate-400 font-black uppercase tracking-[0.2em]">Custo PA</span>
                           <span className="text-sm font-orbitron font-black text-emerald-400 tracking-tighter italic">300 PONTOS</span>
                         </div>
                       </div>
@@ -405,14 +405,14 @@ export default function ReckoningPage() {
                           <BoltIcon className="w-5 h-5 text-yellow-400" />
                         </div>
                         <div className="flex flex-col">
-                          <span className="text-[8px] font-mono text-slate-500 uppercase">Energia</span>
+                          <span className="text-[8px] font-mono text-slate-400 font-black uppercase tracking-[0.2em]">Energia</span>
                           <span className="text-sm font-orbitron font-black text-yellow-400 tracking-tighter italic">10% UNIDADE</span>
                         </div>
                       </div>
                     </div>
                     <div className="md:ml-auto md:text-right flex flex-col justify-center border-l-2 md:border-l-0 md:border-r-2 border-red-500/30 pl-4 md:pl-0 md:pr-4">
-                      <span className="text-[8px] font-mono text-red-500 font-bold uppercase tracking-widest leading-none mb-1">Atenção_Operacional</span>
-                      <span className="text-[9px] font-mono text-slate-400 uppercase leading-none">Consumo obrigatório</span>
+                      <span className="text-[8px] font-mono text-red-500 font-black uppercase tracking-widest leading-none mb-1">Atenção_Operacional</span>
+                      <span className="text-[9px] font-mono text-slate-300 font-bold uppercase leading-none tracking-tighter">Consumo obrigatório</span>
                     </div>
                   </div>
                 </div>
@@ -454,11 +454,11 @@ export default function ReckoningPage() {
 
                       <div className="relative z-10 mt-5 grid grid-cols-2 gap-3">
                          <div className="bg-white/5 border border-white/5 p-2 text-center group-hover:bg-white/10 transition-colors">
-                            <span className="block text-[8px] text-slate-500 uppercase font-bold tracking-widest mb-1">LVL_RANK</span>
+                            <span className="block text-[8px] text-slate-400 uppercase font-black tracking-[0.2em] mb-1">LVL_RANK</span>
                             <span className="text-xl font-black text-white font-orbitron italic">{tgt.level}</span>
                          </div>
                          <div className="bg-white/5 border border-white/5 p-2 text-center group-hover:bg-white/10 transition-colors">
-                            <span className="block text-[8px] text-slate-500 uppercase font-bold tracking-widest mb-1">EST_POWER</span>
+                            <span className="block text-[8px] text-slate-400 uppercase font-black tracking-[0.2em] mb-1">EST_POWER</span>
                             <span className={`text-xl font-black font-orbitron italic ${isRisky ? 'text-red-500' : 'text-emerald-500'}`}>~{estPower.toLocaleString()}</span>
                          </div>
                       </div>
@@ -503,7 +503,7 @@ export default function ReckoningPage() {
                     <CpuChipIcon className="w-8 h-8 text-cyan-400" /> Matriz de Estratégia
                   </h2>
                   <div className="text-right">
-                    <span className="text-[10px] font-mono text-slate-500 block uppercase">Alvo Selecionado</span>
+                    <span className="text-[10px] font-mono text-slate-400 font-black block uppercase tracking-[0.2em]">Alvo Selecionado</span>
                     <span className="text-lg font-black text-red-500 font-orbitron">{selectedTarget?.name}</span>
                   </div>
                 </div>
@@ -521,7 +521,7 @@ export default function ReckoningPage() {
                       
                       <button 
                         onClick={() => handleActionSelect(idx, 'brutal')}
-                        className={`p-3 border text-[9px] font-black uppercase transition-all flex flex-col items-center gap-1 ${selectedActions[idx] === 'brutal' ? 'bg-red-500/30 border-red-500 text-white shadow-[0_0_10px_rgba(239,68,68,0.3)]' : 'bg-black/40 border-slate-800 text-slate-500 hover:border-red-500/50'}`}
+                        className={`p-3 border text-[9px] font-black uppercase transition-all flex flex-col items-center gap-1 ${selectedActions[idx] === 'brutal' ? 'bg-red-500/30 border-red-500 text-white shadow-[0_0_10px_rgba(239,68,68,0.3)]' : 'bg-black/40 border-slate-800 text-slate-400 font-bold hover:border-red-500/50'}`}
                         style={MILITARY_CLIP}
                       >
                         <FireIcon className="w-4 h-4" />
@@ -530,7 +530,7 @@ export default function ReckoningPage() {
 
                       <button 
                         onClick={() => handleActionSelect(idx, 'block')}
-                        className={`p-3 border text-[9px] font-black uppercase transition-all flex flex-col items-center gap-1 ${selectedActions[idx] === 'block' ? 'bg-emerald-500/30 border-emerald-500 text-white shadow-[0_0_10px_rgba(16,185,129,0.3)]' : 'bg-black/40 border-slate-800 text-slate-500 hover:border-emerald-500/50'}`}
+                        className={`p-3 border text-[9px] font-black uppercase transition-all flex flex-col items-center gap-1 ${selectedActions[idx] === 'block' ? 'bg-emerald-500/30 border-emerald-500 text-white shadow-[0_0_10px_rgba(16,185,129,0.3)]' : 'bg-black/40 border-slate-800 text-slate-400 font-bold hover:border-emerald-500/50'}`}
                         style={MILITARY_CLIP}
                       >
                         <ShieldExclamationIcon className="w-4 h-4" />
@@ -539,7 +539,7 @@ export default function ReckoningPage() {
 
                       <button 
                         onClick={() => handleActionSelect(idx, 'feint')}
-                        className={`p-3 border text-[9px] font-black uppercase transition-all flex flex-col items-center gap-1 ${selectedActions[idx] === 'feint' ? 'bg-cyan-500/30 border-cyan-500 text-white shadow-[0_0_10px_rgba(6,182,212,0.3)]' : 'bg-black/40 border-slate-800 text-slate-500 hover:border-cyan-500/50'}`}
+                        className={`p-3 border text-[9px] font-black uppercase transition-all flex flex-col items-center gap-1 ${selectedActions[idx] === 'feint' ? 'bg-cyan-500/30 border-cyan-500 text-white shadow-[0_0_10px_rgba(6,182,212,0.3)]' : 'bg-black/40 border-slate-800 text-slate-400 font-bold hover:border-cyan-500/50'}`}
                         style={MILITARY_CLIP}
                       >
                         <BoltIcon className="w-4 h-4" />
