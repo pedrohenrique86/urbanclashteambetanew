@@ -403,12 +403,14 @@ function resolveWinOutcome(attacker, defender, attackerChips = [], tactic = 'tec
   else { defScore++; logs.push({ segment: "FASE 5: EXTRAÇÃO", winner: "defender", label: "Sessão Expirada", effect: "Inimigo forçou sua desconexão." }); }
 
   const isAttackerWin = attScore > defScore;
+  const isDraw = attScore === defScore;
   const isCloseFight = Math.abs(attScore - defScore) <= 2;
   const bleedChance = mod.risk + (isCloseFight ? 0.15 : 0);
   const willBleed = isAttackerWin && Math.random() < bleedChance;
 
   return {
     isAttackerWin,
+    isDraw,
     isCloseFight,
     willBleed,
     attPower: attScore,

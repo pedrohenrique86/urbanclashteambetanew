@@ -167,7 +167,7 @@ class CombatService {
 
       const chips = await this._getEquippedChips(userId);
       const result = gameLogic.resolveWinOutcome(attacker, defender, chips, tactic);
-      const { isAttackerWin, isCloseFight, willBleed, logs, xpBonus, moneyProtection } = result;
+      const { isAttackerWin, isDraw, isCloseFight, willBleed, logs, xpBonus, moneyProtection } = result;
 
       const turns = [];
       let pHP = 100, tHP = 100;
@@ -176,7 +176,12 @@ class CombatService {
         const pDmg = isWinRound ? (20 + Math.floor(Math.random() * 20)) : (5 + Math.floor(Math.random() * 10));
         const tDmg = !isWinRound ? (20 + Math.floor(Math.random() * 20)) : (5 + Math.floor(Math.random() * 10));
         tHP = Math.max(0, tHP - pDmg); pHP = Math.max(0, pHP - tDmg);
-        if (i === logs.length - 1) { if (isAttackerWin) tHP = 0; else pHP = 0; }
+        if (i === logs.length - 1) { 
+          if (isAttackerWin) tHP = 0; 
+          else if (!isDraw) pHP = 0; 
+          // No empate (isDraw), ambos podem terminar com algum HP ou 0, mas visualmente forçamos algo baixo
+          else { tHP = 5; pHP = 5; }
+        }
         turns.push({ 
           round: i + 1, segment: log.segment, label: log.label, effect: log.effect,
           attacker: { damage: pDmg, hpAfter: tHP }, defender: { damage: tDmg, hpAfter: pHP } 
@@ -240,12 +245,30 @@ class CombatService {
             defeats: 1 
           });
         }
+      } else if (isDraw) {
+        loot = { 
+          xp: 5, 
+          money: 0, 
+          stats: { attack: 0.01, defense: 0.01, focus: 0.01 }, 
+          outcome: "EMPATE" 
+        };
+        await playerStateService.updatePlayerState(userId, { 
+          energy: -15, 
+          action_points: -150, 
+          total_xp: loot.xp,
+          attack: loot.stats.attack,
+          defense: loot.stats.defense,
+          focus: loot.stats.focus
+        });
+        if (!isNpc) {
+           await playerStateService.updatePlayerState(targetId, { total_xp: 5 });
+        }
       } else {
         const moneyLost = Math.floor(attacker.money * 0.10 * (1 - moneyProtection/100)); 
         loot = { xp: -15, moneyLost, status: "Recondicionamento", outcome: "DERROTA" };
         
         await playerStateService.updatePlayerState(userId, { 
-          energy: -20, // PENALIDADE SUAVE: Não zera mais tudo
+          energy: -20, 
           action_points: -150, 
           money: -loot.moneyLost, 
           total_xp: loot.xp, 
@@ -255,8 +278,32 @@ class CombatService {
         });
       }
 
+      // SÊNIOR: REGISTRO TÁTICO NA REDE (Network Logs)
+      // Registra a batalha para o atacante
+      await actionLogService.log(userId, 'combat', 'player', isNpc ? 'npc' : targetId, {
+        target_name: defender.username,
+        outcome: isAttackerWin ? 'win' : (isDraw ? 'draw' : 'loss'),
+        xp_gain: loot.xp || -15,
+        money_gain: loot.money || 0,
+        money_loss: loot.moneyLost || 0,
+        stats_gained: loot.stats || null,
+        is_rare: defender.is_rare
+      });
+
+      // Registra a batalha para o defensor (se for jogador real)
+      if (!isNpc) {
+        await actionLogService.log(targetId, 'combat', 'player', userId, {
+          target_name: attacker.username,
+          outcome: isAttackerWin ? 'loss' : (isDraw ? 'draw' : 'win'),
+          xp_gain: isAttackerWin ? 0 : (isDraw ? 5 : 15),
+          money_loss: isAttackerWin ? loot.money : 0,
+          money_gain: isAttackerWin ? 0 : (loot.moneyLost || 0),
+          stats_gained: null // Defensor geralmente não ganha stats ao ser atacado nesta versão
+        });
+      }
+
       return {
-        outcome: isAttackerWin ? "win_ko" : "loss_ko", 
+        outcome: isAttackerWin ? "win_ko" : (isDraw ? "draw" : "loss_ko"), 
         winner: isAttackerWin,
         log: turns.map(t => `${t.segment}: ${t.label || ''} ${t.attacker.damage} dano causado.`),
         hpLog: turns.map(t => ({ attackerHP: t.attacker.hpAfter, defenderHP: t.defender.hpAfter })),

@@ -216,22 +216,44 @@ export default function VisualBattler({ player, target, turns, logs, onComplete,
             className="absolute inset-0 z-[100] bg-black/95 backdrop-blur-xl flex flex-col items-center justify-center p-8 border-4 border-slate-900"
           >
             <motion.div initial={{ scale: 0.5, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="flex flex-col items-center">
-              <h2 className={`text-5xl font-black font-orbitron mb-2 tracking-tighter italic ${outcome.startsWith('win') ? 'text-cyan-400' : 'text-red-600'}`}>
-                {outcome.startsWith('win') ? "INVASÃO COMPLETA" : "ACESSO NEGADO"}
+              <h2 className={`text-5xl font-black font-orbitron mb-2 tracking-tighter italic ${
+                outcome.startsWith('win') ? 'text-cyan-400' : 
+                outcome.startsWith('draw') ? 'text-yellow-500' : 
+                'text-red-600'
+              }`}>
+                {outcome.startsWith('win') ? "INVASÃO COMPLETA" : 
+                 outcome.startsWith('draw') ? "CONEXÃO INSTÁVEL" : 
+                 "ACESSO NEGADO"}
               </h2>
               <div className="w-48 h-[1px] bg-white/10 mb-8"></div>
               
               <div className="grid grid-cols-2 gap-4 w-full max-w-sm mb-12">
                  <div className="bg-slate-900/50 p-4 border border-white/5 text-center">
                     <span className="block text-[8px] text-slate-500 uppercase mb-1 font-bold">XP_GAINED</span>
-                    <span className="text-2xl font-black text-white">+{loot?.xp || 0}</span>
+                    <span className="text-2xl font-black text-white">{loot?.xp >= 0 ? '+' : ''}{loot?.xp || 0}</span>
                  </div>
                  <div className="bg-slate-900/50 p-4 border border-white/5 text-center">
-                    <span className="block text-[8px] text-slate-500 uppercase mb-1 font-bold">CASH_EXT</span>
-                    <span className="text-2xl font-black text-emerald-500">${loot?.money || 0}</span>
+                    <span className="block text-[8px] text-slate-500 uppercase mb-1 font-bold">CASH_TRANS</span>
+                    <span className={`text-2xl font-black ${loot?.moneyLost > 0 ? 'text-red-500' : 'text-emerald-500'}`}>
+                      {loot?.moneyLost > 0 ? `-$${loot.moneyLost}` : `$${loot?.money || 0}`}
+                    </span>
                  </div>
-                 <div className="col-span-2 bg-white/5 p-2 border border-white/5 text-center">
-                    <span className="text-[8px] text-slate-500 uppercase font-black tracking-widest">Atributos Sync: +{loot?.stats?.attack?.toFixed(2) || '0.01'} PTs</span>
+                 <div className="col-span-2 flex flex-col gap-1 bg-white/5 p-3 border border-white/5">
+                    <span className="text-[8px] text-slate-500 uppercase font-black tracking-widest text-center mb-2">Sincronização de Atributos</span>
+                    <div className="grid grid-cols-3 gap-2">
+                       <div className="flex flex-col items-center">
+                          <span className="text-[7px] text-slate-500 uppercase">ATK</span>
+                          <span className="text-xs font-bold text-cyan-400">+{loot?.stats?.attack?.toFixed(2) || '0.00'}</span>
+                       </div>
+                       <div className="flex flex-col items-center border-x border-white/5">
+                          <span className="text-[7px] text-slate-500 uppercase">DEF</span>
+                          <span className="text-xs font-bold text-cyan-400">+{loot?.stats?.defense?.toFixed(2) || '0.00'}</span>
+                       </div>
+                       <div className="flex flex-col items-center">
+                          <span className="text-[7px] text-slate-500 uppercase">FOC</span>
+                          <span className="text-xs font-bold text-cyan-400">+{loot?.stats?.focus?.toFixed(2) || '0.00'}</span>
+                       </div>
+                    </div>
                  </div>
               </div>
 

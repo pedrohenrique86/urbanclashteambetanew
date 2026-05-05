@@ -41,25 +41,38 @@ const LogContent = ({ log }: { log: NetworkLog }) => {
   
   switch (log.action_type) {
     case 'combat': {
-      const isWin = meta.outcome?.startsWith('win');
+      const outcome = meta.outcome;
+      const isWin = outcome === 'win' || outcome?.startsWith('win');
+      const isDraw = outcome === 'draw';
+      const isLoss = outcome === 'loss' || outcome?.startsWith('loss');
+
+      let label = "CONFLITO";
+      let color = "text-slate-400";
+      if (isWin) { label = "VITÓRIA"; color = "text-emerald-400"; }
+      else if (isLoss) { label = "DERROTA"; color = "text-rose-400"; }
+      else if (isDraw) { label = "EMPATE"; color = "text-yellow-500"; }
+
       return (
         <div className="flex flex-col gap-1">
           <div className="flex items-center gap-2">
-            <span className={isWin ? "text-emerald-400 font-bold" : "text-rose-400 font-bold"}>
-              {isWin ? "VITÓRIA" : "DERROTA"} NO PROTOCOLO DE ACERTO DE CONTAS
+            <span className={`${color} font-bold`}>
+              {label} NO PROTOCOLO DE ACERTO DE CONTAS
             </span>
             <span className="text-slate-500 text-[10px]">vs {meta.target_name || "Desconhecido"}</span>
           </div>
           <div className="flex flex-wrap gap-3 text-[10px] items-center">
-            {meta.xp_gain > 0 && <span className="text-emerald-400/80">+{meta.xp_gain} XP</span>}
-            {meta.xp_gain < 0 && <span className="text-rose-400/80">{meta.xp_gain} XP</span>}
+            {meta.xp_gain !== 0 && (
+              <span className={meta.xp_gain > 0 ? "text-emerald-400/80" : "text-rose-400/80"}>
+                {meta.xp_gain > 0 ? `+${meta.xp_gain}` : meta.xp_gain} XP
+              </span>
+            )}
             {meta.money_gain > 0 && <span className="text-yellow-400/80">+${meta.money_gain}</span>}
             {meta.money_loss > 0 && <span className="text-rose-400/80">-${meta.money_loss}</span>}
             {meta.stats_gained && (
               <div className="flex items-center gap-1.5 border-l border-slate-700 pl-3 ml-1">
-                <span className="text-slate-400">ATK +{Number(meta.stats_gained.atk || 0).toFixed(2)}</span>
-                <span className="text-slate-400">DEF +{Number(meta.stats_gained.def || 0).toFixed(2)}</span>
-                <span className="text-slate-400">FOC +{Number(meta.stats_gained.foc || 0).toFixed(2)}</span>
+                <span className="text-slate-400">ATK +{Number(meta.stats_gained.attack || meta.stats_gained.atk || 0).toFixed(2)}</span>
+                <span className="text-slate-400">DEF +{Number(meta.stats_gained.defense || meta.stats_gained.def || 0).toFixed(2)}</span>
+                <span className="text-slate-400">FOC +{Number(meta.stats_gained.focus || meta.stats_gained.foc || 0).toFixed(2)}</span>
               </div>
             )}
             {meta.is_rare && <span className="px-1.5 py-0.5 bg-red-500/20 text-red-500 border border-red-500/30 rounded-sm font-black tracking-tighter">ALVO_HVT</span>}
