@@ -112,10 +112,12 @@ const GlobalLayout: React.FC<GlobalLayoutProps> = ({ children }) => {
 
   // SÊNIOR: Monitor de Mudança de Status (Feedback Narrativo)
   // Notifica o usuário instantaneamente sobre mudanças críticas de estado.
+  const currentStatus = userProfile?.status || 'Operacional';
+  const pendingTrainingToast = userProfile?.pending_training_toast;
+
   useEffect(() => {
     if (!userProfile) return;
     
-    const currentStatus = userProfile.status || 'Operacional';
     const prevStatus = prevStatusRef.current;
 
     // Caso Inicial: Login ou Refresh
@@ -154,7 +156,7 @@ const GlobalLayout: React.FC<GlobalLayoutProps> = ({ children }) => {
           break;
         case 'Operacional':
           // Evita duplicidade com o toast detalhado de fim de treino (outro useEffect)
-          if (prevStatus === 'Aprimoramento' && userProfile.pending_training_toast) return;
+          if (prevStatus === 'Aprimoramento' && pendingTrainingToast) return;
           
           if (['Sangrando', 'Recondicionamento', 'Isolamento', 'Aprimoramento'].includes(prevStatus)) {
             message = "✅ SISTEMA: Estabilização concluída. Status operacional restaurado.";
@@ -167,7 +169,7 @@ const GlobalLayout: React.FC<GlobalLayoutProps> = ({ children }) => {
         showToast(message, type, 6000);
       }
     }
-  }, [userProfile?.status, userProfile?.pending_training_toast, showToast]);
+  }, [currentStatus, pendingTrainingToast, showToast, userProfile]);
 
   useEffect(() => {
     clearPanels();
