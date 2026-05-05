@@ -123,9 +123,10 @@ const GlobalLayout: React.FC<GlobalLayoutProps> = ({ children }) => {
     // Caso Inicial: Login ou Refresh
     if (prevStatus === null) {
       prevStatusRef.current = currentStatus;
-      // Se já começar em estado crítico no carregamento, avisa uma vez
-      if (currentStatus === 'Sangrando') {
+      // Se já começar em estado crítico no carregamento, avisa uma vez por sessão
+      if (currentStatus === 'Sangrando' && !sessionStorage.getItem('bleeding_toast_shown')) {
         showToast("ALERTA: Integridade comprometida. Sangramento ativo detectado. Visite a Base de Recuperação.", "error", 8000);
+        sessionStorage.setItem('bleeding_toast_shown', 'true');
       }
       return;
     }
@@ -139,8 +140,11 @@ const GlobalLayout: React.FC<GlobalLayoutProps> = ({ children }) => {
 
       switch (currentStatus) {
         case 'Sangrando':
-          message = "⚠️ ALERTA: Hemorragia iniciada! Sua unidade está perdendo integridade. Vá à Base de Recuperação.";
-          type = 'error';
+          if (!sessionStorage.getItem('bleeding_toast_shown')) {
+            message = "⚠️ ALERTA: Hemorragia iniciada! Sua unidade está perdendo integridade. Vá à Base de Recuperação.";
+            type = 'error';
+            sessionStorage.setItem('bleeding_toast_shown', 'true');
+          }
           break;
         case 'Isolamento':
           message = "🔒 DETENÇÃO: Protocolo de Isolamento ativado. Acesso restrito a sistemas críticos.";
@@ -155,6 +159,9 @@ const GlobalLayout: React.FC<GlobalLayoutProps> = ({ children }) => {
           type = 'info';
           break;
         case 'Operacional':
+          // Reset flag de sangramento quando estabilizar
+          sessionStorage.removeItem('bleeding_toast_shown');
+          
           // Evita duplicidade com o toast detalhado de fim de treino (outro useEffect)
           if (prevStatus === 'Aprimoramento' && pendingTrainingToast) return;
           

@@ -50,32 +50,37 @@ const DashboardPanel: React.FC<{
 
 // --- Painel de Nível ---
 const CircularProgressBar: React.FC<{ progress: number; isGangster: boolean }> = ({ progress, isGangster }) => {
-  const size = 100;
+  const size = 120; // Aumentado para dar margem ao brilho e stroke
   const strokeWidth = 10;
   const center = size / 2;
-  const radius = center - strokeWidth / 2;
+  const radius = 45; // Mantém o tamanho real do círculo consistente
   const circumference = 2 * Math.PI * radius;
   const offset = circumference - (progress / 100) * circumference;
 
   const colors = isGangster 
-    ? { stop1: "#fb923c", stop2: "#ea580c", shadow: "#f97316" }
-    : { stop1: "#60a5fa", stop2: "#2563eb", shadow: "#3b82f6" };
+    ? { stop1: "#fb923c", stop2: "#ea580c", shadow: "rgba(249, 115, 22, 0.5)" }
+    : { stop1: "#60a5fa", stop2: "#2563eb", shadow: "rgba(59, 130, 246, 0.5)" };
 
   return (
     <div
-      className="relative"
+      className="relative flex items-center justify-center"
       style={{
         width: size,
         height: size,
-        filter: `drop-shadow(0 0 7px ${colors.shadow})`,
       }}
     >
-      <svg width={size} height={size} className="transform -rotate-90">
+      <svg 
+        width={size} 
+        height={size} 
+        viewBox={`0 0 ${size} ${size}`}
+        className="transform -rotate-90 overflow-visible"
+        style={{ filter: `drop-shadow(0 0 8px ${colors.shadow})` }}
+      >
         <circle
           cx={center}
           cy={center}
           r={radius}
-          stroke="rgba(0, 0, 0, 0.5)"
+          stroke="rgba(0, 0, 0, 0.4)"
           strokeWidth={strokeWidth}
           fill="transparent"
         />
@@ -89,7 +94,7 @@ const CircularProgressBar: React.FC<{ progress: number; isGangster: boolean }> =
           strokeDasharray={circumference}
           strokeDashoffset={offset}
           strokeLinecap="round"
-          style={{ transition: "stroke-dashoffset 0.5s ease-in-out" }}
+          style={{ transition: "stroke-dashoffset 0.8s cubic-bezier(0.4, 0, 0.2, 1)" }}
         />
         <defs>
           <linearGradient
