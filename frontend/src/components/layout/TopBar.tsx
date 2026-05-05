@@ -156,7 +156,7 @@ const TopBar: React.FC<TopBarProps> = ({ userProfile }) => {
                   </span>
                   
                   {/* Value container with optional progress or battery background */}
-                  <div className={`relative px-3 py-1 rounded-lg overflow-hidden flex items-center justify-center gap-1 ${metric.progress !== undefined ? 'bg-white/5 w-[65px] sm:w-[75px]' : 'min-w-[50px]'} ${(metric as any).isBattery ? 'pr-4 !rounded-md' : ''}`}>
+                  <div className={`relative ${metric.label === 'NVL' && userProfile?.status ? 'pl-4 pr-3' : 'px-3'} py-1 rounded-lg overflow-hidden flex items-center justify-center gap-1 ${metric.progress !== undefined ? 'bg-white/5 w-[65px] sm:w-[75px]' : 'min-w-[50px]'} ${(metric as any).isBattery ? 'pr-4 !rounded-md' : ''}`}>
                     
                     {/* The Fill Layer */}
                     {metric.progress !== undefined && (
@@ -168,17 +168,29 @@ const TopBar: React.FC<TopBarProps> = ({ userProfile }) => {
                       />
                     )}
 
-                    {/* Status Dot (Only for Level) */}
+                    {/* Status Edge Indicator (Only for Level) */}
                     {metric.label === "NVL" && userProfile?.status && (
                       <motion.div
-                        initial={{ scale: 0.8, opacity: 0 }}
-                        animate={{ scale: 1, opacity: 1 }}
-                        className={`relative z-10 w-2.5 h-2.5 rounded-full animate-pulse shadow-[0_0_12px_currentColor] mr-1 ${
-                          userProfile.status === 'Ruptura' ? 'bg-red-500 text-red-500' :
-                          userProfile.status === 'Isolamento' ? 'bg-zinc-300 text-zinc-300' :
-                          userProfile.status === 'Recondicionamento' ? 'bg-amber-400 text-amber-400' :
-                          userProfile.status === 'Aprimoramento' ? 'bg-blue-500 text-blue-500' :
-                          'bg-emerald-500 text-emerald-500'
+                        initial={{ opacity: 0.6 }}
+                        animate={{ 
+                          opacity: [0.4, 1, 0.4],
+                          boxShadow: [
+                            "0 0 5px currentColor",
+                            "0 0 15px currentColor",
+                            "0 0 5px currentColor"
+                          ]
+                        }}
+                        transition={{ 
+                          duration: 2,
+                          repeat: Infinity,
+                          ease: "easeInOut"
+                        }}
+                        className={`absolute left-0 top-0 bottom-0 w-1.5 z-20 ${
+                          userProfile.status === 'Ruptura' ? 'bg-red-500 text-red-500/50' :
+                          userProfile.status === 'Isolamento' ? 'bg-zinc-400 text-zinc-400/50' :
+                          userProfile.status === 'Recondicionamento' ? 'bg-amber-400 text-amber-400/50' :
+                          userProfile.status === 'Aprimoramento' ? 'bg-blue-500 text-blue-500/50' :
+                          'bg-emerald-500 text-emerald-500/50'
                         }`}
                         data-tooltip-id="topbar-tooltip"
                         data-tooltip-content={userProfile.status}
