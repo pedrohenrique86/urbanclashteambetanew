@@ -92,6 +92,34 @@ const BattleRulesInfo = () => {
   );
 };
 
+const RefreshTimer = ({ targets }: { targets: any }) => {
+  const [seconds, setSeconds] = useState(20);
+  
+  useEffect(() => {
+    setSeconds(20);
+    const interval = setInterval(() => {
+      setSeconds(s => (s > 0 ? s - 1 : 20));
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [targets]);
+
+  return (
+    <div className="flex items-center gap-2 px-3 py-1.5 bg-cyan-900/20 border border-cyan-500/30 backdrop-blur-sm" style={MILITARY_CLIP}>
+      <div className="relative w-3 h-3">
+        <ClockIcon className="absolute inset-0 w-3 h-3 text-cyan-500" />
+        <motion.div 
+          className="absolute inset-0 border border-cyan-500 rounded-full"
+          animate={{ scale: [1, 1.5, 1], opacity: [0.5, 0, 0.5] }}
+          transition={{ duration: 2, repeat: Infinity }}
+        />
+      </div>
+      <span className="text-[9px] font-mono font-bold text-cyan-400 uppercase tracking-tighter">
+        Atualização: <span className="text-white">{seconds}s</span>
+      </span>
+    </div>
+  );
+};
+
 export default function ReckoningPage() {
   const { userProfile, refreshProfile } = useUserProfile();
   const { showToast } = useToast();
@@ -208,56 +236,139 @@ export default function ReckoningPage() {
           </h1>
           
           <div className="flex flex-col gap-3 mt-4">
-            <div className="flex items-center gap-4">
-              {/* Badge SEC LEVEL Estilizado */}
-              <div className="flex items-center overflow-hidden border border-yellow-500/40 bg-black/60" style={MILITARY_CLIP}>
-                <div className="bg-yellow-500 px-2 py-0.5">
-                   <span className="text-[9px] font-black text-black uppercase">OP_LEVEL</span>
+            <div className="flex flex-col md:flex-row md:items-center gap-4 mt-4">
+              <div className="flex items-center gap-4">
+                {/* Badge SEC LEVEL Estilizado */}
+                <div className="flex items-center overflow-hidden border border-yellow-500/40 bg-black/60" style={MILITARY_CLIP}>
+                  <div className="bg-yellow-500 px-2 py-0.5">
+                    <span className="text-[9px] font-black text-black uppercase">OP_LEVEL</span>
+                  </div>
+                  <div className="px-3 py-0.5">
+                    <span className="text-[10px] font-mono text-yellow-500 font-bold tracking-widest">TACTICAL_STRIKE_AUTH</span>
+                  </div>
                 </div>
-                <div className="px-3 py-0.5">
-                   <span className="text-[10px] font-mono text-yellow-500 font-bold tracking-widest">TACTICAL_STRIKE_AUTH</span>
-                </div>
+
+                <div className="h-4 w-px bg-slate-800"></div>
+
+                <span className="text-[10px] font-mono text-yellow-500/80 animate-pulse tracking-widest font-bold uppercase">● Combat_Matrix_Active</span>
+                
+                <BattleRulesInfo />
               </div>
 
-              <div className="h-4 w-px bg-slate-800"></div>
-
-              <span className="text-[10px] font-mono text-yellow-500/80 animate-pulse tracking-widest font-bold uppercase">● Combat_Matrix_Active</span>
-              
-              <BattleRulesInfo />
+              <div className="flex items-center gap-3">
+                <RefreshTimer targets={targets} />
+                <div className="flex items-center gap-2 text-[10px] font-mono text-slate-500 uppercase tracking-widest">
+                  <div className="w-1 h-1 bg-cyan-500 animate-ping" />
+                  Auto-Sync_Enabled
+                </div>
+              </div>
             </div>
             
-            <p className="text-slate-300 text-[10px] font-mono tracking-[0.2em] uppercase bg-white/5 py-1 px-3 border-l-2 border-yellow-500/50 w-fit backdrop-blur-sm">
-              Sinal de alvo detectado. Intercepte ou seja interceptado. Matriz de Combate Ativa.
-            </p>
+            <div className="flex flex-wrap gap-4 items-center mt-6">
+              <div className="hidden lg:flex items-center gap-2">
+                {userProfile?.active_chips?.map((chip: any, i: number) => (
+                  <div key={i} className="flex items-center gap-1 px-2 py-1 bg-cyan-500/10 border border-cyan-500/30 rounded" title={chip.name}>
+                    <CpuChipIcon className="w-3 h-3 text-cyan-400" />
+                    <span className="text-[8px] font-black font-mono text-cyan-400 uppercase">{chip.name.split(' ')[0]}</span>
+                  </div>
+                ))}
+              </div>
+
+              <div className="bg-black/40 backdrop-blur-md border border-orange-500/30 p-3 flex items-center gap-3" style={MILITARY_CLIP}>
+                <FireIcon className="w-6 h-6 text-orange-500" />
+                <div className="flex flex-col">
+                  <span className="text-[8px] font-mono text-slate-500 uppercase">POWER_LVL</span>
+                  <span className="text-lg font-black font-orbitron text-orange-400">{playerPower.toLocaleString()}</span>
+                </div>
+              </div>
+              
+              <div className="bg-black/40 backdrop-blur-md border border-emerald-500/30 p-3 flex items-center gap-3" style={MILITARY_CLIP}>
+                <FingerPrintIcon className="w-6 h-6 text-emerald-500" />
+                <div className="flex flex-col">
+                  <span className="text-[8px] font-mono text-slate-500 uppercase">ACTION_PTS</span>
+                  <span className="text-lg font-black font-orbitron text-emerald-400">{userProfile?.action_points?.toLocaleString() || 0}</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+              {/* SYNCHRONIZATION NOTICE */}
+              <div className="bg-cyan-500/10 border-2 border-cyan-500/40 p-4 px-6 flex items-center gap-6 relative overflow-hidden shadow-[0_0_30px_rgba(34,211,238,0.1)] group transition-all duration-300 hover:bg-cyan-500/20" style={MILITARY_CLIP}>
+                <div className="absolute inset-0 bg-tactical-grid opacity-30 pointer-events-none" />
+                <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/10 via-transparent to-transparent pointer-events-none" />
+                <div className="absolute left-0 right-0 h-[2px] bg-cyan-400 shadow-[0_0_10px_rgba(34,211,238,0.8)] animate-scan pointer-events-none" />
+                <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-cyan-500 shadow-[5px_0_15px_rgba(34,211,238,0.5)]" />
+                <div className="absolute top-1 left-2 w-3 h-3 border-t-2 border-l-2 border-cyan-500/40" />
+                <div className="absolute top-1 right-2 w-3 h-3 border-t-2 border-r-2 border-cyan-500/40" />
+                <div className="absolute bottom-1 left-2 w-3 h-3 border-b-2 border-l-2 border-cyan-500/40" />
+                <div className="absolute bottom-1 right-2 w-3 h-3 border-b-2 border-r-2 border-cyan-500/40" />
+
+                <div className="relative z-10 flex-shrink-0 p-3 bg-black/60 border border-cyan-500/30 rounded-sm">
+                  <InformationCircleIcon className="w-8 h-8 text-cyan-400 drop-shadow-[0_0_8px_rgba(34,211,238,0.6)]" />
+                </div>
+
+                <div className="relative z-10">
+                  <span className="text-[10px] font-orbitron text-cyan-400 uppercase font-black tracking-[0.4em] flex items-center gap-2 mb-2">
+                    <div className="w-2 h-2 bg-cyan-400 animate-pulse shadow-[0_0_8px_rgba(34,211,238,1)]" />
+                    Protocolo de Sincronização
+                  </span>
+                  <p className="text-xs font-mono text-slate-100 uppercase leading-relaxed tracking-wider max-w-md">
+                    Grade de alvos em constante mutação. O radar realiza uma <span className="text-cyan-400 font-black underline underline-offset-4 decoration-cyan-500/50">nova varredura</span> automaticamente a cada <span className="text-white font-black bg-cyan-500/20 px-1">20 segundos</span>.
+                  </p>
+                </div>
+              </div>
+              
+              {/* ENGAGEMENT COSTS NOTICE */}
+              <div className="bg-red-500/10 border-2 border-red-500/40 p-4 px-6 flex items-center gap-6 relative overflow-hidden shadow-[0_0_30px_rgba(239,68,68,0.1)] group transition-all duration-300 hover:bg-red-500/20" style={MILITARY_CLIP}>
+                <div className="absolute inset-0 bg-tactical-grid opacity-20 pointer-events-none" />
+                <div className="absolute inset-0 bg-gradient-to-r from-red-500/10 via-transparent to-transparent pointer-events-none" />
+                <div className="absolute left-0 right-0 h-[2px] bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.8)] animate-scan pointer-events-none" />
+                <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-red-600 shadow-[5px_0_15px_rgba(239,68,68,0.5)]" />
+                <div className="absolute top-1 left-2 w-3 h-3 border-t-2 border-l-2 border-red-500/40" />
+                <div className="absolute top-1 right-2 w-3 h-3 border-t-2 border-r-2 border-red-500/40" />
+                <div className="absolute bottom-1 left-2 w-3 h-3 border-b-2 border-l-2 border-red-500/40" />
+                <div className="absolute bottom-1 right-2 w-3 h-3 border-b-2 border-r-2 border-red-500/40" />
+
+                <div className="relative z-10 flex-shrink-0 p-3 bg-black/60 border border-red-500/30 rounded-sm">
+                  <ExclamationTriangleIcon className="w-8 h-8 text-red-500 drop-shadow-[0_0_8px_rgba(239,68,68,0.6)]" />
+                </div>
+
+                <div className="relative z-10 flex-1">
+                  <span className="text-[10px] font-orbitron text-red-500 uppercase font-black tracking-[0.4em] flex items-center gap-2 mb-2">
+                    <div className="w-2 h-2 bg-red-500 animate-pulse shadow-[0_0_8px_rgba(239,68,68,1)]" />
+                    Requisitos de Engajamento
+                  </span>
+                  <div className="flex flex-col md:flex-row gap-6 mt-1">
+                    <div className="flex gap-6">
+                      <div className="flex items-center gap-2">
+                        <div className="p-1.5 bg-emerald-500/20 border border-emerald-500/40 rounded-sm">
+                          <FingerPrintIcon className="w-5 h-5 text-emerald-400" />
+                        </div>
+                        <div className="flex flex-col">
+                          <span className="text-[8px] font-mono text-slate-500 uppercase">Custo PA</span>
+                          <span className="text-sm font-orbitron font-black text-emerald-400 tracking-tighter italic">150 PONTOS</span>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="p-1.5 bg-yellow-500/20 border border-yellow-500/40 rounded-sm">
+                          <BoltIcon className="w-5 h-5 text-yellow-400" />
+                        </div>
+                        <div className="flex flex-col">
+                          <span className="text-[8px] font-mono text-slate-500 uppercase">Energia</span>
+                          <span className="text-sm font-orbitron font-black text-yellow-400 tracking-tighter italic">10% UNIDADE</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="md:ml-auto md:text-right flex flex-col justify-center border-l-2 md:border-l-0 md:border-r-2 border-red-500/30 pl-4 md:pl-0 md:pr-4">
+                      <span className="text-[8px] font-mono text-red-500 font-bold uppercase tracking-widest leading-none mb-1">Atenção_Operacional</span>
+                      <span className="text-[9px] font-mono text-slate-400 uppercase leading-none">Consumo obrigatório</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </motion.div>
-        
-        <div className="flex flex-wrap gap-4 items-center justify-end mt-6">
-          <div className="hidden lg:flex items-center gap-2">
-            {userProfile?.active_chips?.map((chip: any, i: number) => (
-              <div key={i} className="flex items-center gap-1 px-2 py-1 bg-cyan-500/10 border border-cyan-500/30 rounded" title={chip.name}>
-                <CpuChipIcon className="w-3 h-3 text-cyan-400" />
-                <span className="text-[8px] font-black font-mono text-cyan-400 uppercase">{chip.name.split(' ')[0]}</span>
-              </div>
-            ))}
-          </div>
-
-          <div className="bg-black/40 backdrop-blur-md border border-orange-500/30 p-3 flex items-center gap-3" style={MILITARY_CLIP}>
-             <FireIcon className="w-6 h-6 text-orange-500" />
-             <div className="flex flex-col">
-               <span className="text-[8px] font-mono text-slate-500 uppercase">POWER_LVL</span>
-               <span className="text-lg font-black font-orbitron text-orange-400">{playerPower.toLocaleString()}</span>
-             </div>
-          </div>
-          
-          <div className="bg-black/40 backdrop-blur-md border border-emerald-500/30 p-3 flex items-center gap-3" style={MILITARY_CLIP}>
-             <FingerPrintIcon className="w-6 h-6 text-emerald-500" />
-             <div className="flex flex-col">
-               <span className="text-[8px] font-mono text-slate-500 uppercase">ACTION_PTS</span>
-               <span className="text-lg font-black font-orbitron text-emerald-400">{userProfile?.action_points?.toLocaleString() || 0}</span>
-             </div>
-          </div>
-        </div>
       </header>
 
       <div className="max-w-6xl mx-auto">
@@ -273,35 +384,57 @@ export default function ReckoningPage() {
                     <div 
                       key={tgt.id}
                       onClick={() => !loadingPreCalc && handleSelectTarget(tgt)}
-                      className="cursor-pointer group relative bg-black/40 backdrop-blur-md border border-yellow-500/30 hover:bg-white/5 transition-all duration-300 p-5 shadow-[0_0_40px_rgba(234,179,8,0.05),inset_0_1px_rgba(255,255,255,0.05)]"
+                      className="cursor-pointer group relative bg-black/40 backdrop-blur-md border border-white/5 hover:border-yellow-500/30 transition-all duration-500 p-5 overflow-hidden shadow-2xl"
                       style={MILITARY_CLIP}
                     >
-                      <div className="flex items-center gap-3">
-                         <div className="w-12 h-12 bg-black/60 border border-yellow-500/20 flex items-center justify-center text-slate-600 group-hover:text-yellow-500 transition-colors">
+                      {/* Background scanning effect */}
+                      <div className="absolute inset-0 bg-gradient-to-br from-yellow-500/0 via-yellow-500/0 to-yellow-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                      <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-yellow-500/50 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
+
+                      <div className="relative z-10 flex items-center gap-3">
+                         <div className="w-12 h-12 bg-black/60 border border-white/10 group-hover:border-yellow-500/40 flex items-center justify-center text-slate-600 group-hover:text-yellow-500 transition-all duration-300 transform group-hover:scale-105">
                            <UserCircleIcon className="w-8 h-8" />
                          </div>
                          <div className="min-w-0 flex-1">
-                           <p className="text-[9px] uppercase font-mono text-yellow-500/60 font-bold tracking-widest">ALVO_{tgt.is_npc ? 'SINTÉTICO' : 'JOGADOR'}</p>
-                           <h3 className="font-orbitron font-black text-sm text-white truncate tracking-wider">{tgt.name}</h3>
+                           <p className="text-[9px] uppercase font-mono text-yellow-500/60 font-black tracking-[0.2em]">{tgt.is_npc ? 'SYNC_BOT' : 'PLAYER_SIGNAL'}</p>
+                           <h3 className="font-orbitron font-black text-sm text-white truncate tracking-wider group-hover:text-yellow-400 transition-colors">{tgt.name}</h3>
                          </div>
                       </div>
-                      <div className="mt-4 grid grid-cols-2 gap-2">
-                         <div className="bg-white/5 border border-white/5 p-2 text-center">
-                            <span className="block text-[8px] text-slate-500 uppercase font-bold">LVL_RANK</span>
-                            <span className="text-lg font-black text-white font-orbitron">{tgt.level}</span>
+
+                      <div className="relative z-10 mt-5 grid grid-cols-2 gap-3">
+                         <div className="bg-white/5 border border-white/5 p-2 text-center group-hover:bg-white/10 transition-colors">
+                            <span className="block text-[8px] text-slate-500 uppercase font-bold tracking-widest mb-1">LVL_RANK</span>
+                            <span className="text-xl font-black text-white font-orbitron italic">{tgt.level}</span>
                          </div>
-                         <div className="bg-white/5 border border-white/5 p-2 text-center">
-                            <span className="block text-[8px] text-slate-500 uppercase font-bold">EST_POWER</span>
-                            <span className={`text-lg font-black font-orbitron ${isRisky ? 'text-red-500' : 'text-emerald-500'}`}>~{estPower.toLocaleString()}</span>
+                         <div className="bg-white/5 border border-white/5 p-2 text-center group-hover:bg-white/10 transition-colors">
+                            <span className="block text-[8px] text-slate-500 uppercase font-bold tracking-widest mb-1">EST_POWER</span>
+                            <span className={`text-xl font-black font-orbitron italic ${isRisky ? 'text-red-500' : 'text-emerald-500'}`}>~{estPower.toLocaleString()}</span>
                          </div>
+                      </div>
+
+                      <div className="relative z-10 mt-4 flex items-center justify-between">
+                        <div className="flex gap-1">
+                          {[...Array(4)].map((_, i) => (
+                            <div key={i} className={`w-1 h-3 ${isRisky ? 'bg-red-500/20' : 'bg-emerald-500/20'} group-hover:bg-yellow-500/40 transition-colors`} />
+                          ))}
+                        </div>
+                        <span className="text-[8px] font-mono text-white/20 uppercase font-black group-hover:text-yellow-500/60 transition-colors">Intercept_Protocol_v4</span>
                       </div>
 
                       {/* Decorative side bar for the card */}
-                      <div className="absolute left-0 top-0 bottom-0 w-1 bg-yellow-500 shadow-[0_0_10px_rgba(234,179,8,0.8)] opacity-50 group-hover:opacity-100 transition-opacity"></div>
+                      <div className="absolute left-0 top-0 bottom-0 w-[2px] bg-yellow-500/20 group-hover:bg-yellow-500 shadow-[0_0_15px_rgba(234,179,8,0)] group-hover:shadow-[0_0_15px_rgba(234,179,8,0.6)] transition-all duration-300"></div>
 
                       {isRisky && (
-                        <div className="absolute top-2 right-2 flex items-center gap-1 text-[8px] font-black text-red-500 uppercase animate-pulse">
-                          <ExclamationTriangleIcon className="w-3 h-3" /> ALTO RISCO
+                        <div className="absolute top-2 right-2 flex items-center gap-1.5 bg-red-500/20 px-2 py-0.5 border border-red-500/30">
+                          <ExclamationTriangleIcon className="w-3 h-3 text-red-500 animate-pulse" />
+                          <span className="text-[8px] font-black text-red-500 uppercase tracking-tighter">ALTO RISCO</span>
+                        </div>
+                      )}
+                      
+                      {!isRisky && (
+                        <div className="absolute top-2 right-2 flex items-center gap-1.5 bg-emerald-500/10 px-2 py-0.5 border border-emerald-500/20 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <BoltIcon className="w-3 h-3 text-emerald-500" />
+                          <span className="text-[8px] font-black text-emerald-500 uppercase tracking-tighter">ALVO ÓTIMO</span>
                         </div>
                       )}
                     </div>

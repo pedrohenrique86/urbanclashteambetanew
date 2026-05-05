@@ -172,4 +172,21 @@ iframe {
   color: #64748b;
   cursor: not-allowed;
 }
+
+@keyframes scan {
+  0% { top: -10%; opacity: 0; }
+  50% { opacity: 0.5; }
+  100% { top: 110%; opacity: 0; }
+}
+
+.animate-scan {
+  animation: scan 4s linear infinite;
+}
+
+.bg-tactical-grid {
+  background-image: 
+    linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
 
