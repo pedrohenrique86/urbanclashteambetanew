@@ -153,7 +153,8 @@ const NUMERIC_FIELDS = new Set([
 const _memDirtyRanking = new Set();  // userId → mudança de XP/nível (para ranking)
 
 // Contador de versão por jogador para consistência do PATCH no frontend
-const _versionMap = new Map();       // userId → number
+// SÊNIOR: Versionamento Global via Redis (substitui _versionMap in-memory)
+// Garante que o frontend receba versões incrementais consistentes entre múltiplos processos.
 
 // Guard para evitar double-completion no Lazy Training Completion
 // Se o worker já está processando, o getPlayerState não dispara um segundo completeTraining
@@ -169,11 +170,19 @@ const VALID_TRANSITIONS = {
   'Sangrando':         ['Operacional', 'Recondicionamento']
 };
 
-function _nextVersion(userId) {
-  const uid = String(userId);
-  const v   = (_versionMap.get(uid) || 0) + 1;
-  _versionMap.set(uid, v);
-  return v;
+/**
+ * SÊNIOR: Versionamento Global via Redis.
+ */
+async function _nextVersion(userId) {
+  const key = `player:version:${userId}`;
+  try {
+    const v = await redisClient.incrAsync(key);
+    await redisClient.expireAsync(key, 604800); // 7 dias
+    return v;
+  } catch (err) {
+    console.error("[version] Erro Redis:", err.message);
+    return Date.now();
+  }
 }
 
 // ─── Helpers privados ─────────────────────────────────────────────────────────────
@@ -186,7 +195,7 @@ function _parseState(raw) {
     if (out[field] !== undefined) {
       let n = Number(out[field]);
       if (!isNaN(n)) {
-        // SÊNIOR: Garantir que ATK, DEF e FOC tenham precisão de 2 casas (00.00)
+        // SÊNIOR: Garantir que ATK, DEF e FOC tenham precisão de 2 casas (xx.xx)
         if (['attack', 'defense', 'focus'].includes(field)) {
           n = Math.round(n * 100) / 100;
         } else if (['luck'].includes(field)) {
@@ -413,7 +422,7 @@ function _buildPatch(updates, newState) {
     if (val !== undefined) {
       if (NUMERIC_FIELDS.has(redisKey)) {
         let n = Number(val);
-        // SÊNIOR: Arredonda atributos para 2 casas decimais no SSE
+        // SÊNIOR: Arredonda atributos para 2 casas decimais no SSE (xx.xx)
         if (['attack', 'defense', 'focus'].includes(redisKey)) {
           n = Math.round(n * 100) / 100;
         }
@@ -805,9 +814,12 @@ async function updatePlayerState(userId, updates, options = {}) {
     if (hasSSEChange) {
       if (internalUpdate) newState._internalUpdate = true;
       const patch   = _buildPatch(updates, newState);
-      const version = _nextVersion(userId);
+      const version = await _nextVersion(userId);
 
       if (Object.keys(patch).length > 0) {
+        if (import.meta.env?.DEV || process.env.NODE_ENV !== 'production') {
+          console.log(`[playerState:SSE] 🚀 Emitindo Patch v${version} para ${userId}:`, Object.keys(patch).join(", "));
+        }
         sseService.publish(`player:${userId}`, "player:state", {
           type    : "player:patch",
           patch,
