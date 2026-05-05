@@ -22,7 +22,7 @@ import { calculateTrainingCost } from "../utils/leveling";
  * UrbanClash Team - Tactical Elite HUD
  */
 
-// Estilo de chanfro militar
+// HUD Corners e utilitários já estão no index.css via classes .military-clip, etc.
 const MILITARY_CLIP = { clipPath: "polygon(8px 0%, 100% 0%, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0% 100%, 0% 8px)" };
 
 const TRAINING_OPTIONS = [
@@ -214,7 +214,7 @@ export default function TrainingPage() {
             
             {/* DAILY LIMIT CARD */}
             <div 
-              className="bg-black/40 backdrop-blur-md border border-cyan-500/30 shadow-[0_0_40px_rgba(34,211,238,0.1),inset_0_1px_rgba(255,255,255,0.1)] p-6 relative group overflow-hidden"
+              className="cyber-card p-6 relative group"
               style={MILITARY_CLIP}
             >
               <div className="absolute top-0 right-0 p-2 opacity-20 group-hover:opacity-40 transition-opacity">
@@ -250,7 +250,7 @@ export default function TrainingPage() {
                   initial={{ opacity: 0, scale: 0.98 }}
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.98 }}
-                  className="bg-black/40 backdrop-blur-md border border-violet-500/40 shadow-[0_0_50px_rgba(139,92,246,0.15),inset_0_1px_rgba(255,255,255,0.1)] p-6 relative"
+                  className="cyber-card cyber-card-violet p-6 relative"
                   style={MILITARY_CLIP}
                 >
                   {/* Corner Markers */}
@@ -298,8 +298,7 @@ export default function TrainingPage() {
                   key="idle"
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
-                  className="bg-black/40 backdrop-blur-md border-2 border-white/10 border-dashed p-6 flex items-center justify-center gap-6 text-center opacity-60"
-                  style={MILITARY_CLIP}
+                  className="bg-black/40 backdrop-blur-md border-2 border-white/10 border-dashed p-6 flex items-center justify-center gap-6 text-center opacity-60 military-clip"
                 >
                   <div className="w-12 h-12 rounded-full border border-white/10 flex items-center justify-center">
                      <AcademicCapIcon className="w-6 h-6 text-slate-700" />
@@ -321,10 +320,10 @@ export default function TrainingPage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 * idx }}
-              className={`group relative bg-black/40 backdrop-blur-md border transition-all duration-300 hover:bg-white/5 hover:-translate-y-1 shadow-[0_0_40px_rgba(34,211,238,0.1),inset_0_1px_rgba(255,255,255,0.1)]
-                ${opt.id === 'grande' ? 'border-fuchsia-500/40 hover:border-fuchsia-400/60' : 
-                  opt.id === 'medio' ? 'border-violet-500/40 hover:border-violet-400/60' : 
-                  'border-cyan-500/40 hover:border-cyan-400/60'}`}
+              className={`group relative cyber-card transition-all duration-300 hover:bg-white/5 hover:-translate-y-1
+                ${opt.id === 'grande' ? 'cyber-card-fuchsia' : 
+                  opt.id === 'medio' ? 'cyber-card-violet' : 
+                  ''}`}
               style={MILITARY_CLIP}
             >
               <div className="p-6 flex flex-col gap-6 text-center">
@@ -388,12 +387,8 @@ export default function TrainingPage() {
                   <button
                     onClick={() => handleStart(opt.id)}
                     disabled={isTraining || loading !== null || trainingsLeft <= 0}
-                    className={`w-full py-4 font-orbitron font-black text-sm tracking-[0.3em] transition-all duration-150 relative overflow-hidden group
-                      ${isTraining || trainingsLeft <= 0 
-                        ? 'bg-slate-800/80 text-slate-500 cursor-not-allowed border border-slate-700/50 backdrop-blur-md' 
-                        : 'bg-cyan-500/10 border border-cyan-400/50 text-cyan-300 hover:bg-cyan-500/20 hover:border-cyan-400 hover:shadow-[0_0_20px_rgba(34,211,238,0.3)] active:translate-y-px active:shadow-[0_0_10px_rgba(34,211,238,0.2)]'
-                      }`}
-                    style={MILITARY_CLIP}
+                    className={`w-full py-4 cyber-button military-clip
+                      ${isTraining || trainingsLeft <= 0 ? 'opacity-50 grayscale' : ''}`}
                   >
                     <span className="relative z-10 flex items-center justify-center gap-2">
                       {loading === opt.id ? (

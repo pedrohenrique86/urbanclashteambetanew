@@ -25,6 +25,8 @@ import { FACTION_ALIAS_MAP_FRONTEND } from "../utils/faction";
 import VisualBattler from "../components/VisualBattler";
 import { calculateCombatStats, calculateTotalPower } from "../utils/combat";
 
+// HUD Corners e utilitários já estão no index.css via classes .military-clip, etc.
+// Mas mantemos o objeto para compatibilidade com framer-motion se necessário
 const MILITARY_CLIP = { clipPath: "polygon(8px 0%, 100% 0%, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0% 100%, 0% 8px)" };
 
 const BattleRulesInfo = () => {
@@ -188,18 +190,49 @@ export default function ReckoningPage() {
   }
 
   return (
-    <div className="min-h-[80vh] p-4 md:p-8 font-sans text-slate-300 relative selection:bg-yellow-500/30">
-      <header className="max-w-6xl mx-auto mb-12 relative z-10 flex flex-wrap gap-4 items-center justify-between">
+    <div className="min-h-screen p-4 md:p-8 bg-transparent relative text-slate-300 font-sans selection:bg-yellow-500/30">
+      
+      {/* HUD DECORATION - CORNERS */}
+      <div className="fixed inset-0 pointer-events-none border-[1px] border-yellow-500/10 opacity-30 m-4 hidden md:block z-0">
+        <div className="absolute top-0 left-0 w-16 h-16 border-t-2 border-l-2 border-yellow-500/50"></div>
+        <div className="absolute top-0 right-0 w-16 h-16 border-t-2 border-r-2 border-yellow-500/50"></div>
+        <div className="absolute bottom-0 left-0 w-16 h-16 border-b-2 border-l-2 border-yellow-500/50"></div>
+        <div className="absolute bottom-0 right-0 w-16 h-16 border-b-2 border-r-2 border-yellow-500/50"></div>
+      </div>
+
+      <header className="max-w-6xl mx-auto mb-12 relative z-10">
+        <div className="absolute -left-4 top-1/2 -translate-y-1/2 w-1 h-12 bg-yellow-500 shadow-[0_0_15px_rgba(234,179,8,0.8)]"></div>
         <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}>
-          <h1 className="text-4xl md:text-6xl font-orbitron font-black tracking-widest text-white uppercase" style={{ textShadow: "2px 0px 0px rgba(234,179,8,0.7)" }}>
+          <h1 className="text-4xl md:text-6xl font-orbitron font-black tracking-widest text-white uppercase" style={{ textShadow: "2px 0px 0px rgba(234,179,8,0.7), -2px 0px 0px rgba(139,92,246,0.7)" }}>
             Spectro <span className="text-yellow-500">Reckoning</span>
           </h1>
-          <p className="text-slate-500 text-[10px] font-mono tracking-[0.2em] uppercase mt-2">Tactical Interception & Intelligence Matrix</p>
+          
+          <div className="flex flex-col gap-3 mt-4">
+            <div className="flex items-center gap-4">
+              {/* Badge SEC LEVEL Estilizado */}
+              <div className="flex items-center overflow-hidden border border-yellow-500/40 bg-black/60" style={MILITARY_CLIP}>
+                <div className="bg-yellow-500 px-2 py-0.5">
+                   <span className="text-[9px] font-black text-black uppercase">OP_LEVEL</span>
+                </div>
+                <div className="px-3 py-0.5">
+                   <span className="text-[10px] font-mono text-yellow-500 font-bold tracking-widest">TACTICAL_STRIKE_AUTH</span>
+                </div>
+              </div>
+
+              <div className="h-4 w-px bg-slate-800"></div>
+
+              <span className="text-[10px] font-mono text-yellow-500/80 animate-pulse tracking-widest font-bold uppercase">● Combat_Matrix_Active</span>
+              
+              <BattleRulesInfo />
+            </div>
+            
+            <p className="text-slate-300 text-[10px] font-mono tracking-[0.2em] uppercase bg-white/5 py-1 px-3 border-l-2 border-yellow-500/50 w-fit backdrop-blur-sm">
+              Sinal de alvo detectado. Intercepte ou seja interceptado. Matriz de Combate Ativa.
+            </p>
+          </div>
         </motion.div>
         
-        <div className="flex items-center gap-4">
-          <BattleRulesInfo />
-          
+        <div className="flex flex-wrap gap-4 items-center justify-end mt-6">
           <div className="hidden lg:flex items-center gap-2">
             {userProfile?.active_chips?.map((chip: any, i: number) => (
               <div key={i} className="flex items-center gap-1 px-2 py-1 bg-cyan-500/10 border border-cyan-500/30 rounded" title={chip.name}>
@@ -209,18 +242,18 @@ export default function ReckoningPage() {
             ))}
           </div>
 
-          <div className="bg-black/50 border border-slate-800 p-3 flex items-center gap-3">
+          <div className="bg-black/40 backdrop-blur-md border border-orange-500/30 p-3 flex items-center gap-3" style={MILITARY_CLIP}>
              <FireIcon className="w-6 h-6 text-orange-500" />
              <div className="flex flex-col">
-               <span className="text-[10px] font-mono text-slate-500 uppercase">POWER</span>
+               <span className="text-[8px] font-mono text-slate-500 uppercase">POWER_LVL</span>
                <span className="text-lg font-black font-orbitron text-orange-400">{playerPower.toLocaleString()}</span>
              </div>
           </div>
           
-          <div className="bg-black/50 border border-slate-800 p-3 flex items-center gap-3">
+          <div className="bg-black/40 backdrop-blur-md border border-emerald-500/30 p-3 flex items-center gap-3" style={MILITARY_CLIP}>
              <FingerPrintIcon className="w-6 h-6 text-emerald-500" />
              <div className="flex flex-col">
-               <span className="text-[10px] font-mono text-slate-500 uppercase">PA</span>
+               <span className="text-[8px] font-mono text-slate-500 uppercase">ACTION_PTS</span>
                <span className="text-lg font-black font-orbitron text-emerald-400">{userProfile?.action_points?.toLocaleString() || 0}</span>
              </div>
           </div>
@@ -240,28 +273,32 @@ export default function ReckoningPage() {
                     <div 
                       key={tgt.id}
                       onClick={() => !loadingPreCalc && handleSelectTarget(tgt)}
-                      className="cursor-pointer group relative bg-black/60 backdrop-blur-md border border-slate-800 hover:border-yellow-500/50 hover:bg-slate-900 transition-all p-5"
+                      className="cursor-pointer group relative bg-black/40 backdrop-blur-md border border-yellow-500/30 hover:bg-white/5 transition-all duration-300 p-5 shadow-[0_0_40px_rgba(234,179,8,0.05),inset_0_1px_rgba(255,255,255,0.05)]"
                       style={MILITARY_CLIP}
                     >
                       <div className="flex items-center gap-3">
-                         <div className="w-12 h-12 bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-600 group-hover:text-yellow-500">
+                         <div className="w-12 h-12 bg-black/60 border border-yellow-500/20 flex items-center justify-center text-slate-600 group-hover:text-yellow-500 transition-colors">
                            <UserCircleIcon className="w-8 h-8" />
                          </div>
                          <div className="min-w-0 flex-1">
-                           <p className="text-[10px] uppercase font-mono text-slate-500">ALVO_{tgt.is_npc ? 'SINTÉTICO' : 'JOGADOR'}</p>
-                           <h3 className="font-orbitron font-black text-sm text-white truncate">{tgt.name}</h3>
+                           <p className="text-[9px] uppercase font-mono text-yellow-500/60 font-bold tracking-widest">ALVO_{tgt.is_npc ? 'SINTÉTICO' : 'JOGADOR'}</p>
+                           <h3 className="font-orbitron font-black text-sm text-white truncate tracking-wider">{tgt.name}</h3>
                          </div>
                       </div>
                       <div className="mt-4 grid grid-cols-2 gap-2">
-                         <div className="bg-white/5 p-2 text-center">
-                            <span className="block text-[8px] text-slate-500 uppercase">Nível</span>
-                            <span className="text-lg font-black text-white">{tgt.level}</span>
+                         <div className="bg-white/5 border border-white/5 p-2 text-center">
+                            <span className="block text-[8px] text-slate-500 uppercase font-bold">LVL_RANK</span>
+                            <span className="text-lg font-black text-white font-orbitron">{tgt.level}</span>
                          </div>
-                         <div className="bg-white/5 p-2 text-center">
-                            <span className="block text-[8px] text-slate-500 uppercase">Poder Est.</span>
-                            <span className={`text-lg font-black ${isRisky ? 'text-red-500' : 'text-emerald-500'}`}>~{estPower.toLocaleString()}</span>
+                         <div className="bg-white/5 border border-white/5 p-2 text-center">
+                            <span className="block text-[8px] text-slate-500 uppercase font-bold">EST_POWER</span>
+                            <span className={`text-lg font-black font-orbitron ${isRisky ? 'text-red-500' : 'text-emerald-500'}`}>~{estPower.toLocaleString()}</span>
                          </div>
                       </div>
+
+                      {/* Decorative side bar for the card */}
+                      <div className="absolute left-0 top-0 bottom-0 w-1 bg-yellow-500 shadow-[0_0_10px_rgba(234,179,8,0.8)] opacity-50 group-hover:opacity-100 transition-opacity"></div>
+
                       {isRisky && (
                         <div className="absolute top-2 right-2 flex items-center gap-1 text-[8px] font-black text-red-500 uppercase animate-pulse">
                           <ExclamationTriangleIcon className="w-3 h-3" /> ALTO RISCO
@@ -365,10 +402,20 @@ export default function ReckoningPage() {
         </AnimatePresence>
       </div>
 
-      <footer className="max-w-6xl mx-auto mt-20 pt-8 border-t border-white/5 flex justify-between items-center opacity-30 text-[10px] font-mono uppercase tracking-[0.2em]">
-        <span>AES-256_ACTIVE</span>
-        <span>Spectro Tactical Interface v4.0.2</span>
-        <span>{new Date().toLocaleTimeString()}</span>
+      <footer className="max-w-6xl mx-auto mt-20 pt-8 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-4 opacity-70 grayscale hover:grayscale-0 transition-all relative z-10">
+        <div className="flex items-center gap-6">
+          <div className="flex flex-col">
+             <span className="text-[8px] font-black tracking-widest uppercase">Encryption</span>
+             <span className="text-[10px] font-mono">AES-256_ACTIVE</span>
+          </div>
+          <div className="flex flex-col">
+             <span className="text-[8px] font-black tracking-widest uppercase">Coordinates</span>
+             <span className="text-[10px] font-mono">34.0522° N, 118.2437° W</span>
+          </div>
+        </div>
+        <div className="text-[10px] font-mono uppercase tracking-[0.5em]">
+          UrbanClash Tactical Interface v4.0.2
+        </div>
       </footer>
     </div>
   );

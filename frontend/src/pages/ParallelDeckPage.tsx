@@ -32,17 +32,48 @@ interface DailyCardsData {
   expires_at: string;
 }
 
+// HUD Corners e utilitários já estão no index.css via classes .military-clip, etc.
 const MILITARY_CLIP = { clipPath: "polygon(8px 0%, 100% 0%, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0% 100%, 0% 8px)" };
 
 export default function ParallelDeckPage() {
   const { userProfile, refreshProfile } = useUserProfile();
   const { showToast } = useToast();
   const [isChoosing, setIsChoosing] = useState(false);
+  const [timeLeft, setTimeLeft] = useState<number | null>(null);
+
+  const formatTime = (seconds: number) => {
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    const s = seconds % 60;
+    return `${h > 0 ? h + 'H ' : ''}${m > 0 ? m + 'M ' : ''}${s}S`;
+  };
   
   const { data: dailyCards, error, isLoading } = useSWR<DailyCardsData>(
     "/daily-cards",
     (url: string) => api.get(url).then((res: any) => res.data)
   );
+
+  useEffect(() => {
+    if (!dailyCards?.expires_at) {
+      setTimeLeft(null);
+      return;
+    }
+
+    const expiresAtMs = new Date(dailyCards.expires_at).getTime();
+    if (isNaN(expiresAtMs)) {
+      setTimeLeft(null);
+      return;
+    }
+
+    const tick = () => {
+      const remaining = Math.max(0, Math.floor((expiresAtMs - Date.now()) / 1000));
+      setTimeLeft(remaining);
+    };
+
+    tick();
+    const timer = setInterval(tick, 1000);
+    return () => clearInterval(timer);
+  }, [dailyCards?.expires_at]);
 
   const handleChoose = async (optionIndex: number) => {
     if (dailyCards?.chosen_option || isChoosing) return;
@@ -64,7 +95,7 @@ export default function ParallelDeckPage() {
     switch (rarity) {
       case "legendary": return "text-fuchsia-500 border-fuchsia-500/50 shadow-fuchsia-500/20";
       case "rare": return "text-violet-500 border-violet-500/50 shadow-violet-500/20";
-      default: return "text-cyan-400 border-cyan-500/30 shadow-cyan-500/10";
+      default: return "text-emerald-400 border-emerald-500/30 shadow-emerald-500/10";
     }
   };
 
@@ -87,13 +118,43 @@ export default function ParallelDeckPage() {
   ];
 
   return (
-    <div className="min-h-[80vh] p-4 md:p-8 font-sans text-slate-300">
-      <header className="max-w-6xl mx-auto mb-12">
+    <div className="min-h-screen p-4 md:p-8 bg-transparent relative text-slate-300 font-sans selection:bg-emerald-500/30">
+      
+      {/* HUD DECORATION - CORNERS */}
+      <div className="fixed inset-0 pointer-events-none border-[1px] border-emerald-500/10 opacity-30 m-4 hidden md:block z-0">
+        <div className="absolute top-0 left-0 w-16 h-16 border-t-2 border-l-2 border-emerald-500/50"></div>
+        <div className="absolute top-0 right-0 w-16 h-16 border-t-2 border-r-2 border-emerald-500/50"></div>
+        <div className="absolute bottom-0 left-0 w-16 h-16 border-b-2 border-l-2 border-emerald-500/50"></div>
+        <div className="absolute bottom-0 right-0 w-16 h-16 border-b-2 border-r-2 border-emerald-500/50"></div>
+      </div>
+
+      <header className="max-w-6xl mx-auto mb-12 relative z-10">
+        <div className="absolute -left-4 top-1/2 -translate-y-1/2 w-1 h-12 bg-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.8)]"></div>
         <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}>
-          <h1 className="text-4xl md:text-6xl font-orbitron font-black tracking-widest text-white uppercase" style={{ textShadow: "0 0 20px rgba(34,211,238,0.3)" }}>
-            Deck <span className="text-cyan-400">Paralelo</span>
+          <h1 className="text-4xl md:text-6xl font-orbitron font-black tracking-widest text-white uppercase" style={{ textShadow: "2px 0px 0px rgba(16,185,129,0.7), -2px 0px 0px rgba(139,92,246,0.7)" }}>
+            Parallel <span className="text-emerald-400">Deck</span>
           </h1>
-          <p className="text-slate-500 text-[10px] font-mono tracking-[0.2em] uppercase mt-2">Daily Luck Injection Protocol // AES-256 Verified</p>
+          
+          <div className="flex flex-col gap-3 mt-4">
+            <div className="flex items-center gap-4">
+              <div className="flex items-center overflow-hidden border border-emerald-500/40 bg-black/60" style={MILITARY_CLIP}>
+                <div className="bg-emerald-500 px-2 py-0.5">
+                   <span className="text-[9px] font-black text-black uppercase">NET_LEVEL</span>
+                </div>
+                <div className="px-3 py-0.5">
+                   <span className="text-[10px] font-mono text-emerald-400 font-bold tracking-widest">DEEP_REWARD_PROTOCOL</span>
+                </div>
+              </div>
+
+              <div className="h-4 w-px bg-slate-800"></div>
+
+              <span className="text-[10px] font-mono text-emerald-400/80 animate-pulse tracking-widest font-bold uppercase">● Uplink_Established</span>
+            </div>
+            
+            <p className="text-slate-300 text-[10px] font-mono tracking-[0.2em] uppercase bg-white/5 py-1 px-3 border-l-2 border-emerald-500/50 w-fit backdrop-blur-sm">
+              Protocolo Diário de Injeção de Sorte // Verificado AES-256
+            </p>
+          </div>
         </motion.div>
       </header>
 
@@ -104,9 +165,14 @@ export default function ParallelDeckPage() {
             <p className="text-slate-500 font-mono text-xs">Uma conexão neural disponível. Selecione uma carta para sincronizar bônus.</p>
           </div>
         ) : (
-          <div className="text-center mb-12 bg-emerald-500/10 border border-emerald-500/20 p-4 rounded-lg">
+          <div className="text-center mb-12 bg-emerald-500/10 border border-emerald-500/20 p-6 rounded-lg military-clip backdrop-blur-md">
             <h2 className="text-xl font-orbitron font-black text-emerald-400 uppercase mb-2">Sincronização Concluída</h2>
-            <p className="text-slate-400 font-mono text-xs">Acesse novamente em 24h para novo protocolo.</p>
+            <p className="text-slate-400 font-mono text-xs mb-4">Acesse novamente para novo protocolo em:</p>
+            <div className="inline-block bg-black/60 px-8 py-3 border border-emerald-500/30">
+               <span className="text-3xl font-orbitron font-black text-white tracking-tighter">
+                 {timeLeft !== null ? formatTime(timeLeft) : '--:--:--'}
+               </span>
+            </div>
           </div>
         )}
 
@@ -127,38 +193,46 @@ export default function ParallelDeckPage() {
                 <div className={`relative w-full h-full transition-all duration-500 preserve-3d ${isChosen ? 'rotate-y-180' : ''}`}>
                   
                   {/* Front Side (Card Back) */}
-                  <div className={`absolute inset-0 backface-hidden bg-slate-900 border-2 border-slate-800 flex flex-col items-center justify-center p-6 shadow-2xl overflow-hidden ${isDisabled && !isChosen ? 'opacity-40 grayscale' : ''}`} style={MILITARY_CLIP}>
+                  <div className={`absolute inset-0 backface-hidden bg-black/60 backdrop-blur-md border-2 border-slate-800 flex flex-col items-center justify-center p-6 shadow-2xl overflow-hidden ${isDisabled && !isChosen ? 'opacity-40 grayscale' : ''}`} style={MILITARY_CLIP}>
                     <div className="absolute inset-0 bg-grid-white/[0.02] pointer-events-none" />
-                    <div className="w-24 h-24 bg-cyan-500/5 rounded-full flex items-center justify-center border border-cyan-500/20 mb-6 group-hover:shadow-[0_0_30px_rgba(34,211,238,0.2)] transition-all">
-                      <RectangleStackIcon className="w-12 h-12 text-cyan-400/50 group-hover:text-cyan-400 transition-colors" />
+                    <div className="w-24 h-24 bg-emerald-500/5 rounded-full flex items-center justify-center border border-emerald-500/20 mb-6 group-hover:shadow-[0_0_30px_rgba(16,185,129,0.2)] transition-all">
+                      <RectangleStackIcon className="w-12 h-12 text-emerald-400/50 group-hover:text-emerald-400 transition-colors" />
                     </div>
-                    <span className="font-orbitron font-black text-slate-700 tracking-[0.3em] uppercase group-hover:text-cyan-400/50 transition-colors">Encriptado</span>
+                    <span className="font-orbitron font-black text-slate-700 tracking-[0.3em] uppercase group-hover:text-emerald-400/50 transition-colors">ENCRIPTADO</span>
                     
                     {/* Corner accents */}
-                    <div className="absolute top-4 left-4 w-4 h-4 border-t-2 border-l-2 border-slate-700 group-hover:border-cyan-500/50 transition-colors" />
-                    <div className="absolute top-4 right-4 w-4 h-4 border-t-2 border-r-2 border-slate-700 group-hover:border-cyan-500/50 transition-colors" />
-                    <div className="absolute bottom-4 left-4 w-4 h-4 border-b-2 border-l-2 border-slate-700 group-hover:border-cyan-500/50 transition-colors" />
-                    <div className="absolute bottom-4 right-4 w-4 h-4 border-b-2 border-r-2 border-slate-700 group-hover:border-cyan-500/50 transition-colors" />
+                    <div className="absolute top-4 left-4 w-4 h-4 border-t-2 border-l-2 border-slate-700 group-hover:border-emerald-500/50 transition-colors" />
+                    <div className="absolute top-4 right-4 w-4 h-4 border-t-2 border-r-2 border-slate-700 group-hover:border-emerald-500/50 transition-colors" />
+                    <div className="absolute bottom-4 left-4 w-4 h-4 border-b-2 border-l-2 border-slate-700 group-hover:border-emerald-500/50 transition-colors" />
+                    <div className="absolute bottom-4 right-4 w-4 h-4 border-b-2 border-r-2 border-slate-700 group-hover:border-emerald-500/50 transition-colors" />
+
+                    {/* Side bar */}
+                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.8)] opacity-30 group-hover:opacity-100 transition-opacity"></div>
                   </div>
 
                   {/* Back Side (Card Content) */}
                   {option && (
-                    <div className={`absolute inset-0 backface-hidden rotate-y-180 bg-slate-900 border-2 ${getRarityColor(option.rarity)} flex flex-col items-center justify-center p-6 shadow-[0_0_40px_rgba(0,0,0,0.5)]`} style={MILITARY_CLIP}>
+                    <div className={`absolute inset-0 backface-hidden rotate-y-180 bg-black/80 backdrop-blur-xl border-2 ${getRarityColor(option.rarity)} flex flex-col items-center justify-center p-6 shadow-[0_0_50px_rgba(0,0,0,0.8)]`} style={MILITARY_CLIP}>
                       <div className="absolute top-4 right-4 px-2 py-1 bg-white/5 text-[8px] font-black font-mono uppercase tracking-widest">{option.rarity}</div>
                       
-                      <div className="mb-6">
+                      <div className="mb-6 filter drop-shadow-[0_0_10px_currentColor]">
                         {getRewardIcon(option.reward_type)}
                       </div>
                       
-                      <h3 className="font-orbitron font-black text-2xl text-white mb-2 uppercase text-center">
+                      <h3 className="font-orbitron font-black text-2xl text-white mb-2 uppercase text-center tracking-tighter">
                         {option.name || (option.reward_type === 'item' ? 'ITEM RARO' : `+${option.reward_value.toLocaleString()}`)}
                       </h3>
-                      <p className="text-slate-500 font-mono text-[10px] uppercase tracking-widest">
+                      <p className="text-slate-400 font-mono text-[10px] uppercase tracking-widest font-bold">
                         {option.reward_type.replace('_', ' ')}
                       </p>
 
                       <div className="mt-8 pt-6 border-t border-white/5 w-full text-center">
-                        <span className="text-[10px] font-mono text-emerald-400 animate-pulse">SINCRONIZADO</span>
+                        <span className="text-[10px] font-orbitron font-black text-emerald-400 animate-pulse tracking-widest">SINCRONIZADO</span>
+                      </div>
+
+                      {/* Card side glow based on rarity */}
+                      <div className={`absolute left-0 top-0 bottom-0 w-1 shadow-[0_0_15px_currentColor]
+                        ${option.rarity === 'legendary' ? 'bg-fuchsia-500' : option.rarity === 'rare' ? 'bg-violet-500' : 'bg-emerald-500'}`}>
                       </div>
                     </div>
                   )}
@@ -169,12 +243,22 @@ export default function ParallelDeckPage() {
         </div>
       </div>
 
-      <footer className="max-w-6xl mx-auto mt-20 pt-8 border-t border-white/5 flex justify-between items-center opacity-30 text-[10px] font-mono uppercase tracking-[0.2em]">
-        <div className="flex items-center gap-2">
-          <ClockIcon className="w-4 h-4" />
-          <span>EXPIRA EM: {dailyCards?.expires_at ? new Date(dailyCards.expires_at).toLocaleTimeString() : '--:--:--'}</span>
+      <footer className="max-w-6xl mx-auto mt-20 pt-8 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-4 opacity-70 grayscale hover:grayscale-0 transition-all relative z-10">
+        <div className="flex items-center gap-6">
+          <div className="flex flex-col">
+             <span className="text-[8px] font-black tracking-widest uppercase">Encryption</span>
+             <span className="text-[10px] font-mono">AES-256_ACTIVE</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <ClockIcon className="w-4 h-4 text-emerald-400" />
+            <span className="text-[10px] font-mono uppercase tracking-widest">
+              PRÓXIMO RESET EM: {timeLeft !== null ? formatTime(timeLeft) : '--:--:--'}
+            </span>
+          </div>
         </div>
-        <span>Parallel Network Matrix v1.0</span>
+        <div className="text-[10px] font-mono uppercase tracking-[0.5em]">
+          Parallel Network Matrix v1.0.4
+        </div>
       </footer>
 
       <style>{`

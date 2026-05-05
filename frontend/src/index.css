@@ -118,4 +118,58 @@ iframe {
 /* Utilitário para ocultar scroll horizontal por erro de conteúdo */
 .no-x-scroll {
   overflow-x: hidden;
-}
+}
+
+/* MILITARY & CYBERPUNK HUD UTILITIES */
+.military-clip {
+  clip-path: polygon(8px 0%, 100% 0%, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0% 100%, 0% 8px);
+}
+
+.cyber-card {
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(34, 211, 238, 0.3);
+  box-shadow: 0 0 40px rgba(34, 211, 238, 0.1), inset 0 1px rgba(255, 255, 255, 0.1);
+  position: relative;
+  overflow: hidden;
+}
+
+.cyber-card-violet {
+  border-color: rgba(139, 92, 246, 0.4);
+  box-shadow: 0 0 40px rgba(139, 92, 246, 0.1), inset 0 1px rgba(255, 255, 255, 0.1);
+}
+
+.cyber-card-fuchsia {
+  border-color: rgba(217, 70, 239, 0.4);
+  box-shadow: 0 0 40px rgba(217, 70, 239, 0.1), inset 0 1px rgba(255, 255, 255, 0.1);
+}
+
+.cyber-button {
+  background: rgba(34, 211, 238, 0.1);
+  border: 1px solid rgba(34, 211, 238, 0.5);
+  color: #67e8f9; /* cyan-300 */
+  font-family: 'Orbitron', sans-serif;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.3em;
+  transition: all 150ms ease-in-out;
+}
+
+.cyber-button:hover:not(:disabled) {
+  background: rgba(34, 211, 238, 0.2);
+  border-color: #22d3ee;
+  box-shadow: 0 0 20px rgba(34, 211, 238, 0.3);
+}
+
+.cyber-button:active:not(:disabled) {
+  transform: translateY(1px);
+  box-shadow: 0 0 10px rgba(34, 211, 238, 0.2);
+}
+
+.cyber-button:disabled {
+  background: rgba(30, 41, 59, 0.8);
+  border-color: rgba(51, 65, 85, 0.5);
+  color: #64748b;
+  cursor: not-allowed;
+}
+
