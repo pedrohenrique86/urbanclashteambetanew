@@ -108,38 +108,46 @@ export default function RecoveryBasePage() {
 
       <div className="max-w-7xl mx-auto space-y-8 relative z-10">
         
-        {/* TOP STATUS ROW */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* USER STATUS CARD */}
-          <div className="cyber-card p-6 relative group" style={MILITARY_CLIP}>
-             <div className="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-25 transition-opacity">
-                <ShieldCheckIcon className="w-12 h-12 text-white" />
+        {/* COMPACT HUD ROW */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+          {/* STATUS & TIMER */}
+          <div className="cyber-card p-4 flex items-center justify-between col-span-1 lg:col-span-2" style={MILITARY_CLIP}>
+            <div className="flex items-center gap-4">
+              <div className="w-10 h-10 bg-red-500/10 border border-red-500/30 flex items-center justify-center" style={MILITARY_CLIP}>
+                <ShieldCheckIcon className={`w-6 h-6 ${getStatusColor(status)}`} />
               </div>
-              <h3 className="text-[10px] font-orbitron text-red-500 mb-6 flex items-center gap-2 tracking-[0.3em]">
-                <div className="w-2 h-2 bg-red-500 shadow-[0_0_8px_rgba(239,68,68,1)]"></div> CURRENT_STATUS
-              </h3>
-              <div className="flex items-end justify-between mb-2">
-                <span className={`text-2xl font-black font-orbitron leading-none uppercase italic ${getStatusColor(status)}`}>
-                  {status}
+              <div>
+                <h3 className="text-[9px] font-orbitron text-slate-500 tracking-[0.2em]">CURRENT_STATUS</h3>
+                <p className={`text-xl font-black font-orbitron italic uppercase ${getStatusColor(status)}`}>{status}</p>
+              </div>
+            </div>
+
+            {timeLeft !== null && (
+              <div className="flex flex-col items-end">
+                <div className="flex items-center gap-3 bg-red-500/10 px-4 py-2 border border-red-500/30" style={MILITARY_CLIP}>
+                  <ClockIcon className="w-4 h-4 text-red-500" />
+                  <span className="text-2xl font-orbitron font-black text-white italic tracking-tighter">
+                    {formatTime(timeLeft)}
+                  </span>
+                </div>
+                <span className="text-[8px] font-mono text-slate-500 uppercase tracking-widest mt-1">
+                  Sincronização Final: {userProfile.status_ends_at ? format(new Date(userProfile.status_ends_at), "HH:mm:ss") : "--:--:--"}
                 </span>
-                
               </div>
+            )}
           </div>
 
-          {/* CURRENCY CARD */}
-          <div className="cyber-card p-6 relative group" style={MILITARY_CLIP}>
-             <div className="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-25 transition-opacity">
-                <BanknotesIcon className="w-12 h-12 text-white" />
+          {/* PREMIUM ASSETS */}
+          <div className="cyber-card p-4 flex items-center justify-between" style={MILITARY_CLIP}>
+            <div className="flex items-center gap-4">
+              <div className="w-10 h-10 bg-yellow-500/10 border border-yellow-500/30 flex items-center justify-center" style={MILITARY_CLIP}>
+                <BanknotesIcon className="w-6 h-6 text-yellow-500" />
               </div>
-              <h3 className="text-[10px] font-orbitron text-yellow-500 mb-6 flex items-center gap-2 tracking-[0.3em]">
-                <div className="w-2 h-2 bg-yellow-500 shadow-[0_0_8px_rgba(234,179,8,1)]"></div> PREMIUM_ASSETS
-              </h3>
-              <div className="flex items-end gap-2 mb-2">
-                <span className="text-5xl font-black text-white font-orbitron leading-none">
-                  {(userProfile as any).premium_coins || 0}
-                </span>
-                <span className="text-yellow-500 font-bold uppercase text-[10px] tracking-widest mb-1 italic">U-CRYPTON TOKENS</span>
+              <div>
+                <h3 className="text-[9px] font-orbitron text-slate-500 tracking-[0.2em]">PREMIUM_ASSETS</h3>
+                <p className="text-xl font-black font-orbitron text-white italic">{(userProfile as any).premium_coins || 0} <span className="text-[9px] text-yellow-500">UC</span></p>
               </div>
+            </div>
           </div>
         </div>
 
@@ -272,12 +280,33 @@ function ReconditioningView({ user, timeLeft, formatTime }: { user: any, timeLef
 
   useEffect(() => {
     const token = tokenStorage.getToken();
-    if (token) socketService.authenticateRecovery(token);
+    if (!token || status !== 'Recondicionamento') return;
 
-    socketService.onRecoveryHistory((history) => setMessages(history));
-    socketService.onRecoveryMessageReceived((msg) => setMessages(prev => [...prev.slice(-19), msg]));
-    socketService.onRecoveryUsers((users) => setOnlineUsers(users));
-  }, []);
+    const handleHistory = (history: ChatMessage[]) => setMessages(history);
+    const handleMessage = (msg: ChatMessage) => setMessages(prev => {
+      // Evitar duplicatas por ID
+      if (prev.some(m => m.id === msg.id)) return prev;
+      return [...prev.slice(-19), msg];
+    });
+    const handleUsers = (users: any[]) => setOnlineUsers(users);
+
+    socketService.onRecoveryHistory(handleHistory);
+    socketService.onRecoveryMessageReceived(handleMessage);
+    socketService.onRecoveryUsers(handleUsers);
+
+    // Pequeno delay para garantir que os listeners estão prontos
+    const timer = setTimeout(() => {
+      socketService.authenticateRecovery(token);
+    }, 500);
+
+    return () => {
+      clearTimeout(timer);
+      // O ideal seria dar off nos listeners, mas o Singleton socketService
+      // costuma gerenciar isso. Para garantir, limpamos o estado local.
+      setMessages([]);
+      setOnlineUsers([]);
+    };
+  }, [status]);
 
   useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
@@ -291,84 +320,88 @@ function ReconditioningView({ user, timeLeft, formatTime }: { user: any, timeLef
   };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-      {/* STATUS PANEL */}
-      <div className="lg:col-span-4 space-y-6">
-        <div className="cyber-card p-6" style={MILITARY_CLIP}>
-          <h3 className="text-[10px] font-orbitron text-red-500 mb-6 flex items-center gap-2 tracking-[0.3em]">
-            <div className="w-2 h-2 bg-red-500"></div> REGEN_PROTOCOL
-          </h3>
-          <div className="space-y-4">
-             <div className="bg-black/60 p-4 border border-white/5">
-                <span className="text-[8px] text-slate-500 uppercase block mb-1">Tempo Restante</span>
-                <span className="text-3xl font-orbitron font-black text-white italic">
-                  {timeLeft !== null ? formatTime(timeLeft) : "--:--"}
-                </span>
-             </div>
-             <p className="text-[8px] font-mono text-slate-600 uppercase mb-4">
-               ETA: {user.status_ends_at ? format(new Date(user.status_ends_at), "HH:mm:ss") : "--:--:--"}
-             </p>
-             <p className="text-[10px] font-mono text-slate-400 uppercase leading-relaxed border-l-2 border-red-500/30 pl-3">
-               Nanites reconectando fibras neurais. Acesso restrito a operações de campo.
-             </p>
-          </div>
+    <div className="flex flex-col h-[550px] cyber-card relative overflow-hidden" style={MILITARY_CLIP}>
+      {/* HEADER DO CHAT */}
+      <div className="p-4 bg-white/5 border-b border-white/10 flex justify-between items-center relative z-10">
+        <div className="flex items-center gap-3">
+          <div className="w-3 h-3 bg-red-500 animate-pulse shadow-[0_0_10px_rgba(239,68,68,0.5)]"></div>
+          <h3 className="font-orbitron font-black text-white text-[11px] uppercase tracking-[0.3em] italic">Frequency_Emergency_B01</h3>
         </div>
-
-        <div className="cyber-card p-6" style={MILITARY_CLIP}>
-          <h3 className="text-[10px] font-orbitron text-cyan-500 mb-6 flex items-center gap-2 tracking-[0.3em]">
-            <div className="w-2 h-2 bg-cyan-500"></div> ONLINE_CONTACTS
-          </h3>
-          <div className="space-y-3 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
-            {onlineUsers.length === 0 && <p className="text-[10px] font-mono text-slate-600">Nenhum contato ativo.</p>}
-            {onlineUsers.map(u => (
-              <div key={u.id} className="flex items-center gap-3 bg-white/5 p-2 border border-white/5" style={MILITARY_CLIP}>
-                <div className="w-1.5 h-1.5 bg-green-500 shadow-[0_0_5px_rgba(34,197,94,0.8)] animate-pulse" />
-                <span className="text-[10px] font-black text-slate-300 uppercase italic">{u.username}</span>
-              </div>
-            ))}
+        <div className="flex items-center gap-4">
+          <span className="text-[9px] font-mono text-slate-500 uppercase tracking-tighter hidden md:inline">Status: <span className="text-emerald-500">Encrypted_Link</span></span>
+          <div className="flex items-center gap-1.5 bg-red-500/10 px-2 py-1 border border-red-500/20" style={MILITARY_CLIP}>
+            <UserGroupIcon className="w-3 h-3 text-red-500" />
+            <span className="text-[10px] font-black text-red-500">{onlineUsers.length}</span>
           </div>
         </div>
       </div>
 
-      {/* CHAT PANEL */}
-      <div className="lg:col-span-8 flex flex-col h-[500px] cyber-card relative overflow-hidden" style={MILITARY_CLIP}>
-        <div className="p-4 bg-white/5 border-b border-white/10 flex justify-between items-center">
-          <div className="flex items-center gap-2">
-            <div className="w-2 h-2 bg-red-500 animate-pulse"></div>
-            <h3 className="font-orbitron font-black text-white text-[10px] uppercase tracking-widest italic">Emergency_Frequency</h3>
-          </div>
-          <span className="text-[8px] font-mono text-slate-500">CHANNEL_SECURE</span>
-        </div>
-
-        <div ref={scrollRef} className="flex-1 overflow-y-auto p-6 space-y-4 custom-scrollbar">
-          {messages.map((msg) => (
-            <div key={msg.id} className="flex gap-3 items-start group">
-              <img src={msg.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${msg.username}`} className="w-8 h-8 bg-white/10 border border-white/20" style={MILITARY_CLIP} />
-              <div className="flex-1">
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="text-[10px] font-black text-red-500 uppercase italic tracking-tighter">{msg.username}</span>
-                  <span className="text-[8px] font-mono text-slate-600">[{format(new Date(msg.timestamp), "HH:mm")}]</span>
-                </div>
-                <div className="bg-white/5 p-3 text-sm text-slate-300 border-l border-red-500/50" style={{ clipPath: "polygon(0 0, 100% 0, 100% 100%, 4px 100%, 0 calc(100% - 4px))" }}>
-                  {msg.text}
+      <div className="flex-1 flex overflow-hidden">
+        {/* ÁREA DE MENSAGENS */}
+        <div className="flex-1 flex flex-col min-w-0 bg-black/40">
+          <div ref={scrollRef} className="flex-1 overflow-y-auto p-6 space-y-4 custom-scrollbar">
+            {messages.length === 0 && (
+              <div className="flex flex-col items-center justify-center h-full opacity-20 grayscale">
+                <ChatBubbleLeftRightIcon className="w-12 h-12 text-slate-500 mb-2" />
+                <p className="text-[10px] font-mono uppercase tracking-widest">Nenhuma transmissão detectada...</p>
+              </div>
+            )}
+            {messages.map((msg) => (
+              <div key={msg.id} className="flex gap-3 items-start group">
+                <img 
+                  src={msg.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${msg.username}`} 
+                  className="w-8 h-8 bg-white/10 border border-white/20" 
+                  style={MILITARY_CLIP} 
+                  alt="avatar"
+                />
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-[10px] font-black text-red-500 uppercase italic tracking-tighter">{msg.username}</span>
+                    <span className="text-[8px] font-mono text-slate-600">[{format(new Date(msg.timestamp), "HH:mm")}]</span>
+                  </div>
+                  <div className="bg-white/5 p-3 text-xs text-slate-300 border-l-2 border-red-500/30 break-words" style={{ clipPath: "polygon(0 0, 100% 0, 100% 100%, 4px 100%, 0 calc(100% - 4px))" }}>
+                    {msg.text}
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
+
+          {/* INPUT FIXO */}
+          <form onSubmit={sendMessage} className="p-4 bg-black/80 border-t border-white/10 flex gap-2">
+            <input 
+              type="text"
+              value={inputText}
+              onChange={(e) => setInputText(e.target.value)}
+              placeholder="Digite sua transmissão de emergência..."
+              className="flex-1 bg-white/5 border border-white/10 px-4 py-3 text-xs font-mono text-white placeholder:text-slate-600 focus:outline-none focus:border-red-500/50 transition-colors"
+            />
+            <button 
+              type="submit" 
+              className="px-6 bg-red-600 hover:bg-red-500 text-white transition-all active:scale-95 shadow-[0_0_15px_rgba(220,38,38,0.3)]" 
+              style={MILITARY_CLIP}
+            >
+              <PaperAirplaneIcon className="w-5 h-5 -rotate-45" />
+            </button>
+          </form>
         </div>
 
-        <form onSubmit={sendMessage} className="p-4 bg-black/60 border-t border-white/5 flex gap-2">
-          <input 
-            type="text"
-            value={inputText}
-            onChange={(e) => setInputText(e.target.value)}
-            placeholder="Enviar transmissão..."
-            className="flex-1 bg-white/5 border border-white/10 px-4 py-2 text-xs font-mono focus:outline-none focus:border-red-500/50"
-          />
-          <button type="submit" className="p-2 bg-red-600 hover:bg-red-500 text-white transition-colors" style={MILITARY_CLIP}>
-            <PaperAirplaneIcon className="w-5 h-5" />
-          </button>
-        </form>
+        {/* SIDEBAR DE USUÁRIOS (Compacto) */}
+        <div className="w-48 bg-black/60 border-l border-white/10 hidden md:flex flex-col">
+          <div className="p-3 bg-white/5 border-b border-white/10">
+            <span className="text-[9px] font-black font-orbitron text-slate-500 uppercase tracking-widest">Contatos_Online</span>
+          </div>
+          <div className="flex-1 overflow-y-auto p-3 space-y-2 custom-scrollbar">
+            {onlineUsers.map(u => (
+              <div key={u.id} className="flex items-center gap-2 p-2 bg-white/5 border border-white/5 hover:border-red-500/30 transition-colors group" style={MILITARY_CLIP}>
+                <div className="relative">
+                  <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full shadow-[0_0_5px_rgba(16,185,129,0.8)] animate-pulse" />
+                </div>
+                <span className="text-[9px] font-black text-slate-400 uppercase italic truncate group-hover:text-white transition-colors">{u.username}</span>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
     </div>
   );
