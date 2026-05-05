@@ -1,12 +1,441 @@
-import { UnderConstruction } from "../components/ui/UnderConstruction";
-import { HeartIcon } from "@heroicons/react/24/outline";
+import React, { useState, useEffect, useRef, useCallback } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { 
+  HeartIcon, 
+  ChatBubbleLeftRightIcon, 
+  UserGroupIcon, 
+  BoltIcon,
+  ExclamationTriangleIcon,
+  ShieldCheckIcon,
+  PaperAirplaneIcon,
+  ClockIcon,
+  BanknotesIcon
+} from "@heroicons/react/24/outline";
+import { useUserProfile } from "../hooks/useUserProfile";
+import { tokenStorage } from "../lib/api";
+import { recoveryService } from "../services/recoveryService";
+import { socketService, ChatMessage } from "../services/socketService";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
+
+/**
+ * RECOVERY BASE PAGE - AAA Military Cyberpunk Aesthetic
+ * Follows the standard established in TrainingPage.tsx
+ */
+
+const MILITARY_CLIP = { clipPath: "polygon(8px 0%, 100% 0%, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0% 100%, 0% 8px)" };
 
 export default function RecoveryBasePage() {
+  const { userProfile, refreshProfile } = useUserProfile();
+  const status = userProfile?.status || 'Operacional';
+  const subtitle = "UNIDADE MÉDICA DE ELITE. RECUPERAÇÃO BIOCIBERNÉTICA EM ANDAMENTO.";
+
+  if (!userProfile) return null;
+
   return (
-    <UnderConstruction 
-      title="BASE DE RECUPERAÇÃO"
-      icon={<HeartIcon />}
-      description="A infraestrutura médica de elite está sendo estabilizada para garantir que nenhum combatente fique fora de combate por muito tempo."
-    />
+    <div className="min-h-screen p-4 md:p-8 bg-transparent relative text-slate-300 font-sans selection:bg-red-500/30">
+      
+      {/* HUD DECORATION - CORNERS */}
+      <div className="fixed inset-0 pointer-events-none border-[1px] border-red-500/10 opacity-30 m-4 hidden md:block z-0">
+        <div className="absolute top-0 left-0 w-16 h-16 border-t-2 border-l-2 border-red-500/50"></div>
+        <div className="absolute top-0 right-0 w-16 h-16 border-t-2 border-r-2 border-red-500/50"></div>
+        <div className="absolute bottom-0 left-0 w-16 h-16 border-b-2 border-l-2 border-red-500/50"></div>
+        <div className="absolute bottom-0 right-0 w-16 h-16 border-b-2 border-r-2 border-red-500/50"></div>
+      </div>
+
+      {/* HEADER */}
+      <header className="max-w-6xl mx-auto mb-12 relative z-10">
+        <div className="absolute -left-4 top-1/2 -translate-y-1/2 w-1 h-12 bg-red-500 shadow-[0_0_15px_rgba(239,68,68,0.8)]"></div>
+        <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}>
+          <h1 className="text-4xl md:text-6xl font-orbitron font-black tracking-widest text-white uppercase" style={{ textShadow: "2px 0px 0px rgba(239,68,68,0.7), -2px 0px 0px rgba(34,211,238,0.7)" }}>
+            Recovery <span className="text-red-500">Base</span> HUB
+          </h1>
+          <div className="flex flex-col gap-3 mt-4">
+            <div className="flex items-center gap-4">
+              <div className="flex items-center overflow-hidden border border-red-500/40 bg-black/60" style={MILITARY_CLIP}>
+                <div className="bg-red-500 px-2 py-0.5">
+                   <span className="text-[9px] font-black text-black uppercase">MED_CORPS</span>
+                </div>
+                <div className="px-3 py-0.5">
+                   <span className="text-[10px] font-mono text-red-400 font-bold tracking-widest">PROTOCOL_RECOVERY_V4</span>
+                </div>
+              </div>
+              <div className="h-4 w-px bg-slate-800"></div>
+              <span className="text-[10px] font-mono text-red-400/80 animate-pulse tracking-widest font-bold uppercase">● Medical_Systems_Online</span>
+            </div>
+            <p className="text-slate-300 text-[10px] font-mono tracking-[0.2em] uppercase bg-white/5 py-1 px-3 border-l-2 border-red-500/50 w-fit backdrop-blur-sm">
+              {subtitle}
+            </p>
+          </div>
+        </motion.div>
+      </header>
+
+      <div className="max-w-7xl mx-auto space-y-8 relative z-10">
+        
+        {/* TOP STATUS ROW */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* USER STATUS CARD */}
+          <div className="cyber-card p-6 relative group" style={MILITARY_CLIP}>
+             <div className="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-25 transition-opacity">
+                <ShieldCheckIcon className="w-12 h-12 text-white" />
+              </div>
+              <h3 className="text-[10px] font-orbitron text-red-500 mb-6 flex items-center gap-2 tracking-[0.3em]">
+                <div className="w-2 h-2 bg-red-500 shadow-[0_0_8px_rgba(239,68,68,1)]"></div> CURRENT_STATUS
+              </h3>
+              <div className="flex items-end gap-2 mb-2">
+                <span className={`text-4xl font-black font-orbitron leading-none uppercase italic ${getStatusColor(status)}`}>
+                  {status}
+                </span>
+              </div>
+          </div>
+
+          {/* CURRENCY CARD */}
+          <div className="cyber-card p-6 relative group" style={MILITARY_CLIP}>
+             <div className="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-25 transition-opacity">
+                <BanknotesIcon className="w-12 h-12 text-white" />
+              </div>
+              <h3 className="text-[10px] font-orbitron text-yellow-500 mb-6 flex items-center gap-2 tracking-[0.3em]">
+                <div className="w-2 h-2 bg-yellow-500 shadow-[0_0_8px_rgba(234,179,8,1)]"></div> PREMIUM_ASSETS
+              </h3>
+              <div className="flex items-end gap-2 mb-2">
+                <span className="text-5xl font-black text-white font-orbitron leading-none">
+                  {(userProfile as any).premium_coins || 0}
+                </span>
+                <span className="text-yellow-500 font-bold uppercase text-[10px] tracking-widest mb-1 italic">U-CRYPTO</span>
+              </div>
+          </div>
+        </div>
+
+        {/* MAIN CONTENT BASED ON STATUS */}
+        <AnimatePresence mode="wait">
+          {status === 'Sangrando' && (
+            <motion.div 
+              key="bleeding"
+              initial={{ opacity: 0, scale: 0.98 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.98 }}
+            >
+              <BleedingView user={userProfile} onAction={refreshProfile} />
+            </motion.div>
+          )}
+
+          {status === 'Recondicionamento' && (
+            <motion.div 
+              key="reconditioning"
+              initial={{ opacity: 0, scale: 0.98 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.98 }}
+            >
+              <ReconditioningView user={userProfile} />
+            </motion.div>
+          )}
+
+          {status === 'Operacional' && (
+            <motion.div 
+              key="operational"
+              initial={{ opacity: 0, scale: 0.98 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.98 }}
+            >
+              <OperationalView onAction={refreshProfile} />
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+      </div>
+
+      {/* FOOTER */}
+      <footer className="max-w-6xl mx-auto mt-20 pt-8 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-4 opacity-70 grayscale hover:grayscale-0 transition-all relative z-10 font-mono">
+        <div className="flex items-center gap-6">
+          <div className="flex flex-col">
+             <span className="text-[8px] font-black tracking-widest uppercase text-red-500">Medical_Link</span>
+             <span className="text-[10px]">ENCRYPTED_BIO_DATA</span>
+          </div>
+          <div className="flex flex-col">
+             <span className="text-[8px] font-black tracking-widest uppercase text-red-500">Sanitizing</span>
+             <span className="text-[10px]">SCAN_ACTIVE</span>
+          </div>
+        </div>
+        <div className="text-[10px] uppercase tracking-[0.5em]">
+          UrbanClash Medical Interface v4.0.2
+        </div>
+      </footer>
+    </div>
   );
-}
+}
+
+// ─── Componentes de Visão ────────────────────────────────────────────────────────
+
+function BleedingView({ user, onAction }: { user: any, onAction: () => void }) {
+  const [loading, setLoading] = useState(false);
+
+  const buyAntidote = async () => {
+    setLoading(true);
+    try {
+      await recoveryService.buyAntidote();
+      onAction();
+    } catch (err: any) {
+      alert(err.response?.data?.message || "Erro ao aplicar antídoto.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="cyber-card cyber-card-red p-8 relative overflow-hidden" style={MILITARY_CLIP}>
+      <div className="absolute top-0 right-0 p-4 opacity-5">
+        <ExclamationTriangleIcon className="w-64 h-64 text-white" />
+      </div>
+      
+      <div className="flex flex-col md:flex-row items-center gap-8 relative z-10">
+        <div className="w-32 h-32 bg-red-600/20 border-2 border-red-600 flex items-center justify-center animate-pulse shadow-[0_0_30px_rgba(220,38,38,0.4)]" style={MILITARY_CLIP}>
+          <ExclamationTriangleIcon className="w-16 h-16 text-red-500" />
+        </div>
+        
+        <div className="flex-1 text-center md:text-left space-y-4">
+          <h2 className="text-3xl font-orbitron font-black text-white italic uppercase tracking-widest">Hemofilia Detectada</h2>
+          <p className="text-slate-400 font-mono text-sm max-w-xl uppercase tracking-wider leading-relaxed">
+            Seu sistema biocibernético está perdendo integridade. Protocolo de emergência necessário. 
+            O uso de antídoto nano-sintético é a única via de estabilização imediata.
+          </p>
+          
+          <div className="flex flex-wrap gap-6 items-center pt-4">
+            <div className="bg-black/60 px-4 py-2 border border-yellow-500/30 flex items-center gap-3" style={MILITARY_CLIP}>
+               <span className="text-[10px] font-mono text-gray-500 uppercase">Custo</span>
+               <span className="text-xl font-orbitron font-black text-yellow-500 italic">1 UC</span>
+            </div>
+            
+            <button 
+              disabled={loading}
+              onClick={buyAntidote}
+              className="px-8 py-4 bg-red-600 hover:bg-red-500 text-white font-orbitron font-black uppercase italic tracking-[0.2em] transition-all hover:scale-105 active:scale-95 disabled:opacity-50"
+              style={MILITARY_CLIP}
+            >
+              {loading ? "PROCESSANDO..." : "ENGAGE_ANTIDOTE"}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ReconditioningView({ user }: { user: any }) {
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [onlineUsers, setOnlineUsers] = useState<any[]>([]);
+  const [inputText, setInputText] = useState("");
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const token = tokenStorage.getToken();
+    if (token) socketService.authenticateRecovery(token);
+
+    socketService.onRecoveryHistory((history) => setMessages(history));
+    socketService.onRecoveryMessageReceived((msg) => setMessages(prev => [...prev.slice(-19), msg]));
+    socketService.onRecoveryUsers((users) => setOnlineUsers(users));
+  }, []);
+
+  useEffect(() => {
+    if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+  }, [messages]);
+
+  const sendMessage = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!inputText.trim()) return;
+    socketService.sendRecoveryMessage(inputText);
+    setInputText("");
+  };
+
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+      {/* STATUS PANEL */}
+      <div className="lg:col-span-4 space-y-6">
+        <div className="cyber-card p-6" style={MILITARY_CLIP}>
+          <h3 className="text-[10px] font-orbitron text-red-500 mb-6 flex items-center gap-2 tracking-[0.3em]">
+            <div className="w-2 h-2 bg-red-500"></div> REGEN_PROTOCOL
+          </h3>
+          <div className="space-y-4">
+             <div className="bg-black/60 p-4 border border-white/5">
+                <span className="text-[8px] text-slate-500 uppercase block mb-1">Completo em</span>
+                <span className="text-2xl font-orbitron font-black text-white italic">
+                  {user.status_ends_at ? format(new Date(user.status_ends_at), "HH:mm:ss") : "--:--:--"}
+                </span>
+             </div>
+             <p className="text-[10px] font-mono text-slate-400 uppercase leading-relaxed border-l-2 border-red-500/30 pl-3">
+               Nanites reconectando fibras neurais. Acesso restrito a operações de campo.
+             </p>
+          </div>
+        </div>
+
+        <div className="cyber-card p-6" style={MILITARY_CLIP}>
+          <h3 className="text-[10px] font-orbitron text-cyan-500 mb-6 flex items-center gap-2 tracking-[0.3em]">
+            <div className="w-2 h-2 bg-cyan-500"></div> ONLINE_CONTACTS
+          </h3>
+          <div className="space-y-3 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
+            {onlineUsers.length === 0 && <p className="text-[10px] font-mono text-slate-600">Nenhum contato ativo.</p>}
+            {onlineUsers.map(u => (
+              <div key={u.id} className="flex items-center gap-3 bg-white/5 p-2 border border-white/5" style={MILITARY_CLIP}>
+                <div className="w-1.5 h-1.5 bg-green-500 shadow-[0_0_5px_rgba(34,197,94,0.8)] animate-pulse" />
+                <span className="text-[10px] font-black text-slate-300 uppercase italic">{u.username}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* CHAT PANEL */}
+      <div className="lg:col-span-8 flex flex-col h-[500px] cyber-card relative overflow-hidden" style={MILITARY_CLIP}>
+        <div className="p-4 bg-white/5 border-b border-white/10 flex justify-between items-center">
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 bg-red-500 animate-pulse"></div>
+            <h3 className="font-orbitron font-black text-white text-[10px] uppercase tracking-widest italic">Emergency_Frequency</h3>
+          </div>
+          <span className="text-[8px] font-mono text-slate-500">CHANNEL_SECURE</span>
+        </div>
+
+        <div ref={scrollRef} className="flex-1 overflow-y-auto p-6 space-y-4 custom-scrollbar">
+          {messages.map((msg) => (
+            <div key={msg.id} className="flex gap-3 items-start group">
+              <img src={msg.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${msg.username}`} className="w-8 h-8 bg-white/10 border border-white/20" style={MILITARY_CLIP} />
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-[10px] font-black text-red-500 uppercase italic tracking-tighter">{msg.username}</span>
+                  <span className="text-[8px] font-mono text-slate-600">[{format(new Date(msg.timestamp), "HH:mm")}]</span>
+                </div>
+                <div className="bg-white/5 p-3 text-sm text-slate-300 border-l border-red-500/50" style={{ clipPath: "polygon(0 0, 100% 0, 100% 100%, 4px 100%, 0 calc(100% - 4px))" }}>
+                  {msg.text}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <form onSubmit={sendMessage} className="p-4 bg-black/60 border-t border-white/5 flex gap-2">
+          <input 
+            type="text"
+            value={inputText}
+            onChange={(e) => setInputText(e.target.value)}
+            placeholder="Enviar transmissão..."
+            className="flex-1 bg-white/5 border border-white/10 px-4 py-2 text-xs font-mono focus:outline-none focus:border-red-500/50"
+          />
+          <button type="submit" className="p-2 bg-red-600 hover:bg-red-500 text-white transition-colors" style={MILITARY_CLIP}>
+            <PaperAirplaneIcon className="w-5 h-5" />
+          </button>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+function OperationalView({ onAction }: { onAction: () => void }) {
+  const [allies, setAllies] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [rescuingId, setRescuingId] = useState<string | null>(null);
+
+  useEffect(() => {
+    loadAllies();
+  }, []);
+
+  const loadAllies = async () => {
+    try {
+      const data = await recoveryService.getAllies();
+      setAllies(data);
+    } catch (err) { console.error(err); } finally { setLoading(false); }
+  };
+
+  const rescueAlly = async (allyId: string) => {
+    setRescuingId(allyId);
+    try {
+      await recoveryService.rescueAlly(allyId);
+      setAllies(prev => prev.filter(a => a.id !== allyId));
+      onAction();
+    } catch (err: any) {
+      alert(err.response?.data?.message || "Erro no resgate.");
+    } finally { setRescuingId(null); }
+  };
+
+  return (
+    <div className="space-y-8">
+      <div className="cyber-card p-6" style={MILITARY_CLIP}>
+         <h3 className="text-[10px] font-orbitron text-cyan-500 mb-6 flex items-center gap-2 tracking-[0.3em]">
+            <div className="w-2 h-2 bg-cyan-500 shadow-[0_0_8px_rgba(6,182,212,1)]"></div> RESCUE_PROTOCOL
+          </h3>
+          <p className="text-slate-400 font-mono text-[10px] uppercase tracking-widest leading-relaxed border-l-2 border-cyan-500/50 pl-4">
+            Aliados em recondicionamento podem ser reativados via transferência de créditos. 
+            Custo operacional: <span className="text-yellow-500 font-bold">5 U-CRYPTO</span> por unidade.
+          </p>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {loading ? (
+          Array(3).fill(0).map((_, i) => <div key={i} className="h-24 bg-white/5 animate-pulse" style={MILITARY_CLIP} />)
+        ) : allies.length === 0 ? (
+          <div className="col-span-full py-20 text-center relative overflow-hidden bg-black/40 border border-white/5" style={MILITARY_CLIP}>
+            {/* Background Radar Effect */}
+            <div className="absolute inset-0 flex items-center justify-center opacity-5">
+              <div className="w-64 h-64 border-2 border-cyan-500 rounded-full animate-ping" />
+              <div className="absolute w-48 h-48 border border-cyan-500/50 rounded-full animate-ping [animation-delay:0.5s]" />
+            </div>
+
+            <div className="relative z-10 space-y-4">
+              <div className="flex justify-center gap-1">
+                {[...Array(3)].map((_, i) => (
+                  <div key={i} className="w-1 h-4 bg-red-500/30" />
+                ))}
+              </div>
+              <div>
+                <p className="text-red-500/80 font-orbitron text-[10px] uppercase tracking-[0.4em] font-black italic">
+                  Radar Med_Scan: <span className="text-white/40">Zero_Signals</span>
+                </p>
+                <p className="text-slate-500 font-mono text-[9px] uppercase tracking-widest mt-2">
+                  Nenhuma unidade em recondicionamento detectada no setor.
+                </p>
+              </div>
+              <div className="flex justify-center gap-4">
+                <div className="h-px w-8 bg-gradient-to-r from-transparent to-white/10" />
+                <div className="h-1 w-1 bg-white/20 rounded-full" />
+                <div className="h-px w-8 bg-gradient-to-l from-transparent to-white/10" />
+              </div>
+            </div>
+          </div>
+        ) : (
+          allies.map((ally) => (
+            <motion.div 
+              key={ally.id}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="cyber-card p-4 flex items-center justify-between group hover:bg-white/5 transition-colors"
+              style={MILITARY_CLIP}
+            >
+              <div className="flex items-center gap-4">
+                <img src={ally.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${ally.username}`} className="w-12 h-12 bg-white/10" style={MILITARY_CLIP} />
+                <div>
+                  <p className="text-sm font-black text-white italic uppercase tracking-tighter">{ally.username}</p>
+                  <p className="text-[8px] font-mono text-cyan-500 uppercase tracking-widest">Nível {ally.level} • RECO_MODE</p>
+                </div>
+              </div>
+              
+              <button 
+                onClick={() => rescueAlly(ally.id)}
+                disabled={rescuingId !== null}
+                className="px-4 py-2 bg-yellow-600/10 hover:bg-yellow-600 text-yellow-500 hover:text-white border border-yellow-600/30 font-orbitron font-black text-[9px] uppercase italic transition-all"
+                style={MILITARY_CLIP}
+              >
+                {rescuingId === ally.id ? "..." : "RESGATAR"}
+              </button>
+            </motion.div>
+          ))
+        )}
+      </div>
+    </div>
+  );
+}
+
+function getStatusColor(status: string) {
+  switch (status) {
+    case 'Sangrando': return 'text-red-500';
+    case 'Recondicionamento': return 'text-blue-500';
+    case 'Operacional': return 'text-green-500';
+    default: return 'text-gray-400';
+  }
+}

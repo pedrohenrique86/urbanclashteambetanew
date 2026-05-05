@@ -25,6 +25,7 @@ interface ChatMessage {
   id: string; // Adicionado ID robusto para deduplicação
   userId: string;
   username: string;
+  avatar?: string;
   text: string;
   timestamp: string;
 }
@@ -176,6 +177,31 @@ class SocketService {
     this.on<ChatMessage>("chat:message", callback);
   }
 
+  // --- Métodos específicos do Chat de Recuperação ---
+
+  authenticateRecovery(token: string): void {
+    this.emit("recovery:authenticate", { token });
+  }
+
+  sendRecoveryMessage(text: string): void {
+    this.emit("recovery:sendMessage", { text });
+  }
+
+  onRecoveryAuthSuccess(callback: () => void): void {
+    this.on<void>("recovery:auth_success", callback);
+  }
+
+  onRecoveryHistory(callback: (history: ChatMessage[]) => void): void {
+    this.on<ChatMessage[]>("recovery:history", callback);
+  }
+
+  onRecoveryMessageReceived(callback: (message: ChatMessage) => void): void {
+    this.on<ChatMessage>("recovery:message", callback);
+  }
+
+  onRecoveryUsers(callback: (users: any[]) => void): void {
+    this.on<any[]>("recovery:users", callback);
+  }
 
 }
 

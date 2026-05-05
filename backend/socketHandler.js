@@ -88,6 +88,59 @@ function initializeSocket(server) {
         socket.emit("chat:auth_failed", { message: err.message });
       }
     });
+
+    // ─── CHAT DA BASE DE RECUPERAÇÃO (RECONDICIONAMENTO) ──────────────────────────
+    socket.on("recovery:authenticate", async (data) => {
+      try {
+        const token = data.token;
+        if (!token) throw new Error("Token não fornecido.");
+
+        const user = await authenticateSocket(token);
+        socket.user = user;
+        socket.join("recovery:room");
+
+        // SÊNIOR: Gerenciamento de lista de usuários online na recuperação
+        // Emitir lista atualizada para todos na sala
+        const updateRecoveryUsers = async () => {
+          const sockets = await io.in("recovery:room").fetchSockets();
+          const users = sockets
+            .map(s => s.user)
+            .filter(u => !!u)
+            .map(u => ({ id: u.id, username: u.username, avatar: u.avatar_url }));
+          
+          // Remover duplicatas de userId
+          const uniqueUsers = Array.from(new Map(users.map(u => [u.id, u])).values());
+          io.to("recovery:room").emit("recovery:users", uniqueUsers);
+        };
+
+        await updateRecoveryUsers();
+
+        const recoveryChatService = require("./services/recoveryChatService");
+        socket.emit("recovery:auth_success");
+        socket.emit("recovery:history", recoveryChatService.getHistory());
+
+        socket.on("disconnect", async () => {
+          await updateRecoveryUsers();
+        });
+
+        if (!socket.hasRecoveryListener) {
+          socket.hasRecoveryListener = true;
+          socket.on("recovery:sendMessage", async (msgData) => {
+            const now = Date.now();
+            if (now - (socket.lastRecoveryMsg || 0) < 2000) return; // Cooldown 2s
+            
+            const text = typeof msgData.text === "string" ? msgData.text.trim() : "";
+            if (text.length === 0) return;
+
+            socket.lastRecoveryMsg = now;
+            const recoveryChatService = require("./services/recoveryChatService");
+            await recoveryChatService.handleNewMessage(io, socket, text);
+          });
+        }
+      } catch (err) {
+        socket.emit("recovery:auth_failed", { message: err.message });
+      }
+    });
   });
 }
 
