@@ -119,16 +119,10 @@ export default function RecoveryBasePage() {
                 <div className="w-2 h-2 bg-red-500 shadow-[0_0_8px_rgba(239,68,68,1)]"></div> CURRENT_STATUS
               </h3>
               <div className="flex items-end justify-between mb-2">
-                <span className={`text-4xl font-black font-orbitron leading-none uppercase italic ${getStatusColor(status)}`}>
+                <span className={`text-2xl font-black font-orbitron leading-none uppercase italic ${getStatusColor(status)}`}>
                   {status}
                 </span>
                 
-                {timeLeft !== null && (
-                  <div className="bg-black/60 px-4 py-2 border border-red-500/20 flex flex-col items-end">
-                    <span className="text-[8px] font-mono text-red-500 uppercase">Tempo Restante</span>
-                    <span className="text-2xl font-orbitron font-black text-white">{formatTime(timeLeft)}</span>
-                  </div>
-                )}
               </div>
           </div>
 
@@ -242,10 +236,7 @@ function BleedingView({ user, onAction, timeLeft, formatTime }: { user: any, onA
         
         <div className="flex-1 text-center md:text-left space-y-4">
           <div className="flex items-center gap-4 justify-center md:justify-start">
-            <h2 className="text-3xl font-orbitron font-black text-white italic uppercase tracking-widest">Bio-Degradação Crítica</h2>
-            {timeLeft !== null && (
-              <span className="bg-red-500/20 px-3 py-1 border border-red-500/40 text-[10px] font-mono text-red-400 animate-pulse">ESTABILIZAÇÃO_AUTO EM {formatTime(timeLeft)}</span>
-            )}
+            <h2 className="text-xl font-orbitron font-black text-white italic uppercase tracking-widest">Bio-Degradação Crítica</h2>
           </div>
           <p className="text-slate-400 font-mono text-sm max-w-xl uppercase tracking-wider leading-relaxed">
             Seu sistema biocibernético está perdendo integridade. Protocolo de emergência necessário. 
