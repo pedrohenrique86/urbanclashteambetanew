@@ -146,6 +146,9 @@ export default function ReckoningPage() {
   const [battleLogs, setBattleLogs] = useState<any[]>([]);
   const [rancor, setRancor] = useState(0);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [playerHP, setPlayerHP] = useState(100);
+  const [enemyHP, setEnemyHP] = useState(100);
+  const [damagePopups, setDamagePopups] = useState<any[]>([]);
 
   const closeResult = useCallback(() => {
     setCombatPhase("radar");
@@ -155,6 +158,9 @@ export default function ReckoningPage() {
     setBattleLogs([]);
     setRancor(0);
     setCurrentRound(0);
+    setPlayerHP(100);
+    setEnemyHP(100);
+    setDamagePopups([]);
     mutate();
   }, [mutate]);
 
@@ -209,6 +215,11 @@ export default function ReckoningPage() {
     try {
       setCombatPhase("fighting");
       setIsProcessing(true);
+      
+      // Inicializar HP com base no preCalc ou 100
+      setPlayerHP(preCalc?.playerInfo.hp || 100);
+      setEnemyHP(preCalc?.targetInfo.hp || 100);
+
       const result = await combatService.attack(selectedTarget.id, selectedActions as any);
       setFinalResult({ ...result, winner: result.outcome.startsWith("win"), timestamp: Date.now() });
       
@@ -228,8 +239,21 @@ export default function ReckoningPage() {
     for (let i = 0; i < turns.length; i++) {
       setCurrentRound(i + 1);
       const turn = turns[i];
+      
+      // Trigger damage indicators before updating logs
+      if (turn.attacker.damage > 0) {
+        setDamagePopups(prev => [...prev, { id: `enemy-${Date.now()}-${i}`, value: turn.attacker.damage, target: 'enemy' }]);
+      }
+      if (turn.defender.damage > 0) {
+        setDamagePopups(prev => [...prev, { id: `player-${Date.now()}-${i}`, value: turn.defender.damage, target: 'player' }]);
+      }
+
       setBattleLogs(prev => [...prev, turn]);
       setRancor(turn.playerRancor || 0);
+      
+      // Sincronizar HP das barras (Backend: attacker.hpAfter = enemyHP, defender.hpAfter = playerHP)
+      setEnemyHP(turn.attacker.hpAfter);
+      setPlayerHP(turn.defender.hpAfter);
       
       // Audio feedback based on impact
       if (turn.effect === 'heavy') soundEngine.playImpact();
@@ -607,6 +631,79 @@ export default function ReckoningPage() {
                   </div>
                 </div>
 
+                {/* SISTEMA DE HP E INDICADORES DE DANO */}
+                <div className="grid grid-cols-2 gap-4 md:gap-12 mb-10 relative">
+                  {/* PLAYER HP */}
+                  <div className="relative">
+                    <div className="flex justify-between items-end mb-2">
+                      <div className="flex flex-col">
+                        <span className="text-[9px] font-black font-mono text-cyan-500 uppercase tracking-widest">Integridade_Unidade</span>
+                        <span className="text-xs font-mono text-slate-500 uppercase">Status: {playerHP > 20 ? 'NOMINAL' : 'CRÍTICO'}</span>
+                      </div>
+                      <span className="text-2xl font-black font-orbitron text-white">{playerHP}%</span>
+                    </div>
+                    <div className="h-4 bg-slate-900 border border-cyan-500/30 p-0.5 overflow-hidden shadow-[inset_0_0_10px_rgba(0,0,0,0.5)]" style={MILITARY_CLIP}>
+                      <motion.div 
+                        className={`h-full ${playerHP > 20 ? 'bg-cyan-500 shadow-[0_0_15px_rgba(34,211,238,0.5)]' : 'bg-red-500 animate-pulse'}`}
+                        animate={{ width: `${playerHP}%` }}
+                        transition={{ type: "spring", stiffness: 100, damping: 20 }}
+                      />
+                    </div>
+                    
+                    {/* Floating Damage Numbers for Player */}
+                    <AnimatePresence>
+                      {damagePopups.filter(p => p.target === 'player').map(p => (
+                        <motion.div
+                          key={p.id}
+                          initial={{ opacity: 1, y: 0, scale: 0.5, x: 0 }}
+                          animate={{ opacity: [1, 1, 0], y: -100, scale: [0.5, 1.5, 2], x: Math.random() * 40 - 20 }}
+                          transition={{ duration: 1.2, ease: "easeOut" }}
+                          onAnimationComplete={() => setDamagePopups(prev => prev.filter(x => x.id !== p.id))}
+                          className="absolute top-0 left-1/2 -translate-x-1/2 z-[100] font-orbitron font-black text-3xl text-red-500 pointer-events-none"
+                          style={{ textShadow: "0 0 10px rgba(0,0,0,0.8), 0 0 20px rgba(239,68,68,0.4)" }}
+                        >
+                          -{p.value}
+                        </motion.div>
+                      ))}
+                    </AnimatePresence>
+                  </div>
+
+                  {/* ENEMY HP */}
+                  <div className="relative">
+                    <div className="flex justify-between items-end mb-2">
+                      <span className="text-2xl font-black font-orbitron text-red-500">{enemyHP}%</span>
+                      <div className="flex flex-col text-right">
+                        <span className="text-[9px] font-black font-mono text-red-500 uppercase tracking-widest">Blindagem_Alvo</span>
+                        <span className="text-xs font-mono text-slate-500 uppercase">Sinal: {selectedTarget?.is_npc ? 'SYNC_BOT' : 'USER_HOSTILE'}</span>
+                      </div>
+                    </div>
+                    <div className="h-4 bg-slate-900 border border-red-500/30 p-0.5 overflow-hidden shadow-[inset_0_0_10px_rgba(0,0,0,0.5)]" style={MILITARY_CLIP}>
+                      <motion.div 
+                        className="h-full bg-red-600 shadow-[0_0_15px_rgba(220,38,38,0.5)] ml-auto"
+                        animate={{ width: `${enemyHP}%` }}
+                        transition={{ type: "spring", stiffness: 100, damping: 20 }}
+                      />
+                    </div>
+
+                    {/* Floating Damage Numbers for Enemy */}
+                    <AnimatePresence>
+                      {damagePopups.filter(p => p.target === 'enemy').map(p => (
+                        <motion.div
+                          key={p.id}
+                          initial={{ opacity: 1, y: 0, scale: 0.5, x: 0 }}
+                          animate={{ opacity: [1, 1, 0], y: -100, scale: [0.5, 1.5, 2], x: Math.random() * 40 - 20 }}
+                          transition={{ duration: 1.2, ease: "easeOut" }}
+                          onAnimationComplete={() => setDamagePopups(prev => prev.filter(x => x.id !== p.id))}
+                          className="absolute top-0 left-1/2 -translate-x-1/2 z-[100] font-orbitron font-black text-3xl text-yellow-400 pointer-events-none"
+                          style={{ textShadow: "0 0 10px rgba(0,0,0,0.8), 0 0 20px rgba(234,179,8,0.4)" }}
+                        >
+                          -{p.value}
+                        </motion.div>
+                      ))}
+                    </AnimatePresence>
+                  </div>
+                </div>
+
                 <div className="flex justify-between items-center mb-10 border-b border-white/5 pb-6">
                   <div className="flex items-center gap-4">
                     <div className="w-12 h-12 bg-black border border-cyan-500/50 flex items-center justify-center">
@@ -683,18 +780,28 @@ export default function ReckoningPage() {
                     </div>
                     
                     {finalResult.loot && (
-                      <div className="grid grid-cols-2 md:grid-cols-3 gap-4 w-full max-w-lg mb-8">
-                        <div className="bg-white/5 p-3 text-center border border-white/10">
+                      <div className="grid grid-cols-2 md:grid-cols-5 gap-4 w-full max-w-4xl mb-8">
+                        <div className="bg-white/5 p-3 text-center border border-white/10" style={MILITARY_CLIP}>
                           <span className="text-[8px] block text-slate-500 uppercase font-black mb-1">Experiência</span>
                           <span className="text-lg font-black font-orbitron text-white">+{finalResult.loot.xp} XP</span>
                         </div>
-                        <div className="bg-white/5 p-3 text-center border border-white/10">
+                        <div className="bg-white/5 p-3 text-center border border-white/10" style={MILITARY_CLIP}>
                           <span className="text-[8px] block text-slate-500 uppercase font-black mb-1">Créditos</span>
-                          <span className="text-lg font-black font-orbitron text-yellow-500">${finalResult.loot.money || 0}</span>
+                          <span className={`text-lg font-black font-orbitron ${finalResult.loot.moneyLost ? 'text-red-500' : 'text-yellow-500'}`}>
+                            {finalResult.loot.moneyLost ? `-$${finalResult.loot.moneyLost}` : `+$${finalResult.loot.money || 0}`}
+                          </span>
                         </div>
-                        <div className="bg-white/5 p-3 text-center border border-white/10">
-                          <span className="text-[8px] block text-slate-500 uppercase font-black mb-1">Atributos</span>
+                        <div className="bg-white/5 p-3 text-center border border-cyan-500/20" style={MILITARY_CLIP}>
+                          <span className="text-[8px] block text-cyan-500/60 uppercase font-black mb-1">Ataque</span>
                           <span className="text-lg font-black font-orbitron text-cyan-400">+{finalResult.loot.stats?.attack || 0}</span>
+                        </div>
+                        <div className="bg-white/5 p-3 text-center border border-cyan-500/20" style={MILITARY_CLIP}>
+                          <span className="text-[8px] block text-cyan-500/60 uppercase font-black mb-1">Defesa</span>
+                          <span className="text-lg font-black font-orbitron text-cyan-400">+{finalResult.loot.stats?.defense || 0}</span>
+                        </div>
+                        <div className="bg-white/5 p-3 text-center border border-cyan-500/20" style={MILITARY_CLIP}>
+                          <span className="text-[8px] block text-cyan-500/60 uppercase font-black mb-1">Foco</span>
+                          <span className="text-lg font-black font-orbitron text-cyan-400">+{finalResult.loot.stats?.focus || 0}</span>
                         </div>
                       </div>
                     )}
