@@ -107,7 +107,9 @@ function initializeSocket(server) {
 
         const emitIsolationUsers = async () => {
           const rawUsers = await redisClient.smembersAsync(ISOLATION_USERS_KEY);
-          const users = rawUsers.map(u => JSON.parse(u));
+          const users = rawUsers.map(u => {
+            try { return JSON.parse(u); } catch(e) { return null; }
+          }).filter(Boolean);
           io.to("isolation:room").emit("isolation:users", users);
         };
 
@@ -125,11 +127,13 @@ function initializeSocket(server) {
         if (!socket.hasIsolationListener) {
           socket.hasIsolationListener = true;
           socket.on("isolation:sendMessage", async (msgData) => {
+            if (!socket.user) return;
             const now = Date.now();
-            if (now - (socket.lastIsolationMsg || 0) < 2000) return; // Cooldown 2s
+            if (now - (socket.lastIsolationMsg || 0) < 3000) return; // Cooldown 3s
             
-            const text = typeof msgData.text === "string" ? msgData.text.trim() : "";
+            let text = typeof msgData.text === "string" ? msgData.text.trim() : "";
             if (text.length === 0) return;
+            if (text.length > 100) text = text.substring(0, 100);
 
             socket.lastIsolationMsg = now;
             const isolationChatService = require("./services/isolationChatService");
@@ -151,8 +155,6 @@ function initializeSocket(server) {
         socket.user = user;
         socket.join("recovery:room");
 
-        // SÊNIOR: Gerenciamento de lista de usuários online na recuperação via Redis
-        // Mais performático que fetchSockets() para 5000+ players
         const RECOVERY_USERS_KEY = "online_players:recovery";
         const userData = JSON.stringify({ id: user.id, username: user.username, avatar: user.avatar_url });
         
@@ -160,7 +162,9 @@ function initializeSocket(server) {
 
         const emitRecoveryUsers = async () => {
           const rawUsers = await redisClient.smembersAsync(RECOVERY_USERS_KEY);
-          const users = rawUsers.map(u => JSON.parse(u));
+          const users = rawUsers.map(u => {
+            try { return JSON.parse(u); } catch(e) { return null; }
+          }).filter(Boolean);
           io.to("recovery:room").emit("recovery:users", users);
         };
 
@@ -178,11 +182,13 @@ function initializeSocket(server) {
         if (!socket.hasRecoveryListener) {
           socket.hasRecoveryListener = true;
           socket.on("recovery:sendMessage", async (msgData) => {
+            if (!socket.user) return;
             const now = Date.now();
-            if (now - (socket.lastRecoveryMsg || 0) < 2000) return; // Cooldown 2s
+            if (now - (socket.lastRecoveryMsg || 0) < 3000) return; // Cooldown 3s
             
-            const text = typeof msgData.text === "string" ? msgData.text.trim() : "";
+            let text = typeof msgData.text === "string" ? msgData.text.trim() : "";
             if (text.length === 0) return;
+            if (text.length > 100) text = text.substring(0, 100);
 
             socket.lastRecoveryMsg = now;
             const recoveryChatService = require("./services/recoveryChatService");

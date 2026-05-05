@@ -310,11 +310,24 @@ function IsolationChatView({ user }: { user: any }) {
 
   useEffect(() => {
     const token = tokenStorage.getToken();
-    if (token) socketService.authenticateIsolation(token);
+    if (!token) return;
 
     socketService.onIsolationHistory((history) => setMessages(history));
-    socketService.onIsolationMessageReceived((msg) => setMessages(prev => [...prev.slice(-19), msg]));
+    socketService.onIsolationMessageReceived((msg) => setMessages(prev => {
+      if (prev.some(m => m.id === msg.id)) return prev;
+      return [...prev.slice(-19), msg];
+    }));
     socketService.onIsolationUsers((users) => setOnlineUsers(users));
+
+    const timer = setTimeout(() => {
+      socketService.authenticateIsolation(token);
+    }, 500);
+
+    return () => {
+      clearTimeout(timer);
+      setMessages([]);
+      setOnlineUsers([]);
+    };
   }, []);
 
   useEffect(() => {
@@ -329,65 +342,72 @@ function IsolationChatView({ user }: { user: any }) {
   };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-      {/* CHAT PANEL */}
-      <div className="lg:col-span-8 flex flex-col h-[500px] cyber-card bg-black/60 border-white/5 relative overflow-hidden" style={MILITARY_CLIP}>
-        <div className="p-4 bg-white/5 border-b border-white/10 flex justify-between items-center">
-          <div className="flex items-center gap-2">
-            <div className="w-2 h-2 bg-white/20 animate-pulse"></div>
-            <h3 className="font-orbitron font-black text-white text-[10px] uppercase tracking-widest italic">Containment_Frequency</h3>
+    <div className="flex flex-col h-[500px] cyber-card bg-black/60 border-white/5 relative overflow-hidden" style={MILITARY_CLIP}>
+      {/* HEADER DO CHAT */}
+      <div className="p-4 bg-white/5 border-b border-white/10 flex justify-between items-center relative z-10">
+        <div className="flex items-center gap-2">
+          <div className="w-2 h-2 bg-white/40 animate-pulse"></div>
+          <h3 className="font-orbitron font-black text-white text-[10px] uppercase tracking-widest italic">Containment_Frequency_X</h3>
+        </div>
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-1.5 bg-white/10 px-2 py-0.5 border border-white/10">
+            <UserGroupIcon className="w-3 h-3 text-white/40" />
+            <span className="text-[10px] font-black text-white/60">{onlineUsers.length}</span>
           </div>
-          <span className="text-[8px] font-mono text-slate-500">CHANNEL_SECURE_ENCRYPTED</span>
         </div>
-
-        <div ref={scrollRef} className="flex-1 overflow-y-auto p-6 space-y-4 custom-scrollbar">
-          {messages.length === 0 && (
-            <div className="h-full flex items-center justify-center">
-              <p className="text-[10px] font-mono text-white/20 uppercase tracking-[0.5em]">Nenhuma transmissão detectada</p>
-            </div>
-          )}
-          {messages.map((msg) => (
-            <div key={msg.id} className="flex gap-3 items-start group">
-              <img src={msg.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${msg.username}`} className="w-8 h-8 bg-white/5 border border-white/10" style={MILITARY_CLIP} />
-              <div className="flex-1">
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="text-[10px] font-black text-white/60 uppercase italic tracking-tighter">{msg.username}</span>
-                  <span className="text-[8px] font-mono text-slate-600">[{format(new Date(msg.timestamp), "HH:mm")}]</span>
-                </div>
-                <div className="bg-white/5 p-3 text-sm text-slate-300 border-l border-white/20" style={{ clipPath: "polygon(0 0, 100% 0, 100% 100%, 4px 100%, 0 calc(100% - 4px))" }}>
-                  {msg.text}
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        <form onSubmit={sendMessage} className="p-4 bg-black border-t border-white/5 flex gap-2">
-          <input
-            type="text"
-            value={inputText}
-            onChange={(e) => setInputText(e.target.value)}
-            placeholder="Sussurrar transmissão..."
-            className="flex-1 bg-white/5 border border-white/10 px-4 py-2 text-xs font-mono focus:outline-none focus:border-white/30 text-white placeholder:text-white/20"
-          />
-          <button type="submit" className="p-2 bg-white/10 hover:bg-white/20 text-white transition-colors" style={MILITARY_CLIP}>
-            <PaperAirplaneIcon className="w-5 h-5" />
-          </button>
-        </form>
       </div>
 
-      {/* ONLINE PANEL */}
-      <div className="lg:col-span-4 space-y-6">
-        <div className="cyber-card bg-black/60 p-6 border-white/5" style={MILITARY_CLIP}>
-          <h3 className="text-[10px] font-orbitron text-white/40 mb-6 flex items-center gap-2 tracking-[0.3em]">
-            <div className="w-2 h-2 bg-white/20"></div> DETAINED_UNITS
-          </h3>
-          <div className="space-y-3 max-h-[380px] overflow-y-auto pr-2 custom-scrollbar">
-            {onlineUsers.length === 0 && <p className="text-[10px] font-mono text-slate-600">Isolamento total.</p>}
+      <div className="flex-1 flex overflow-hidden">
+        {/* ÁREA DE MENSAGENS */}
+        <div className="flex-1 flex flex-col min-w-0">
+          <div ref={scrollRef} className="flex-1 overflow-y-auto p-6 space-y-4 custom-scrollbar">
+            {messages.length === 0 && (
+              <div className="h-full flex items-center justify-center opacity-20">
+                <p className="text-[10px] font-mono text-white uppercase tracking-[0.5em]">Sem transmissões...</p>
+              </div>
+            )}
+            {messages.map((msg) => (
+              <div key={msg.id} className="flex gap-3 items-start group">
+                <img src={msg.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${msg.username}`} className="w-8 h-8 bg-white/5 border border-white/10" style={MILITARY_CLIP} />
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-[10px] font-black text-white/60 uppercase italic tracking-tighter">{msg.username}</span>
+                    <span className="text-[8px] font-mono text-slate-600">[{format(new Date(msg.timestamp), "HH:mm")}]</span>
+                  </div>
+                  <div className="bg-white/5 p-3 text-xs text-slate-300 border-l border-white/20 break-words" style={{ clipPath: "polygon(0 0, 100% 0, 100% 100%, 4px 100%, 0 calc(100% - 4px))" }}>
+                    {msg.text}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* INPUT FIXO */}
+          <form onSubmit={sendMessage} className="p-4 bg-black border-t border-white/5 flex gap-2">
+            <input
+              type="text"
+              maxLength={100}
+              value={inputText}
+              onChange={(e) => setInputText(e.target.value)}
+              placeholder="Sussurrar transmissão (máx 100 carac)..."
+              className="flex-1 bg-white/5 border border-white/10 px-4 py-2 text-xs font-mono focus:outline-none focus:border-white/30 text-white placeholder:text-white/20"
+            />
+            <button type="submit" className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white transition-colors" style={MILITARY_CLIP}>
+              <PaperAirplaneIcon className="w-5 h-5 -rotate-45" />
+            </button>
+          </form>
+        </div>
+
+        {/* SIDEBAR DE USUÁRIOS */}
+        <div className="w-40 bg-black/40 border-l border-white/5 hidden md:flex flex-col">
+          <div className="p-2 bg-white/5 border-b border-white/5">
+            <span className="text-[8px] font-black font-orbitron text-white/20 uppercase tracking-widest">Detidos</span>
+          </div>
+          <div className="flex-1 overflow-y-auto p-2 space-y-1.5 custom-scrollbar">
             {onlineUsers.map(u => (
-              <div key={u.id} className="flex items-center gap-3 bg-white/5 p-2 border border-white/5" style={MILITARY_CLIP}>
-                <div className="w-1.5 h-1.5 bg-white/20 shadow-[0_0_5px_rgba(255,255,255,0.2)] animate-pulse" />
-                <span className="text-[10px] font-black text-slate-300 uppercase italic">{u.username}</span>
+              <div key={u.id} className="flex items-center gap-2 p-1.5 bg-white/5 border border-white/5 group" style={MILITARY_CLIP}>
+                <div className="w-1 h-1 bg-white/20 rounded-full" />
+                <span className="text-[9px] font-black text-white/40 uppercase italic truncate">{u.username}</span>
               </div>
             ))}
           </div>

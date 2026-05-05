@@ -280,7 +280,7 @@ function ReconditioningView({ user, timeLeft, formatTime }: { user: any, timeLef
 
   useEffect(() => {
     const token = tokenStorage.getToken();
-    if (!token || status !== 'Recondicionamento') return;
+    if (!token || user?.status !== 'Recondicionamento') return;
 
     const handleHistory = (history: ChatMessage[]) => setMessages(history);
     const handleMessage = (msg: ChatMessage) => setMessages(prev => {
@@ -306,7 +306,7 @@ function ReconditioningView({ user, timeLeft, formatTime }: { user: any, timeLef
       setMessages([]);
       setOnlineUsers([]);
     };
-  }, [status]);
+  }, [user?.status]);
 
   useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
@@ -371,9 +371,10 @@ function ReconditioningView({ user, timeLeft, formatTime }: { user: any, timeLef
           <form onSubmit={sendMessage} className="p-4 bg-black/80 border-t border-white/10 flex gap-2">
             <input 
               type="text"
+              maxLength={100}
               value={inputText}
               onChange={(e) => setInputText(e.target.value)}
-              placeholder="Digite sua transmissão de emergência..."
+              placeholder="Digite sua transmissão (máx 100 caracteres)..."
               className="flex-1 bg-white/5 border border-white/10 px-4 py-3 text-xs font-mono text-white placeholder:text-slate-600 focus:outline-none focus:border-red-500/50 transition-colors"
             />
             <button 
