@@ -130,7 +130,7 @@ const TopBar: React.FC<TopBarProps> = ({ userProfile }) => {
       value: formatCurrency(userProfile?.ucrypto ?? 0), 
       className: "text-amber-400 font-black", 
       glowColor: "#f59e0b", 
-      tooltip: "U-CRYPTO (TOKENS)"
+      tooltip: "U-CRYPTON TOKENS"
     },
   ], [userProfile, xpText, energyText, xpPercentage, energyPercentage, combat, levelBreakdown]);
 

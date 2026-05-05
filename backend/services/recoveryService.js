@@ -19,7 +19,7 @@ async function buyAntidote(userId) {
 
   const premiumCoins = Number(state.premium_coins || 0);
   if (premiumCoins < 1) {
-    throw new Error("Saldo de U-CRYPTO insuficiente. (Custo: 1 U-CRYPTO)");
+    throw new Error("Saldo de U-CRYPTON TOKENS insuficiente. (Custo: 1 U-CRYPTON TOKENS)");
   }
 
   // Dedução e atualização de estado
@@ -42,7 +42,7 @@ async function rescueAlly(userId, allyId) {
 
   const premiumCoins = Number(rescuerState.premium_coins || 0);
   if (premiumCoins < 5) {
-    throw new Error("Saldo de U-CRYPTO insuficiente. (Custo: 5 U-CRYPTO)");
+    throw new Error("Saldo de U-CRYPTON TOKENS insuficiente. (Custo: 5 U-CRYPTON TOKENS)");
   }
 
   const allyState = await playerStateService.getPlayerState(allyId);

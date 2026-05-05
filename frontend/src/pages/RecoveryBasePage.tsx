@@ -12,6 +12,7 @@ import {
   BanknotesIcon
 } from "@heroicons/react/24/outline";
 import { useUserProfile } from "../hooks/useUserProfile";
+import { useToast } from "../contexts/ToastContext";
 import { tokenStorage } from "../lib/api";
 import { recoveryService } from "../services/recoveryService";
 import { socketService, ChatMessage } from "../services/socketService";
@@ -143,7 +144,7 @@ export default function RecoveryBasePage() {
                 <span className="text-5xl font-black text-white font-orbitron leading-none">
                   {(userProfile as any).premium_coins || 0}
                 </span>
-                <span className="text-yellow-500 font-bold uppercase text-[10px] tracking-widest mb-1 italic">U-CRYPTO</span>
+                <span className="text-yellow-500 font-bold uppercase text-[10px] tracking-widest mb-1 italic">U-CRYPTON TOKENS</span>
               </div>
           </div>
         </div>
@@ -210,14 +211,16 @@ export default function RecoveryBasePage() {
 
 function BleedingView({ user, onAction, timeLeft, formatTime }: { user: any, onAction: () => void, timeLeft: number | null, formatTime: (s: number) => string }) {
   const [loading, setLoading] = useState(false);
+  const { showToast } = useToast();
 
   const buyAntidote = async () => {
     setLoading(true);
     try {
       await recoveryService.buyAntidote();
+      showToast("Antídoto aplicado! Protocolo de sangramento encerrado.", "success");
       onAction();
     } catch (err: any) {
-      alert(err.response?.data?.message || "Erro ao aplicar antídoto.");
+      showToast(err.response?.data?.message || "Erro ao aplicar antídoto.", "error");
     } finally {
       setLoading(false);
     }
@@ -384,6 +387,7 @@ function OperationalView({ onAction }: { onAction: () => void }) {
   const [allies, setAllies] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [rescuingId, setRescuingId] = useState<string | null>(null);
+  const { showToast } = useToast();
 
   useEffect(() => {
     loadAllies();
@@ -400,10 +404,11 @@ function OperationalView({ onAction }: { onAction: () => void }) {
     setRescuingId(allyId);
     try {
       await recoveryService.rescueAlly(allyId);
+      showToast("Aliado resgatado com sucesso!", "success");
       setAllies(prev => prev.filter(a => a.id !== allyId));
       onAction();
     } catch (err: any) {
-      alert(err.response?.data?.message || "Erro no resgate.");
+      showToast(err.response?.data?.message || "Erro no resgate.", "error");
     } finally { setRescuingId(null); }
   };
 
@@ -415,7 +420,7 @@ function OperationalView({ onAction }: { onAction: () => void }) {
           </h3>
           <p className="text-slate-400 font-mono text-[10px] uppercase tracking-widest leading-relaxed border-l-2 border-cyan-500/50 pl-4">
             Aliados em recondicionamento podem ser reativados via transferência de créditos. 
-            Custo operacional: <span className="text-yellow-500 font-bold">5 U-CRYPTO</span> por unidade.
+            Custo operacional: <span className="text-yellow-500 font-bold">5 U-CRYPTON TOKENS</span> por unidade.
           </p>
       </div>
 

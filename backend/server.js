@@ -100,7 +100,8 @@ async function startServer() {
     const redisClient = require("./config/redisClient");
     if (redisClient.client.isReady) {
       await redisClient.delAsync("online_players_set");
-      console.log("🧹 Set de jogadores online resetado no Redis.");
+      await redisClient.delAsync("online_players:recovery");
+      console.log("🧹 Set de jogadores online e lista de recuperação resetados no Redis.");
     }
     const io = new Server(server, { cors: { origin: allowedOrigins } });
     initializeSocket(io);

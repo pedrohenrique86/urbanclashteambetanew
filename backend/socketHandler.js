@@ -99,28 +99,28 @@ function initializeSocket(server) {
         socket.user = user;
         socket.join("recovery:room");
 
-        // SÊNIOR: Gerenciamento de lista de usuários online na recuperação
-        // Emitir lista atualizada para todos na sala
-        const updateRecoveryUsers = async () => {
-          const sockets = await io.in("recovery:room").fetchSockets();
-          const users = sockets
-            .map(s => s.user)
-            .filter(u => !!u)
-            .map(u => ({ id: u.id, username: u.username, avatar: u.avatar_url }));
-          
-          // Remover duplicatas de userId
-          const uniqueUsers = Array.from(new Map(users.map(u => [u.id, u])).values());
-          io.to("recovery:room").emit("recovery:users", uniqueUsers);
+        // SÊNIOR: Gerenciamento de lista de usuários online na recuperação via Redis
+        // Mais performático que fetchSockets() para 5000+ players
+        const RECOVERY_USERS_KEY = "online_players:recovery";
+        const userData = JSON.stringify({ id: user.id, username: user.username, avatar: user.avatar_url });
+        
+        await redisClient.saddAsync(RECOVERY_USERS_KEY, userData);
+
+        const emitRecoveryUsers = async () => {
+          const rawUsers = await redisClient.smembersAsync(RECOVERY_USERS_KEY);
+          const users = rawUsers.map(u => JSON.parse(u));
+          io.to("recovery:room").emit("recovery:users", users);
         };
 
-        await updateRecoveryUsers();
+        await emitRecoveryUsers();
 
         const recoveryChatService = require("./services/recoveryChatService");
         socket.emit("recovery:auth_success");
         socket.emit("recovery:history", recoveryChatService.getHistory());
 
         socket.on("disconnect", async () => {
-          await updateRecoveryUsers();
+          await redisClient.sremAsync(RECOVERY_USERS_KEY, userData);
+          await emitRecoveryUsers();
         });
 
         if (!socket.hasRecoveryListener) {
