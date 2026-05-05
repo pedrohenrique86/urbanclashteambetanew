@@ -2,6 +2,7 @@ import React, { useEffect } from "react";
 import { useUserProfile } from "../hooks/useUserProfile";
 import { getDisplayName } from "../utils/displayNames";
 import { getFactionRank, getRankIcon } from "../utils/leveling";
+import { FACTION_ALIAS_MAP_FRONTEND } from "../utils/faction";
 import {
   BoltIcon,
   BanknotesIcon,
@@ -11,9 +12,11 @@ import {
   AcademicCapIcon as CrownIcon,
 } from "@heroicons/react/24/outline";
 import { StarIcon as StarSolid } from "@heroicons/react/24/solid";
-import { FACTION_ALIAS_MAP_FRONTEND } from "../utils/faction";
+import { calculateTotalPower } from "../utils/combat";
+
 
 // --- Componente de Painel Genérico ---
+
 const DashboardPanel: React.FC<{
   title: string;
   children: React.ReactNode;
@@ -420,19 +423,8 @@ const StatisticsPanel = React.memo(({ user }: { user: any }) => {
 
 // --- Painel de Poder de Combate (Power Solo/War) ---
 const PowerPanel = React.memo(({ user }: { user: any }) => {
-  const atk = user.attack || 0;
-  const def = user.defense || 0;
-  const foc = user.focus || 0;
-  const level = user.level || 1;
-  const critChance = user.crit_chance_pct || 0;
-  const critMult = user.crit_damage_mult || 0;
+  const { powerSolo, powerWar } = calculateTotalPower(user, user.active_chips || []);
   const specialValue = user.intimidation || user.discipline || 0;
-
-  // Cálculos baseados no backend - ESCALA 1000 NÍVEIS
-  const powerSolo = Math.floor(
-    atk * 1 + def * 1 + foc * 0.5 + level * 2 + critChance * 0.2 + critMult * 1
-  );
-  const powerWar = Math.floor(powerSolo + specialValue * 1);
 
   return (
     <DashboardPanel

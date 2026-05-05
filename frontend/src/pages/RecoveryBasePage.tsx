@@ -442,10 +442,10 @@ function OperationalView({ onAction }: { onAction: () => void }) {
                 ))}
               </div>
               <div>
-                <p className="text-red-500/80 font-orbitron text-[10px] uppercase tracking-[0.4em] font-black italic">
-                  Radar Med_Scan: <span className="text-white/40">Zero_Signals</span>
+                <p className="text-red-500 font-orbitron text-[11px] uppercase tracking-[0.5em] font-black italic drop-shadow-[0_0_10px_rgba(239,68,68,0.8)]">
+                  Radar Med_Scan: <span className="text-white animate-pulse">Zero_Signals</span>
                 </p>
-                <p className="text-slate-500 font-mono text-[9px] uppercase tracking-widest mt-2">
+                <p className="text-slate-400 font-mono text-[10px] uppercase tracking-[0.2em] mt-3 font-bold">
                   Nenhuma unidade em recondicionamento detectada no setor.
                 </p>
               </div>

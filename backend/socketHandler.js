@@ -1,6 +1,7 @@
 const gameStateService = require("./services/gameStateService");
 const { authenticateSocket } = require("./services/authService");
 const chatService = require("./services/chatService");
+const redisClient = require("./config/redisClient");
 
 const MESSAGE_COOLDOWN_MS = 5000;
 let io;

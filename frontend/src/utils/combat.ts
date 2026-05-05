@@ -89,17 +89,25 @@ export const calculateTotalPower = (user: any, chips: any[] = []) => {
   const level = Number(user.level || 1);
   const critChance = Number(user.crit_chance_pct || 0);
   const critMult = Number(user.crit_damage_mult || 1);
+  const specialValue = Number(user.intimidation || user.discipline || 0);
 
-  // Fórmula unificada com o DashboardPage.tsx (Power Solo)
-  let power = (atk + def + foc * 0.5) + (level * 2) + (critChance * 0.2 + critMult);
+  // Fórmula unificada SSOT
+  // (ATK + DEF + FOC×0.5) + (NVL×2) + (CRIT%×0.2 + CRITx)
+  let powerSolo = (atk + def + foc * 0.5) + (level * 2) + (critChance * 0.2 + critMult);
   
   if (chips && chips.length > 0) {
     chips.forEach(chip => {
       if (chip.power_boost > 0) {
-        power *= (1 + chip.power_boost / 100);
+        powerSolo *= (1 + chip.power_boost / 100);
       }
     });
   }
   
-  return Math.round(power);
+  const powerSoloFinal = Math.floor(powerSolo);
+  const powerWarFinal = Math.floor(powerSoloFinal + specialValue);
+
+  return {
+    powerSolo: powerSoloFinal,
+    powerWar: powerWarFinal
+  };
 };

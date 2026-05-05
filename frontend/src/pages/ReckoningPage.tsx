@@ -98,7 +98,7 @@ export default function ReckoningPage() {
   const navigate = useNavigate();
   
   const playerStats = calculateCombatStats(userProfile);
-  const playerPower = calculateTotalPower(userProfile || {}, userProfile?.active_chips || []);
+  const { powerSolo: playerPower } = calculateTotalPower(userProfile || {}, userProfile?.active_chips || []);
 
   const playerLevel = userProfile?.level || 1;
   const { data: targets, mutate } = useSWR(
