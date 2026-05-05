@@ -62,13 +62,14 @@ const BattleRulesInfo = () => {
                 Matriz de Combate 1x1
               </h3>
               <div className="space-y-4 font-mono text-[10px] leading-relaxed text-slate-400">
-                <p>O combate Spectro evoluiu para o sistema <span className="text-yellow-500 font-black">TRI-CLASH</span>, um duelo de Melhor de 3 via atributos:</p>
+                <p>O combate Spectro evoluiu para o sistema <span className="text-yellow-500 font-black">SQUADRON CLASH (4 ROUNDS)</span>:</p>
                 <ul className="space-y-2 list-disc list-inside">
-                  <li><span className="text-white uppercase">Duelo de Choque:</span> Seu <span className="text-cyan-400">Ataque</span> contra a <span className="text-cyan-400">Defesa</span> inimiga.</li>
-                  <li><span className="text-white uppercase">Sincronia Neural:</span> Teste de reflexos através do <span className="text-cyan-400">Foco</span> de ambos.</li>
-                  <li><span className="text-white uppercase">Resiliência:</span> Sua <span className="text-cyan-400">Defesa</span> contra o <span className="text-cyan-400">Ataque</span> dele.</li>
+                  <li><span className="text-white uppercase">Choque:</span> Seu <span className="text-cyan-400">Ataque</span> vs <span className="text-cyan-400">Defesa</span> inimiga.</li>
+                  <li><span className="text-white uppercase">Sincronia:</span> Duelo de reflexos através do <span className="text-cyan-400">Foco</span>.</li>
+                  <li><span className="text-white uppercase">Resiliência:</span> Sua <span className="text-cyan-400">Defesa</span> vs <span className="text-cyan-400">Ataque</span> inimigo.</li>
+                  <li><span className="text-white uppercase">Protocolo Letal:</span> Comparação de <span className="text-cyan-400">Poder Total</span> absoluto.</li>
                 </ul>
-                <p className="border-t border-white/5 pt-2 italic text-slate-500">Vence quem conquistar 2 de 3 segmentos. Uma vitória de 3-0 garante bônus de eficiência.</p>
+                <p className="border-t border-white/5 pt-2 italic text-slate-500">Regra de Veredito: Vence a maioria. Em 2-2, o maior Nível de Prestígio leva a vitória.</p>
               </div>
               <button 
                 onClick={() => setIsOpen(false)}
