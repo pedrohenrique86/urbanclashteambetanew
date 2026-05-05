@@ -13,8 +13,8 @@ async function buyAntidote(userId) {
   const state = await playerStateService.getPlayerState(userId);
   if (!state) throw new Error("Jogador não encontrado.");
 
-  if (state.status !== 'Sangrando') {
-    throw new Error("Você não está em estado de sangramento.");
+  if (state.status !== 'Ruptura') {
+    throw new Error("Sua unidade não apresenta sinais de ruptura.");
   }
 
   const premiumCoins = Number(state.premium_coins || 0);
@@ -29,7 +29,7 @@ async function buyAntidote(userId) {
     status_ends_at: null
   });
 
-  return { message: "Antídoto aplicado com sucesso! Você está operacional novamente." };
+  return { message: "Kit de Reparo aplicado com sucesso! Sua integridade foi restaurada." };
 }
 
 async function rescueAlly(userId, allyId) {

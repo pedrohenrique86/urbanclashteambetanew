@@ -174,7 +174,7 @@ const TopBar: React.FC<TopBarProps> = ({ userProfile }) => {
                         initial={{ scale: 0.8, opacity: 0 }}
                         animate={{ scale: 1, opacity: 1 }}
                         className={`relative z-10 w-2.5 h-2.5 rounded-full animate-pulse shadow-[0_0_12px_currentColor] mr-1 ${
-                          userProfile.status === 'Sangrando' ? 'bg-red-500 text-red-500' :
+                          userProfile.status === 'Ruptura' ? 'bg-red-500 text-red-500' :
                           userProfile.status === 'Isolamento' ? 'bg-zinc-300 text-zinc-300' :
                           userProfile.status === 'Recondicionamento' ? 'bg-amber-400 text-amber-400' :
                           userProfile.status === 'Aprimoramento' ? 'bg-blue-500 text-blue-500' :

@@ -249,11 +249,11 @@ function resolveCombatHit(attacker, defender, turnMomentum = 1.0) {
   let atkMult = (attFaction === 'renegados' || attFaction === 'gangsters') ? 1.15 : 1.0;
   let defMult = (defFaction === 'guardioes' || defFaction === 'guardas')   ? 1.15 : 1.0;
 
-  const isBleedingAtk = attacker.status === 'Sangrando';
-  const isBleedingDef = defender.status === 'Sangrando';
+  const isRupturedAtk = attacker.status === 'Ruptura';
+  const isRupturedDef = defender.status === 'Ruptura';
 
-  const atkFinal = rawAtk * atkMult * (isBleedingAtk ? 0.80 : 1.0);
-  const defFinal = rawDef * defMult * (isBleedingDef ? 0.80 : 1.0);
+  const atkFinal = rawAtk * atkMult * (isRupturedAtk ? 0.80 : 1.0);
+  const defFinal = rawDef * defMult * (isRupturedDef ? 0.80 : 1.0);
 
   // 2. Mecânicas Avançadas (DADOS REAIS E IDENTIDADE DE CLASSE)
   // BREACH (Assinatura Renegada): Usa a Intimidação (35%) para chance de ignorar parte da Defesa
@@ -494,7 +494,7 @@ function resolveStrategicCombat(attacker, defender, attackerChips = [], playerAc
     rounds,
     xpBonus, 
     moneyProtection: chipResist,
-    willBleed: isAttackerWin && Math.random() < 0.2,
+    willBleed: isAttackerWin && playerHP <= 20,
     logs: rounds.map(r => ({ segment: `ROUND ${r.round}`, label: r.log, winner: r.playerDamage > r.opponentDamage ? "attacker" : "defender" }))
   };
 }

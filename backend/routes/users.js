@@ -127,9 +127,9 @@ function convertProfileData(profile) {
     id: profile.user_id || profile.id, // Normalização de ID
     username: profile.username || profile.display_name,
     is_admin: profile.is_admin === "1" || profile.is_admin === true || profile.is_admin === "true",
-    attack: (parseFloat(profile.attack) || 0) * (profile.status === 'Sangrando' ? 0.8 : 1),
-    defense: (parseFloat(profile.defense) || 0) * (profile.status === 'Sangrando' ? 0.8 : 1),
-    focus: (parseFloat(profile.focus) || 0) * (profile.status === 'Sangrando' ? 0.8 : 1),
+    attack: (parseFloat(profile.attack) || 0) * (profile.status === 'Ruptura' ? 0.8 : 1),
+    defense: (parseFloat(profile.defense) || 0) * (profile.status === 'Ruptura' ? 0.8 : 1),
+    focus: (parseFloat(profile.focus) || 0) * (profile.status === 'Ruptura' ? 0.8 : 1),
     critical_damage: parseFloat(profile.critical_damage) || 0,
     critical_chance: parseFloat(profile.critical_chance) || 0,
     intimidation: parseFloat(profile.intimidation) || 0,

@@ -161,13 +161,13 @@ const _memDirtyRanking = new Set();  // userId → mudança de XP/nível (para r
 const _inProgressCompletions = new Set(); // userId → em processamento
 
 // ─── Status Constants ─────────────────────────────────────────────────────────────
-const ALLOWED_STATUSES = ['Operacional', 'Isolamento', 'Recondicionamento', 'Aprimoramento', 'Sangrando'];
+const ALLOWED_STATUSES = ['Operacional', 'Isolamento', 'Recondicionamento', 'Aprimoramento', 'Ruptura'];
 const VALID_TRANSITIONS = {
-  'Operacional':       ['Isolamento', 'Recondicionamento', 'Aprimoramento', 'Sangrando'],
+  'Operacional':       ['Isolamento', 'Recondicionamento', 'Aprimoramento', 'Ruptura'],
   'Isolamento':        ['Operacional'],
   'Recondicionamento': ['Operacional'],
   'Aprimoramento':     ['Operacional'],
-  'Sangrando':         ['Operacional', 'Recondicionamento']
+  'Ruptura':         ['Operacional', 'Recondicionamento']
 };
 
 /**
@@ -1284,7 +1284,7 @@ async function setPlayerStatus(userId, newStatus, durationSeconds = null) {
     // O máximo permitido para qualquer status temporário comum é 2 horas (7200s), 
     // exceto se for explicitamente um status de longa duração (ex: Preso).
     let safeDuration = durationSeconds;
-    if (newStatus === 'Sangrando' || newStatus === 'Recondicionamento') {
+    if (newStatus === 'Ruptura' || newStatus === 'Recondicionamento') {
       safeDuration = Math.min(safeDuration, 1800); // Máximo 30 minutos
     }
     

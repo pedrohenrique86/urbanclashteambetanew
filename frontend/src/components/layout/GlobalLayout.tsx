@@ -44,7 +44,7 @@ const GlobalLayout: React.FC<GlobalLayoutProps> = ({ children }) => {
   const hideBlocker = (
     (status === 'Operacional') ||
     (status === 'Aprimoramento') || // Usuário solicitou remover overlay para treino
-    (status === 'Sangrando') ||
+    (status === 'Ruptura') ||
     (status === 'Isolamento' && path === '/isolation') ||
     (status === 'Recondicionamento' && path === '/recovery-base')
   );
@@ -124,8 +124,8 @@ const GlobalLayout: React.FC<GlobalLayoutProps> = ({ children }) => {
     if (prevStatus === null) {
       prevStatusRef.current = currentStatus;
       // Se já começar em estado crítico no carregamento, avisa uma vez por sessão
-      if (currentStatus === 'Sangrando' && !sessionStorage.getItem('bleeding_toast_shown')) {
-        showToast("ALERTA: Integridade comprometida. Sangramento ativo detectado. Visite a Base de Recuperação.", "error", 8000);
+      if (currentStatus === 'Ruptura' && !sessionStorage.getItem('bleeding_toast_shown')) {
+        showToast("ALERTA: Integridade comprometida. Ruptura de sistema detectada. Visite a Unidade de Manutenção.", "error", 8000);
         sessionStorage.setItem('bleeding_toast_shown', 'true');
       }
       return;
@@ -139,9 +139,9 @@ const GlobalLayout: React.FC<GlobalLayoutProps> = ({ children }) => {
       let type: 'success' | 'error' | 'warning' | 'info' = 'info';
 
       switch (currentStatus) {
-        case 'Sangrando':
+        case 'Ruptura':
           if (!sessionStorage.getItem('bleeding_toast_shown')) {
-            message = "⚠️ ALERTA: Hemorragia iniciada! Sua unidade está perdendo integridade. Vá à Base de Recuperação.";
+            message = "⚠️ ALERTA: Ruptura detectada! Sua unidade está perdendo integridade estrutural. Vá à Unidade de Manutenção.";
             type = 'error';
             sessionStorage.setItem('bleeding_toast_shown', 'true');
           }
@@ -165,7 +165,7 @@ const GlobalLayout: React.FC<GlobalLayoutProps> = ({ children }) => {
           // Evita duplicidade com o toast detalhado de fim de treino (outro useEffect)
           if (prevStatus === 'Aprimoramento' && pendingTrainingToast) return;
           
-          if (['Sangrando', 'Recondicionamento', 'Isolamento', 'Aprimoramento'].includes(prevStatus)) {
+          if (['Ruptura', 'Recondicionamento', 'Isolamento', 'Aprimoramento'].includes(prevStatus)) {
             message = "✅ SISTEMA: Estabilização concluída. Status operacional restaurado.";
             type = 'success';
           }

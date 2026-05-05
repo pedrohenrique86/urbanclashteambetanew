@@ -30,7 +30,7 @@ export default function RecoveryBasePage() {
   const { userProfile, refreshProfile } = useUserProfile();
   const [timeLeft, setTimeLeft] = useState<number | null>(null);
   const status = userProfile?.status || 'Operacional';
-  const subtitle = "UNIDADE MÉDICA DE ELITE. RECUPERAÇÃO BIOCIBERNÉTICA EM ANDAMENTO.";
+  const subtitle = "UNIDADE DE MANUTENÇÃO DE ELITE. REPARAÇÃO ESTRUTURAL EM ANDAMENTO.";
 
   // Contador de tempo restante
   useEffect(() => {
@@ -153,7 +153,7 @@ export default function RecoveryBasePage() {
 
         {/* MAIN CONTENT BASED ON STATUS */}
         <AnimatePresence mode="wait">
-          {status === 'Sangrando' && (
+          {status === 'Ruptura' && (
             <motion.div 
               key="bleeding"
               initial={{ opacity: 0, scale: 0.98 }}
@@ -219,7 +219,7 @@ function BleedingView({ user, onAction, timeLeft, formatTime }: { user: any, onA
     setLoading(true);
     try {
       await recoveryService.buyAntidote();
-      showToast("Antídoto aplicado! Protocolo de sangramento encerrado.", "success");
+      showToast("Kit de Reparo aplicado! Sua integridade foi restaurada.", "success");
       onAction();
     } catch (err: any) {
       showToast(err.response?.data?.message || "Erro ao aplicar antídoto.", "error");
@@ -244,11 +244,11 @@ function BleedingView({ user, onAction, timeLeft, formatTime }: { user: any, onA
         
         <div className="flex-1 text-center md:text-left space-y-4">
           <div className="flex items-center gap-4 justify-center md:justify-start">
-            <h2 className="text-xl font-orbitron font-black text-white italic uppercase tracking-widest">Bio-Degradação Crítica</h2>
+            <h2 className="text-xl font-orbitron font-black text-white italic uppercase tracking-widest">Ruptura Crítica</h2>
           </div>
           <p className="text-slate-400 font-mono text-sm max-w-xl uppercase tracking-wider leading-relaxed">
-            Seu sistema biocibernético está perdendo integridade. Protocolo de emergência necessário. 
-            O uso de antídoto nano-sintético é a única via de estabilização imediata.
+            Seu chassi apresenta falhas estruturais graves. Protocolo de emergência necessário. 
+            O uso de um kit de reparo nano-sintético é a única via de estabilização imediata.
           </p>
           
           <div className="flex flex-wrap gap-6 items-center pt-4">
@@ -263,7 +263,7 @@ function BleedingView({ user, onAction, timeLeft, formatTime }: { user: any, onA
               className="px-8 py-4 bg-red-600 hover:bg-red-500 text-white font-orbitron font-black uppercase italic tracking-[0.2em] transition-all hover:scale-105 active:scale-95 disabled:opacity-50"
               style={MILITARY_CLIP}
             >
-              {loading ? "PROCESSANDO..." : "ENGAGE_ANTIDOTE"}
+              {loading ? "PROCESSANDO..." : "ENGAGE_REPAIR_KIT"}
             </button>
           </div>
         </div>
@@ -516,7 +516,7 @@ function OperationalView({ onAction }: { onAction: () => void }) {
 
 function getStatusColor(status: string) {
   switch (status) {
-    case 'Sangrando': return 'text-red-500';
+    case 'Ruptura': return 'text-red-500';
     case 'Recondicionamento': return 'text-blue-500';
     case 'Operacional': return 'text-green-500';
     default: return 'text-gray-400';

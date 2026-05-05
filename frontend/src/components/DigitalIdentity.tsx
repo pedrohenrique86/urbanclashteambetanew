@@ -161,18 +161,18 @@ const StatusBanner = ({ status, endsAt }: { status?: string; endsAt?: string | n
           animate: 'animate-pulse',
           iconText: null
         };
+      case 'ruptura':
       case 'sangrando':
-      case 'sangramento':
         return {
           bg: 'bg-rose-600/20',
           border: 'border-rose-500/70',
           text: 'text-rose-400',
-          label: 'SANGRANDO',
-          subtitle: 'Hemorragia ativa. Necessita de cuidados médicos.',
+          label: 'RUPTURA',
+          subtitle: 'Falha crítica na integridade da unidade.',
           icon: Skull,
           glow: 'shadow-[0_0_20px_rgba(244,63,94,0.5)]',
           animate: 'animate-pulse',
-          iconText: '🩸'
+          iconText: '⚠️'
         };
       default:
         if (s && s !== 'operacional' && s !== 'livre' && s !== 'online') {

@@ -121,7 +121,7 @@ class CombatService {
           const [username, level, status, shield] = results[idx];
           const targetLevel = Number(level || 1);
           if (targetLevel >= (attackerLevel - 3) && targetLevel <= (attackerLevel + 3) && 
-              (status === 'Operacional' || status === 'Sangrando') && 
+              (status === 'Operacional' || status === 'Ruptura') && 
               (!shield || new Date(shield) < new Date())) {
             targets.push({ id, level: targetLevel, faction: enemyFactionKey === 'gangsters' ? 'Renegados' : 'Guardiões', name: censorName(username), online: true, is_npc: false, status });
           }
@@ -172,7 +172,7 @@ class CombatService {
         throw new Error("Nível de energia crítico. Recarregue antes de engajar.");
       }
 
-      if (attacker.status !== 'Operacional' && attacker.status !== 'Sangrando') {
+      if (attacker.status !== 'Operacional' && attacker.status !== 'Ruptura') {
         await redisClient.delAsync(LOCK);
         throw new Error(`Sistema em modo ${attacker.status}. Protocolo de ataque bloqueado.`);
       }
@@ -226,7 +226,7 @@ class CombatService {
             let newStatus = 'Operacional';
             let statusEndsAt = null;
             if (willBleed) {
-              newStatus = 'Sangrando';
+              newStatus = 'Ruptura';
               statusEndsAt = new Date(Date.now() + 10 * 60000).toISOString();
             }
 

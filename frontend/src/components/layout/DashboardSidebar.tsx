@@ -240,7 +240,7 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = React.memo(({
     const levelReq = LEVEL_REQUIREMENTS[path];
     if (levelReq && (userProfile?.level || 1) < levelReq) return true;
 
-    if (playerStatus === 'Operacional' || playerStatus === 'Sangrando') return false;
+    if (playerStatus === 'Operacional' || playerStatus === 'Ruptura') return false;
 
     const whitelist = [
       '/dashboard',

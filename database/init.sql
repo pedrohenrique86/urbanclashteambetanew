@@ -14,7 +14,7 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
  
 -- Tipo ENUM para Status do Jogador
-CREATE TYPE player_status_type AS ENUM ('Operacional', 'Sangrando', 'Recondicionamento', 'Isolamento', 'Aprimoramento');
+CREATE TYPE player_status_type AS ENUM ('Operacional', 'Ruptura', 'Recondicionamento', 'Isolamento', 'Aprimoramento');
 
 
 -- Tabela de usuários
