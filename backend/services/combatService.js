@@ -151,168 +151,129 @@ class CombatService {
   }
 
   async executeAttack(userId, targetId, tactic = 'technological') {
-    const LOCK = `lock:combat:${userId}`;
-    if (!(await redisClient.setNXAsync(LOCK, "1", 5000))) throw new Error("Aguarde o protocolo atual.");
+    const LOCK = `combat:lock:${userId}`;
+    const isLocked = await redisClient.getAsync(LOCK);
+    if (isLocked) throw new Error("Sincronização tática em andamento. Aguarde a conclusão da sequência.");
+    
+    await redisClient.setAsync(LOCK, "1", "EX", 15);
 
     try {
       const attacker = await playerStateService.getPlayerState(userId);
       const defender = targetId.startsWith("npc_") ? getNpcData(targetId, attacker) : await playerStateService.getPlayerState(targetId);
       const isNpc = targetId.startsWith("npc_");
 
-      if (!attacker || !defender) throw new Error("Jogadores não encontrados.");
-      if (attacker.energy < 10) throw new Error("Energia baixa.");
+      if (!attacker || !defender) {
+        await redisClient.delAsync(LOCK);
+        throw new Error("Alvos não encontrados na rede.");
+      }
+      
+      if (attacker.energy < 10) {
+        await redisClient.delAsync(LOCK);
+        throw new Error("Nível de energia crítico. Recarregue antes de engajar.");
+      }
+
       if (attacker.status !== 'Operacional' && attacker.status !== 'Sangrando') {
-        throw new Error(`Sistema em ${attacker.status}. Aguarde a conclusão.`);
+        await redisClient.delAsync(LOCK);
+        throw new Error(`Sistema em modo ${attacker.status}. Protocolo de ataque bloqueado.`);
       }
 
       const chips = await this._getEquippedChips(userId);
       const result = gameLogic.resolveWinOutcome(attacker, defender, chips, tactic);
-      const { isAttackerWin, isDraw, isCloseFight, willBleed, logs, xpBonus, moneyProtection } = result;
+      const { isAttackerWin, isDraw, willBleed, rounds, xpBonus, moneyProtection } = result;
 
-      const turns = [];
-      let pHP = 100, tHP = 100;
-      logs.forEach((log, i) => {
-        const isWinRound = log.winner === "attacker" || (i === logs.length - 1 && isAttackerWin);
-        const pDmg = isWinRound ? (20 + Math.floor(Math.random() * 20)) : (5 + Math.floor(Math.random() * 10));
-        const tDmg = !isWinRound ? (20 + Math.floor(Math.random() * 20)) : (5 + Math.floor(Math.random() * 10));
-        tHP = Math.max(0, tHP - pDmg); pHP = Math.max(0, pHP - tDmg);
-        if (i === logs.length - 1) { 
-          if (isAttackerWin) tHP = 0; 
-          else if (!isDraw) pHP = 0; 
-          // No empate (isDraw), ambos podem terminar com algum HP ou 0, mas visualmente forçamos algo baixo
-          else { tHP = 5; pHP = 5; }
-        }
-        turns.push({ 
-          round: i + 1, segment: log.segment, label: log.label, effect: log.effect,
-          attacker: { damage: pDmg, hpAfter: tHP }, defender: { damage: tDmg, hpAfter: pHP } 
-        });
-      });
+      const turns = rounds.map(r => ({
+        round: r.round,
+        segment: `ROUND ${r.round}`,
+        label: r.log,
+        effect: r.impact,
+        attacker: { damage: r.playerDamage, hpAfter: r.opponentHP },
+        defender: { damage: r.opponentDamage, hpAfter: r.playerHP },
+        playerRancor: r.playerRancor
+      }));
 
       let loot = null;
       let challengeMod = 1.0;
       const attStats = (Number(attacker.attack) || 1) + (Number(attacker.defense) || 1);
       const defStats = (Number(defender.attack) || 1) + (Number(defender.defense) || 1);
       
-      if (attStats > 0) {
-        challengeMod = Math.min(2.5, Math.max(0.5, defStats / attStats));
-      }
+      if (attStats > 0) challengeMod = Math.min(2.5, Math.max(0.5, defStats / attStats));
       if (isNaN(challengeMod) || !isFinite(challengeMod)) challengeMod = 1.0;
 
       if (isAttackerWin) {
         const xpGain = Math.round(gameLogic.COMBAT.XP_WIN_BASE * challengeMod * xpBonus * (0.9 + Math.random() * 0.2));
         let money = isNpc ? Math.floor(50 + defender.level * 15) : Math.floor(defender.money * 0.12); 
-        
         let statGain = isNpc ? (0.1 * challengeMod) : (0.5 + Math.random() * 1.0) * challengeMod;
-        if (isNaN(statGain)) statGain = 0.1;
         
         loot = { 
-          xp: xpGain, 
-          money, 
-          stats: { 
-            attack: Number((statGain * 0.4).toFixed(2)), 
-            defense: Number((statGain * 0.4).toFixed(2)), 
-            focus: Number((statGain * 0.2).toFixed(2)) 
-          }, 
-          outcome: "VITÓRIA" 
+          xp: xpGain, money, outcome: "VITÓRIA",
+          stats: { attack: Number((statGain * 0.4).toFixed(2)), defense: Number((statGain * 0.4).toFixed(2)), focus: Number((statGain * 0.2).toFixed(2)) }
         };
-
-        // Chance de Sangramento vinda da lógica tática
-        let newStatus = 'Operacional';
-        let statusEndsAt = null;
-        if (willBleed) {
-          newStatus = 'Sangrando';
-          statusEndsAt = new Date(Date.now() + 10 * 60000).toISOString(); // 10 min de sangramento
-        }
-
-        await playerStateService.updatePlayerState(userId, { 
-          energy: -10, 
-          action_points: -300, 
-          money: loot.money, 
-          total_xp: loot.xp, 
-          attack: loot.stats.attack, 
-          defense: loot.stats.defense, 
-          focus: loot.stats.focus, 
-          victories: 1,
-          status: newStatus,
-          status_ends_at: statusEndsAt
-        });
-
-        if (!isNpc) {
-          await playerStateService.updatePlayerState(targetId, { 
-            money: -loot.money, 
-            status: "Recondicionamento", 
-            status_ends_at: new Date(Date.now() + 20 * 60000).toISOString(), 
-            defeats: 1 
-          });
-        }
       } else if (isDraw) {
-        loot = { 
-          xp: 5, 
-          money: 0, 
-          stats: { attack: 0.01, defense: 0.01, focus: 0.01 }, 
-          outcome: "EMPATE" 
-        };
-        await playerStateService.updatePlayerState(userId, { 
-          energy: -15, 
-          action_points: -150, 
-          total_xp: loot.xp,
-          attack: loot.stats.attack,
-          defense: loot.stats.defense,
-          focus: loot.stats.focus
-        });
-        if (!isNpc) {
-           await playerStateService.updatePlayerState(targetId, { total_xp: 5 });
-        }
+        loot = { xp: 5, money: 0, stats: { attack: 0.01, defense: 0.01, focus: 0.01 }, outcome: "EMPATE" };
       } else {
         const moneyLost = Math.floor(attacker.money * 0.10 * (1 - moneyProtection/100)); 
         loot = { xp: -15, moneyLost, status: "Recondicionamento", outcome: "DERROTA" };
-        
-        await playerStateService.updatePlayerState(userId, { 
-          energy: -20, 
-          action_points: -150, 
-          money: -loot.moneyLost, 
-          total_xp: loot.xp, 
-          status: "Recondicionamento", 
-          status_ends_at: new Date(Date.now() + 20 * 60000).toISOString(), 
-          defeats: 1 
-        });
       }
 
-      // SÊNIOR: REGISTRO TÁTICO NA REDE (Network Logs)
-      // Registra a batalha para o atacante
-      await actionLogService.log(userId, 'combat', 'player', isNpc ? 'npc' : targetId, {
-        target_name: defender.username,
-        outcome: isAttackerWin ? 'win' : (isDraw ? 'draw' : 'loss'),
-        xp_gain: loot.xp || -15,
-        money_gain: loot.money || 0,
-        money_loss: loot.moneyLost || 0,
-        stats_gained: loot.stats || null,
-        is_rare: defender.is_rare
+      await playerStateService.updatePlayerState(userId, { 
+        energy: isAttackerWin ? -10 : (isDraw ? -15 : -20), 
+        action_points: -300 
       });
 
-      // Registra a batalha para o defensor (se for jogador real)
-      if (!isNpc) {
-        await actionLogService.log(targetId, 'combat', 'player', userId, {
-          target_name: attacker.username,
-          outcome: isAttackerWin ? 'loss' : (isDraw ? 'draw' : 'win'),
-          xp_gain: isAttackerWin ? 0 : (isDraw ? 5 : 15),
-          money_loss: isAttackerWin ? loot.money : 0,
-          money_gain: isAttackerWin ? 0 : (loot.moneyLost || 0),
-          stats_gained: null // Defensor geralmente não ganha stats ao ser atacado nesta versão
-        });
-      }
+      setTimeout(async () => {
+        try {
+          if (isAttackerWin) {
+            let newStatus = 'Operacional';
+            let statusEndsAt = null;
+            if (willBleed) {
+              newStatus = 'Sangrando';
+              statusEndsAt = new Date(Date.now() + 10 * 60000).toISOString();
+            }
+
+            await playerStateService.updatePlayerState(userId, { 
+              money: loot.money, total_xp: loot.xp, victories: 1,
+              attack: loot.stats.attack, defense: loot.stats.defense, focus: loot.stats.focus,
+              status: newStatus, status_ends_at: statusEndsAt
+            });
+
+            if (!isNpc) {
+              await playerStateService.updatePlayerState(targetId, { 
+                money: -loot.money, status: "Recondicionamento", 
+                status_ends_at: new Date(Date.now() + 20 * 60000).toISOString(), defeats: 1 
+              });
+            }
+          } else if (isDraw) {
+            await playerStateService.updatePlayerState(userId, { 
+              total_xp: loot.xp, attack: loot.stats.attack, defense: loot.stats.defense, focus: loot.stats.focus
+            });
+            if (!isNpc) await playerStateService.updatePlayerState(targetId, { total_xp: 5 });
+          } else {
+            await playerStateService.updatePlayerState(userId, { 
+              money: -loot.moneyLost, total_xp: loot.xp, defeats: 1,
+              status: "Recondicionamento", status_ends_at: new Date(Date.now() + 20 * 60000).toISOString()
+            });
+          }
+
+          await actionLogService.log(userId, 'combat', 'player', isNpc ? 'npc' : targetId, {
+            target_name: defender.username, outcome: isAttackerWin ? 'win' : (isDraw ? 'draw' : 'loss'),
+            xp_gain: loot.xp || -15, money_gain: loot.money || 0, money_loss: loot.moneyLost || 0,
+            stats_gained: loot.stats || null, is_rare: defender.is_rare
+          });
+        } catch (err) {
+          console.error(`[Combat_Delayed_Update] Erro:`, err.message);
+        }
+      }, 8500);
 
       return {
         outcome: isAttackerWin ? "win_ko" : (isDraw ? "draw" : "loss_ko"), 
         winner: isAttackerWin,
-        log: turns.map(t => `${t.segment}: ${t.label || ''} ${t.attacker.damage} dano causado.`),
-        hpLog: turns.map(t => ({ attackerHP: t.attacker.hpAfter, defenderHP: t.defender.hpAfter })),
-        details: { turns }, // Adicionado para o frontend conseguir animar
+        details: { turns },
         loot, 
         spectroComment: spectroEngine.generateSpectroTalk(isAttackerWin ? "victory" : "detection")
       };
-    } finally {
+    } catch (err) {
       await redisClient.delAsync(LOCK);
+      throw err;
     }
   }
 }

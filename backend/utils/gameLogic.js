@@ -349,76 +349,156 @@ function resolveCombatHit(attacker, defender, turnMomentum = 1.0) {
 }
 
 function resolveWinOutcome(attacker, defender, attackerChips = [], tactic = 'technological') {
-  const logs = [];
-  let attScore = 0;
-  let defScore = 0;
+  // Mantemos para compatibilidade se outras partes usarem, 
+  // mas vamos focar na nova lógica resolveStrategicCombat.
+  if (Array.isArray(tactic)) {
+    return resolveStrategicCombat(attacker, defender, attackerChips, tactic);
+  }
+  return resolveStrategicCombat(attacker, defender, attackerChips, Array(5).fill(tactic));
+}
 
-  // 1. Modificadores de Tática
-  const tactics = {
-    brutal: { atk: 1.4, def: 0.8, foc: 0.8, risk: 0.25, label: "ASSALTO_BRUTAL" },
-    defensive: { atk: 0.8, def: 1.4, foc: 1.1, risk: 0.02, label: "POSTURA_DEFENSIVA" },
-    technological: { atk: 1.1, def: 1.1, foc: 1.4, risk: 0.10, label: "INFILTRAÇÃO_HACKER" }
-  };
-  const mod = tactics[tactic] || tactics.technological;
-  logs.push({ segment: "ESTRATÉGIA", label: mod.label, effect: "Modificadores táticos carregados." });
+/**
+ * Nova Lógica: Acerto de Contas Estratégico (Cyberpunk Mind Games)
+ * 5 Rounds fixos. O jogador envia uma sequência de 5 ações.
+ */
+function resolveStrategicCombat(attacker, defender, attackerChips = [], playerActions = []) {
+  const rounds = [];
+  let playerHP = 100;
+  let opponentHP = 100;
+  let playerRancor = 0;
+  let playerBuff = 1.0; // Multiplicador de dano (ex: finta)
+  let opponentBuff = 1.0;
 
-  // 2. Chips
-  let chipPowerBoost = 1.0;
+  // IA do oponente: Padrão estratégico baseado em nível/estatísticas
+  const opponentActions = [];
+  const actionPool = ['brutal', 'block', 'feint'];
+  for (let i = 0; i < 5; i++) {
+    opponentActions.push(actionPool[Math.floor(Math.random() * 3)]);
+  }
+
+  // Modificadores de Chips
+  let chipDmgMult = 1.0;
+  let chipResist = 0;
   let xpBonus = 1.0;
   attackerChips.forEach(chip => {
-    if (chip.effect_type === 'power_boost') chipPowerBoost += (chip.effect_value / 100);
+    if (chip.effect_type === 'power_boost') chipDmgMult += (chip.effect_value / 100);
+    if (chip.effect_type === 'money_shield') chipResist += (chip.effect_value); // money_shield costumava ser porcentagem
     if (chip.effect_type === 'xp_boost') xpBonus += (chip.effect_value / 100);
   });
 
-  const getPower = (val, m = 1) => val * m * (0.8 + Math.random() * 0.4);
+  const baseDmg = (Number(attacker.attack) * 0.1) + 15;
+  const oppBaseDmg = (Number(defender.attack) * 0.1) + 15;
 
-  // FASE 1: RECONHECIMENTO (Foco)
-  const f1A = getPower(attacker.focus, mod.foc * chipPowerBoost);
-  const f1D = getPower(defender.focus);
-  if (f1A > f1D) { attScore++; logs.push({ segment: "FASE 1: RECON", winner: "attacker", label: "Sinal Localizado", effect: "Ponto de entrada detectado." }); }
-  else { defScore++; logs.push({ segment: "FASE 1: RECON", winner: "defender", label: "Sinal Oculto", effect: "Oponente mascarou sua posição." }); }
+  for (let i = 0; i < 5; i++) {
+    const pAction = playerActions[i] || 'brutal';
+    const oAction = opponentActions[i];
+    
+    let pRoundDmg = 0;
+    let oRoundDmg = 0;
+    let roundLog = "";
+    let impact = "normal"; // Para sons/efeitos
 
-  // FASE 2: FIREWALL (Ataque vs Foco)
-  const f2A = getPower(attacker.attack, mod.atk * chipPowerBoost);
-  const f2D = getPower(defender.focus, 1.2);
-  if (f2A > f2D) { attScore++; logs.push({ segment: "FASE 2: FIREWALL", winner: "attacker", label: "Portas Abertas", effect: "Firewall inimigo perfurado." }); }
-  else { defScore++; logs.push({ segment: "FASE 2: FIREWALL", winner: "defender", label: "Porta Blindada", effect: "Exploit bloqueado pelo firewall." }); }
+    // Lógica RPS Evoluída
+    // brutal > feint | block > brutal | feint > block
+    
+    if (pAction === oAction) {
+      // Empate técnico
+      pRoundDmg = Math.floor(baseDmg * 0.5 * chipDmgMult);
+      oRoundDmg = Math.floor(oppBaseDmg * 0.5);
+      roundLog = "Choque de forças! Ambos recuam com o impacto dos frames.";
+      impact = "clash";
+    } else if (
+      (pAction === 'brutal' && oAction === 'feint') ||
+      (pAction === 'block' && oAction === 'brutal') ||
+      (pAction === 'feint' && oAction === 'block') ||
+      (pAction === 'special')
+    ) {
+      // Vitória do Player no Round
+      if (pAction === 'feint' && oAction === 'block') {
+        playerBuff = 2.2;
+        pRoundDmg = 5;
+        roundLog = "Você leu os movimentos dele. O próximo golpe será fatal.";
+        impact = "tech";
+      } else if (pAction === 'block' && oAction === 'brutal') {
+        pRoundDmg = Math.floor(baseDmg * 0.8 * chipDmgMult);
+        oRoundDmg = Math.floor(oppBaseDmg * 0.2);
+        roundLog = "Bloqueio perfeito! Contra-ataque desferido com precisão.";
+        impact = "parry";
+      } else if (i === 4 && pAction === 'special') {
+        if (playerRancor >= 100) {
+          pRoundDmg = Math.floor(baseDmg * 2.8 * chipDmgMult);
+          roundLog = "EXECUÇÃO MÁXIMA! Você liberou todo o rancor acumulado!";
+          impact = "special";
+          playerRancor = 0; // Consome tudo
+        } else {
+          // Fallback para brutal se falhar no rancor
+          pRoundDmg = Math.floor(baseDmg * 0.8 * chipDmgMult);
+          roundLog = "Você tentou um golpe especial, mas faltou fúria. Impacto reduzido.";
+          impact = "clash";
+        }
+      } else {
+        pRoundDmg = Math.floor(baseDmg * 1.3 * playerBuff * chipDmgMult);
+        playerBuff = 1.0;
+        roundLog = "Impacto brutal! Você ouviu o estalo do chassi dele.";
+        impact = "heavy";
+      }
+    } else {
+      // Vitória do Oponente no Round
+      if (oAction === 'feint' && pAction === 'block') {
+        opponentBuff = 2.2;
+        oRoundDmg = 5;
+        roundLog = "Ele antecipou seu bloqueio. A tensão aumenta.";
+        impact = "tech";
+      } else if (oAction === 'block' && pAction === 'brutal') {
+        oRoundDmg = Math.floor(oppBaseDmg * 0.8);
+        pRoundDmg = Math.floor(baseDmg * 0.2);
+        roundLog = "Seu ataque foi aparado! Ele contra-ataca violentamente.";
+        impact = "parry";
+      } else {
+        oRoundDmg = Math.floor(oppBaseDmg * 1.3 * opponentBuff);
+        opponentBuff = 1.0;
+        roundLog = "Você foi atingido! O sistema acusa falha de integridade.";
+        impact = "heavy";
+      }
+    }
 
-  // FASE 3: NÚCLEO (Confronto Direto - PESO 2)
-  const f3A = getPower(attacker.attack, mod.atk * chipPowerBoost);
-  const f3D = getPower(defender.defense, mod.def);
-  if (f3A > f3D) { attScore += 2; logs.push({ segment: "FASE 3: NÚCLEO", winner: "attacker", label: "Sobrecarga", effect: "Dano massivo no núcleo do sistema!" }); }
-  else { defScore += 2; logs.push({ segment: "FASE 3: NÚCLEO", winner: "defender", label: "Reflexão", effect: "Ataque principal repelido." }); }
+    // Aplicar Dano e Rancor
+    playerHP = Math.max(0, playerHP - oRoundDmg);
+    opponentHP = Math.max(0, opponentHP - pRoundDmg);
+    if (oRoundDmg > 0) playerRancor = Math.min(100, playerRancor + 25);
 
-  // FASE 4: DESCRIPTOGRAFIA (Nível/Crítico)
-  const f4A = getPower(attacker.level, 2) + (attacker.critical_chance || 0);
-  const f4D = getPower(defender.level, 2) + (defender.critical_chance || 0);
-  if (f4A > f4D) { attScore++; logs.push({ segment: "FASE 4: CRACK", winner: "attacker", label: "Código Quebrado", effect: "Acesso aos dados root obtido." }); }
-  else { defScore++; logs.push({ segment: "FASE 4: CRACK", winner: "defender", label: "Cripto-Lock", effect: "Dados protegidos por criptografia forte." }); }
+    rounds.push({
+      round: i + 1,
+      playerAction: pAction,
+      opponentAction: oAction,
+      playerDamage: pRoundDmg,
+      opponentDamage: oRoundDmg,
+      playerHP,
+      opponentHP,
+      playerRancor,
+      log: roundLog,
+      impact
+    });
 
-  // FASE 5: EXTRAÇÃO (Finalização)
-  const f5A = getPower(attacker.attack + attacker.focus, mod.atk);
-  const f5D = getPower(defender.defense + defender.focus, mod.def);
-  if (f5A > f5D) { attScore++; logs.push({ segment: "FASE 5: EXTRAÇÃO", winner: "attacker", label: "Extração Sucesso", effect: "Sinal inimigo neutralizado." }); }
-  else { defScore++; logs.push({ segment: "FASE 5: EXTRAÇÃO", winner: "defender", label: "Sessão Expirada", effect: "Inimigo forçou sua desconexão." }); }
+    if (playerHP <= 0 || opponentHP <= 0) break;
+  }
 
-  const isAttackerWin = attScore > defScore;
-  const isDraw = attScore === defScore;
-  const isCloseFight = Math.abs(attScore - defScore) <= 2;
-  const bleedChance = mod.risk + (isCloseFight ? 0.15 : 0);
-  const willBleed = isAttackerWin && Math.random() < bleedChance;
+  const isAttackerWin = opponentHP <= 0 || (opponentHP < playerHP && playerHP > 0);
+  const isDraw = opponentHP === playerHP;
 
   return {
     isAttackerWin,
     isDraw,
-    isCloseFight,
-    willBleed,
-    attPower: attScore,
-    defPower: defScore,
-    xpBonus,
-    logs: logs.reverse()
+    playerHP,
+    opponentHP,
+    rounds,
+    xpBonus, 
+    moneyProtection: chipResist,
+    willBleed: isAttackerWin && Math.random() < 0.2,
+    logs: rounds.map(r => ({ segment: `ROUND ${r.round}`, label: r.log, winner: r.playerDamage > r.opponentDamage ? "attacker" : "defender" }))
   };
 }
+
 
 
 /**

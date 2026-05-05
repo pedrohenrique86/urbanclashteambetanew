@@ -22,8 +22,8 @@ import {
 } from "@heroicons/react/24/outline";
 import NPCCountdown from "../components/combat/NPCCountdown";
 import { FACTION_ALIAS_MAP_FRONTEND } from "../utils/faction";
-import VisualBattler from "../components/VisualBattler";
 import { calculateCombatStats, calculateTotalPower } from "../utils/combat";
+import { soundEngine } from "../utils/soundEngine";
 
 // HUD Corners e utilitários já estão no index.css via classes .military-clip, etc.
 // Mas mantemos o objeto para compatibilidade com framer-motion se necessário
@@ -141,10 +141,20 @@ export default function ReckoningPage() {
   const [combatPhase, setCombatPhase] = useState<"radar" | "precalc" | "fighting">("radar");
   const [finalResult, setFinalResult] = useState<CombatResult | null>(null);
 
+  const [selectedActions, setSelectedActions] = useState<string[]>(Array(5).fill(''));
+  const [currentRound, setCurrentRound] = useState(0);
+  const [battleLogs, setBattleLogs] = useState<any[]>([]);
+  const [rancor, setRancor] = useState(0);
+  const [isProcessing, setIsProcessing] = useState(false);
+
   const closeResult = useCallback(() => {
     setCombatPhase("radar");
     setSelectedTarget(null);
     setPreCalc(null);
+    setSelectedActions(Array(5).fill(''));
+    setBattleLogs([]);
+    setRancor(0);
+    setCurrentRound(0);
     mutate();
   }, [mutate]);
 
@@ -152,8 +162,8 @@ export default function ReckoningPage() {
     const currentPA = userProfile?.action_points || 0;
     const currentEN = userProfile?.energy || 0;
 
-    if (currentPA < 150) {
-      showToast("PONTOS DE AÇÃO INSUFICIENTES (REQUER 150 PA)", "warning");
+    if (currentPA < 300) {
+      showToast("PONTOS DE AÇÃO INSUFICIENTES (REQUER 300 PA)", "warning");
       return;
     }
     if (currentEN < 10) {
@@ -166,6 +176,7 @@ export default function ReckoningPage() {
       const info = await combatService.getPreCalc(target.id);
       setPreCalc(info);
       setCombatPhase("precalc");
+      soundEngine.playClick();
     } catch (err: any) {
       showToast(err.response?.data?.error || "Erro de conexão", "error");
     } finally {
@@ -177,19 +188,59 @@ export default function ReckoningPage() {
     setSelectedTarget(null);
     setPreCalc(null);
     setCombatPhase("radar");
+    setSelectedActions(Array(5).fill(''));
   };
 
-  const handleAttack = async (tactic: string = 'technological') => {
+  const handleActionSelect = (roundIndex: number, action: string) => {
+    const newActions = [...selectedActions];
+    newActions[roundIndex] = action;
+    setSelectedActions(newActions);
+    soundEngine.playClick();
+  };
+
+  const handleAttack = async () => {
     if (!selectedTarget) return;
+    if (selectedActions.some(a => a === '')) {
+      showToast("SELECIONE TODAS AS 5 AÇÕES ANTES DE INICIAR", "warning");
+      return;
+    }
+    
     setFinalResult(null); 
     try {
       setCombatPhase("fighting");
-      const result = await combatService.attack(selectedTarget.id, tactic);
+      setIsProcessing(true);
+      const result = await combatService.attack(selectedTarget.id, selectedActions as any);
       setFinalResult({ ...result, winner: result.outcome.startsWith("win"), timestamp: Date.now() });
+      
+      // Iniciar processamento dos rounds
+      if (result.details?.turns) {
+        processRounds(result.details.turns);
+      } else {
+        throw new Error("Falha na sincronização dos dados de combate.");
+      }
     } catch (err: any) {
       showToast(err.response?.data?.error || "Erro ao iniciar combate", "error");
       cancelCombat();
     }
+  };
+
+  const processRounds = async (turns: any[]) => {
+    for (let i = 0; i < turns.length; i++) {
+      setCurrentRound(i + 1);
+      const turn = turns[i];
+      setBattleLogs(prev => [...prev, turn]);
+      setRancor(turn.playerRancor || 0);
+      
+      // Audio feedback based on impact
+      if (turn.effect === 'heavy') soundEngine.playImpact();
+      else if (turn.effect === 'tech') soundEngine.playTech();
+      else if (turn.effect === 'special') soundEngine.playSpecial();
+      else if (turn.effect === 'parry') soundEngine.playClick();
+      else soundEngine.playClick();
+
+      await new Promise(resolve => setTimeout(resolve, 1500));
+    }
+    setIsProcessing(false);
   };
 
   const handleCombatComplete = useCallback(async () => {
@@ -206,7 +257,7 @@ export default function ReckoningPage() {
     }
   }, [refreshProfile, finalResult, closeResult, navigate]);
 
-  if (userProfile?.status === "Recondicionamento") {
+  if (userProfile?.status === "Recondicionamento" && combatPhase !== "fighting") {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-4">
         <ExclamationTriangleIcon className="w-20 h-20 text-red-500 mb-6 animate-pulse" />
@@ -346,7 +397,7 @@ export default function ReckoningPage() {
                         </div>
                         <div className="flex flex-col">
                           <span className="text-[8px] font-mono text-slate-500 uppercase">Custo PA</span>
-                          <span className="text-sm font-orbitron font-black text-emerald-400 tracking-tighter italic">150 PONTOS</span>
+                          <span className="text-sm font-orbitron font-black text-emerald-400 tracking-tighter italic">300 PONTOS</span>
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
@@ -445,90 +496,218 @@ export default function ReckoningPage() {
           )}
 
           {combatPhase === "precalc" && preCalc && (
-            <motion.div key="precalc" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="max-w-3xl mx-auto">
+            <motion.div key="precalc" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="max-w-5xl mx-auto">
               <div className="bg-black/80 border border-slate-800 p-8" style={MILITARY_CLIP}>
-                <h2 className="font-orbitron font-black text-2xl text-white uppercase mb-4 flex items-center gap-3">
-                   <CpuChipIcon className="w-8 h-8 text-cyan-400" /> Protocolo de Engajamento
-                </h2>
-                <p className="bg-slate-900 p-4 border-l-2 border-cyan-400 text-cyan-100 font-mono italic mb-8">&ldquo;{preCalc.spectroHint}&rdquo;</p>
-                
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-                  <button 
-                    onClick={() => handleAttack('brutal')}
-                    className="flex flex-col items-center gap-3 p-4 bg-red-600/10 border border-red-600/30 hover:bg-red-600/30 transition-all group"
-                    style={MILITARY_CLIP}
-                  >
-                    <FireIcon className="w-8 h-8 text-red-500 group-hover:scale-110 transition-transform" />
-                    <div className="text-center">
-                      <span className="block text-xs font-black text-white uppercase">Assalto Brutal</span>
-                      <span className="block text-[8px] text-red-400/70 font-mono mt-1">ATK x1.4 | RISCO ALTO</span>
-                    </div>
-                  </button>
-
-                  <button 
-                    onClick={() => handleAttack('defensive')}
-                    className="flex flex-col items-center gap-3 p-4 bg-emerald-600/10 border border-emerald-600/30 hover:bg-emerald-600/30 transition-all group"
-                    style={MILITARY_CLIP}
-                  >
-                    <ShieldExclamationIcon className="w-8 h-8 text-emerald-500 group-hover:scale-110 transition-transform" />
-                    <div className="text-center">
-                      <span className="block text-xs font-black text-white uppercase">Postura Defensiva</span>
-                      <span className="block text-[8px] text-emerald-400/70 font-mono mt-1">DEF x1.5 | RISCO BAIXO</span>
-                    </div>
-                  </button>
-
-                  <button 
-                    onClick={() => handleAttack('technological')}
-                    className="flex flex-col items-center gap-3 p-4 bg-cyan-600/10 border border-cyan-600/30 hover:bg-cyan-600/30 transition-all group"
-                    style={MILITARY_CLIP}
-                  >
-                    <CpuChipIcon className="w-8 h-8 text-cyan-500 group-hover:scale-110 transition-transform" />
-                    <div className="text-center">
-                      <span className="block text-xs font-black text-white uppercase">Infiltração Hacker</span>
-                      <span className="block text-[8px] text-cyan-400/70 font-mono mt-1">FOC x1.4 | ESTRATÉGICO</span>
-                    </div>
-                  </button>
+                <div className="flex justify-between items-center mb-6">
+                  <h2 className="font-orbitron font-black text-2xl text-white uppercase flex items-center gap-3">
+                    <CpuChipIcon className="w-8 h-8 text-cyan-400" /> Matriz de Estratégia
+                  </h2>
+                  <div className="text-right">
+                    <span className="text-[10px] font-mono text-slate-500 block uppercase">Alvo Selecionado</span>
+                    <span className="text-lg font-black text-red-500 font-orbitron">{selectedTarget?.name}</span>
+                  </div>
                 </div>
 
-                <div className="flex justify-center border-t border-white/5 pt-6">
-                  <button onClick={cancelCombat} className="px-10 py-2 bg-slate-900 border border-slate-800 text-slate-500 text-[10px] font-black uppercase tracking-widest hover:text-white transition-all">Abortar Operação</button>
+                <p className="bg-slate-900/50 p-4 border-l-2 border-cyan-400 text-cyan-100/60 font-mono text-[10px] italic mb-8 uppercase tracking-widest">
+                  &ldquo;Protocolo de 5 rounds ativado. O inimigo não poderá reagir à sua sequência pré-programada.&rdquo;
+                </p>
+                
+                <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-10">
+                  {[0, 1, 2, 3, 4].map((idx) => (
+                    <div key={idx} className="flex flex-col gap-2">
+                      <div className="text-center mb-2">
+                        <span className="text-[9px] font-black font-mono text-cyan-500/50 uppercase tracking-tighter">Round {idx + 1}</span>
+                      </div>
+                      
+                      <button 
+                        onClick={() => handleActionSelect(idx, 'brutal')}
+                        className={`p-3 border text-[9px] font-black uppercase transition-all flex flex-col items-center gap-1 ${selectedActions[idx] === 'brutal' ? 'bg-red-500/30 border-red-500 text-white shadow-[0_0_10px_rgba(239,68,68,0.3)]' : 'bg-black/40 border-slate-800 text-slate-500 hover:border-red-500/50'}`}
+                        style={MILITARY_CLIP}
+                      >
+                        <FireIcon className="w-4 h-4" />
+                        <span>Brutal Strike</span>
+                      </button>
+
+                      <button 
+                        onClick={() => handleActionSelect(idx, 'block')}
+                        className={`p-3 border text-[9px] font-black uppercase transition-all flex flex-col items-center gap-1 ${selectedActions[idx] === 'block' ? 'bg-emerald-500/30 border-emerald-500 text-white shadow-[0_0_10px_rgba(16,185,129,0.3)]' : 'bg-black/40 border-slate-800 text-slate-500 hover:border-emerald-500/50'}`}
+                        style={MILITARY_CLIP}
+                      >
+                        <ShieldExclamationIcon className="w-4 h-4" />
+                        <span>Tech Block</span>
+                      </button>
+
+                      <button 
+                        onClick={() => handleActionSelect(idx, 'feint')}
+                        className={`p-3 border text-[9px] font-black uppercase transition-all flex flex-col items-center gap-1 ${selectedActions[idx] === 'feint' ? 'bg-cyan-500/30 border-cyan-500 text-white shadow-[0_0_10px_rgba(6,182,212,0.3)]' : 'bg-black/40 border-slate-800 text-slate-500 hover:border-cyan-500/50'}`}
+                        style={MILITARY_CLIP}
+                      >
+                        <BoltIcon className="w-4 h-4" />
+                        <span>Neural Feint</span>
+                      </button>
+
+                      {idx === 4 && (
+                        <button 
+                          onClick={() => handleActionSelect(idx, 'special')}
+                          className={`p-3 border text-[9px] font-black uppercase transition-all flex flex-col items-center gap-1 ${selectedActions[idx] === 'special' ? 'bg-yellow-500/30 border-yellow-500 text-white shadow-[0_0_15px_rgba(234,179,8,0.3)]' : 'bg-black/20 border-yellow-500/30 text-yellow-500/50 hover:bg-yellow-500/10 hover:text-yellow-500'}`}
+                          style={MILITARY_CLIP}
+                        >
+                          <StarIcon className="w-4 h-4" />
+                          <span>GOLPE ESPECIAL</span>
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+
+                <div className="flex flex-col md:flex-row items-center gap-6 border-t border-white/5 pt-8">
+                  <div className="flex-1 w-full">
+                    <div className="flex justify-between mb-1">
+                      <span className="text-[10px] font-black font-mono text-yellow-500 uppercase italic">Ameaça do Alvo</span>
+                      <span className="text-[10px] font-black font-mono text-yellow-500">EST_POWER: { (selectedTarget?.level || 0) * 6 }</span>
+                    </div>
+                    <div className="h-1 w-full bg-slate-900 overflow-hidden">
+                      <motion.div 
+                        className="h-full bg-yellow-500/50"
+                        initial={{ width: 0 }}
+                        animate={{ width: `${Math.min(100, ((selectedTarget?.level || 0) * 6 / playerPower) * 100)}%` }}
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="flex gap-4">
+                    <button onClick={cancelCombat} className="px-6 py-3 border border-slate-800 text-slate-500 text-[10px] font-black uppercase tracking-widest hover:text-white transition-all" style={MILITARY_CLIP}>Abortar</button>
+                    <button 
+                      onClick={handleAttack}
+                      className="px-12 py-3 bg-red-600 text-white text-[10px] font-black uppercase tracking-widest hover:bg-red-500 transition-all shadow-[0_0_20px_rgba(220,38,38,0.4)]" 
+                      style={MILITARY_CLIP}
+                    >
+                      Iniciar Execução
+                    </button>
+                  </div>
                 </div>
               </div>
             </motion.div>
           )}
 
-          {combatPhase === "fighting" && !finalResult && (
-            <div className="flex flex-col items-center justify-center py-20 space-y-4">
-              <div className="w-16 h-16 border-4 border-red-500/20 border-t-red-600 rounded-full animate-spin" />
-              <p className="text-red-500 font-black font-orbitron animate-pulse uppercase tracking-[0.3em]">Inicializando Protocolo de Ataque...</p>
-            </div>
-          )}
-
-          {combatPhase === "fighting" && finalResult?.details?.turns && preCalc && (
-            <motion.div key="combat_hub" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="max-w-5xl mx-auto">
-              <div className="bg-black/90 border-2 border-red-500/30 p-6 md:p-10 relative overflow-hidden" style={MILITARY_CLIP}>
-                <div className="flex justify-between items-center mb-8 relative z-10 border-b border-white/5 pb-6">
-                   <div>
-                      <span className="text-[10px] font-mono text-red-500 block">OPERADOR</span>
-                      <h4 className="text-xl font-black text-white uppercase">{userProfile?.username}</h4>
-                   </div>
-                   <div className="text-center font-black font-orbitron animate-pulse text-red-500">VS</div>
-                   <div className="text-right">
-                      <span className="text-[10px] font-mono text-red-500 block">ALVO</span>
-                      <h4 className="text-xl font-black text-red-500 uppercase">{selectedTarget?.name}</h4>
-                   </div>
+          {combatPhase === "fighting" && (
+            <motion.div key="fighting" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="max-w-4xl mx-auto">
+              <div className="bg-black/90 border border-red-500/30 p-6 md:p-10 relative overflow-hidden" style={MILITARY_CLIP}>
+                {/* Rancor Bar */}
+                <div className="mb-8">
+                  <div className="flex justify-between items-end mb-2">
+                    <span className="text-[10px] font-black font-orbitron text-red-500 uppercase tracking-[0.2em]">Sincronização de Rancor</span>
+                    <span className="text-2xl font-black font-orbitron text-red-500">{rancor}%</span>
+                  </div>
+                  <div className="h-2 w-full bg-slate-900 border border-white/5 p-0.5">
+                    <motion.div 
+                      className="h-full bg-gradient-to-r from-red-900 via-red-600 to-red-400 shadow-[0_0_15px_rgba(220,38,38,0.6)]"
+                      animate={{ width: `${rancor}%` }}
+                    />
+                  </div>
                 </div>
 
-                <VisualBattler 
-                  key={finalResult.timestamp}
-                  player={{ name: userProfile?.username || 'Player', level: userProfile?.level || 1, hp: preCalc.playerInfo.hp, maxHP: preCalc.playerInfo.maxHP }}
-                  target={{ name: selectedTarget?.name || 'Target', level: selectedTarget?.level || 1, hp: preCalc.targetInfo.maxHP, maxHP: preCalc.targetInfo.maxHP }}
-                  turns={finalResult.details.turns}
-                  logs={finalResult.log}
-                  onComplete={handleCombatComplete}
-                  outcome={finalResult.outcome}
-                  loot={finalResult.loot}
-                />
+                <div className="flex justify-between items-center mb-10 border-b border-white/5 pb-6">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 bg-black border border-cyan-500/50 flex items-center justify-center">
+                      <UserCircleIcon className="w-8 h-8 text-cyan-400" />
+                    </div>
+                    <div>
+                      <span className="text-[9px] font-mono text-cyan-500 block uppercase tracking-tighter">Operador_Ativo</span>
+                      <h4 className="text-xl font-black text-white uppercase font-orbitron">{userProfile?.username}</h4>
+                    </div>
+                  </div>
+                  
+                  <div className="text-center">
+                    <div className="text-[9px] font-black font-mono text-slate-500 uppercase mb-1">Round</div>
+                    <div className="text-4xl font-black font-orbitron text-red-600 italic">0{currentRound}</div>
+                  </div>
+
+                  <div className="flex items-center gap-4 text-right">
+                    <div>
+                      <span className="text-[9px] font-mono text-red-500 block uppercase tracking-tighter">Alvo_Detectado</span>
+                      <h4 className="text-xl font-black text-red-500 uppercase font-orbitron">{selectedTarget?.name}</h4>
+                    </div>
+                    <div className="w-12 h-12 bg-black border border-red-500/50 flex items-center justify-center">
+                      <ShieldExclamationIcon className="w-8 h-8 text-red-500" />
+                    </div>
+                  </div>
+                </div>
+
+                {/* VISCERAL TEXT LOGS */}
+                <div className="space-y-4 min-h-[300px] flex flex-col justify-end bg-black/40 p-6 border border-white/5">
+                  <AnimatePresence mode="popLayout">
+                    {battleLogs.map((log, i) => (
+                      <motion.div 
+                        key={i}
+                        initial={{ opacity: 0, x: -20, filter: "blur(10px)" }}
+                        animate={{ opacity: 1, x: 0, filter: "blur(0px)" }}
+                        className={`flex gap-4 items-start ${i === battleLogs.length - 1 ? 'scale-105' : 'opacity-40'}`}
+                      >
+                        <div className="mt-1">
+                          <div className={`w-2 h-2 rounded-full ${log.attacker.damage > log.defender.damage ? 'bg-cyan-500' : 'bg-red-500'}`} />
+                        </div>
+                        <div className="flex-1">
+                          <p className={`font-mono text-xs uppercase tracking-wider leading-relaxed ${log.attacker.damage > log.defender.damage ? 'text-cyan-100' : 'text-red-100'}`}>
+                            <span className="font-black opacity-50 mr-2">[{log.segment}]</span>
+                            {log.label}
+                          </p>
+                          <div className="mt-1 flex gap-4 text-[9px] font-black font-mono uppercase">
+                            <span className="text-cyan-500">Dano: {log.attacker.damage}</span>
+                            <span className="text-red-500">Dano Recebido: {log.defender.damage}</span>
+                          </div>
+                        </div>
+                      </motion.div>
+                    ))}
+                  </AnimatePresence>
+                  
+                  {isProcessing && (
+                    <motion.div 
+                      animate={{ opacity: [0.3, 1, 0.3] }}
+                      transition={{ duration: 1, repeat: Infinity }}
+                      className="text-[10px] font-black font-mono text-red-500 uppercase tracking-[0.4em] pt-4"
+                    >
+                      Processando Dados de Combate...
+                    </motion.div>
+                  )}
+                </div>
+
+                {!isProcessing && finalResult && (
+                  <motion.div 
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="mt-10 pt-8 border-t border-white/10 flex flex-col items-center"
+                  >
+                    <div className={`text-5xl font-black font-orbitron mb-6 uppercase tracking-[0.2em] ${finalResult.winner ? 'text-cyan-400 drop-shadow-[0_0_15px_rgba(34,211,238,0.5)]' : 'text-red-500'}`}>
+                      {finalResult.winner ? 'VITÓRIA' : 'DERROTA'}
+                    </div>
+                    
+                    {finalResult.loot && (
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-4 w-full max-w-lg mb-8">
+                        <div className="bg-white/5 p-3 text-center border border-white/10">
+                          <span className="text-[8px] block text-slate-500 uppercase font-black mb-1">Experiência</span>
+                          <span className="text-lg font-black font-orbitron text-white">+{finalResult.loot.xp} XP</span>
+                        </div>
+                        <div className="bg-white/5 p-3 text-center border border-white/10">
+                          <span className="text-[8px] block text-slate-500 uppercase font-black mb-1">Créditos</span>
+                          <span className="text-lg font-black font-orbitron text-yellow-500">${finalResult.loot.money || 0}</span>
+                        </div>
+                        <div className="bg-white/5 p-3 text-center border border-white/10">
+                          <span className="text-[8px] block text-slate-500 uppercase font-black mb-1">Atributos</span>
+                          <span className="text-lg font-black font-orbitron text-cyan-400">+{finalResult.loot.stats?.attack || 0}</span>
+                        </div>
+                      </div>
+                    )}
+
+                    <button 
+                      onClick={handleCombatComplete}
+                      className="px-16 py-4 bg-white text-black font-black uppercase text-xs tracking-[0.3em] hover:bg-cyan-400 transition-all active:scale-95"
+                      style={MILITARY_CLIP}
+                    >
+                      Finalizar Relatório
+                    </button>
+                  </motion.div>
+                )}
               </div>
             </motion.div>
           )}
