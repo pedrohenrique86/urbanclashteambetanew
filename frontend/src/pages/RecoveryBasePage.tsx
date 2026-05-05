@@ -242,7 +242,7 @@ function BleedingView({ user, onAction, timeLeft, formatTime }: { user: any, onA
         
         <div className="flex-1 text-center md:text-left space-y-4">
           <div className="flex items-center gap-4 justify-center md:justify-start">
-            <h2 className="text-3xl font-orbitron font-black text-white italic uppercase tracking-widest">Hemofilia Detectada</h2>
+            <h2 className="text-3xl font-orbitron font-black text-white italic uppercase tracking-widest">Bio-Degradação Crítica</h2>
             {timeLeft !== null && (
               <span className="bg-red-500/20 px-3 py-1 border border-red-500/40 text-[10px] font-mono text-red-400 animate-pulse">ESTABILIZAÇÃO_AUTO EM {formatTime(timeLeft)}</span>
             )}
