@@ -85,7 +85,7 @@ export default function VisualBattler({ player, target, turns, logs, onComplete,
 
     runPulseCombat();
     return () => { active = false; };
-  }, [logs]);
+  }, [logs, outcome]);
 
   useEffect(() => {
     if (showResults && countdown > 0) {
