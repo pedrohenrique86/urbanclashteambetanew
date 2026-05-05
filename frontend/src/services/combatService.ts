@@ -70,6 +70,7 @@ export interface CombatResult {
   };
   targetRealName: string;
   spectroComment: string;
+  timestamp?: number;
 }
 
 export const combatService = {

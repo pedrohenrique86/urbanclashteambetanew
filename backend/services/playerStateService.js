@@ -186,8 +186,10 @@ function _parseState(raw) {
     if (out[field] !== undefined) {
       let n = Number(out[field]);
       if (!isNaN(n)) {
-        // Garantir que ATK, DEF e FOC sejam sempre inteiros para o frontend
-        if (['luck'].includes(field)) {
+        // SÊNIOR: Garantir que ATK, DEF e FOC tenham precisão de 2 casas (00.00)
+        if (['attack', 'defense', 'focus'].includes(field)) {
+          n = Math.round(n * 100) / 100;
+        } else if (['luck'].includes(field)) {
           n = Math.floor(n);
         }
         out[field] = n;
@@ -410,7 +412,12 @@ function _buildPatch(updates, newState) {
     const val = newState[redisKey];
     if (val !== undefined) {
       if (NUMERIC_FIELDS.has(redisKey)) {
-        patch[sseKey] = Number(val);
+        let n = Number(val);
+        // SÊNIOR: Arredonda atributos para 2 casas decimais no SSE
+        if (['attack', 'defense', 'focus'].includes(redisKey)) {
+          n = Math.round(n * 100) / 100;
+        }
+        patch[sseKey] = n;
       } else {
         patch[sseKey] = val;
       }
@@ -888,8 +895,12 @@ async function persistPlayerState(userId) {
       return `${col} = $${i + 1}`;
     });
 
-    const values     = safeFields.map(([, v]) => {
+    const values     = safeFields.map(([k, v]) => {
       if (v === "" || v === "null" || v === null) return null;
+      // SÊNIOR: Arredonda atributos para 2 casas decimais na persistência PostgreSQL
+      if (['attack', 'defense', 'focus'].includes(k)) {
+        return Math.round(Number(v) * 100) / 100;
+      }
       return v;
     });
     values.push(userId);
@@ -985,8 +996,13 @@ async function _bulkPersistChunk(userIds) {
 
       fields.forEach((f, fIndex) => {
         rowParams.push(`$${rowOffset + fIndex + 2}`);
-        const val = item.state[f];
-        flatValues.push((val === "" || val === "null" || val === null || val === undefined) ? null : val);
+        let val = item.state[f];
+        if (val === "" || val === "null" || val === null || val === undefined) {
+          val = null;
+        } else if (['attack', 'defense', 'focus'].includes(f)) {
+          val = Math.round(Number(val) * 100) / 100;
+        }
+        flatValues.push(val);
       });
       valuePlaceholders.push(`(${rowParams.join(", ")})`);
     });

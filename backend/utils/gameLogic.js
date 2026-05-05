@@ -15,8 +15,15 @@
 
 // ─── Constantes de combate ─────────────────────────────────────────────────────
 const COMBAT = {
-  ATK_MULTIPLIER        : 15,    // Aumentado de 10 para 15 para maior letalidade e menos empates
-  DEF_SOFTCAP           : 200,   // redução = DEF / (DEF + DEF_SOFTCAP)
+  ATK_MULTIPLIER        : 0.4,   // Calibrado para escala de 100 HP (Blitz)
+  DEF_SOFTCAP           : 1000,
+
+  // WIN-CHANCE CONSTANTS
+  POWER_WEIGHT_ATK      : 1.25,
+  POWER_WEIGHT_DEF      : 1.10,
+  POWER_WEIGHT_FOC      : 0.90,
+  WIN_CHANCE_MIN        : 5,     // 5% de chance de zebra mínima
+  WIN_CHANCE_MAX        : 95,    // 95% de chance de vitória máxima
 
   // CRIT CHANCE: % real = BASE + FOC×FOC_FACTOR + DISC_FACTOR - accumulated raw points
   CRIT_BASE             : 5,     // % inicial antes de qualquer atributo
@@ -291,25 +298,39 @@ function resolveCombatHit(attacker, defender, turnMomentum = 1.0) {
 
   if (isEvaded) resolvedDamage = Math.round(resolvedDamage * 0.25);
 
-  // 5. INCIDENTES DE CAMPO (2% de chance)
+  // 5. HABILIDADES ESPECIAIS & INCIDENTES (6% de chance total)
   let incident = null;
-  const incidentRoll = Math.random() * 100;
-  if (incidentRoll < 2.0) {
-     const typeRoll = Math.random();
-     if (typeRoll < 0.33) {
-       incident = { type: "OVERHEAT", label: "SUPERAQUECIMENTO!", selfDmgPct: 0.05, dmgMult: 1.8 };
-     } else if (typeRoll < 0.66) {
-       incident = { type: "SIGNAL_GLITCH", label: "INTERFERÊNCIA!", dmgMult: 0 };
-     } else {
-       incident = { type: "SHRAPNEL", label: "EXPLOSÃO EXTERNA!", globalDmg: Math.round(atkFinal * 0.3) };
-     }
+  const specialRoll = Math.random() * 100;
+  
+  if (specialRoll < 6.0) {
+    const isRenegado = attFaction === 'renegados' || attFaction === 'gangsters';
+    const isGuardiao = attFaction === 'guardioes' || attFaction === 'guardas';
+    const typeRoll = Math.random();
+
+    if (isRenegado) {
+      if (typeRoll < 0.6) {
+        incident = { type: "SPECIAL", label: "CORTE LETHAL!", dmgMult: 2.2, color: "text-red-500" };
+      } else {
+        incident = { type: "SPECIAL", label: "EMP_PULSE!", dmgMult: 1.5, globalDmg: Math.round(atkFinal * 0.2) };
+      }
+    } else if (isGuardiao) {
+      if (typeRoll < 0.6) {
+        incident = { type: "SPECIAL", label: "PUNÇÃO_TÁTICA!", dmgMult: 1.9, color: "text-blue-500" };
+      } else {
+        incident = { type: "SPECIAL", label: "REINFORCE_SHELL!", dmgMult: 1.2, selfHeal: Math.round(rawDef * 2) };
+      }
+    } else {
+      incident = { type: "SPECIAL", label: "SOBRECARGA!", dmgMult: 2.0 };
+    }
   }
 
   // 6. Chance de Erro (MISS)
   const isMiss = Math.random() * 100 < COMBAT.MISS_CHANCE;
-  if (isMiss) resolvedDamage = 0;
-
-  if (incident && incident.dmgMult !== undefined) resolvedDamage = Math.round(resolvedDamage * incident.dmgMult);
+  if (isMiss) {
+    resolvedDamage = 0;
+  } else if (incident && incident.dmgMult !== undefined) {
+    resolvedDamage = Math.round(resolvedDamage * incident.dmgMult);
+  }
 
   return {
     damage: Math.max(0, resolvedDamage),
@@ -324,6 +345,102 @@ function resolveCombatHit(attacker, defender, turnMomentum = 1.0) {
       aura: Math.round(auraModifier * 100) / 100,
       momentum: Math.round(turnMomentum * 100) / 100
     }
+  };
+}
+
+/**
+ * CORE: Resolve o vencedor baseado em Win-Chance Probabilístico.
+ * SÊNIOR: Este é o novo padrão de balanceamento SSOT.
+ */
+/**
+ * CORE: Resolve o vencedor via sistema TRI-CLASH (Melhor de 3).
+ * 1. Choque de Força (ATK vs DEF)
+ * 2. Sincronia Neural (FOC vs FOC)
+ * 3. Resiliência (DEF vs ATK)
+ */
+function resolveWinOutcome(attacker, defender) {
+  const att = {
+    atk: Number(attacker.attack),
+    def: Number(attacker.defense),
+    foc: Number(attacker.focus),
+    lvl: Number(attacker.level),
+    fac: String(attacker.faction || '').toLowerCase()
+  };
+  const def = {
+    atk: Number(defender.attack),
+    def: Number(defender.defense),
+    foc: Number(defender.focus),
+    lvl: Number(defender.level),
+    fac: String(defender.faction || '').toLowerCase()
+  };
+
+  // Bônus de Facção (Situacionais por Clash)
+  const isRenegadoAtt = att.fac.includes('renegado') || att.fac.includes('gangster');
+  const isGuardiaoDef = def.fac.includes('guardiao') || def.fac.includes('guardas');
+
+  let attPoints = 0;
+  let defPoints = 0;
+  const logs = [];
+
+  // Jitter de combate (Fator Sorte/Improviso: 0.9x a 1.1x)
+  const jitter = () => 0.9 + (Math.random() * 0.2);
+
+  // ── CLASH 1: CHOQUE DE FORÇA (ATK vs DEF) ──
+  const attForce = att.atk * (isRenegadoAtt ? 1.25 : 1.0) * jitter();
+  const defGuard = def.def * (isGuardiaoDef ? 1.2 : 1.0) * jitter();
+  if (attForce >= defGuard) {
+    attPoints++;
+    logs.push({ segment: "CHOQUE", winner: "attacker", score: `${attForce.toFixed(0)} vs ${defGuard.toFixed(0)}` });
+  } else {
+    defPoints++;
+    logs.push({ segment: "CHOQUE", winner: "defender", score: `${attForce.toFixed(0)} vs ${defGuard.toFixed(0)}` });
+  }
+
+  // ── CLASH 2: SINCRONIA NEURAL (FOC vs FOC) ──
+  const attFoc = att.foc * jitter();
+  const defFoc = def.foc * jitter();
+  if (attFoc >= defFoc) {
+    attPoints++;
+    logs.push({ segment: "SINCRONIA", winner: "attacker", score: `${attFoc.toFixed(0)} vs ${defFoc.toFixed(0)}` });
+  } else {
+    defPoints++;
+    logs.push({ segment: "SINCRONIA", winner: "defender", score: `${attFoc.toFixed(0)} vs ${defFoc.toFixed(0)}` });
+  }
+
+  // ── CLASH 3: RESILIÊNCIA (DEF vs ATK) ──
+  const attResistence = att.def * (isRenegadoAtt ? 0.9 : 1.15) * jitter();
+  const defCounter   = def.atk * jitter();
+  if (attResistence >= defCounter) {
+    attPoints++;
+    logs.push({ segment: "RESILIÊNCIA", winner: "attacker", score: `${attResistence.toFixed(0)} vs ${defCounter.toFixed(0)}` });
+  } else {
+    defPoints++;
+    logs.push({ segment: "RESILIÊNCIA", winner: "defender", score: `${attResistence.toFixed(0)} vs ${defCounter.toFixed(0)}` });
+  }
+
+  // ── CLASH 4: PROTOCOLO LETAL (PODER TOTAL) ──
+  const pAtt = (att.atk + att.def + att.foc) * jitter();
+  const pDef = (def.atk + def.def + def.foc) * jitter();
+  if (pAtt >= pDef) {
+    attPoints++;
+    logs.push({ segment: "PROTOCOLO LETAL", winner: "attacker", score: `${pAtt.toFixed(0)} vs ${pDef.toFixed(0)}` });
+  } else {
+    defPoints++;
+    logs.push({ segment: "PROTOCOLO LETAL", winner: "defender", score: `${pAtt.toFixed(0)} vs ${pDef.toFixed(0)}` });
+  }
+
+  // Veredito
+  let isAttackerWin = attPoints > defPoints;
+  if (attPoints === defPoints) isAttackerWin = att.lvl >= def.lvl;
+
+  // SÊNIOR: Embaralhar para evitar coreografia fixa
+  const shuffledLogs = [...logs].sort(() => Math.random() - 0.5);
+
+  return {
+    isAttackerWin,
+    score: `${attPoints}-${defPoints}`,
+    logs: shuffledLogs,
+    isOverkill: attPoints >= 3
   };
 }
 
@@ -369,26 +486,8 @@ function calculateTrainingCost(baseMoney, level) {
  *          Calculá-lo no voo simplifica a sincronização e evita overhead de I/O."
  */
 function calculateMaxHP(player) {
-  const def = Math.max(0, Number(player.defense) || 0);
-  const lvl = Math.max(1, Number(player.level) || 1);
-  const atk = Math.max(0, Number(player.attack) || 0);
-  const foc = Math.max(0, Number(player.focus) || 0);
-  
-  const totalStats = atk + def + foc;
-  const faction = String(player.faction || '').toLowerCase();
-  
-  // Fórmula base reequilibrada para amortizar o COMBAT.ATK_MULTIPLIER = 15.
-  // Escala agora muito melhor com os atributos do jogador para evitar OHKO e DKOs no 1º turno.
-  let hp = 100 + (lvl * 15) + (def * 10) + (totalStats * 4);
-
-  // Modificadores de Vitalidade por Facção (Compensa as afinidades de dano)
-  if (faction === 'guardioes' || faction === 'guardas') {
-    hp *= 1.25; // +25% HP para Guardiões (Sustentação)
-  } else if (faction === 'renegados' || faction === 'gangsters') {
-    hp *= 0.90; // -10% HP para Renegados (Fragilidade)
-  }
-  
-  return Math.round(hp);
+  // SÊNIOR: No modelo TRI-CLASH, usamos a escala 0-100 para impacto visual Hi-Fi.
+  return 100;
 }
 
 /**
@@ -430,6 +529,7 @@ module.exports = {
   calcCritChance,
   calcCritDamageMultiplier,
   resolveCombatHit,
+  resolveWinOutcome,
   scaleXpByLevel,
   calculateTrainingCost,
   // Constantes exportadas para uso em rotas/serviços

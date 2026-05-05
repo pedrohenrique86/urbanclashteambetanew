@@ -1,12 +1,6 @@
 /**
  * SPECTRO NARRATIVE ENGINE - V4 (HI-FI PROTOCOL)
  * O estado da arte em narrativa para Urban Clash.
- * 
- * Novidades V4:
- * - Weapon Archetype Analysis (Verbos inteligentes por tipo de arma)
- * - Power-Based Archetype (Tom da narrativa muda com atributos dominantes)
- * - Highlighting Tokens (Prefixos para o frontend colorir)
- * - Environment Interaction (Ações integradas ao cenário)
  */
 
 const WEAPON_CLASSES = {
@@ -25,66 +19,69 @@ const VERB_POOLS = {
 
 const FRAGMENTS = {
   intro: [
-    "{AMBIENT} No coração do ${setor_cidade}, o sinal de ${target_name} oscila enquanto ${player_name} se aproxima...",
-    "{AMBIENT} As sombras do ${setor_cidade} escondem o avanço tático de ${player_name} contra o alvo...",
-    "{AMBIENT} Sob o neon do ${setor_cidade}, ${player_name} intercepta a frequência neural de ${target_name}...",
-    "{AMBIENT} O ar pesado de ozônio no ${setor_cidade} indica que o confronto vai ser sangrento.",
-    "{AMBIENT} O lixo eletrônico acumulado no ${setor_cidade} dificulta a cobertura, mas ${player_name} avança."
+    "{AMBIENT} ${player_name} intercepta ${target_name} em ${setor_cidade}...",
+    "{AMBIENT} Confronto iminente sob o neon de ${setor_cidade}.",
+    "{AMBIENT} ${player_name} surge das sombras contra ${target_name}."
   ],
   
   interacao: [
-    "...você chuta uma caixa de metal no ${setor_cidade} para distrair o alvo e então",
-    "...aproveitando o reflexo das poças de óleo neon, você se posiciona e",
-    "...usando o ruído de um drone de carga que passa baixo no ${setor_cidade}, você avança e",
-    "...batendo com as costas contra uma parede pichada, você respira fundo e"
+    "...chute em destroços e",
+    "...finta por trás de cabos e",
+    "...dash rápido pelo óleo e"
   ],
 
   normal: {
     brutal: [
-      "...com força bruta descomunal, ${player_name} {VERB} ${target_name}...",
-      "...sem um pingo de hesitação, você {VERB} o oponente...",
-      "...${player_name} parte para uma execução direta e {VERB} o inimigo..."
+      "{VERB} o oponente sem piedade.",
+      "Avança e {VERB} o inimigo.",
+      "{VERB} ${target_name} com força bruta."
     ],
     analitico: [
-      "...calculando a trajetória neural, ${player_name} {VERB} ${target_name}...",
-      "...após localizar um pixel de vulnerabilidade, você {VERB} o alvo...",
-      "...movimento cirúrgico: ${player_name} {VERB} ${target_name} com precisão..."
+      "{VERB} o alvo com precisão fria.",
+      "Calcula a brecha e {VERB}.",
+      "{VERB} explorando uma falha sistêmica."
     ]
   },
 
   critico: [
-    "{CRIT} O IMPACTO É DEVASTADOR! A ${arma_equipada} brilha em luz branca e {VERB} o núcleo de ${target_name}!",
-    "{CRIT} ACERTO DE ELITE! Você encontra uma falha catastrófica e {VERB} o oponente sem piedade!",
-    "{CRIT} SOBRECARGA NEURAL! A força do seu golpe {VERB} o inimigo em uma explosão de faíscas neon!"
+    "{CRIT} IMPACTO DEVASTADOR! {VERB} o núcleo de ${target_name}!",
+    "{CRIT} GOLPE DE ELITE! {VERB} o chassi do oponente!",
+    "{CRIT} SOBRECARGA! {VERB} em uma explosão de estática!"
   ],
 
   breach: [
-    "{BREACH} DEFESA ROMPIDA! O sistema de ${target_name} trava por um segundo enquanto você o {VERB}!",
-    "{BREACH} BYPASS CONFIRMADO! Sua ${arma_equipada} ignora a blindagem e {VERB} a unidade inimiga!",
-    "{BREACH} FIREWALL DELETADO! Não há proteção que segure seu avanço enquanto você {VERB} o alvo!"
+    "{BREACH} DEFESA ROMPIDA! {VERB} ignorando blindagem!",
+    "{BREACH} BYPASS! O sistema de ${target_name} cede ao {VERB}!",
+    "{BREACH} FIREWALL DELETADO! {VERB} diretamente no kernel!"
   ],
 
   esquiva: [
-    "{MISS} POR UM FIO! ${target_name} executa um dash lateral, fazendo sua ${arma_equipada} atingir apenas a estática...",
-    "{MISS} ERRO DE TIMING! O oponente foi mais rápido e sua investida falhou por milímetros...",
-    "{MISS} EVASÃO PERFEITA! O alvo previu seu ataque e deslizou pelo asfalto, saindo ileso."
+    "{MISS} DASH! ${target_name} escapou por milímetros...",
+    "{MISS} FALHA! O golpe atingiu apenas a estática.",
+    "{MISS} EVASÃO! ${target_name} deslizou pelo asfalto."
+  ],
+
+  incident: [
+    "[ESPECIAL : {LABEL}] Uma descarga massiva frita as sinapses!",
+    "[ESPECIAL : {LABEL}] Sobrecarga de dados atinge o núcleo!",
+    "[ESPECIAL : {LABEL}] Protocolo letal executado com sucesso!"
   ],
 
   spectro: {
     hype: [
-      "{SPECTRO} \"MINHA NOSSA! Que sequência! Você está reescrevendo o manual de combate, ${player_name}!\"",
-      "{SPECTRO} \"Isso foi hipnotizante. O fluxo de dados da vitória está garantido.\"",
-      "{SPECTRO} \"Alerta: Seus níveis de estilo estão sobrecarregando meus buffers!\""
+      "{SPECTRO} \"INSANO! Que sequência, ${player_name}!\"",
+      "{SPECTRO} \"Fluxo de dados da vitória garantido.\"",
+      "{SPECTRO} \"Você está redefinindo o estilo de combate!\""
     ],
     preocupado: [
-      "{SPECTRO} \"Atenção, Operador. Seus batimentos estão altos e o dano dele é real. Recue se precisar.\"",
-      "{SPECTRO} \"Sua integridade física está em 404. Tente uma manobra defensiva agora!\"",
-      "{SPECTRO} \"Droga, ${player_name}, você está perdendo pacotes vitais. Foque no núcleo!\""
+      "{SPECTRO} \"Cuidado! Dados vitais em queda!\"",
+      "{SPECTRO} \"Kernel em risco! Manobra evasiva JÁ!\"",
+      "{SPECTRO} \"Você está perdendo pacotes preciosos!\""
     ],
     frio: [
-      "{SPECTRO} \"Monitoramento em curso. A morte dele é apenas uma questão de latência.\"",
-      "{SPECTRO} \"Sinal alvo perdendo força. Execute o encerramento do protocolo.\"",
-      "{SPECTRO} \"Estatísticas favoráveis. Não desperdice energia em movimentos desnecessários.\""
+      "{SPECTRO} \"Monitoramento... ele está perdendo latência.\"",
+      "{SPECTRO} \"Encerramento de protocolo favorável.\"",
+      "{SPECTRO} \"Continue injetando pressão.\""
     ]
   }
 };
@@ -96,11 +93,8 @@ function construirNarrativa(turno, contexto, turnData) {
     usedFrags = new Set() 
   } = contexto;
 
-  // 1. Identificar arquétipo do Jogador (Ataque vs Foco) baseado nos dados contextuais ou turnData
-  // Aqui vamos de forma simplificada por facção para o tom:
   const archeType = (faction.toLowerCase().includes("renegado")) ? 'brutal' : 'analitico';
   
-  // 2. Identificar Classe da Arma para Verbos
   let weaponClass = "blade";
   for (const [cls, list] of Object.entries(WEAPON_CLASSES)) {
     if (list.includes(arma_equipada)) {
@@ -108,6 +102,7 @@ function construirNarrativa(turno, contexto, turnData) {
       break;
     }
   }
+
   const pickVerb = () => {
     const pool = VERB_POOLS[weaponClass];
     return pool[Math.floor(Math.random() * pool.length)];
@@ -125,55 +120,53 @@ function construirNarrativa(turno, contexto, turnData) {
     return frag;
   };
 
-  // 3. Montar a história baseada no turnData
   let lines = [];
 
-  // Turno 1: Introdução Tática
   if (turno === 1) {
     lines.push(pick(FRAGMENTS.intro));
     if (Math.random() > 0.5) lines.push(pick(FRAGMENTS.interacao));
   }
 
-  // Turno 2 e 3: Desenvolvimento ou Reação
   if (turnData && turnData.attacker) {
-    const { isCrit, isBreach, isEvaded, damage } = turnData.attacker;
+    const { isCrit, isBreach, isEvaded, damage, incident } = turnData.attacker;
     let actionTxt = "";
     
-    if (isEvaded) actionTxt = pick(FRAGMENTS.esquiva);
-    else if (isCrit) actionTxt = pick(FRAGMENTS.critico);
-    else if (isBreach) actionTxt = pick(FRAGMENTS.breach);
-    else actionTxt = pick(FRAGMENTS.normal[archeType]);
+    if (incident && incident.type === "SPECIAL") {
+      actionTxt = pick(FRAGMENTS.incident).replace("{LABEL}", incident.label || "SOBRECARGA");
+    } else if (isEvaded) {
+      actionTxt = pick(FRAGMENTS.esquiva);
+    } else if (isCrit) {
+      actionTxt = pick(FRAGMENTS.critico);
+    } else if (isBreach) {
+      actionTxt = pick(FRAGMENTS.breach);
+    } else {
+      actionTxt = pick(FRAGMENTS.normal[archeType]);
+    }
 
-    // Aplicar Verbo Inteligente
-    actionTxt = actionTxt.replace("{VERB}", pickVerb());
+    if (actionTxt.includes("{VERB}")) {
+      actionTxt = actionTxt.replace("{VERB}", pickVerb());
+    }
     lines.push(actionTxt);
 
-    // Reação do Spectro
     const hRatio = turnData.attacker.hpAfter / turnData.attacker.maxHP;
     if (hRatio < 0.3) lines.push(pick(FRAGMENTS.spectro.preocupado));
-    else if (damage > 350 || isCrit) lines.push(pick(FRAGMENTS.spectro.hype));
+    else if (damage > 500 || isCrit || incident) lines.push(pick(FRAGMENTS.spectro.hype));
     else lines.push(pick(FRAGMENTS.spectro.frio));
   }
 
-  // 4. Finalizações do Turno 3
-  if (turno === 3) {
-    const { is_draw_dko, is_draw_flee, is_loss } = contexto;
-    if (is_draw_dko) {
-       lines.push("{AMBIENT} Em um estouro de estática mútua, ambos colapsam no asfalto.");
-       lines.push("{SPECTRO} \"Dois reboots ao mesmo tempo? Que vergonha para a rede...\"");
-    } else if (is_draw_flee) {
-       lines.push("{AMBIENT} Sirenes da Central de Dados ecoam. A polícia chegou.");
-       lines.push("{SPECTRO} \"Abortar! Fuja antes que os scanners te peguem!\"");
-    } else if (is_loss) {
-       lines.push("{AMBIENT} Sua visão escurece. O kernel de ${target_name} foi superior.");
-       lines.push("{SPECTRO} \"OPERADOR EM QUEDA! Iniciando modo de segurança médico...\"");
-    }
+  if (turno >= 5) {
+     const { is_draw_dko, is_draw_flee, is_loss } = contexto;
+     if (is_draw_dko) {
+        lines.push("{AMBIENT} Colapso mútuo de rede detectado.");
+     } else if (is_draw_flee) {
+        lines.push("{AMBIENT} Sinal alvo perdido na névoa de dados.");
+     } else if (is_loss) {
+        lines.push("{AMBIENT} Visão escurece. O kernel adversário venceu.");
+     }
   }
 
-  // Montar Narrativa Final
   let narrativa = lines.join(" ");
 
-  // Limpeza e Substituições
   const vars = {
     '\\${player_name}': player_name || "Desconhecido",
     '\\${target_name}': target_name || "Target",
@@ -190,9 +183,24 @@ function construirNarrativa(turno, contexto, turnData) {
 
 function generateSpectroTalk(category) {
   const pools = {
-    detection: ["{SPECTRO} \"Sinal captado. Ele está vulnerável.\"", "{SPECTRO} \"Localizei uma brecha. Vamos nessa.\""],
-    victory: ["{SPECTRO} \"Alvo deletado. Um erro a menos.\"", "{SPECTRO} \"Protocolo finalizado. Dinheiro na conta.\""],
-    timeout: ["{SPECTRO} \"Sinal perdido. Fica para a próxima.\"", "{SPECTRO} \"Ele fugiu. Vamos rastrear novamente.\""]
+    detection: [
+      "{SPECTRO} \"Sinal captado. Vulnerabilidade física detectada no kernel de defesa.\"", 
+      "{SPECTRO} \"Localizei uma brecha. O chassi dele está clamando por um reformat.\"",
+      "{SPECTRO} \"Alvo travado. Prepare os injetores de estática, vai ser barulhento.\"",
+      "{SPECTRO} \"Interceptação tática iniciada. Não deixe sobrar um bit de resistência.\""
+    ],
+    victory: [
+      "{SPECTRO} \"Alvo deletado. Um erro de sistema a menos para Neon City.\"", 
+      "{SPECTRO} \"Protocolo finalizado. A loot é real, mas o arrependimento dele também.\"",
+      "{SPECTRO} \"Execução limpa, Operador. Seus benchmarks de combate estão batendo recordes.\"",
+      "{SPECTRO} \"Sinapses dele fritas em 100%. Uma obra de arte digital.\""
+    ],
+    timeout: [
+      "{SPECTRO} \"Sinal perdido na rede. Ele se escondeu nas sombras do Mainframe.\"", 
+      "{SPECTRO} \"Ele fugiu. Provavelmente está limpando o cache de medo agora.\"",
+      "{SPECTRO} \"Link interrompido. Recomendo reescanear o setor imediatamente.\"",
+      "{SPECTRO} \"Presa escapou. Nível de frustração: Elevado.\""
+    ]
   };
   const pool = pools[category] || pools.detection;
   return pool[Math.floor(Math.random() * pool.length)];
