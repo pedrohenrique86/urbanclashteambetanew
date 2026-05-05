@@ -382,6 +382,21 @@ router.get("/profile", authenticateToken, async (req, res) => {
     
     const convertedProfile = convertProfileData(profile);
     
+    // BUSCAR CHIPS ATIVOS
+    try {
+      const chipRes = await query(
+        `SELECT i.name, i.base_attack_bonus as power_boost, i.base_focus_bonus as xp_boost, i.base_defense_bonus as money_shield
+         FROM items i
+         JOIN player_inventory pi ON i.id = pi.item_id
+         WHERE pi.user_id = $1 AND pi.is_equipped = TRUE AND i.type = 'chip'`,
+        [req.user.id]
+      );
+      convertedProfile.active_chips = chipRes.rows;
+    } catch (e) {
+      console.error("Erro ao buscar chips ativos:", e);
+      convertedProfile.active_chips = [];
+    }
+
     if (profile.pending_training_toast) {
       try {
         let parsedToast = profile.pending_training_toast;

@@ -43,7 +43,8 @@ router.get("/precalc/:targetId", authenticateToken, requireMinLevel(10), async (
  */
 router.post("/attack/:targetId", authenticateToken, requireMinLevel(10), async (req, res) => {
   try {
-    const result = await combatService.executeAttack(req.user.id, req.params.targetId);
+    const { tactic } = req.body;
+    const result = await combatService.executeAttack(req.user.id, req.params.targetId, tactic);
     res.json(result);
   } catch (error) {
     res.status(400).json({ error: error.message });

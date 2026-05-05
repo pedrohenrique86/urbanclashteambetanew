@@ -81,3 +81,25 @@ export const calculateCombatStats = (userProfile: any) => {
     effectiveDamageReduction
   };
 };
+
+export const calculateTotalPower = (user: any, chips: any[] = []) => {
+  const atk = Number(user.attack || 0);
+  const def = Number(user.defense || 0);
+  const foc = Number(user.focus || 0);
+  const level = Number(user.level || 1);
+  const critChance = Number(user.crit_chance_pct || 0);
+  const critMult = Number(user.crit_damage_mult || 1);
+
+  // Fórmula unificada com o DashboardPage.tsx (Power Solo)
+  let power = (atk + def + foc * 0.5) + (level * 2) + (critChance * 0.2 + critMult);
+  
+  if (chips && chips.length > 0) {
+    chips.forEach(chip => {
+      if (chip.power_boost > 0) {
+        power *= (1 + chip.power_boost / 100);
+      }
+    });
+  }
+  
+  return Math.round(power);
+};

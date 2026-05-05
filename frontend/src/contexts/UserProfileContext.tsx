@@ -66,6 +66,12 @@ export interface UserProfile {
   toxicity?: number;
   avatar_url?: string;
   bio?: string;
+  active_chips?: Array<{
+    name: string;
+    power_boost: number;
+    xp_boost: number;
+    money_shield: number;
+  }>;
 }
 
 export interface IUserProfileContext {
@@ -238,6 +244,7 @@ export const UserProfileProvider = ({ children }: { children: ReactNode }) => {
         toxicity: Number(profileData.toxicity) || 0,
         bio: profileData.bio,
         avatar_url: profileData.avatar_url,
+        active_chips: profileData.active_chips || [],
       };
     },
     [],

@@ -684,6 +684,11 @@ async function updatePlayerState(userId, updates, options = {}) {
 
     for (const [key, value] of Object.entries(updates)) {
       if (typeof value === "number") {
+        if (isNaN(value) || !isFinite(value)) {
+          console.warn(`[playerState] ⚠️ Valor inválido (NaN/Inf) ignorado para o campo ${key} do usuário ${userId}`);
+          continue;
+        }
+
         if (key === "energy") {
           // Usa LUA para incremento atômico com CAP
           await redisClient.runLuaAsync(UPDATE_STATE_LUA, [redisKey], [

@@ -58,6 +58,12 @@ export interface UserProfile {
   critical_damage?: number;
   created_at?: string;
   updated_at?: string;
+  active_chips?: Array<{
+    name: string;
+    power_boost: number;
+    xp_boost: number;
+    money_shield: number;
+  }>;
 }
 
 // Tipos para atividades

@@ -84,8 +84,8 @@ export const combatService = {
     return data;
   },
 
-  attack: async (targetId: string): Promise<CombatResult> => {
-    const { data } = await api.post(`/combat/attack/${targetId}`);
+  attack: async (targetId: string, tactic: string = 'technological'): Promise<CombatResult> => {
+    const { data } = await api.post(`/combat/attack/${targetId}`, { tactic });
     return data;
   }
 };

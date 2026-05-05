@@ -348,101 +348,76 @@ function resolveCombatHit(attacker, defender, turnMomentum = 1.0) {
   };
 }
 
-/**
- * CORE: Resolve o vencedor baseado em Win-Chance Probabilístico.
- * SÊNIOR: Este é o novo padrão de balanceamento SSOT.
- */
-/**
- * CORE: Resolve o vencedor via sistema TRI-CLASH (Melhor de 3).
- * 1. Choque de Força (ATK vs DEF)
- * 2. Sincronia Neural (FOC vs FOC)
- * 3. Resiliência (DEF vs ATK)
- */
-function resolveWinOutcome(attacker, defender) {
-  const att = {
-    atk: Number(attacker.attack),
-    def: Number(attacker.defense),
-    foc: Number(attacker.focus),
-    lvl: Number(attacker.level),
-    fac: String(attacker.faction || '').toLowerCase()
-  };
-  const def = {
-    atk: Number(defender.attack),
-    def: Number(defender.defense),
-    foc: Number(defender.focus),
-    lvl: Number(defender.level),
-    fac: String(defender.faction || '').toLowerCase()
-  };
-
-  // Bônus de Facção (Situacionais por Clash)
-  const isRenegadoAtt = att.fac.includes('renegado') || att.fac.includes('gangster');
-  const isGuardiaoDef = def.fac.includes('guardiao') || def.fac.includes('guardas');
-
-  let attPoints = 0;
-  let defPoints = 0;
+function resolveWinOutcome(attacker, defender, attackerChips = [], tactic = 'technological') {
   const logs = [];
+  let attScore = 0;
+  let defScore = 0;
 
-  // Jitter de combate (Fator Sorte/Improviso: 0.9x a 1.1x)
-  const jitter = () => 0.9 + (Math.random() * 0.2);
+  // 1. Modificadores de Tática
+  const tactics = {
+    brutal: { atk: 1.4, def: 0.8, foc: 0.8, risk: 0.25, label: "ASSALTO_BRUTAL" },
+    defensive: { atk: 0.8, def: 1.4, foc: 1.1, risk: 0.02, label: "POSTURA_DEFENSIVA" },
+    technological: { atk: 1.1, def: 1.1, foc: 1.4, risk: 0.10, label: "INFILTRAÇÃO_HACKER" }
+  };
+  const mod = tactics[tactic] || tactics.technological;
+  logs.push({ segment: "ESTRATÉGIA", label: mod.label, effect: "Modificadores táticos carregados." });
 
-  // ── CLASH 1: CHOQUE DE FORÇA (ATK vs DEF) ──
-  const attForce = att.atk * (isRenegadoAtt ? 1.25 : 1.0) * jitter();
-  const defGuard = def.def * (isGuardiaoDef ? 1.2 : 1.0) * jitter();
-  if (attForce >= defGuard) {
-    attPoints++;
-    logs.push({ segment: "CHOQUE", winner: "attacker", score: `${attForce.toFixed(0)} vs ${defGuard.toFixed(0)}` });
-  } else {
-    defPoints++;
-    logs.push({ segment: "CHOQUE", winner: "defender", score: `${attForce.toFixed(0)} vs ${defGuard.toFixed(0)}` });
-  }
+  // 2. Chips
+  let chipPowerBoost = 1.0;
+  let xpBonus = 1.0;
+  attackerChips.forEach(chip => {
+    if (chip.effect_type === 'power_boost') chipPowerBoost += (chip.effect_value / 100);
+    if (chip.effect_type === 'xp_boost') xpBonus += (chip.effect_value / 100);
+  });
 
-  // ── CLASH 2: SINCRONIA NEURAL (FOC vs FOC) ──
-  const attFoc = att.foc * jitter();
-  const defFoc = def.foc * jitter();
-  if (attFoc >= defFoc) {
-    attPoints++;
-    logs.push({ segment: "SINCRONIA", winner: "attacker", score: `${attFoc.toFixed(0)} vs ${defFoc.toFixed(0)}` });
-  } else {
-    defPoints++;
-    logs.push({ segment: "SINCRONIA", winner: "defender", score: `${attFoc.toFixed(0)} vs ${defFoc.toFixed(0)}` });
-  }
+  const getPower = (val, m = 1) => val * m * (0.8 + Math.random() * 0.4);
 
-  // ── CLASH 3: RESILIÊNCIA (DEF vs ATK) ──
-  const attResistence = att.def * (isRenegadoAtt ? 0.9 : 1.15) * jitter();
-  const defCounter   = def.atk * jitter();
-  if (attResistence >= defCounter) {
-    attPoints++;
-    logs.push({ segment: "RESILIÊNCIA", winner: "attacker", score: `${attResistence.toFixed(0)} vs ${defCounter.toFixed(0)}` });
-  } else {
-    defPoints++;
-    logs.push({ segment: "RESILIÊNCIA", winner: "defender", score: `${attResistence.toFixed(0)} vs ${defCounter.toFixed(0)}` });
-  }
+  // FASE 1: RECONHECIMENTO (Foco)
+  const f1A = getPower(attacker.focus, mod.foc * chipPowerBoost);
+  const f1D = getPower(defender.focus);
+  if (f1A > f1D) { attScore++; logs.push({ segment: "FASE 1: RECON", winner: "attacker", label: "Sinal Localizado", effect: "Ponto de entrada detectado." }); }
+  else { defScore++; logs.push({ segment: "FASE 1: RECON", winner: "defender", label: "Sinal Oculto", effect: "Oponente mascarou sua posição." }); }
 
-  // ── CLASH 4: PROTOCOLO LETAL (PODER TOTAL) ──
-  const pAtt = (att.atk + att.def + att.foc) * jitter();
-  const pDef = (def.atk + def.def + def.foc) * jitter();
-  if (pAtt >= pDef) {
-    attPoints++;
-    logs.push({ segment: "PROTOCOLO LETAL", winner: "attacker", score: `${pAtt.toFixed(0)} vs ${pDef.toFixed(0)}` });
-  } else {
-    defPoints++;
-    logs.push({ segment: "PROTOCOLO LETAL", winner: "defender", score: `${pAtt.toFixed(0)} vs ${pDef.toFixed(0)}` });
-  }
+  // FASE 2: FIREWALL (Ataque vs Foco)
+  const f2A = getPower(attacker.attack, mod.atk * chipPowerBoost);
+  const f2D = getPower(defender.focus, 1.2);
+  if (f2A > f2D) { attScore++; logs.push({ segment: "FASE 2: FIREWALL", winner: "attacker", label: "Portas Abertas", effect: "Firewall inimigo perfurado." }); }
+  else { defScore++; logs.push({ segment: "FASE 2: FIREWALL", winner: "defender", label: "Porta Blindada", effect: "Exploit bloqueado pelo firewall." }); }
 
-  // Veredito
-  let isAttackerWin = attPoints > defPoints;
-  if (attPoints === defPoints) isAttackerWin = att.lvl >= def.lvl;
+  // FASE 3: NÚCLEO (Confronto Direto - PESO 2)
+  const f3A = getPower(attacker.attack, mod.atk * chipPowerBoost);
+  const f3D = getPower(defender.defense, mod.def);
+  if (f3A > f3D) { attScore += 2; logs.push({ segment: "FASE 3: NÚCLEO", winner: "attacker", label: "Sobrecarga", effect: "Dano massivo no núcleo do sistema!" }); }
+  else { defScore += 2; logs.push({ segment: "FASE 3: NÚCLEO", winner: "defender", label: "Reflexão", effect: "Ataque principal repelido." }); }
 
-  // SÊNIOR: Embaralhar para evitar coreografia fixa
-  const shuffledLogs = [...logs].sort(() => Math.random() - 0.5);
+  // FASE 4: DESCRIPTOGRAFIA (Nível/Crítico)
+  const f4A = getPower(attacker.level, 2) + (attacker.critical_chance || 0);
+  const f4D = getPower(defender.level, 2) + (defender.critical_chance || 0);
+  if (f4A > f4D) { attScore++; logs.push({ segment: "FASE 4: CRACK", winner: "attacker", label: "Código Quebrado", effect: "Acesso aos dados root obtido." }); }
+  else { defScore++; logs.push({ segment: "FASE 4: CRACK", winner: "defender", label: "Cripto-Lock", effect: "Dados protegidos por criptografia forte." }); }
+
+  // FASE 5: EXTRAÇÃO (Finalização)
+  const f5A = getPower(attacker.attack + attacker.focus, mod.atk);
+  const f5D = getPower(defender.defense + defender.focus, mod.def);
+  if (f5A > f5D) { attScore++; logs.push({ segment: "FASE 5: EXTRAÇÃO", winner: "attacker", label: "Extração Sucesso", effect: "Sinal inimigo neutralizado." }); }
+  else { defScore++; logs.push({ segment: "FASE 5: EXTRAÇÃO", winner: "defender", label: "Sessão Expirada", effect: "Inimigo forçou sua desconexão." }); }
+
+  const isAttackerWin = attScore > defScore;
+  const isCloseFight = Math.abs(attScore - defScore) <= 2;
+  const bleedChance = mod.risk + (isCloseFight ? 0.15 : 0);
+  const willBleed = isAttackerWin && Math.random() < bleedChance;
 
   return {
     isAttackerWin,
-    score: `${attPoints}-${defPoints}`,
-    logs: shuffledLogs,
-    isOverkill: attPoints >= 3
+    isCloseFight,
+    willBleed,
+    attPower: attScore,
+    defPower: defScore,
+    xpBonus,
+    logs: logs.reverse()
   };
 }
+
 
 /**
  * Escala o XP de treino pelo nível atual do jogador.

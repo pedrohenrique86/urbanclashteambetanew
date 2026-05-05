@@ -23,6 +23,7 @@ import {
 import NPCCountdown from "../components/combat/NPCCountdown";
 import { FACTION_ALIAS_MAP_FRONTEND } from "../utils/faction";
 import VisualBattler from "../components/VisualBattler";
+import { calculateCombatStats, calculateTotalPower } from "../utils/combat";
 
 const MILITARY_CLIP = { clipPath: "polygon(8px 0%, 100% 0%, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0% 100%, 0% 8px)" };
 
@@ -59,17 +60,20 @@ const BattleRulesInfo = () => {
             >
               <h3 className="font-orbitron font-black text-cyan-400 uppercase text-sm mb-4 flex items-center gap-2 border-b border-cyan-500/20 pb-2">
                 <InformationCircleIcon className="w-5 h-5" />
-                Matriz de Combate 1x1
+                Matriz de Combate (Power Clash)
               </h3>
               <div className="space-y-4 font-mono text-[10px] leading-relaxed text-slate-400">
-                <p>O combate Spectro evoluiu para o sistema <span className="text-yellow-500 font-black">SQUADRON CLASH (4 ROUNDS)</span>:</p>
+                <p>O combate Spectro agora é <span className="text-yellow-500 font-black">INSTANTÂNEO</span> baseado em <span className="text-white">POWER LEVEL</span>:</p>
+                <div className="bg-black/40 p-3 border border-cyan-500/20 rounded">
+                  <p className="text-cyan-400 font-bold mb-1">Fórmula de Poder:</p>
+                  <p>(Ataque × 1.25) + (Defesa × 1.10) + (Foco × 0.90)</p>
+                </div>
                 <ul className="space-y-2 list-disc list-inside">
-                  <li><span className="text-white uppercase">Choque:</span> Seu <span className="text-cyan-400">Ataque</span> vs <span className="text-cyan-400">Defesa</span> inimiga.</li>
-                  <li><span className="text-white uppercase">Sincronia:</span> Duelo de reflexos através do <span className="text-cyan-400">Foco</span>.</li>
-                  <li><span className="text-white uppercase">Resiliência:</span> Sua <span className="text-cyan-400">Defesa</span> vs <span className="text-cyan-400">Ataque</span> inimigo.</li>
-                  <li><span className="text-white uppercase">Protocolo Letal:</span> Comparação de <span className="text-cyan-400">Poder Total</span> absoluto.</li>
+                  <li><span className="text-white uppercase">Chips Táticos:</span> Bônus ativos de Chips Diários são aplicados multiplicativamente.</li>
+                  <li><span className="text-white uppercase">Fator Sorte:</span> Uma variância de +/- 15% simula o caos das ruas (The Crims Style).</li>
+                  <li><span className="text-white uppercase">Veredito:</span> O sinal com maior poder residual após a variância vence o confronto.</li>
                 </ul>
-                <p className="border-t border-white/5 pt-2 italic text-slate-500">Regra de Veredito: Vence a maioria. Em 2-2, o maior Nível de Prestígio leva a vitória.</p>
+                <p className="border-t border-white/5 pt-2 italic text-slate-500 text-[8px]">Nota: O Poder da Dashboard (Power Solo) usa pesos diferentes para o ranking global.</p>
               </div>
               <button 
                 onClick={() => setIsOpen(false)}
@@ -91,6 +95,9 @@ export default function ReckoningPage() {
   const { showToast } = useToast();
   const navigate = useNavigate();
   
+  const playerStats = calculateCombatStats(userProfile);
+  const playerPower = calculateTotalPower(userProfile || {}, userProfile?.active_chips || []);
+
   const playerLevel = userProfile?.level || 1;
   const { data: targets, mutate } = useSWR(
     playerLevel >= 10 ? "/combat/radar" : null, 
@@ -112,8 +119,15 @@ export default function ReckoningPage() {
   }, [mutate]);
 
   const handleSelectTarget = async (target: RadarTarget) => {
-    if ((userProfile?.action_points || 0) < 300 || (userProfile?.energy || 0) < 50) {
-      showToast("RECURSOS INSUFICIENTES (REQUER 300 PA | 50% ENERGIA)", "warning");
+    const currentPA = userProfile?.action_points || 0;
+    const currentEN = userProfile?.energy || 0;
+
+    if (currentPA < 150) {
+      showToast("PONTOS DE AÇÃO INSUFICIENTES (REQUER 150 PA)", "warning");
+      return;
+    }
+    if (currentEN < 10) {
+      showToast("ENERGIA INSUFICIENTE (REQUER 10%)", "warning");
       return;
     }
     setSelectedTarget(target);
@@ -135,12 +149,12 @@ export default function ReckoningPage() {
     setCombatPhase("radar");
   };
 
-  const handleAttack = async () => {
+  const handleAttack = async (tactic: string = 'technological') => {
     if (!selectedTarget) return;
     setFinalResult(null); 
     try {
       setCombatPhase("fighting");
-      const result = await combatService.attack(selectedTarget.id);
+      const result = await combatService.attack(selectedTarget.id, tactic);
       setFinalResult({ ...result, winner: result.outcome.startsWith("win"), timestamp: Date.now() });
     } catch (err: any) {
       showToast(err.response?.data?.error || "Erro ao iniciar combate", "error");
@@ -151,7 +165,6 @@ export default function ReckoningPage() {
   const handleCombatComplete = useCallback(async () => {
     await refreshProfile();
     const outcome = finalResult?.outcome;
-    // Só vai para a base se for Derrota Crítica (KO) ou Empate Crítico (DKO)
     const isCriticalFailure = outcome === "loss_ko" || outcome === "draw_dko";
     
     if (finalResult?.winner || outcome === "draw_flee" || outcome === "loss_bleeding") {
@@ -159,12 +172,11 @@ export default function ReckoningPage() {
     } else if (isCriticalFailure) {
       navigate("/recovery-base");
     } else {
-      // Fallback
       closeResult();
     }
   }, [refreshProfile, finalResult, closeResult, navigate]);
 
-  if (userProfile?.status === "Recondicionamento" && combatPhase === "radar") {
+  if (userProfile?.status === "Recondicionamento") {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-4">
         <ExclamationTriangleIcon className="w-20 h-20 text-red-500 mb-6 animate-pulse" />
@@ -185,20 +197,31 @@ export default function ReckoningPage() {
           <p className="text-slate-500 text-[10px] font-mono tracking-[0.2em] uppercase mt-2">Tactical Interception & Intelligence Matrix</p>
         </motion.div>
         
-        <div className="flex items-center gap-6">
+        <div className="flex items-center gap-4">
           <BattleRulesInfo />
+          
+          <div className="hidden lg:flex items-center gap-2">
+            {userProfile?.active_chips?.map((chip: any, i: number) => (
+              <div key={i} className="flex items-center gap-1 px-2 py-1 bg-cyan-500/10 border border-cyan-500/30 rounded" title={chip.name}>
+                <CpuChipIcon className="w-3 h-3 text-cyan-400" />
+                <span className="text-[8px] font-black font-mono text-cyan-400 uppercase">{chip.name.split(' ')[0]}</span>
+              </div>
+            ))}
+          </div>
+
+          <div className="bg-black/50 border border-slate-800 p-3 flex items-center gap-3">
+             <FireIcon className="w-6 h-6 text-orange-500" />
+             <div className="flex flex-col">
+               <span className="text-[10px] font-mono text-slate-500 uppercase">POWER</span>
+               <span className="text-lg font-black font-orbitron text-orange-400">{playerPower.toLocaleString()}</span>
+             </div>
+          </div>
+          
           <div className="bg-black/50 border border-slate-800 p-3 flex items-center gap-3">
              <FingerPrintIcon className="w-6 h-6 text-emerald-500" />
              <div className="flex flex-col">
                <span className="text-[10px] font-mono text-slate-500 uppercase">PA</span>
                <span className="text-lg font-black font-orbitron text-emerald-400">{userProfile?.action_points?.toLocaleString() || 0}</span>
-             </div>
-          </div>
-          <div className="bg-black/50 border border-slate-800 p-3 flex items-center gap-3">
-             <BoltIcon className="w-6 h-6 text-yellow-500" />
-             <div className="flex flex-col">
-               <span className="text-[10px] font-mono text-slate-500 uppercase">ENERGIA</span>
-               <span className="text-lg font-black font-orbitron text-yellow-400">{userProfile?.energy || 0}%</span>
              </div>
           </div>
         </div>
@@ -209,51 +232,106 @@ export default function ReckoningPage() {
           {combatPhase === "radar" && (
             <motion.div key="radar" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                 {targets?.map((tgt) => (
-                   <div 
-                     key={tgt.id}
-                     onClick={() => !loadingPreCalc && handleSelectTarget(tgt)}
-                     className="cursor-pointer group relative bg-black/60 backdrop-blur-md border border-slate-800 hover:border-yellow-500/50 hover:bg-slate-900 transition-all p-5"
-                     style={MILITARY_CLIP}
-                   >
-                     <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-600 group-hover:text-yellow-500">
-                          <UserCircleIcon className="w-8 h-8" />
+                 {targets?.map((tgt) => {
+                   const estPower = (tgt.level * 6); 
+                   const isRisky = estPower > (playerPower * 1.15);
+                   
+                   return (
+                    <div 
+                      key={tgt.id}
+                      onClick={() => !loadingPreCalc && handleSelectTarget(tgt)}
+                      className="cursor-pointer group relative bg-black/60 backdrop-blur-md border border-slate-800 hover:border-yellow-500/50 hover:bg-slate-900 transition-all p-5"
+                      style={MILITARY_CLIP}
+                    >
+                      <div className="flex items-center gap-3">
+                         <div className="w-12 h-12 bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-600 group-hover:text-yellow-500">
+                           <UserCircleIcon className="w-8 h-8" />
+                         </div>
+                         <div className="min-w-0 flex-1">
+                           <p className="text-[10px] uppercase font-mono text-slate-500">ALVO_{tgt.is_npc ? 'SINTÉTICO' : 'JOGADOR'}</p>
+                           <h3 className="font-orbitron font-black text-sm text-white truncate">{tgt.name}</h3>
+                         </div>
+                      </div>
+                      <div className="mt-4 grid grid-cols-2 gap-2">
+                         <div className="bg-white/5 p-2 text-center">
+                            <span className="block text-[8px] text-slate-500 uppercase">Nível</span>
+                            <span className="text-lg font-black text-white">{tgt.level}</span>
+                         </div>
+                         <div className="bg-white/5 p-2 text-center">
+                            <span className="block text-[8px] text-slate-500 uppercase">Poder Est.</span>
+                            <span className={`text-lg font-black ${isRisky ? 'text-red-500' : 'text-emerald-500'}`}>~{estPower.toLocaleString()}</span>
+                         </div>
+                      </div>
+                      {isRisky && (
+                        <div className="absolute top-2 right-2 flex items-center gap-1 text-[8px] font-black text-red-500 uppercase animate-pulse">
+                          <ExclamationTriangleIcon className="w-3 h-3" /> ALTO RISCO
                         </div>
-                        <div className="min-w-0 flex-1">
-                          <p className="text-[10px] uppercase font-mono text-slate-500">ALVO_{tgt.is_npc ? 'SINTÉTICO' : 'JOGADOR'}</p>
-                          <h3 className="font-orbitron font-black text-sm text-white truncate">{tgt.name}</h3>
-                        </div>
-                     </div>
-                     <div className="mt-4 grid grid-cols-2 gap-2">
-                        <div className="bg-white/5 p-2 text-center">
-                           <span className="block text-[8px] text-slate-500 uppercase">Nível</span>
-                           <span className="text-lg font-black text-white">{tgt.level}</span>
-                        </div>
-                        <div className="bg-white/5 p-2 text-center">
-                           <span className="block text-[8px] text-slate-500 uppercase">Status</span>
-                           <span className="text-xs text-emerald-400 font-mono">LOCALIZADO</span>
-                        </div>
-                     </div>
-                   </div>
-                 ))}
+                      )}
+                    </div>
+                   );
+                 })}
                </div>
             </motion.div>
           )}
 
           {combatPhase === "precalc" && preCalc && (
-            <motion.div key="precalc" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="max-w-2xl mx-auto">
+            <motion.div key="precalc" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="max-w-3xl mx-auto">
               <div className="bg-black/80 border border-slate-800 p-8" style={MILITARY_CLIP}>
-                <h2 className="font-orbitron font-black text-2xl text-white uppercase mb-6 flex items-center gap-3">
-                   <CpuChipIcon className="w-8 h-8 text-cyan-400" /> Sinal Captado
+                <h2 className="font-orbitron font-black text-2xl text-white uppercase mb-4 flex items-center gap-3">
+                   <CpuChipIcon className="w-8 h-8 text-cyan-400" /> Protocolo de Engajamento
                 </h2>
                 <p className="bg-slate-900 p-4 border-l-2 border-cyan-400 text-cyan-100 font-mono italic mb-8">&ldquo;{preCalc.spectroHint}&rdquo;</p>
-                <div className="flex gap-4">
-                  <button onClick={cancelCombat} className="flex-1 p-4 bg-slate-900 border border-slate-800 text-slate-500 text-xs font-black uppercase tracking-widest hover:text-white">Abortar</button>
-                  <button onClick={handleAttack} className="flex-[2] p-4 bg-yellow-500/10 border border-yellow-500/50 text-yellow-400 text-sm font-black uppercase tracking-widest hover:bg-yellow-500 hover:text-black">Confirmar Engajamento</button>
+                
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+                  <button 
+                    onClick={() => handleAttack('brutal')}
+                    className="flex flex-col items-center gap-3 p-4 bg-red-600/10 border border-red-600/30 hover:bg-red-600/30 transition-all group"
+                    style={MILITARY_CLIP}
+                  >
+                    <FireIcon className="w-8 h-8 text-red-500 group-hover:scale-110 transition-transform" />
+                    <div className="text-center">
+                      <span className="block text-xs font-black text-white uppercase">Assalto Brutal</span>
+                      <span className="block text-[8px] text-red-400/70 font-mono mt-1">ATK x1.4 | RISCO ALTO</span>
+                    </div>
+                  </button>
+
+                  <button 
+                    onClick={() => handleAttack('defensive')}
+                    className="flex flex-col items-center gap-3 p-4 bg-emerald-600/10 border border-emerald-600/30 hover:bg-emerald-600/30 transition-all group"
+                    style={MILITARY_CLIP}
+                  >
+                    <ShieldExclamationIcon className="w-8 h-8 text-emerald-500 group-hover:scale-110 transition-transform" />
+                    <div className="text-center">
+                      <span className="block text-xs font-black text-white uppercase">Postura Defensiva</span>
+                      <span className="block text-[8px] text-emerald-400/70 font-mono mt-1">DEF x1.5 | RISCO BAIXO</span>
+                    </div>
+                  </button>
+
+                  <button 
+                    onClick={() => handleAttack('technological')}
+                    className="flex flex-col items-center gap-3 p-4 bg-cyan-600/10 border border-cyan-600/30 hover:bg-cyan-600/30 transition-all group"
+                    style={MILITARY_CLIP}
+                  >
+                    <CpuChipIcon className="w-8 h-8 text-cyan-500 group-hover:scale-110 transition-transform" />
+                    <div className="text-center">
+                      <span className="block text-xs font-black text-white uppercase">Infiltração Hacker</span>
+                      <span className="block text-[8px] text-cyan-400/70 font-mono mt-1">FOC x1.4 | ESTRATÉGICO</span>
+                    </div>
+                  </button>
+                </div>
+
+                <div className="flex justify-center border-t border-white/5 pt-6">
+                  <button onClick={cancelCombat} className="px-10 py-2 bg-slate-900 border border-slate-800 text-slate-500 text-[10px] font-black uppercase tracking-widest hover:text-white transition-all">Abortar Operação</button>
                 </div>
               </div>
             </motion.div>
+          )}
+
+          {combatPhase === "fighting" && !finalResult && (
+            <div className="flex flex-col items-center justify-center py-20 space-y-4">
+              <div className="w-16 h-16 border-4 border-red-500/20 border-t-red-600 rounded-full animate-spin" />
+              <p className="text-red-500 font-black font-orbitron animate-pulse uppercase tracking-[0.3em]">Inicializando Protocolo de Ataque...</p>
+            </div>
           )}
 
           {combatPhase === "fighting" && finalResult?.details?.turns && preCalc && (

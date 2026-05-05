@@ -82,6 +82,7 @@ app.use("/api/time", timeRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/combat", combatRoutes);
 app.use("/api/logs", logsRoutes);
+app.use("/api/daily-cards", require("./routes/dailyCards"));
 
 app.get("/health", (req, res) => {
   res.json({ status: "OK", env: isProduction ? "production" : "development", port: PORT });
