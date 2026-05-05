@@ -817,7 +817,7 @@ async function updatePlayerState(userId, updates, options = {}) {
       const version = await _nextVersion(userId);
 
       if (Object.keys(patch).length > 0) {
-        if (import.meta.env?.DEV || process.env.NODE_ENV !== 'production') {
+        if (process.env.NODE_ENV !== 'production') {
           console.log(`[playerState:SSE] 🚀 Emitindo Patch v${version} para ${userId}:`, Object.keys(patch).join(", "));
         }
         sseService.publish(`player:${userId}`, "player:state", {
