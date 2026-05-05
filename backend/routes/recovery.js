@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const recoveryService = require("../services/recoveryService");
-const { authenticateToken } = require("../services/authService");
+const { authenticateToken } = require("../middleware/auth");
 
 // Aplicar antídoto (1 U-CRYPTO)
 router.post("/antidote", authenticateToken, async (req, res) => {

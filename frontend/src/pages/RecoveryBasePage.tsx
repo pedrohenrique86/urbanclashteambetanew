@@ -27,8 +27,43 @@ const MILITARY_CLIP = { clipPath: "polygon(8px 0%, 100% 0%, 100% calc(100% - 8px
 
 export default function RecoveryBasePage() {
   const { userProfile, refreshProfile } = useUserProfile();
+  const [timeLeft, setTimeLeft] = useState<number | null>(null);
   const status = userProfile?.status || 'Operacional';
   const subtitle = "UNIDADE MÉDICA DE ELITE. RECUPERAÇÃO BIOCIBERNÉTICA EM ANDAMENTO.";
+
+  // Contador de tempo restante
+  useEffect(() => {
+    if (!userProfile?.status_ends_at || status === 'Operacional') {
+      setTimeLeft(null);
+      return;
+    }
+
+    const endsAtMs = new Date(userProfile.status_ends_at).getTime();
+    if (isNaN(endsAtMs)) {
+      setTimeLeft(null);
+      return;
+    }
+
+    const tick = () => {
+      const remaining = Math.max(0, Math.floor((endsAtMs - Date.now()) / 1000));
+      setTimeLeft(remaining);
+      
+      // Se o tempo acabar, forçar um refresh do perfil para limpar o status
+      if (remaining === 0) {
+        refreshProfile();
+      }
+    };
+
+    tick();
+    const timer = setInterval(tick, 1000);
+    return () => clearInterval(timer);
+  }, [userProfile?.status_ends_at, status, refreshProfile]);
+
+  const formatTime = (seconds: number) => {
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+  };
 
   if (!userProfile) return null;
 
@@ -82,10 +117,17 @@ export default function RecoveryBasePage() {
               <h3 className="text-[10px] font-orbitron text-red-500 mb-6 flex items-center gap-2 tracking-[0.3em]">
                 <div className="w-2 h-2 bg-red-500 shadow-[0_0_8px_rgba(239,68,68,1)]"></div> CURRENT_STATUS
               </h3>
-              <div className="flex items-end gap-2 mb-2">
+              <div className="flex items-end justify-between mb-2">
                 <span className={`text-4xl font-black font-orbitron leading-none uppercase italic ${getStatusColor(status)}`}>
                   {status}
                 </span>
+                
+                {timeLeft !== null && (
+                  <div className="bg-black/60 px-4 py-2 border border-red-500/20 flex flex-col items-end">
+                    <span className="text-[8px] font-mono text-red-500 uppercase">Tempo Restante</span>
+                    <span className="text-2xl font-orbitron font-black text-white">{formatTime(timeLeft)}</span>
+                  </div>
+                )}
               </div>
           </div>
 
@@ -115,7 +157,7 @@ export default function RecoveryBasePage() {
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.98 }}
             >
-              <BleedingView user={userProfile} onAction={refreshProfile} />
+              <BleedingView user={userProfile} onAction={refreshProfile} timeLeft={timeLeft} formatTime={formatTime} />
             </motion.div>
           )}
 
@@ -126,7 +168,7 @@ export default function RecoveryBasePage() {
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.98 }}
             >
-              <ReconditioningView user={userProfile} />
+              <ReconditioningView user={userProfile} timeLeft={timeLeft} formatTime={formatTime} />
             </motion.div>
           )}
 
@@ -166,7 +208,7 @@ export default function RecoveryBasePage() {
 
 // ─── Componentes de Visão ────────────────────────────────────────────────────────
 
-function BleedingView({ user, onAction }: { user: any, onAction: () => void }) {
+function BleedingView({ user, onAction, timeLeft, formatTime }: { user: any, onAction: () => void, timeLeft: number | null, formatTime: (s: number) => string }) {
   const [loading, setLoading] = useState(false);
 
   const buyAntidote = async () => {
@@ -188,12 +230,20 @@ function BleedingView({ user, onAction }: { user: any, onAction: () => void }) {
       </div>
       
       <div className="flex flex-col md:flex-row items-center gap-8 relative z-10">
-        <div className="w-32 h-32 bg-red-600/20 border-2 border-red-600 flex items-center justify-center animate-pulse shadow-[0_0_30px_rgba(220,38,38,0.4)]" style={MILITARY_CLIP}>
-          <ExclamationTriangleIcon className="w-16 h-16 text-red-500" />
+        <div className="w-32 h-32 bg-red-600/20 border-2 border-red-600 flex flex-col items-center justify-center animate-pulse shadow-[0_0_30px_rgba(220,38,38,0.4)]" style={MILITARY_CLIP}>
+          <ExclamationTriangleIcon className="w-12 h-12 text-red-500 mb-1" />
+          {timeLeft !== null && (
+            <span className="text-lg font-orbitron font-black text-white">{formatTime(timeLeft)}</span>
+          )}
         </div>
         
         <div className="flex-1 text-center md:text-left space-y-4">
-          <h2 className="text-3xl font-orbitron font-black text-white italic uppercase tracking-widest">Hemofilia Detectada</h2>
+          <div className="flex items-center gap-4 justify-center md:justify-start">
+            <h2 className="text-3xl font-orbitron font-black text-white italic uppercase tracking-widest">Hemofilia Detectada</h2>
+            {timeLeft !== null && (
+              <span className="bg-red-500/20 px-3 py-1 border border-red-500/40 text-[10px] font-mono text-red-400 animate-pulse">ESTABILIZAÇÃO_AUTO EM {formatTime(timeLeft)}</span>
+            )}
+          </div>
           <p className="text-slate-400 font-mono text-sm max-w-xl uppercase tracking-wider leading-relaxed">
             Seu sistema biocibernético está perdendo integridade. Protocolo de emergência necessário. 
             O uso de antídoto nano-sintético é a única via de estabilização imediata.
@@ -220,7 +270,7 @@ function BleedingView({ user, onAction }: { user: any, onAction: () => void }) {
   );
 }
 
-function ReconditioningView({ user }: { user: any }) {
+function ReconditioningView({ user, timeLeft, formatTime }: { user: any, timeLeft: number | null, formatTime: (s: number) => string }) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [onlineUsers, setOnlineUsers] = useState<any[]>([]);
   const [inputText, setInputText] = useState("");
@@ -256,11 +306,14 @@ function ReconditioningView({ user }: { user: any }) {
           </h3>
           <div className="space-y-4">
              <div className="bg-black/60 p-4 border border-white/5">
-                <span className="text-[8px] text-slate-500 uppercase block mb-1">Completo em</span>
-                <span className="text-2xl font-orbitron font-black text-white italic">
-                  {user.status_ends_at ? format(new Date(user.status_ends_at), "HH:mm:ss") : "--:--:--"}
+                <span className="text-[8px] text-slate-500 uppercase block mb-1">Tempo Restante</span>
+                <span className="text-3xl font-orbitron font-black text-white italic">
+                  {timeLeft !== null ? formatTime(timeLeft) : "--:--"}
                 </span>
              </div>
+             <p className="text-[8px] font-mono text-slate-600 uppercase mb-4">
+               ETA: {user.status_ends_at ? format(new Date(user.status_ends_at), "HH:mm:ss") : "--:--:--"}
+             </p>
              <p className="text-[10px] font-mono text-slate-400 uppercase leading-relaxed border-l-2 border-red-500/30 pl-3">
                Nanites reconectando fibras neurais. Acesso restrito a operações de campo.
              </p>
