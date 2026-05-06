@@ -281,25 +281,32 @@ export const UserProfileProvider = ({ children }: { children: ReactNode }) => {
     isFetching.current = true;
     setLoading(true);
 
-    try {
-      const response = await api.get(`/users/profile?_t=${Date.now()}`);
-      const profileData = response.data;
+    const performFetch = async (retryCount = 0): Promise<UserProfile | null> => {
+      try {
+        const response = await api.get(`/users/profile?_t=${Date.now()}`);
+        const profileData = response.data;
 
-      if (profileData) {
-        const processed = processProfileData(profileData, user);
-
-        setUserProfile(processed);
-        writeProfileCache(processed);   // ← persiste no localStorage
-        fetchedForUser.current = user.id;
-        setIsError(false);
-        return processed;
-      } else {
-        setUserProfile(null);
-        writeProfileCache(null);
-        fetchedForUser.current = user.id;
-        setIsError(false);
+        if (profileData) {
+          const processed = processProfileData(profileData, user);
+          setUserProfile(processed);
+          writeProfileCache(processed);
+          fetchedForUser.current = user.id;
+          setIsError(false);
+          return processed;
+        }
         return null;
+      } catch (error: any) {
+        if (retryCount < 2 && (!error.response || error.response.status >= 500)) {
+          // Retry for 5xx errors or network failures
+          await new Promise(resolve => setTimeout(resolve, 2000));
+          return performFetch(retryCount + 1);
+        }
+        throw error;
       }
+    };
+
+    try {
+      return await performFetch();
     } catch (error: any) {
       console.error("Falha ao buscar perfil do usuário:", error);
       setIsError(true);

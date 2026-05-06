@@ -207,12 +207,9 @@ router.get("/state/subscribe", authenticateToken, (req, res) => {
   try {
     res.set({
       "Content-Type" : "text/event-stream",
-      "Cache-Control": "no-cache, no-transform, no-store, must-revalidate",
-      "Pragma"       : "no-cache",
-      "Expires"      : "0",
+      "Cache-Control": "no-cache, no-transform",
       "Connection"   : "keep-alive",
       "X-Accel-Buffering": "no",   // Desabilita buffering em nginx/proxies
-      "Content-Encoding": "identity", // Evita compressão que quebra SSE em alguns proxies
     });
     
     if (res.flushHeaders) res.flushHeaders();
