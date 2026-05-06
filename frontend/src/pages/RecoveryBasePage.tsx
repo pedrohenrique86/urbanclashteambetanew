@@ -22,6 +22,8 @@ import { ptBR } from "date-fns/locale";
 
 import { Avatar } from "../components/ui/Avatar";
 
+import { getFactionColor } from "../utils/faction";
+
 /**
  * RECOVERY BASE PAGE - AAA Military Cyberpunk Aesthetic
  * Follows the standard established in TrainingPage.tsx
@@ -568,10 +570,4 @@ function getStatusColor(status: string) {
     default: return 'text-gray-400';
   }
 }
-
-export function getFactionColor(faction?: string) {
-  const f = String(faction || "").toLowerCase().trim();
-  if (['gangsters', 'gangster', 'renegados', 'renegado'].includes(f)) return 'text-orange-500';
-  if (['guardas', 'guarda', 'guardioes', 'guardião', 'guardiões', 'guardiao'].includes(f)) return 'text-blue-400';
-  return 'text-slate-400';
-}
+

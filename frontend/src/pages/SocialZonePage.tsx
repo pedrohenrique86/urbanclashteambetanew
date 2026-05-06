@@ -14,7 +14,7 @@ import { useHUD } from "../contexts/HUDContext";
 import { tokenStorage } from "../lib/api";
 import { socketService, ChatMessage } from "../services/socketService";
 import { format } from "date-fns";
-import { getFactionColor } from "./RecoveryBasePage";
+import { getFactionColor } from "../utils/faction";
 
 import { Avatar } from "../components/ui/Avatar";
 

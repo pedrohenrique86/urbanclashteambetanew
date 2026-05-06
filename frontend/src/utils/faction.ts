@@ -15,6 +15,24 @@ export const FACTION_ALIAS_MAP_FRONTEND: Record<string, 'gangsters' | 'guardas'>
   'guardião': 'guardas',
 };
 
+/**
+ * Retorna a classe de cor correspondente à facção para nomes de usuários.
+ * Gangsters/Renegados: Laranja Claro
+ * Guardas/Guardiões: Azul Claro
+ */
+export const getFactionColor = (faction?: string) => {
+  const f = (faction || "").toLowerCase().trim();
+  const canonical = FACTION_ALIAS_MAP_FRONTEND[f] || f;
+  
+  if (canonical === 'gangsters') {
+    return 'text-orange-400 drop-shadow-[0_0_8px_rgba(249,115,22,0.4)]';
+  }
+  if (canonical === 'guardas') {
+    return 'text-blue-400 drop-shadow-[0_0_8px_rgba(59,130,246,0.4)]';
+  }
+  return 'text-slate-400';
+};
+
 // Função para verificar se uma data é mais antiga que 24 horas
 export const isMoreThan24HoursAgo = (date: Date): boolean => {
   const now = new Date();

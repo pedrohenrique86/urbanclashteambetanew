@@ -15,6 +15,8 @@ import {
   Activity
 } from "lucide-react";
 
+import { getFactionColor } from "../../utils/faction";
+
 interface ClanMember {
   username: string;
 }
@@ -57,12 +59,10 @@ const MessageList = React.memo(function MessageList({ messages, userProfile, cha
           const isMe = msg.userId === userProfile?.id;
           const displayUsername = msg.username || (isMe ? userProfile?.username : 'Membro');
           
-          const rawFaction = userProfile?.faction as any;
-          const userFaction = typeof rawFaction === 'string' ? rawFaction : rawFaction?.name;
-          
-          const factionColor = isMe 
-            ? (userFaction?.toLowerCase().includes('gangster') ? 'text-orange-500 drop-shadow-[0_0_5px_rgba(249,115,22,0.6)]' : 'text-blue-500 drop-shadow-[0_0_5px_rgba(59,130,246,0.6)]')
-            : 'text-zinc-400';
+          // No chat de clã, todos pertencem à mesma facção. 
+          // Usamos a facção da mensagem ou a do perfil logado como fallback.
+          const msgFaction = msg.faction || userProfile?.faction?.name || userProfile?.faction;
+          const factionColor = getFactionColor(msgFaction);
 
           return (
             <motion.div 
