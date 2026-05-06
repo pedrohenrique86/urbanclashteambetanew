@@ -14,6 +14,7 @@ import api from "../lib/api";
 import { HUDCache } from "../hooks/useHUDCache";
 import { usePlayerStateSSE, PlayerStatePayload, DuplicateSessionPayload } from "../hooks/usePlayerStateSSE";
 import DuplicateSessionOverlay from "../components/layout/DuplicateSessionOverlay";
+import { socketService } from "../services/socketService";
 
 export interface Faction {
   id: number;
@@ -402,6 +403,13 @@ export const UserProfileProvider = ({ children }: { children: ReactNode }) => {
     onStatusUpdate: handlePlayerStatusUpdate,
     onDuplicateSession: () => setIsDuplicateSession(true),
   });
+
+  // SÊNIOR: Listener global para kick no Socket.IO (Chat e outros eventos real-time)
+  useEffect(() => {
+    socketService.onDuplicateSession(() => {
+      setIsDuplicateSession(true);
+    });
+  }, []);
   // ───────────────────────────────────────────────────────────────────
   const isProfileLoading =
     loading || (user !== null && fetchedForUser.current !== user.id);

@@ -3,6 +3,26 @@ const { authenticateSocket } = require("./services/authService");
 const chatService = require("./services/chatService");
 const redisClient = require("./config/redisClient");
 
+const redisClient = require("./config/redisClient");
+
+// ─── SÊNIOR: Helper de Anti-Multi-Aba para Socket.IO ───────────────────────
+async function enforceSingleSession(io, socket, user, cid) {
+  const userRoom = `user:${user.id}`;
+  socket.cid = cid || "unknown";
+  socket.join(userRoom);
+
+  // Busca todos os sockets deste usuário (O(1) com adapter ou local)
+  const socketsInRoom = await io.in(userRoom).fetchSockets();
+  for (const s of socketsInRoom) {
+    // Se for o mesmo usuário, porém em outro socket com CID diferente (outra aba)
+    if (s.id !== socket.id && s.cid !== socket.cid) {
+      s.emit("socket:duplicate_session", { message: "Sessão finalizada: outra aba foi aberta." });
+      s.disconnect(true);
+    }
+  }
+}
+// ──────────────────────────────────────────────────────────────────────────
+
 const MESSAGE_COOLDOWN_MS = 5000;
 let io;
 
@@ -29,6 +49,9 @@ function initializeSocket(server) {
 
         const user = await authenticateSocket(token);
         if (currentAuthVersion !== socket.authVersion) return;
+
+        // SÊNIOR: Valida sessão única usando o CID
+        await enforceSingleSession(io, socket, user, data.cid);
 
         const clanId = String(user?.clan_id ?? "").trim();
         if (!clanId || clanId === "null" || clanId === "undefined") {
@@ -102,6 +125,9 @@ function initializeSocket(server) {
         user.faction = playerState ? playerState.faction : 'gangsters';
         user.avatar_url = playerState ? playerState.avatar_url : user.avatar_url;
 
+        // SÊNIOR: Valida sessão única usando o CID
+        await enforceSingleSession(io, socket, user, data.cid);
+
         socket.user = user;
         socket.join("isolation:room");
 
@@ -162,6 +188,9 @@ function initializeSocket(server) {
         user.faction = playerState ? playerState.faction : 'gangsters';
         user.avatar_url = playerState ? playerState.avatar_url : user.avatar_url;
 
+        // SÊNIOR: Valida sessão única usando o CID
+        await enforceSingleSession(io, socket, user, data.cid);
+
         socket.user = user;
         socket.join("recovery:room");
 
@@ -221,6 +250,9 @@ function initializeSocket(server) {
         const playerState = await playerStateService.getPlayerState(user.id);
         user.faction = playerState ? playerState.faction : 'gangsters';
         user.avatar_url = playerState ? playerState.avatar_url : user.avatar_url;
+
+        // SÊNIOR: Valida sessão única usando o CID
+        await enforceSingleSession(io, socket, user, data.cid);
 
         socket.user = user;
         socket.join("global:room");

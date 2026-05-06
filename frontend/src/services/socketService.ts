@@ -39,6 +39,11 @@ const VITE_API_URL = import.meta.env.VITE_API_URL as string;
 
 class SocketService {
   private socket: Socket | null = null;
+  public readonly cid: string; // SÊNIOR: Identificador único da aba/instância para o Anti-Multi-Aba
+
+  constructor() {
+    this.cid = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+  }
 
   /**
    * Conecta ao servidor Socket.IO se ainda não estiver conectado.
@@ -126,7 +131,7 @@ class SocketService {
    * @param token - O token JWT do usuário.
    */
   authenticateChat(token: string): void {
-    this.emit("chat:authenticate", { token });
+    this.emit("chat:authenticate", { token, cid: this.cid });
   }
 
   /**
@@ -182,7 +187,7 @@ class SocketService {
   // --- Métodos específicos do Chat de Recuperação ---
 
   authenticateRecovery(token: string): void {
-    this.emit("recovery:authenticate", { token });
+    this.emit("recovery:authenticate", { token, cid: this.cid });
   }
 
   sendRecoveryMessage(text: string): void {
@@ -208,7 +213,7 @@ class SocketService {
   // --- Métodos específicos do Chat de Isolamento ---
 
   authenticateIsolation(token: string): void {
-    this.emit("isolation:authenticate", { token });
+    this.emit("isolation:authenticate", { token, cid: this.cid });
   }
 
   sendIsolationMessage(text: string): void {
@@ -234,7 +239,7 @@ class SocketService {
   // --- Métodos específicos do Chat Global (Zona Social) ---
 
   authenticateGlobal(token: string): void {
-    this.emit("global:authenticate", { token });
+    this.emit("global:authenticate", { token, cid: this.cid });
   }
 
   sendGlobalMessage(text: string): void {
@@ -257,6 +262,17 @@ class SocketService {
     this.on<any[]>("global:users", callback);
   }
 
+  // --- SÊNIOR: Handler de Sessão Duplicada (Anti-Multi-Aba) ---
+  onDuplicateSession(callback: (data: { message: string }) => void): void {
+    this.on<{ message: string }>("socket:duplicate_session", (data) => {
+      // Quando tomar kick, desabilita a reconexão automática para evitar ping-pong loop no mobile
+      if (this.socket && this.socket.io) {
+        this.socket.io.reconnection(false);
+        this.socket.disconnect();
+      }
+      callback(data);
+    });
+  }
 }
 
 // Exporta uma instância única (singleton) do serviço
