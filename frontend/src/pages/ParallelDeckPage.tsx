@@ -93,7 +93,7 @@ export default function ParallelDeckPage() {
     setIsChoosing(true);
     try {
       const response = await api.post("/daily-cards/choose", { optionIndex });
-      showToast(`RECOMPENSA RESGATADA: ${response.data.card.reward_type.toUpperCase()}`, "success");
+      showToast(`RECOMPENSA RESGATADA: ${response.data.card.reward_type === 'money' ? 'CASH' : response.data.card.reward_type.toUpperCase()}`, "success");
       await mutate("/daily-cards");
       await refreshProfile();
     } catch (err: any) {
@@ -268,7 +268,7 @@ export default function ParallelDeckPage() {
                         {option.name || (option.reward_type === 'item' ? 'ITEM RARO' : `+${option.reward_value.toLocaleString()}`)}
                       </h3>
                       <p className="text-slate-400 font-mono text-[10px] uppercase tracking-widest font-bold">
-                        {option.reward_type.replace('_', ' ')}
+                        {option.reward_type === 'money' ? 'CASH' : option.reward_type.replace('_', ' ')}
                       </p>
 
                       <div className="mt-8 pt-6 border-t border-white/5 w-full text-center">
