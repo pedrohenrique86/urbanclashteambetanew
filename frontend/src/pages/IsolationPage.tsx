@@ -300,7 +300,7 @@ function IsolationActionsView({ user, onAction }: { user: any, onAction: () => v
           <div className="flex items-center gap-4 pt-4">
             <div className="bg-black/60 px-4 py-2 border border-yellow-500/20 flex items-center gap-3" style={MILITARY_CLIP}>
               <span className="text-[10px] font-mono text-gray-500 uppercase">Custo</span>
-              <span className="text-xl font-orbitron font-black text-amber-400 italic" style={{ textShadow: "0 0 10px #f59e0b" }}>5 <span className="text-white">UC</span></span>
+              <span className="text-xl font-orbitron font-black text-amber-400 italic" style={{ textShadow: "0 0 10px #f59e0b" }}>10 <span className="text-white">UC</span></span>
             </div>
             <button
               disabled={!!loading}

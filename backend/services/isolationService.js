@@ -8,7 +8,7 @@ const playerStateService = require("./playerStateService");
  */
 
 const BRIBE_MULTIPLIER = 500;
-const INSTANT_ESCAPE_TOKENS = 5;
+const INSTANT_ESCAPE_TOKENS = 10;
 const HELP_ALLY_TOKENS = 10;
 
 async function bribeRuler(userId) {

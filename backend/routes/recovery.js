@@ -3,7 +3,7 @@ const router = express.Router();
 const recoveryService = require("../services/recoveryService");
 const { authenticateToken } = require("../middleware/auth");
 
-// Aplicar antídoto (1 U-CRYPTON TOKENS)
+// Aplicar antídoto (5 U-CRYPTON TOKENS)
 router.post("/antidote", authenticateToken, async (req, res) => {
   try {
     const result = await recoveryService.buyAntidote(req.user.id);

@@ -13,7 +13,7 @@ router.post("/bribe", authenticateToken, async (req, res) => {
   }
 });
 
-// Sair na hora (5 U-CRYPTON TOKENS)
+// Sair na hora (10 U-CRYPTON TOKENS)
 router.post("/instant-escape", authenticateToken, async (req, res) => {
   try {
     const result = await isolationService.instantEscape(req.user.id);

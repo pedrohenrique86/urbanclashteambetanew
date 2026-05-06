@@ -277,7 +277,7 @@ function BleedingView({ user, onAction, timeLeft, formatTime }: { user: any, onA
           <div className="flex flex-wrap gap-6 items-center pt-4">
             <div className="bg-black/60 px-4 py-2 border border-yellow-500/30 flex items-center gap-3" style={MILITARY_CLIP}>
                <span className="text-[10px] font-mono text-gray-500 uppercase">Custo</span>
-               <span className="text-xl font-orbitron font-black text-yellow-500 italic">1 <span className="text-white">UC</span></span>
+               <span className="text-xl font-orbitron font-black text-yellow-500 italic">5 <span className="text-white">UC</span></span>
             </div>
             
             <button 

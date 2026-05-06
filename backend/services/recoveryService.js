@@ -18,13 +18,13 @@ async function buyAntidote(userId) {
   }
 
   const premiumCoins = Number(state.premium_coins || 0);
-  if (premiumCoins < 1) {
-    throw new Error("Saldo de U-CRYPTON TOKENS insuficiente. (Custo: 1 U-CRYPTON TOKENS)");
+  if (premiumCoins < 5) {
+    throw new Error("Saldo de U-CRYPTON TOKENS insuficiente. (Custo: 5 U-CRYPTON TOKENS)");
   }
 
   // Dedução e atualização de estado
   await playerStateService.updatePlayerState(userId, {
-    premium_coins: -1,
+    premium_coins: -5,
     status: 'Operacional',
     status_ends_at: null
   });
