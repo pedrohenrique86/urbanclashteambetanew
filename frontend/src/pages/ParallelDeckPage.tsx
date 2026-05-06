@@ -172,9 +172,23 @@ export default function ParallelDeckPage() {
 
       <div className="max-w-6xl mx-auto flex flex-col items-center">
         {!dailyCards?.chosen_option ? (
-          <div className="text-center mb-12">
-            <h2 className="text-xl font-orbitron font-black text-white uppercase mb-2">Escolha seu Destino</h2>
-            <p className="text-slate-500 font-mono text-xs">Uma conexão neural disponível. Selecione uma carta para sincronizar bônus.</p>
+          <div className="text-center mb-10 relative -mt-4">
+            <motion.div 
+              initial={{ opacity: 0, y: -10 }} 
+              animate={{ opacity: 1, y: 0 }}
+              className="flex flex-col items-center"
+            >
+              <h2 className="text-2xl md:text-4xl font-orbitron font-black text-white uppercase mb-3 tracking-[0.1em]" style={{ textShadow: "0 0 15px rgba(16,185,129,0.3)" }}>
+                Escolha seu <span className="text-emerald-400">Destino</span>
+              </h2>
+              <div className="bg-black/40 border-y border-emerald-500/20 px-6 py-2 backdrop-blur-md">
+                <p className="text-emerald-400/80 font-mono text-[10px] md:text-xs uppercase tracking-[0.15em] font-black flex items-center gap-3">
+                  <span className="w-1 h-1 bg-emerald-500 animate-pulse" />
+                  Uma conexão neural disponível. Selecione uma carta para sincronizar bônus.
+                  <span className="w-1 h-1 bg-emerald-500 animate-pulse" />
+                </p>
+              </div>
+            </motion.div>
           </div>
         ) : (
           <div className="mb-10 bg-emerald-500/5 border border-emerald-500/20 p-4 backdrop-blur-md flex flex-col md:flex-row items-center gap-6" style={MILITARY_CLIP}>
