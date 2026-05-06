@@ -106,12 +106,12 @@ function initializeSocket(server) {
         socket.join("isolation:room");
 
         const ISOLATION_USERS_KEY = "online_players:isolation";
-        const userData = JSON.stringify({ id: user.id, username: user.username, avatar: user.avatar_url, faction: user.faction });
+        const userData = JSON.stringify({ id: user.id, username: user.username, avatar: user.avatar_url, faction: user.faction, country: user.country });
         
-        await redisClient.sAddAsync(ISOLATION_USERS_KEY, userData);
+        await redisClient.hSetAsync(ISOLATION_USERS_KEY, String(user.id), userData);
 
         const emitIsolationUsers = async () => {
-          const rawUsers = await redisClient.sMembersAsync(ISOLATION_USERS_KEY);
+          const rawUsers = await redisClient.hValuesAsync(ISOLATION_USERS_KEY);
           const users = rawUsers.map(u => {
             try { return JSON.parse(u); } catch(e) { return null; }
           }).filter(Boolean);
@@ -125,7 +125,7 @@ function initializeSocket(server) {
         socket.emit("isolation:history", isolationChatService.getHistory());
 
         socket.on("disconnect", async () => {
-          await redisClient.sRemAsync(ISOLATION_USERS_KEY, userData);
+          await redisClient.hDelAsync(ISOLATION_USERS_KEY, String(user.id));
           await emitIsolationUsers();
         });
 
@@ -166,12 +166,12 @@ function initializeSocket(server) {
         socket.join("recovery:room");
 
         const RECOVERY_USERS_KEY = "online_players:recovery";
-        const userData = JSON.stringify({ id: user.id, username: user.username, avatar: user.avatar_url, faction: user.faction });
+        const userData = JSON.stringify({ id: user.id, username: user.username, avatar: user.avatar_url, faction: user.faction, country: user.country });
         
-        await redisClient.sAddAsync(RECOVERY_USERS_KEY, userData);
+        await redisClient.hSetAsync(RECOVERY_USERS_KEY, String(user.id), userData);
 
         const emitRecoveryUsers = async () => {
-          const rawUsers = await redisClient.sMembersAsync(RECOVERY_USERS_KEY);
+          const rawUsers = await redisClient.hValuesAsync(RECOVERY_USERS_KEY);
           const users = rawUsers.map(u => {
             try { return JSON.parse(u); } catch(e) { return null; }
           }).filter(Boolean);
@@ -185,7 +185,7 @@ function initializeSocket(server) {
         socket.emit("recovery:history", recoveryChatService.getHistory());
 
         socket.on("disconnect", async () => {
-          await redisClient.sRemAsync(RECOVERY_USERS_KEY, userData);
+          await redisClient.hDelAsync(RECOVERY_USERS_KEY, String(user.id));
           await emitRecoveryUsers();
         });
 
@@ -226,7 +226,7 @@ function initializeSocket(server) {
         socket.join("global:room");
 
         const globalChatService = require("./services/globalChatService");
-        await globalChatService.addUserOnline(user.id, user.username, user.avatar_url, user.faction);
+        await globalChatService.addUserOnline(user.id, user.username, user.avatar_url, user.faction, user.country);
 
         const emitGlobalUsers = async () => {
           const users = await globalChatService.getOnlineUsers();
@@ -238,7 +238,7 @@ function initializeSocket(server) {
         socket.emit("global:history", await globalChatService.getHistory());
 
         socket.on("disconnect", async () => {
-          await globalChatService.removeUserOnline(user.id, user.username, user.avatar_url, user.faction);
+          await globalChatService.removeUserOnline(user.id);
           await emitGlobalUsers();
         });
 

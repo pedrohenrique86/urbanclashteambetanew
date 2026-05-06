@@ -162,6 +162,17 @@ const redisWrapper = {
     }
   },
 
+  hValuesAsync: async (k) => {
+    if (!k || !isReady) return [];
+    try {
+      const key = String(k);
+      return await client.hVals(key);
+    } catch (err) {
+      console.error(`[RedisClient] Erro em hValuesAsync key=${k}:`, err.message);
+      return [];
+    }
+  },
+
   expireAsync: async (k, t) => {
     if (!k || !isReady) return null;
     try {

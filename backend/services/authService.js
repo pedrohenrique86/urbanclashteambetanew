@@ -27,6 +27,7 @@ async function authenticateSocket(token) {
         u.id,
         u.username,
         u.email,
+        u.country,
         cm.clan_id
       FROM users u
       LEFT JOIN clan_members cm ON u.id = cm.user_id

@@ -24,6 +24,7 @@ async function handleNewMessage(io, socket, text) {
     username: socket.user.username,
     avatar: socket.user.avatar_url,
     faction: socket.user.faction,
+    country: socket.user.country,
     text: text,
     timestamp: new Date().toISOString()
   };
@@ -50,24 +51,23 @@ async function getHistory() {
 /**
  * Adiciona um usuário à lista de online do chat global no Redis.
  */
-async function addUserOnline(userId, username, avatar, faction) {
-  const userData = JSON.stringify({ id: userId, username, avatar, faction });
-  await redisClient.sAddAsync(GLOBAL_USERS_KEY, userData);
+async function addUserOnline(userId, username, avatar, faction, country) {
+  const userData = JSON.stringify({ id: userId, username, avatar, faction, country });
+  await redisClient.hSetAsync(GLOBAL_USERS_KEY, String(userId), userData);
 }
 
 /**
  * Remove um usuário da lista de online.
  */
-async function removeUserOnline(userId, username, avatar, faction) {
-  const userData = JSON.stringify({ id: userId, username, avatar, faction });
-  await redisClient.sRemAsync(GLOBAL_USERS_KEY, userData);
+async function removeUserOnline(userId) {
+  await redisClient.hDelAsync(GLOBAL_USERS_KEY, String(userId));
 }
 
 /**
  * Retorna a lista de usuários online no chat global.
  */
 async function getOnlineUsers() {
-  const rawUsers = await redisClient.sMembersAsync(GLOBAL_USERS_KEY);
+  const rawUsers = await redisClient.hValuesAsync(GLOBAL_USERS_KEY);
   return rawUsers.map(u => {
     try { return JSON.parse(u); } catch (e) { return null; }
   }).filter(Boolean);

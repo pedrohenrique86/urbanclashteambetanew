@@ -105,7 +105,7 @@ async function getAlliesInIsolation(userId) {
   const faction = player.faction;
   
   const result = await query(
-    `SELECT u.id, u.username, p.avatar_url, p.level, p.status_ends_at
+    `SELECT u.id, u.username, u.country, p.avatar_url, p.level, p.status_ends_at
      FROM user_profiles p
      JOIN users u ON p.user_id = u.id
      WHERE p.faction = $1 

@@ -363,6 +363,13 @@ function ReconditioningView({ user, timeLeft, formatTime }: { user: any, timeLef
                 />
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
+                    {msg.country && (
+                      <img 
+                        src={`https://flagcdn.com/w20/${msg.country.toLowerCase()}.png`} 
+                        className="w-3 h-auto opacity-80" 
+                        alt="flag" 
+                      />
+                    )}
                     <span 
                       className={`text-[10px] font-black uppercase italic tracking-tighter cursor-pointer hover:underline ${getFactionColor((msg as any).faction)}`}
                       onClick={() => openUserPanel(msg.userId)}
@@ -420,7 +427,16 @@ function ReconditioningView({ user, timeLeft, formatTime }: { user: any, timeLef
                 onClick={() => openUserPanel(u.id)}
               >
                 <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full shadow-[0_0_5px_rgba(16,185,129,0.8)] animate-pulse" />
-                <span className={`text-[9px] font-black uppercase italic truncate group-hover:text-white transition-colors ${getFactionColor(u.faction)}`}>{u.username}</span>
+                <div className="flex items-center gap-1.5 min-w-0">
+                  {u.country && (
+                    <img 
+                      src={`https://flagcdn.com/w20/${u.country.toLowerCase()}.png`} 
+                      className="w-2.5 h-auto opacity-70" 
+                      alt="flag" 
+                    />
+                  )}
+                  <span className={`text-[9px] font-black uppercase italic truncate group-hover:text-white transition-colors ${getFactionColor(u.faction)}`}>{u.username}</span>
+                </div>
               </div>
             ))}
           </div>
@@ -521,7 +537,10 @@ function OperationalView({ onAction }: { onAction: () => void }) {
                   onClick={() => openUserPanel(ally.id)}
                 />
                 <div className="cursor-pointer" onClick={() => openUserPanel(ally.id)}>
-                  <p className="text-sm font-black text-white italic uppercase tracking-tighter hover:underline">{ally.username}</p>
+                  <p className="text-sm font-black text-white italic uppercase tracking-tighter hover:underline flex items-center gap-1.5">
+                    {ally.country && <img src={`https://flagcdn.com/w20/${ally.country.toLowerCase()}.png`} className="w-3 h-auto opacity-80" alt="flag" />}
+                    {ally.username}
+                  </p>
                   <p className="text-[8px] font-mono text-cyan-500 uppercase tracking-widest">Nível {ally.level} • RECO_MODE</p>
                 </div>
               </div>

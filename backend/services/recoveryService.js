@@ -79,7 +79,7 @@ async function getAlliesInReconditioning(userId) {
   // SÊNIOR: Query otimizada para buscar apenas aliados em recondicionamento
   // Limitamos para evitar sobrecarga se houverem muitos
   const result = await query(
-    `SELECT u.id, u.username, p.avatar_url, p.level, p.status_ends_at
+    `SELECT u.id, u.username, u.country, p.avatar_url, p.level, p.status_ends_at
      FROM user_profiles p
      JOIN users u ON p.user_id = u.id
      WHERE p.faction = $1 

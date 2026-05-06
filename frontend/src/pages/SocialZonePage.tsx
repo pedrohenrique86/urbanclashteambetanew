@@ -155,8 +155,18 @@ export default function SocialZonePage() {
                     />
                     
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1.5">
-                        <span className={`text-[10px] font-black uppercase italic tracking-tight ${getFactionColor(msg.faction)}`}>
+                      <div className="flex items-center gap-2 mb-1">
+                        {msg.country && (
+                          <img 
+                            src={`https://flagcdn.com/w20/${msg.country.toLowerCase()}.png`} 
+                            className="w-3 h-auto opacity-80" 
+                            alt="flag" 
+                          />
+                        )}
+                        <span 
+                          className={`text-[10px] font-black uppercase italic tracking-tighter cursor-pointer hover:underline ${getFactionColor(msg.faction)}`}
+                          onClick={() => openUserPanel(msg.userId)}
+                        >
                           {msg.username}
                         </span>
                         <span className="text-[8px] font-mono text-slate-400">
@@ -221,9 +231,18 @@ export default function SocialZonePage() {
                     <img src={u.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${u.username}`} className="w-7 h-7 bg-black/40" style={MILITARY_CLIP} />
                     <div className="absolute -bottom-0.5 -right-0.5 w-2 h-2 bg-emerald-500 rounded-full border border-black animate-pulse"></div>
                   </div>
-                  <span className={`text-[10px] font-black uppercase italic truncate group-hover:text-white transition-colors ${getFactionColor(u.faction)}`}>
-                    {u.username}
-                  </span>
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    {u.country && (
+                      <img 
+                        src={`https://flagcdn.com/w20/${u.country.toLowerCase()}.png`} 
+                        className="w-2.5 h-auto opacity-70" 
+                        alt="flag" 
+                      />
+                    )}
+                    <span className={`text-[10px] font-black uppercase italic truncate group-hover:text-white transition-colors ${getFactionColor(u.faction)}`}>
+                      {u.username}
+                    </span>
+                  </div>
                 </div>
               ))}
             </div>

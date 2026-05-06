@@ -17,6 +17,7 @@ async function handleNewMessage(io, socket, text) {
     username: socket.user.username,
     avatar: socket.user.avatar_url,
     faction: socket.user.faction,
+    country: socket.user.country,
     text: text,
     timestamp: new Date().toISOString()
   };

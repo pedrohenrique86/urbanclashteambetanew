@@ -27,6 +27,7 @@ interface ChatMessage {
   username: string;
   avatar?: string;
   faction?: string;
+  country?: string;
   text: string;
   timestamp: string;
 }
