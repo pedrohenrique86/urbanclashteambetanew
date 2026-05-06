@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ChatBubbleLeftRightIcon,
@@ -14,7 +14,8 @@ import { useHUD } from "../contexts/HUDContext";
 import { tokenStorage } from "../lib/api";
 import { socketService, ChatMessage } from "../services/socketService";
 import { format } from "date-fns";
-import { getFactionColor } from "../utils/faction";
+import { getFactionColor } from "./RecoveryBasePage";
+import { playMentionSound } from "../lib/audio";
 
 import { Avatar } from "../components/ui/Avatar";
 
@@ -31,15 +32,26 @@ export default function SocialZonePage() {
 
   const subtitle = "FREQUÊNCIA GLOBAL UNIFICADA. TRANSMISSÃO CRIPTOGRAFADA EM TEMPO REAL.";
 
+  const userProfileRef = useRef(userProfile);
+  useEffect(() => {
+    userProfileRef.current = userProfile;
+  }, [userProfile]);
+
   useEffect(() => {
     const token = tokenStorage.getToken();
     if (!token) return;
 
     socketService.onGlobalHistory((history) => setMessages(history));
-    socketService.onGlobalMessageReceived((msg) => setMessages(prev => {
-      if (prev.some(m => m.id === msg.id)) return prev;
-      return [...prev.slice(-29), msg];
-    }));
+    socketService.onGlobalMessageReceived((msg) => {
+      const currentProfile = userProfileRef.current;
+      if (currentProfile && msg.text.toLowerCase().includes(`@${currentProfile.username.toLowerCase()}`)) {
+        playMentionSound();
+      }
+      setMessages(prev => {
+        if (prev.some(m => m.id === msg.id)) return prev;
+        return [...prev.slice(-29), msg];
+      });
+    });
     socketService.onGlobalUsers((users) => setOnlineUsers(users));
 
     const timer = setTimeout(() => {
@@ -59,9 +71,96 @@ export default function SocialZonePage() {
     }
   }, [messages]);
 
+  // --- Mention System State ---
+  const [showMentions, setShowMentions] = useState(false);
+  const [mentionFilter, setMentionFilter] = useState("");
+  const [mentionIndex, setMentionIndex] = useState(0);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const filteredUsers = useMemo(() => {
+    return onlineUsers.filter((u) =>
+      u.username.toLowerCase().includes(mentionFilter.toLowerCase())
+    );
+  }, [onlineUsers, mentionFilter]);
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    setInputText(val);
+
+    const cursorPosition = e.target.selectionStart || 0;
+    const textBeforeCursor = val.slice(0, cursorPosition);
+    
+    const match = textBeforeCursor.match(/@([a-zA-Z0-9_\u00C0-\u017F]*)$/);
+    if (match) {
+      setMentionFilter(match[1]);
+      setShowMentions(true);
+      setMentionIndex(0);
+    } else {
+      setShowMentions(false);
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (showMentions && filteredUsers.length > 0) {
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        setMentionIndex((i) => (i < filteredUsers.length - 1 ? i + 1 : 0));
+      } else if (e.key === "ArrowUp") {
+        e.preventDefault();
+        setMentionIndex((i) => (i > 0 ? i - 1 : filteredUsers.length - 1));
+      } else if (e.key === "Enter") {
+        e.preventDefault();
+        insertMention(filteredUsers[mentionIndex].username);
+      } else if (e.key === "Escape") {
+        setShowMentions(false);
+      }
+    }
+  };
+
+  const insertMention = (username: string) => {
+    const cursorPosition = inputRef.current?.selectionStart || inputText.length;
+    const textBeforeCursor = inputText.slice(0, cursorPosition);
+    const textAfterCursor = inputText.slice(cursorPosition);
+    const newTextBefore = textBeforeCursor.replace(/@[a-zA-Z0-9_\u00C0-\u017F]*$/, `@${username} `);
+    
+    setInputText(newTextBefore + textAfterCursor);
+    setShowMentions(false);
+    setTimeout(() => {
+      inputRef.current?.focus();
+    }, 0);
+  };
+
+  const renderMessageText = (text: string) => {
+    const parts = text.split(/(@[a-zA-Z0-9_\u00C0-\u017F]+)/g);
+    return parts.map((part, i) => {
+      if (part.startsWith("@")) {
+        const cleanMention = part.substring(1);
+        const isMe = userProfile && cleanMention.toLowerCase() === userProfile.username.toLowerCase();
+        return (
+          <span
+            key={i}
+            className={`font-black px-1 rounded ${
+              isMe
+                ? "bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 shadow-[0_0_10px_rgba(234,179,8,0.3)]"
+                : "text-violet-400 drop-shadow-[0_0_5px_rgba(139,92,246,0.5)]"
+            }`}
+          >
+            {part}
+          </span>
+        );
+      }
+      return <span key={i}>{part}</span>;
+    });
+  };
+
   const sendMessage = (e: React.FormEvent) => {
     e.preventDefault();
     if (!inputText.trim() || isCooldown) return;
+
+    if (showMentions && filteredUsers.length > 0) {
+      insertMention(filteredUsers[mentionIndex].username);
+      return;
+    }
     
     socketService.sendGlobalMessage(inputText);
     setInputText("");
@@ -177,7 +276,7 @@ export default function SocialZonePage() {
                         className="bg-white/5 p-4 text-xs text-slate-300 border-l-2 border-violet-500/30 break-words group-hover:border-violet-500/50 transition-colors"
                         style={{ clipPath: "polygon(0 0, 100% 0, 100% 100%, 8px 100%, 0 calc(100% - 8px))" }}
                       >
-                        {msg.text}
+                        {renderMessageText(msg.text)}
                       </div>
                     </div>
                   </motion.div>
@@ -188,11 +287,36 @@ export default function SocialZonePage() {
             {/* INPUT FORM */}
             <form onSubmit={sendMessage} className="p-4 bg-black/40 border-t border-white/5 flex gap-3">
               <div className="flex-1 relative">
+                <AnimatePresence>
+                  {showMentions && filteredUsers.length > 0 && (
+                    <motion.div 
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: 10 }}
+                      className="absolute bottom-full left-0 mb-2 w-48 bg-black/90 border border-violet-500/30 shadow-[0_0_15px_rgba(139,92,246,0.3)] max-h-40 overflow-y-auto custom-scrollbar z-50 rounded"
+                    >
+                      {filteredUsers.map((u, idx) => (
+                        <div
+                          key={u.id}
+                          onClick={() => insertMention(u.username)}
+                          className={`p-2 text-xs font-black uppercase italic cursor-pointer flex items-center gap-2 ${idx === mentionIndex ? 'bg-violet-500/30 text-white' : 'text-slate-400 hover:bg-violet-500/10 hover:text-white'}`}
+                        >
+                          {u.country && (
+                            <img src={`https://flagcdn.com/w20/${u.country.toLowerCase()}.png`} className="w-3 h-auto" alt="flag" />
+                          )}
+                          {u.username}
+                        </div>
+                      ))}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
                 <input 
+                  ref={inputRef}
                   type="text"
                   maxLength={120}
                   value={inputText}
-                  onChange={(e) => setInputText(e.target.value)}
+                  onChange={handleInputChange}
+                  onKeyDown={handleKeyDown}
                   placeholder={isCooldown ? "Aguarde o cooldown..." : "Digitar transmissão global..."}
                   disabled={isCooldown}
                   className="w-full bg-white/5 border border-white/10 px-5 py-3 pr-16 text-xs font-mono text-white placeholder:text-slate-700 focus:outline-none focus:border-violet-500/50 transition-all disabled:opacity-50"

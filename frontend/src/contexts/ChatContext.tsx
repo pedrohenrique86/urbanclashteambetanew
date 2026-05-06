@@ -11,6 +11,7 @@ import React, {
 import { socketService, ChatMessage } from "../services/socketService";
 import { useUserProfile } from "../hooks/useUserProfile";
 import { apiClient } from "../lib/supabaseClient"; // Importar o apiClient
+import { playMentionSound } from "../lib/audio";
 
 interface ChatContextType {
   messages: ChatMessage[];
@@ -76,10 +77,20 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({
     }
   }, [userProfile?.clan_id]);
 
+  const userProfileRef = useRef(userProfile);
+  useEffect(() => {
+    userProfileRef.current = userProfile;
+  }, [userProfile]);
+
   // Envolve os handlers com useCallback para estabilizar suas referências.
   // Isso é crucial para usá-los como dependências no useEffect sem causar re-execuções indesejadas.
   // Utiliza as funções isoladas fora do componente, 100% livres de dependências extras
   const handleNewMessage = useCallback((message: ChatMessage) => {
+    const currentProfile = userProfileRef.current;
+    if (currentProfile && message.text.toLowerCase().includes(`@${currentProfile.username.toLowerCase()}`)) {
+      playMentionSound();
+    }
+
     setMessages((prev) => {
       const newKey = getMessageKey(message);
       

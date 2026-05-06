@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   HeartIcon, 
@@ -19,10 +19,9 @@ import { recoveryService } from "../services/recoveryService";
 import { socketService, ChatMessage } from "../services/socketService";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { playMentionSound } from "../lib/audio";
 
 import { Avatar } from "../components/ui/Avatar";
-
-import { getFactionColor } from "../utils/faction";
 
 /**
  * RECOVERY BASE PAGE - AAA Military Cyberpunk Aesthetic
@@ -286,16 +285,27 @@ function ReconditioningView({ user, timeLeft, formatTime }: { user: any, timeLef
   const scrollRef = useRef<HTMLDivElement>(null);
   const { openUserPanel } = useHUD();
 
+  const userRef = useRef(user);
+  useEffect(() => {
+    userRef.current = user;
+  }, [user]);
+
   useEffect(() => {
     const token = tokenStorage.getToken();
     if (!token || user?.status !== 'Recondicionamento') return;
 
     const handleHistory = (history: ChatMessage[]) => setMessages(history);
-    const handleMessage = (msg: ChatMessage) => setMessages(prev => {
-      // Evitar duplicatas por ID
-      if (prev.some(m => m.id === msg.id)) return prev;
-      return [...prev.slice(-19), msg];
-    });
+    const handleMessage = (msg: ChatMessage) => {
+      const currentUser = userRef.current;
+      if (currentUser && msg.text.toLowerCase().includes(`@${currentUser.username.toLowerCase()}`)) {
+        playMentionSound();
+      }
+      setMessages(prev => {
+        // Evitar duplicatas por ID
+        if (prev.some(m => m.id === msg.id)) return prev;
+        return [...prev.slice(-19), msg];
+      });
+    };
     const handleUsers = (users: any[]) => setOnlineUsers(users);
 
     socketService.onRecoveryHistory(handleHistory);
@@ -320,9 +330,97 @@ function ReconditioningView({ user, timeLeft, formatTime }: { user: any, timeLef
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
   }, [messages]);
 
+  // --- Mention System State ---
+  const [showMentions, setShowMentions] = useState(false);
+  const [mentionFilter, setMentionFilter] = useState("");
+  const [mentionIndex, setMentionIndex] = useState(0);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const filteredUsers = useMemo(() => {
+    return onlineUsers.filter((u) =>
+      u.username.toLowerCase().includes(mentionFilter.toLowerCase())
+    );
+  }, [onlineUsers, mentionFilter]);
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    setInputText(val);
+
+    const cursorPosition = e.target.selectionStart || 0;
+    const textBeforeCursor = val.slice(0, cursorPosition);
+    
+    const match = textBeforeCursor.match(/@([a-zA-Z0-9_\u00C0-\u017F]*)$/);
+    if (match) {
+      setMentionFilter(match[1]);
+      setShowMentions(true);
+      setMentionIndex(0);
+    } else {
+      setShowMentions(false);
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (showMentions && filteredUsers.length > 0) {
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        setMentionIndex((i) => (i < filteredUsers.length - 1 ? i + 1 : 0));
+      } else if (e.key === "ArrowUp") {
+        e.preventDefault();
+        setMentionIndex((i) => (i > 0 ? i - 1 : filteredUsers.length - 1));
+      } else if (e.key === "Enter") {
+        e.preventDefault();
+        insertMention(filteredUsers[mentionIndex].username);
+      } else if (e.key === "Escape") {
+        setShowMentions(false);
+      }
+    }
+  };
+
+  const insertMention = (username: string) => {
+    const cursorPosition = inputRef.current?.selectionStart || inputText.length;
+    const textBeforeCursor = inputText.slice(0, cursorPosition);
+    const textAfterCursor = inputText.slice(cursorPosition);
+    const newTextBefore = textBeforeCursor.replace(/@[a-zA-Z0-9_\u00C0-\u017F]*$/, `@${username} `);
+    
+    setInputText(newTextBefore + textAfterCursor);
+    setShowMentions(false);
+    setTimeout(() => {
+      inputRef.current?.focus();
+    }, 0);
+  };
+
+  const renderMessageText = (text: string) => {
+    const parts = text.split(/(@[a-zA-Z0-9_\u00C0-\u017F]+)/g);
+    return parts.map((part, i) => {
+      if (part.startsWith("@")) {
+        const cleanMention = part.substring(1);
+        const isMe = user && cleanMention.toLowerCase() === user.username.toLowerCase();
+        return (
+          <span
+            key={i}
+            className={`font-black px-1 rounded ${
+              isMe
+                ? "bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 shadow-[0_0_10px_rgba(234,179,8,0.3)]"
+                : "text-red-400 drop-shadow-[0_0_5px_rgba(239,68,68,0.5)]"
+            }`}
+          >
+            {part}
+          </span>
+        );
+      }
+      return <span key={i}>{part}</span>;
+    });
+  };
+
   const sendMessage = (e: React.FormEvent) => {
     e.preventDefault();
     if (!inputText.trim() || isCooldown) return;
+
+    if (showMentions && filteredUsers.length > 0) {
+      insertMention(filteredUsers[mentionIndex].username);
+      return;
+    }
+    
     socketService.sendRecoveryMessage(inputText);
     setInputText("");
     setIsCooldown(true);
@@ -381,7 +479,7 @@ function ReconditioningView({ user, timeLeft, formatTime }: { user: any, timeLef
                     <span className="text-[8px] font-mono text-slate-400">[{format(new Date(msg.timestamp), "dd/MM/yyyy HH:mm")}]</span>
                   </div>
                   <div className="bg-white/5 p-3 text-xs text-slate-300 border-l-2 border-red-500/30 break-words" style={{ clipPath: "polygon(0 0, 100% 0, 100% 100%, 4px 100%, 0 calc(100% - 4px))" }}>
-                    {msg.text}
+                    {renderMessageText(msg.text)}
                   </div>
                 </div>
               </div>
@@ -391,11 +489,36 @@ function ReconditioningView({ user, timeLeft, formatTime }: { user: any, timeLef
           {/* INPUT FIXO */}
           <form onSubmit={sendMessage} className="p-4 bg-black/80 border-t border-white/10 flex gap-2">
             <div className="flex-1 relative">
+              <AnimatePresence>
+                {showMentions && filteredUsers.length > 0 && (
+                  <motion.div 
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 10 }}
+                    className="absolute bottom-full left-0 mb-2 w-48 bg-black/90 border border-red-500/30 shadow-[0_0_15px_rgba(239,68,68,0.3)] max-h-40 overflow-y-auto custom-scrollbar z-50 rounded"
+                  >
+                    {filteredUsers.map((u, idx) => (
+                      <div
+                        key={u.id}
+                        onClick={() => insertMention(u.username)}
+                        className={`p-2 text-xs font-black uppercase italic cursor-pointer flex items-center gap-2 ${idx === mentionIndex ? 'bg-red-500/30 text-white' : 'text-slate-400 hover:bg-red-500/10 hover:text-white'}`}
+                      >
+                        {u.country && (
+                          <img src={`https://flagcdn.com/w20/${u.country.toLowerCase()}.png`} className="w-3 h-auto" alt="flag" />
+                        )}
+                        {u.username}
+                      </div>
+                    ))}
+                  </motion.div>
+                )}
+              </AnimatePresence>
               <input 
+                ref={inputRef}
                 type="text"
                 maxLength={120}
                 value={inputText}
-                onChange={(e) => setInputText(e.target.value)}
+                onChange={handleInputChange}
+                onKeyDown={handleKeyDown}
                 placeholder={isCooldown ? "Cooldown ativo..." : "Digite sua transmissão..."}
                 disabled={isCooldown}
                 className="w-full bg-white/5 border border-white/10 px-4 py-3 pr-16 text-xs font-mono text-white placeholder:text-slate-600 focus:outline-none focus:border-red-500/50 transition-colors disabled:opacity-50"
@@ -570,4 +693,10 @@ function getStatusColor(status: string) {
     default: return 'text-gray-400';
   }
 }
-
+
+export function getFactionColor(faction?: string) {
+  const f = String(faction || "").toLowerCase().trim();
+  if (['gangsters', 'gangster', 'renegados', 'renegado'].includes(f)) return 'text-orange-500';
+  if (['guardas', 'guarda', 'guardioes', 'guardião', 'guardiões', 'guardiao'].includes(f)) return 'text-blue-400';
+  return 'text-slate-400';
+}
