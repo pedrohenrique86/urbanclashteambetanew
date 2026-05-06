@@ -47,7 +47,8 @@ const trainingRoutes = require("./routes/training");
 const supplyRoutes = require("./routes/supply");
 const logsRoutes = require("./routes/logs");
 const { connectDB } = require("./config/database");
-const { redisReadyPromise } = require("./config/redisClient");
+const redisClient = require("./config/redisClient");
+const { redisReadyPromise } = redisClient;
 const { checkAutoStart } = require("./services/gameStateService");
 const { schedulePersistence } = require("./services/playerStateService");
 const { initializeSocket } = require("./socketHandler");
@@ -106,7 +107,6 @@ async function startServer() {
     // SÊNIOR: Limpa a lista de jogadores online no Redis durante o boot.
     // Isso evita que jogadores que estavam conectados fiquem 'presos' no set
     // caso o servidor tenha caído sem fechar as conexões SSE.
-    const redisClient = require("./config/redisClient");
     if (redisClient.client.isReady) {
       await redisClient.delAsync("online_players_set");
       await redisClient.delAsync("online_players:recovery");
