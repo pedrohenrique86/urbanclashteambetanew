@@ -34,12 +34,29 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, requiresFacti
         <p className="text-zinc-400 font-exo max-w-md text-sm leading-relaxed">
           Ocorreu uma falha na conexão com a central de dados. Seus dados estão seguros, mas não puderam ser validados agora.
         </p>
-        <button 
-          onClick={() => window.location.reload()}
-          className="mt-8 px-8 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-sm text-[10px] font-black font-orbitron uppercase tracking-[0.3em] transition-all"
-        >
-          Tentar Reconectar
-        </button>
+        
+        <div className="flex flex-col gap-3 mt-8 w-full max-w-xs">
+          <button 
+            onClick={() => window.location.reload()}
+            className="w-full px-8 py-3 bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 rounded-lg text-[11px] font-black font-orbitron uppercase tracking-[0.2em] transition-all text-red-500"
+          >
+            Tentar Reconectar
+          </button>
+          
+          <button 
+            onClick={() => {
+              localStorage.clear();
+              window.location.href = '/';
+            }}
+            className="w-full px-8 py-3 bg-white/5 hover:bg-white/10 border border-white/5 rounded-lg text-[10px] font-bold font-orbitron uppercase tracking-[0.2em] transition-all text-zinc-500"
+          >
+            Sair da Conta (Limpar Cache)
+          </button>
+        </div>
+
+        <p className="mt-12 text-[9px] text-zinc-700 font-mono uppercase tracking-widest">
+          Status: {isError ? 'API_FAILURE' : 'SYNC_LOST'} | User: {user?.id?.substring(0,8) || 'NONE'}
+        </p>
       </div>
     );
   }
