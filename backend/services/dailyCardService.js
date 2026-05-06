@@ -172,7 +172,8 @@ class DailyCardService {
         updates.money = card.reward_value;
         break;
       case 'xp':
-        updates.total_xp = card.reward_value;
+        // SÊNIOR: Cap de 100 XP para evitar desbalanceamento (Solicitação do Usuário)
+        updates.total_xp = Math.min(100, card.reward_value);
         break;
       case 'action_points':
         updates.action_points = card.reward_value;
@@ -204,24 +205,24 @@ class DailyCardService {
     const basicCards = [
       { type: 'money', value: 2500, weight: 100, rarity: 'common', name: 'Cache de Créditos' },
       { type: 'money', value: 12000, weight: 30, rarity: 'rare', name: 'Maleta de Luxo' },
-      { type: 'xp', value: 500, weight: 100, rarity: 'common', name: 'Dados de Treino' },
+      { type: 'xp', value: 100, weight: 100, rarity: 'common', name: 'Dados de Treino' },
       { type: 'action_points', value: 1500, weight: 100, rarity: 'common', name: 'Bateria de PA' }
     ];
 
     for (const card of basicCards) {
       await query(
-        `INSERT INTO daily_card_pools (reward_type, reward_value, weight, rarity, name)
-         VALUES ($1, $2, $3, $4, $5)`,
-        [card.type, card.value, card.weight, card.rarity, card.name]
+        `INSERT INTO daily_card_pools (reward_type, reward_value, weight, rarity)
+         VALUES ($1, $2, $3, $4)`,
+        [card.type, card.value, card.weight, card.rarity]
       );
     }
 
     // Adiciona Chips ao pool com peso médio
     for (const chip of chips.rows) {
       await query(
-        `INSERT INTO daily_card_pools (reward_type, item_id, weight, rarity, name)
-         VALUES ($1, $2, $3, $4, $5)`,
-        ['item', chip.id, 40, 'rare', chip.name]
+        `INSERT INTO daily_card_pools (reward_type, item_id, weight, rarity)
+         VALUES ($1, $2, $3, $4)`,
+        ['item', chip.id, 40, 'rare']
       );
     }
   }
