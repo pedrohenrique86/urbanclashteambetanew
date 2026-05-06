@@ -204,17 +204,31 @@ router.get("/state/subscribe", authenticateToken, (req, res) => {
     req.originalUrl = req.originalUrl.replace(/([?&])token=[^&]*/g, "$1token=[REDACTED]");
   }
 
-  res.set({
-    "Content-Type" : "text/event-stream",
-    "Cache-Control": "no-cache, no-transform",
-    "Connection"   : "keep-alive",
-    "X-Accel-Buffering": "no",   // Desabilita buffering em nginx/proxies
-  });
-  if (res.flushHeaders) res.flushHeaders();
-  res.write("\n");
+  try {
+    res.set({
+      "Content-Type" : "text/event-stream",
+      "Cache-Control": "no-cache, no-transform, no-store, must-revalidate",
+      "Pragma"       : "no-cache",
+      "Expires"      : "0",
+      "Connection"   : "keep-alive",
+      "X-Accel-Buffering": "no",   // Desabilita buffering em nginx/proxies
+      "Content-Encoding": "identity", // Evita compressão que quebra SSE em alguns proxies
+    });
+    
+    if (res.flushHeaders) res.flushHeaders();
+    res.write("\n");
 
-  const cid = req.query.cid || "legacy";
-  sseService.subscribe(res, topic, cid);
+    const cid = req.query.cid || "legacy";
+    sseService.subscribe(res, topic, cid);
+  } catch (err) {
+    console.error("❌ Erro fatal ao iniciar canal SSE:", err.message);
+    if (!res.headersSent) {
+      res.status(500).json({ error: "Erro ao iniciar stream de dados" });
+    } else {
+      res.end();
+    }
+    return;
+  }
 
   // Confirmação de conexão
   res.write(
