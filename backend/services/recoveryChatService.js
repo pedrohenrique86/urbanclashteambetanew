@@ -1,12 +1,15 @@
 /**
  * recoveryChatService.js
  * 
- * Gerencia o chat volátil da Base de Recuperação.
- * Mantém apenas as últimas 20 mensagens em memória.
+ * Gerencia o chat da Base de Recuperação usando Redis.
+ * Escalável e persistente entre reinicializações.
  */
 
-const recoveryMessages = [];
+const redisClient = require("../config/redisClient");
+
+const RECOVERY_CHAT_KEY = "chat:recovery:messages";
 const MAX_MESSAGES = 20;
+const HISTORY_TTL = 60 * 60 * 24; // 24 horas
 
 async function handleNewMessage(io, socket, text) {
   if (!socket.user) return;
@@ -22,17 +25,20 @@ async function handleNewMessage(io, socket, text) {
     timestamp: new Date().toISOString()
   };
 
-  recoveryMessages.push(newMessage);
-  if (recoveryMessages.length > MAX_MESSAGES) {
-    recoveryMessages.shift();
-  }
+  const messageJson = JSON.stringify(newMessage);
+
+  // Usa o pipeline otimizado do redisClient
+  await redisClient.chatHistoryPipeline(RECOVERY_CHAT_KEY, messageJson, MAX_MESSAGES, HISTORY_TTL);
 
   // Broadcast para a sala de recuperação
   io.to("recovery:room").emit("recovery:message", newMessage);
 }
 
-function getHistory() {
-  return recoveryMessages;
+async function getHistory() {
+  const rawHistory = await redisClient.lRangeAsync(RECOVERY_CHAT_KEY, 0, -1);
+  return rawHistory.map(m => {
+    try { return JSON.parse(m); } catch (e) { return null; }
+  }).filter(Boolean).reverse();
 }
 
 module.exports = {

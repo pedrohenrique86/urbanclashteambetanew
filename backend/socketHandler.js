@@ -122,7 +122,7 @@ function initializeSocket(server) {
 
         const isolationChatService = require("./services/isolationChatService");
         socket.emit("isolation:auth_success");
-        socket.emit("isolation:history", isolationChatService.getHistory());
+        socket.emit("isolation:history", await isolationChatService.getHistory());
 
         socket.on("disconnect", async () => {
           await redisClient.hDelAsync(ISOLATION_USERS_KEY, String(user.id));
@@ -182,7 +182,7 @@ function initializeSocket(server) {
 
         const recoveryChatService = require("./services/recoveryChatService");
         socket.emit("recovery:auth_success");
-        socket.emit("recovery:history", recoveryChatService.getHistory());
+        socket.emit("recovery:history", await recoveryChatService.getHistory());
 
         socket.on("disconnect", async () => {
           await redisClient.hDelAsync(RECOVERY_USERS_KEY, String(user.id));
