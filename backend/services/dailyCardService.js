@@ -172,8 +172,8 @@ class DailyCardService {
         updates.money = card.reward_value;
         break;
       case 'xp':
-        // SÊNIOR: Cap de 100 XP para evitar desbalanceamento (Solicitação do Usuário)
-        updates.total_xp = Math.min(100, card.reward_value);
+        // SÊNIOR: Cap de 70 XP para evitar desbalanceamento (Solicitação do Usuário)
+        updates.total_xp = Math.min(70, card.reward_value);
         break;
       case 'action_points':
         updates.action_points = card.reward_value;
@@ -205,7 +205,7 @@ class DailyCardService {
     const basicCards = [
       { type: 'money', value: 2500, weight: 100, rarity: 'common', name: 'Cache de Créditos' },
       { type: 'money', value: 12000, weight: 30, rarity: 'rare', name: 'Maleta de Luxo' },
-      { type: 'xp', value: 100, weight: 100, rarity: 'common', name: 'Dados de Treino' },
+      { type: 'xp', value: 70, weight: 100, rarity: 'common', name: 'Dados de Treino' },
       { type: 'action_points', value: 1500, weight: 100, rarity: 'common', name: 'Bateria de PA' }
     ];
 
