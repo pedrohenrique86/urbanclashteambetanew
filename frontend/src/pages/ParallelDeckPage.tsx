@@ -165,13 +165,26 @@ export default function ParallelDeckPage() {
             <p className="text-slate-500 font-mono text-xs">Uma conexão neural disponível. Selecione uma carta para sincronizar bônus.</p>
           </div>
         ) : (
-          <div className="text-center mb-12 bg-emerald-500/10 border border-emerald-500/20 p-6 rounded-lg military-clip backdrop-blur-md">
-            <h2 className="text-xl font-orbitron font-black text-emerald-400 uppercase mb-2">Sincronização Concluída</h2>
-            <p className="text-slate-400 font-mono text-xs mb-4">Acesse novamente para novo protocolo em:</p>
-            <div className="inline-block bg-black/60 px-8 py-3 border border-emerald-500/30">
-               <span className="text-3xl font-orbitron font-black text-white tracking-tighter">
-                 {timeLeft !== null ? formatTime(timeLeft) : '--:--:--'}
-               </span>
+          <div className="mb-10 bg-emerald-500/5 border border-emerald-500/20 p-4 backdrop-blur-md flex flex-col md:flex-row items-center gap-6" style={MILITARY_CLIP}>
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center" style={MILITARY_CLIP}>
+                <SparklesIcon className="w-6 h-6 text-emerald-400" />
+              </div>
+              <div>
+                <h2 className="text-lg font-orbitron font-black text-emerald-400 uppercase leading-none">Sincronização Concluída</h2>
+                <p className="text-emerald-400/80 font-mono text-[10px] uppercase mt-1">Protocolo processado com sucesso</p>
+              </div>
+            </div>
+
+            <div className="hidden md:block h-10 w-px bg-white/10" />
+
+            <div className="flex items-center gap-4 flex-1 justify-center md:justify-start">
+              <span className="text-[10px] font-mono text-white/70 uppercase">Novo protocolo em:</span>
+              <div className="bg-black/60 px-4 py-1.5 border border-emerald-500/30" style={MILITARY_CLIP}>
+                <span className="text-xl font-orbitron font-black text-white tracking-tighter">
+                  {timeLeft !== null ? formatTime(timeLeft) : '--:--:--'}
+                </span>
+              </div>
             </div>
           </div>
         )}
@@ -193,21 +206,27 @@ export default function ParallelDeckPage() {
                 <div className={`relative w-full h-full transition-all duration-500 preserve-3d ${isChosen ? 'rotate-y-180' : ''}`}>
                   
                   {/* Front Side (Card Back) */}
-                  <div className={`absolute inset-0 backface-hidden bg-black/60 backdrop-blur-md border-2 border-slate-800 flex flex-col items-center justify-center p-6 shadow-2xl overflow-hidden ${isDisabled && !isChosen ? 'opacity-40 grayscale' : ''}`} style={MILITARY_CLIP}>
+                  <div className={`absolute inset-0 backface-hidden bg-black/60 backdrop-blur-md border-2 border-slate-800 flex flex-col items-center justify-center p-6 shadow-2xl overflow-hidden ${isDisabled && !isChosen ? 'opacity-[0.85] saturate-[0.5]' : ''}`} style={MILITARY_CLIP}>
                     <div className="absolute inset-0 bg-grid-white/[0.02] pointer-events-none" />
-                    <div className="w-24 h-24 bg-emerald-500/5 rounded-full flex items-center justify-center border border-emerald-500/20 mb-6 group-hover:shadow-[0_0_30px_rgba(16,185,129,0.2)] transition-all">
-                      <RectangleStackIcon className="w-12 h-12 text-emerald-400/50 group-hover:text-emerald-400 transition-colors" />
+                    <div className="w-24 h-24 bg-emerald-500/5 rounded-full flex items-center justify-center border border-emerald-500/20 mb-6 group-hover:shadow-[0_0_30px_rgba(16,185,129,0.2)] transition-all relative">
+                      {isDisabled && !isChosen ? (
+                        <LockClosedIcon className="w-12 h-12 text-red-500/50" />
+                      ) : (
+                        <RectangleStackIcon className="w-12 h-12 text-emerald-400/50 group-hover:text-emerald-400 transition-colors" />
+                      )}
                     </div>
-                    <span className="font-orbitron font-black text-slate-700 tracking-[0.3em] uppercase group-hover:text-emerald-400/50 transition-colors">ENCRIPTADO</span>
+                    <span className={`font-orbitron font-black tracking-[0.3em] uppercase transition-colors ${isDisabled && !isChosen ? 'text-red-500/40' : 'text-slate-700 group-hover:text-emerald-400/50'}`}>
+                      ENCRIPTADO
+                    </span>
                     
                     {/* Corner accents */}
-                    <div className="absolute top-4 left-4 w-4 h-4 border-t-2 border-l-2 border-slate-700 group-hover:border-emerald-500/50 transition-colors" />
-                    <div className="absolute top-4 right-4 w-4 h-4 border-t-2 border-r-2 border-slate-700 group-hover:border-emerald-500/50 transition-colors" />
-                    <div className="absolute bottom-4 left-4 w-4 h-4 border-b-2 border-l-2 border-slate-700 group-hover:border-emerald-500/50 transition-colors" />
-                    <div className="absolute bottom-4 right-4 w-4 h-4 border-b-2 border-r-2 border-slate-700 group-hover:border-emerald-500/50 transition-colors" />
+                    <div className={`absolute top-4 left-4 w-4 h-4 border-t-2 border-l-2 transition-colors ${isDisabled && !isChosen ? 'border-red-500/20' : 'border-slate-700 group-hover:border-emerald-500/50'}`} />
+                    <div className={`absolute top-4 right-4 w-4 h-4 border-t-2 border-r-2 transition-colors ${isDisabled && !isChosen ? 'border-red-500/20' : 'border-slate-700 group-hover:border-emerald-500/50'}`} />
+                    <div className={`absolute bottom-4 left-4 w-4 h-4 border-b-2 border-l-2 transition-colors ${isDisabled && !isChosen ? 'border-red-500/20' : 'border-slate-700 group-hover:border-emerald-500/50'}`} />
+                    <div className={`absolute bottom-4 right-4 w-4 h-4 border-b-2 border-r-2 transition-colors ${isDisabled && !isChosen ? 'border-red-500/20' : 'border-slate-700 group-hover:border-emerald-500/50'}`} />
 
                     {/* Side bar */}
-                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.8)] opacity-30 group-hover:opacity-100 transition-opacity"></div>
+                    <div className={`absolute left-0 top-0 bottom-0 w-1 shadow-[0_0_10px_rgba(16,185,129,0.8)] transition-opacity ${isDisabled && !isChosen ? 'bg-red-500/30 opacity-100' : 'bg-emerald-500 opacity-30 group-hover:opacity-100'}`}></div>
                   </div>
 
                   {/* Back Side (Card Content) */}
