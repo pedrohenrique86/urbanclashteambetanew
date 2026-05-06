@@ -10,8 +10,13 @@ const redisClient = require("../config/redisClient");
  */
 
 async function buyAntidote(userId) {
-  const state = await playerStateService.getPlayerState(userId);
-  if (!state) throw new Error("Jogador não encontrado.");
+  const LOCK_KEY = `lock:recovery:${userId}`;
+  const hasLock = await redisClient.setNXAsync(LOCK_KEY, "1", 3000);
+  if (!hasLock) throw new Error("Operação já em andamento.");
+
+  try {
+    const state = await playerStateService.getPlayerState(userId);
+    if (!state) throw new Error("Jogador não encontrado.");
 
   if (state.status !== 'Ruptura') {
     throw new Error("Sua unidade não apresenta sinais de ruptura.");
@@ -29,12 +34,20 @@ async function buyAntidote(userId) {
     status_ends_at: null
   });
 
-  return { message: "Kit de Reparo aplicado com sucesso! Sua integridade foi restaurada." };
+    return { message: "Kit de Reparo aplicado com sucesso! Sua integridade foi restaurada." };
+  } finally {
+    await redisClient.delAsync(LOCK_KEY);
+  }
 }
 
 async function rescueAlly(userId, allyId) {
-  const rescuerState = await playerStateService.getPlayerState(userId);
-  if (!rescuerState) throw new Error("Jogador não encontrado.");
+  const LOCK_KEY = `lock:recovery:${userId}`;
+  const hasLock = await redisClient.setNXAsync(LOCK_KEY, "1", 3000);
+  if (!hasLock) throw new Error("Operação já em andamento.");
+
+  try {
+    const rescuerState = await playerStateService.getPlayerState(userId);
+    if (!rescuerState) throw new Error("Jogador não encontrado.");
 
   if (rescuerState.status !== 'Operacional') {
     throw new Error("Você precisa estar Operacional para resgatar aliados.");
@@ -67,12 +80,20 @@ async function rescueAlly(userId, allyId) {
     status_ends_at: null
   });
 
-  return { message: `Você resgatou ${allyState.username}! Ele está operacional novamente.` };
+    return { message: `Você resgatou ${allyState.username}! Ele está operacional novamente.` };
+  } finally {
+    await redisClient.delAsync(LOCK_KEY);
+  }
 }
 
 async function reactivateSelf(userId) {
-  const state = await playerStateService.getPlayerState(userId);
-  if (!state) throw new Error("Jogador não encontrado.");
+  const LOCK_KEY = `lock:recovery:${userId}`;
+  const hasLock = await redisClient.setNXAsync(LOCK_KEY, "1", 3000);
+  if (!hasLock) throw new Error("Operação já em andamento.");
+
+  try {
+    const state = await playerStateService.getPlayerState(userId);
+    if (!state) throw new Error("Jogador não encontrado.");
 
   if (state.status !== 'Recondicionamento') {
     throw new Error("Sua unidade não está em recondicionamento.");
@@ -90,7 +111,10 @@ async function reactivateSelf(userId) {
     status_ends_at: null
   });
 
-  return { message: "Protocolo de reativação concluído! Você está operacional." };
+    return { message: "Protocolo de reativação concluído! Você está operacional." };
+  } finally {
+    await redisClient.delAsync(LOCK_KEY);
+  }
 }
 
 async function getAlliesInReconditioning(userId) {

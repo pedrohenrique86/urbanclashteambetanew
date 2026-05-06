@@ -65,6 +65,10 @@ const UPDATE_STATE_LUA = `
   local maxVal = tonumber(ARGV[3]) or 9999999
   
   local current = tonumber(redis.call('HGET', key, field) or 0)
+  if inc < 0 and (current + inc) < 0 then
+    return "ERR_NSF"
+  end
+  
   local newVal = math.min(maxVal, math.max(0, current + inc))
   
   redis.call('HSET', key, field, tostring(newVal))
@@ -699,19 +703,25 @@ async function updatePlayerState(userId, updates, options = {}) {
           continue;
         }
 
-        if (key === "energy") {
-          // Usa LUA para incremento atômico com CAP
-          await redisClient.runLuaAsync(UPDATE_STATE_LUA, [redisKey], [
-            "energy", 
+        if (key === "energy" || key === "premium_coins" || key === "money" || key === "action_points") {
+          // SÊNIOR: Anti-Fraude & Atomicidade. 
+          // Ativos críticos e energia usam LUA para garantir que o saldo nunca fique negativo
+          // mesmo em picos de concorrência massiva (race conditions).
+          const luaRes = await redisClient.runLuaAsync(UPDATE_STATE_LUA, [redisKey], [
+            key, 
             String(value), 
-            String(maxEnergy),
-            "energy_updated_at",
-            new Date().toISOString(),
+            key === "energy" ? String(maxEnergy) : (key === "action_points" ? "20000" : "999999999"),
+            key === "energy" ? "energy_updated_at" : "",
+            key === "energy" ? new Date().toISOString() : "",
             nowMs,
             DIRTY_PLAYERS_SET,
             String(userId),
-            "0" // isSilent=false para vir pro banco
+            "0"
           ]);
+
+          if (luaRes === "ERR_NSF") {
+            throw new Error(`Saldo insuficiente de ${FIELD_TO_SSE[key] || key}.`);
+          }
         } else if (key === "toxicity") {
           // Usa LUA para toxicidade (cap 100)
           await redisClient.runLuaAsync(UPDATE_STATE_LUA, [redisKey], [

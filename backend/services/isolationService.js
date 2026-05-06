@@ -1,5 +1,6 @@
 const { query } = require("../config/database");
 const playerStateService = require("./playerStateService");
+const redisClient = require("../config/redisClient");
 
 /**
  * isolationService.js
@@ -12,8 +13,13 @@ const INSTANT_ESCAPE_TOKENS = 10;
 const HELP_ALLY_TOKENS = 10;
 
 async function bribeRuler(userId) {
-  const state = await playerStateService.getPlayerState(userId);
-  if (!state) throw new Error("Jogador não encontrado.");
+  const LOCK_KEY = `lock:isolation:${userId}`;
+  const hasLock = await redisClient.setNXAsync(LOCK_KEY, "1", 3000);
+  if (!hasLock) throw new Error("Operação já em andamento.");
+
+  try {
+    const state = await playerStateService.getPlayerState(userId);
+    if (!state) throw new Error("Jogador não encontrado.");
 
   if (state.status !== 'Isolamento') {
     throw new Error("Você não está em isolamento.");
@@ -35,11 +41,19 @@ async function bribeRuler(userId) {
   });
 
   return { message: "Suborno aceito. Você foi liberado para o setor operacional." };
+  } finally {
+    await redisClient.delAsync(LOCK_KEY);
+  }
 }
 
 async function instantEscape(userId) {
-  const state = await playerStateService.getPlayerState(userId);
-  if (!state) throw new Error("Jogador não encontrado.");
+  const LOCK_KEY = `lock:isolation:${userId}`;
+  const hasLock = await redisClient.setNXAsync(LOCK_KEY, "1", 3000);
+  if (!hasLock) throw new Error("Operação já em andamento.");
+
+  try {
+    const state = await playerStateService.getPlayerState(userId);
+    if (!state) throw new Error("Jogador não encontrado.");
 
   if (state.status !== 'Isolamento') {
     throw new Error("Você não está em isolamento.");
@@ -58,11 +72,19 @@ async function instantEscape(userId) {
   });
 
   return { message: "Transação confirmada. Você está operacional novamente." };
+  } finally {
+    await redisClient.delAsync(LOCK_KEY);
+  }
 }
 
 async function helpAlly(userId, allyId) {
-  const rescuerState = await playerStateService.getPlayerState(userId);
-  if (!rescuerState) throw new Error("Jogador não encontrado.");
+  const LOCK_KEY = `lock:isolation:${userId}`;
+  const hasLock = await redisClient.setNXAsync(LOCK_KEY, "1", 3000);
+  if (!hasLock) throw new Error("Operação já em andamento.");
+
+  try {
+    const rescuerState = await playerStateService.getPlayerState(userId);
+    if (!rescuerState) throw new Error("Jogador não encontrado.");
 
   if (rescuerState.status !== 'Operacional') {
     throw new Error("Você precisa estar Operacional para tirar aliados do isolamento.");
@@ -95,7 +117,10 @@ async function helpAlly(userId, allyId) {
     status_ends_at: null
   });
 
-  return { message: `Você tirou ${allyState.username} do isolamento! Ele está operacional novamente.` };
+    return { message: `Você tirou ${allyState.username} do isolamento! Ele está operacional novamente.` };
+  } finally {
+    await redisClient.delAsync(LOCK_KEY);
+  }
 }
 
 async function getAlliesInIsolation(userId) {

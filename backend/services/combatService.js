@@ -152,10 +152,8 @@ class CombatService {
 
   async executeAttack(userId, targetId, tactic = 'technological') {
     const LOCK = `combat:lock:${userId}`;
-    const isLocked = await redisClient.getAsync(LOCK);
-    if (isLocked) throw new Error("Sincronização tática em andamento. Aguarde a conclusão da sequência.");
-    
-    await redisClient.setAsync(LOCK, "1", "EX", 15);
+    const hasLock = await redisClient.setNXAsync(LOCK, "1", 15);
+    if (!hasLock) throw new Error("Sincronização tática em andamento. Aguarde a conclusão da sequência.");
 
     try {
       const attacker = await playerStateService.getPlayerState(userId);
