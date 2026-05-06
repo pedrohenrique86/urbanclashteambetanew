@@ -10,6 +10,7 @@ import {
   ClockIcon
 } from "@heroicons/react/24/outline";
 import { useUserProfile } from "../hooks/useUserProfile";
+import { useHUD } from "../contexts/HUDContext";
 import { tokenStorage } from "../lib/api";
 import { socketService, ChatMessage } from "../services/socketService";
 import { format } from "date-fns";
@@ -19,9 +20,11 @@ const MILITARY_CLIP = { clipPath: "polygon(8px 0%, 100% 0%, 100% calc(100% - 8px
 
 export default function SocialZonePage() {
   const { userProfile } = useUserProfile();
+  const { openUserPanel } = useHUD();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [onlineUsers, setOnlineUsers] = useState<any[]>([]);
   const [inputText, setInputText] = useState("");
+  const [isCooldown, setIsCooldown] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const subtitle = "FREQUÊNCIA GLOBAL UNIFICADA. TRANSMISSÃO CRIPTOGRAFADA EM TEMPO REAL.";
@@ -56,9 +59,12 @@ export default function SocialZonePage() {
 
   const sendMessage = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!inputText.trim()) return;
+    if (!inputText.trim() || isCooldown) return;
+    
     socketService.sendGlobalMessage(inputText);
     setInputText("");
+    setIsCooldown(true);
+    setTimeout(() => setIsCooldown(false), 3000);
   };
 
   if (!userProfile) return null;
@@ -142,9 +148,10 @@ export default function SocialZonePage() {
                   >
                     <img 
                       src={msg.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${msg.username}`} 
-                      className="w-10 h-10 bg-white/5 border border-white/10 group-hover:border-violet-500/50 transition-colors" 
+                      className="w-10 h-10 bg-white/5 border border-white/10 group-hover:border-violet-500/50 transition-colors cursor-pointer" 
                       style={MILITARY_CLIP}
                       alt="avatar"
+                      onClick={() => openUserPanel(msg.userId)}
                     />
                     
                     <div className="flex-1 min-w-0">
@@ -176,13 +183,18 @@ export default function SocialZonePage() {
                   maxLength={120}
                   value={inputText}
                   onChange={(e) => setInputText(e.target.value)}
-                  placeholder="Digitar transmissão global..."
-                  className="w-full bg-white/5 border border-white/10 px-5 py-3 text-xs font-mono text-white placeholder:text-slate-700 focus:outline-none focus:border-violet-500/50 transition-all"
+                  placeholder={isCooldown ? "Aguarde o cooldown..." : "Digitar transmissão global..."}
+                  disabled={isCooldown}
+                  className="w-full bg-white/5 border border-white/10 px-5 py-3 pr-16 text-xs font-mono text-white placeholder:text-slate-700 focus:outline-none focus:border-violet-500/50 transition-all disabled:opacity-50"
                 />
+                <div className="absolute right-3 top-1/2 -translate-y-1/2 text-[9px] font-mono text-slate-600">
+                  {inputText.length}/120
+                </div>
               </div>
               <button 
                 type="submit"
-                className="px-6 py-3 bg-violet-600 hover:bg-violet-500 text-white font-orbitron font-black uppercase italic tracking-widest transition-all shadow-[0_0_15px_rgba(139,92,246,0.3)]"
+                disabled={isCooldown}
+                className="px-6 py-3 bg-violet-600 hover:bg-violet-500 text-white font-orbitron font-black uppercase italic tracking-widest transition-all shadow-[0_0_15px_rgba(139,92,246,0.3)] disabled:grayscale disabled:opacity-50 disabled:cursor-not-allowed"
                 style={MILITARY_CLIP}
               >
                 <PaperAirplaneIcon className="w-5 h-5 -rotate-45" />
@@ -201,8 +213,9 @@ export default function SocialZonePage() {
               {onlineUsers.map(u => (
                 <div 
                   key={u.id}
-                  className="flex items-center gap-3 p-2 bg-white/5 border border-white/5 hover:border-violet-500/30 transition-all group"
+                  className="flex items-center gap-3 p-2 bg-white/5 border border-white/5 hover:border-violet-500/30 transition-all group cursor-pointer"
                   style={MILITARY_CLIP}
+                  onClick={() => openUserPanel(u.id)}
                 >
                   <div className="relative">
                     <img src={u.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${u.username}`} className="w-7 h-7 bg-black/40" style={MILITARY_CLIP} />
@@ -217,24 +230,63 @@ export default function SocialZonePage() {
 
             {/* SYSTEM LOAD DECORATION */}
             <div className="p-4 bg-white/5 border-t border-white/10 mt-auto">
-               <div className="flex flex-col gap-2">
-                  <div className="flex justify-between items-center text-[8px] font-mono text-slate-500 font-bold uppercase tracking-widest">
-                     <span>SYS_LOAD</span>
-                     <span className="text-emerald-500 animate-pulse">OPTIMAL</span>
+               <div className="flex flex-col gap-2.5">
+                  <div className="flex justify-between items-end text-[8px] font-mono font-black tracking-widest">
+                     <div className="flex items-center gap-2">
+                        <span className="text-slate-500">SYS_LOAD</span>
+                        <div className="flex gap-0.5">
+                           {[...Array(4)].map((_, i) => (
+                             <motion.div 
+                               key={i}
+                               animate={{ opacity: [0.2, 1, 0.2] }}
+                               transition={{ duration: 1.5, repeat: Infinity, delay: i * 0.2 }}
+                               className="w-1 h-1 bg-violet-500/40"
+                             />
+                           ))}
+                        </div>
+                     </div>
+                     <span className="text-emerald-500 animate-pulse drop-shadow-[0_0_5px_rgba(16,185,129,0.5)]">OPTIMAL</span>
                   </div>
-                  <div className="h-1 bg-white/10 rounded-full overflow-hidden relative">
+                  
+                  <div className="h-2 bg-black/40 rounded-full border border-white/5 p-[1px] relative overflow-hidden">
+                     {/* Segmented Background */}
+                     <div className="absolute inset-0 flex justify-between px-2 pointer-events-none opacity-20">
+                        {[...Array(10)].map((_, i) => <div key={i} className="w-px h-full bg-white/20" />)}
+                     </div>
+
+                     {/* Main Progress Bar */}
                      <motion.div 
-                      className="h-full bg-violet-500 shadow-[0_0_10px_rgba(139,92,246,0.6)]"
+                      className="h-full bg-gradient-to-r from-violet-600 to-violet-400 relative z-10 shadow-[0_0_15px_rgba(139,92,246,0.5)]"
                       animate={{ 
-                        width: ["15%", "45%", "25%", "60%", "30%"],
-                        x: ["0%", "10%", "0%", "5%", "0%"]
+                        width: ["20%", "45%", "35%", "55%", "25%", "40%"]
                       }}
                       transition={{ 
-                        duration: 8, 
+                        duration: 4, 
                         repeat: Infinity, 
-                        ease: "easeInOut" 
+                        ease: "linear" 
+                      }}
+                     >
+                        <div className="absolute right-0 top-0 bottom-0 w-4 bg-white/40 blur-sm"></div>
+                     </motion.div>
+
+                     {/* Secondary Ghost Bar for depth */}
+                     <motion.div 
+                      className="absolute top-0 left-0 h-full bg-violet-500/20 z-0"
+                      animate={{ 
+                        width: ["10%", "60%", "20%", "75%", "15%", "50%"]
+                      }}
+                      transition={{ 
+                        duration: 6, 
+                        repeat: Infinity, 
+                        ease: "linear" 
                       }}
                      />
+                  </div>
+
+                  <div className="flex justify-between text-[6px] font-mono text-slate-600 font-bold">
+                     <span>0%</span>
+                     <span>50%</span>
+                     <span>100%</span>
                   </div>
                </div>
             </div>

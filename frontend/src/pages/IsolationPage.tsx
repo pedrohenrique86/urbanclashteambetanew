@@ -13,6 +13,7 @@ import {
   CurrencyDollarIcon
 } from "@heroicons/react/24/outline";
 import { useUserProfile } from "../hooks/useUserProfile";
+import { useHUD } from "../contexts/HUDContext";
 import { useToast } from "../contexts/ToastContext";
 import { tokenStorage } from "../lib/api";
 import { isolationService } from "../services/isolationService";
@@ -29,6 +30,7 @@ const MILITARY_CLIP = { clipPath: "polygon(8px 0%, 100% 0%, 100% calc(100% - 8px
 
 export default function IsolationPage() {
   const { userProfile, refreshProfile } = useUserProfile();
+  const { openUserPanel } = useHUD();
   const [timeLeft, setTimeLeft] = useState<number | null>(null);
   const status = userProfile?.status || 'Operacional';
   const subtitle = "SETOR DE ISOLAMENTO DE ALTA SEGURANÇA. CONTENÇÃO MÁXIMA ATIVA.";
@@ -304,9 +306,11 @@ function IsolationActionsView({ user, onAction }: { user: any, onAction: () => v
 }
 
 function IsolationChatView({ user }: { user: any }) {
+  const { openUserPanel } = useHUD();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [onlineUsers, setOnlineUsers] = useState<any[]>([]);
   const [inputText, setInputText] = useState("");
+  const [isCooldown, setIsCooldown] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -337,9 +341,11 @@ function IsolationChatView({ user }: { user: any }) {
 
   const sendMessage = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!inputText.trim()) return;
+    if (!inputText.trim() || isCooldown) return;
     socketService.sendIsolationMessage(inputText);
     setInputText("");
+    setIsCooldown(true);
+    setTimeout(() => setIsCooldown(false), 3000);
   };
 
   return (
@@ -369,10 +375,20 @@ function IsolationChatView({ user }: { user: any }) {
             )}
             {messages.map((msg) => (
               <div key={msg.id} className="flex gap-3 items-start group">
-                <img src={msg.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${msg.username}`} className="w-8 h-8 bg-white/5 border border-white/10" style={MILITARY_CLIP} />
+                <img 
+                  src={msg.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${msg.username}`} 
+                  className="w-8 h-8 bg-white/5 border border-white/10 cursor-pointer" 
+                  style={MILITARY_CLIP} 
+                  onClick={() => openUserPanel(msg.userId)}
+                />
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
-                    <span className={`text-[10px] font-black uppercase italic tracking-tighter ${getFactionColor((msg as any).faction)}`}>{msg.username}</span>
+                    <span 
+                      className={`text-[10px] font-black uppercase italic tracking-tighter cursor-pointer hover:underline ${getFactionColor((msg as any).faction)}`}
+                      onClick={() => openUserPanel(msg.userId)}
+                    >
+                      {msg.username}
+                    </span>
                     <span className="text-[8px] font-mono text-slate-400">[{format(new Date(msg.timestamp), "dd/MM/yyyy HH:mm")}]</span>
                   </div>
                   <div className="bg-white/5 p-3 text-xs text-slate-300 border-l border-white/20 break-words" style={{ clipPath: "polygon(0 0, 100% 0, 100% 100%, 4px 100%, 0 calc(100% - 4px))" }}>
@@ -385,15 +401,26 @@ function IsolationChatView({ user }: { user: any }) {
 
           {/* INPUT FIXO */}
           <form onSubmit={sendMessage} className="p-4 bg-black border-t border-white/5 flex gap-2">
-            <input
-              type="text"
-              maxLength={100}
-              value={inputText}
-              onChange={(e) => setInputText(e.target.value)}
-              placeholder="Sussurrar transmissão (máx 100 carac)..."
-              className="flex-1 bg-white/5 border border-white/10 px-4 py-2 text-xs font-mono focus:outline-none focus:border-white/30 text-white placeholder:text-white/20"
-            />
-            <button type="submit" className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white transition-colors" style={MILITARY_CLIP}>
+            <div className="flex-1 relative">
+              <input
+                type="text"
+                maxLength={120}
+                value={inputText}
+                onChange={(e) => setInputText(e.target.value)}
+                placeholder={isCooldown ? "Aguarde..." : "Sussurrar transmissão..."}
+                disabled={isCooldown}
+                className="w-full bg-white/5 border border-white/10 px-4 py-2 pr-16 text-xs font-mono focus:outline-none focus:border-white/30 text-white placeholder:text-white/20 disabled:opacity-50"
+              />
+              <div className="absolute right-3 top-1/2 -translate-y-1/2 text-[9px] font-mono text-white/20">
+                {inputText.length}/120
+              </div>
+            </div>
+            <button 
+              type="submit" 
+              disabled={isCooldown}
+              className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed" 
+              style={MILITARY_CLIP}
+            >
               <PaperAirplaneIcon className="w-5 h-5 -rotate-45" />
             </button>
           </form>
@@ -406,7 +433,12 @@ function IsolationChatView({ user }: { user: any }) {
           </div>
           <div className="flex-1 overflow-y-auto p-2 space-y-1.5 custom-scrollbar">
             {onlineUsers.map(u => (
-              <div key={u.id} className="flex items-center gap-2 p-1.5 bg-white/5 border border-white/5 group" style={MILITARY_CLIP}>
+              <div 
+                key={u.id} 
+                className="flex items-center gap-2 p-1.5 bg-white/5 border border-white/5 group cursor-pointer" 
+                style={MILITARY_CLIP}
+                onClick={() => openUserPanel(u.id)}
+              >
                 <div className="w-1 h-1 bg-white/20 rounded-full" />
                 <span className={`text-[9px] font-black uppercase italic truncate group-hover:text-white transition-colors ${getFactionColor(u.faction)}`}>{u.username}</span>
               </div>
@@ -419,6 +451,7 @@ function IsolationChatView({ user }: { user: any }) {
 }
 
 function OperationalIsolationView({ onAction }: { onAction: () => void }) {
+  const { openUserPanel } = useHUD();
   const [allies, setAllies] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [rescuingId, setRescuingId] = useState<string | null>(null);
@@ -490,9 +523,14 @@ function OperationalIsolationView({ onAction }: { onAction: () => void }) {
               style={MILITARY_CLIP}
             >
               <div className="flex items-center gap-4">
-                <img src={ally.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${ally.username}`} className="w-12 h-12 bg-white/5 border border-white/10" style={MILITARY_CLIP} />
-                <div>
-                  <p className="text-sm font-black text-white italic uppercase tracking-tighter">{ally.username}</p>
+                <img 
+                  src={ally.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${ally.username}`} 
+                  className="w-12 h-12 bg-white/5 border border-white/10 cursor-pointer" 
+                  style={MILITARY_CLIP} 
+                  onClick={() => openUserPanel(ally.id)}
+                />
+                <div className="cursor-pointer" onClick={() => openUserPanel(ally.id)}>
+                  <p className="text-sm font-black text-white italic uppercase tracking-tighter hover:underline">{ally.username}</p>
                   <p className="text-[8px] font-mono text-white/40 uppercase tracking-widest">Nível {ally.level} • DETAINED</p>
                 </div>
               </div>

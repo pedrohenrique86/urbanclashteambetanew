@@ -12,6 +12,7 @@ import {
   BanknotesIcon
 } from "@heroicons/react/24/outline";
 import { useUserProfile } from "../hooks/useUserProfile";
+import { useHUD } from "../contexts/HUDContext";
 import { useToast } from "../contexts/ToastContext";
 import { tokenStorage } from "../lib/api";
 import { recoveryService } from "../services/recoveryService";
@@ -28,6 +29,7 @@ const MILITARY_CLIP = { clipPath: "polygon(8px 0%, 100% 0%, 100% calc(100% - 8px
 
 export default function RecoveryBasePage() {
   const { userProfile, refreshProfile } = useUserProfile();
+  const { openUserPanel } = useHUD();
   const [timeLeft, setTimeLeft] = useState<number | null>(null);
   const status = userProfile?.status || 'Operacional';
   const subtitle = "UNIDADE DE MANUTENÇÃO DE ELITE. REPARAÇÃO ESTRUTURAL EM ANDAMENTO.";
@@ -276,7 +278,9 @@ function ReconditioningView({ user, timeLeft, formatTime }: { user: any, timeLef
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [onlineUsers, setOnlineUsers] = useState<any[]>([]);
   const [inputText, setInputText] = useState("");
+  const [isCooldown, setIsCooldown] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const { openUserPanel } = useHUD();
 
   useEffect(() => {
     const token = tokenStorage.getToken();
@@ -314,9 +318,11 @@ function ReconditioningView({ user, timeLeft, formatTime }: { user: any, timeLef
 
   const sendMessage = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!inputText.trim()) return;
+    if (!inputText.trim() || isCooldown) return;
     socketService.sendRecoveryMessage(inputText);
     setInputText("");
+    setIsCooldown(true);
+    setTimeout(() => setIsCooldown(false), 3000);
   };
 
   return (
@@ -350,13 +356,19 @@ function ReconditioningView({ user, timeLeft, formatTime }: { user: any, timeLef
               <div key={msg.id} className="flex gap-3 items-start group">
                 <img 
                   src={msg.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${msg.username}`} 
-                  className="w-8 h-8 bg-white/10 border border-white/20" 
+                  className="w-8 h-8 bg-white/5 border border-white/10 cursor-pointer" 
                   style={MILITARY_CLIP} 
+                  onClick={() => openUserPanel(msg.userId)}
                   alt="avatar"
                 />
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
-                    <span className={`text-[10px] font-black uppercase italic tracking-tighter ${getFactionColor((msg as any).faction)}`}>{msg.username}</span>
+                    <span 
+                      className={`text-[10px] font-black uppercase italic tracking-tighter cursor-pointer hover:underline ${getFactionColor((msg as any).faction)}`}
+                      onClick={() => openUserPanel(msg.userId)}
+                    >
+                      {msg.username}
+                    </span>
                     <span className="text-[8px] font-mono text-slate-400">[{format(new Date(msg.timestamp), "dd/MM/yyyy HH:mm")}]</span>
                   </div>
                   <div className="bg-white/5 p-3 text-xs text-slate-300 border-l-2 border-red-500/30 break-words" style={{ clipPath: "polygon(0 0, 100% 0, 100% 100%, 4px 100%, 0 calc(100% - 4px))" }}>
@@ -369,17 +381,24 @@ function ReconditioningView({ user, timeLeft, formatTime }: { user: any, timeLef
 
           {/* INPUT FIXO */}
           <form onSubmit={sendMessage} className="p-4 bg-black/80 border-t border-white/10 flex gap-2">
-            <input 
-              type="text"
-              maxLength={100}
-              value={inputText}
-              onChange={(e) => setInputText(e.target.value)}
-              placeholder="Digite sua transmissão (máx 100 caracteres)..."
-              className="flex-1 bg-white/5 border border-white/10 px-4 py-3 text-xs font-mono text-white placeholder:text-slate-600 focus:outline-none focus:border-red-500/50 transition-colors"
-            />
+            <div className="flex-1 relative">
+              <input 
+                type="text"
+                maxLength={120}
+                value={inputText}
+                onChange={(e) => setInputText(e.target.value)}
+                placeholder={isCooldown ? "Cooldown ativo..." : "Digite sua transmissão..."}
+                disabled={isCooldown}
+                className="w-full bg-white/5 border border-white/10 px-4 py-3 pr-16 text-xs font-mono text-white placeholder:text-slate-600 focus:outline-none focus:border-red-500/50 transition-colors disabled:opacity-50"
+              />
+              <div className="absolute right-3 top-1/2 -translate-y-1/2 text-[9px] font-mono text-slate-600">
+                {inputText.length}/120
+              </div>
+            </div>
             <button 
               type="submit" 
-              className="px-6 bg-red-600 hover:bg-red-500 text-white transition-all active:scale-95 shadow-[0_0_15px_rgba(220,38,38,0.3)]" 
+              disabled={isCooldown}
+              className="px-6 bg-red-600 hover:bg-red-500 text-white transition-all active:scale-95 shadow-[0_0_15px_rgba(220,38,38,0.3)] disabled:grayscale disabled:opacity-50 disabled:cursor-not-allowed" 
               style={MILITARY_CLIP}
             >
               <PaperAirplaneIcon className="w-5 h-5 -rotate-45" />
@@ -394,10 +413,13 @@ function ReconditioningView({ user, timeLeft, formatTime }: { user: any, timeLef
           </div>
           <div className="flex-1 overflow-y-auto p-3 space-y-2 custom-scrollbar">
             {onlineUsers.map(u => (
-              <div key={u.id} className="flex items-center gap-2 p-2 bg-white/5 border border-white/5 hover:border-red-500/30 transition-colors group" style={MILITARY_CLIP}>
-                <div className="relative">
-                  <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full shadow-[0_0_5px_rgba(16,185,129,0.8)] animate-pulse" />
-                </div>
+              <div 
+                key={u.id} 
+                className="flex items-center gap-2 p-1.5 bg-white/5 border border-white/5 group cursor-pointer hover:border-red-500/30 transition-colors" 
+                style={MILITARY_CLIP}
+                onClick={() => openUserPanel(u.id)}
+              >
+                <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full shadow-[0_0_5px_rgba(16,185,129,0.8)] animate-pulse" />
                 <span className={`text-[9px] font-black uppercase italic truncate group-hover:text-white transition-colors ${getFactionColor(u.faction)}`}>{u.username}</span>
               </div>
             ))}
@@ -409,6 +431,7 @@ function ReconditioningView({ user, timeLeft, formatTime }: { user: any, timeLef
 }
 
 function OperationalView({ onAction }: { onAction: () => void }) {
+  const { openUserPanel } = useHUD();
   const [allies, setAllies] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [rescuingId, setRescuingId] = useState<string | null>(null);
@@ -491,9 +514,14 @@ function OperationalView({ onAction }: { onAction: () => void }) {
               style={MILITARY_CLIP}
             >
               <div className="flex items-center gap-4">
-                <img src={ally.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${ally.username}`} className="w-12 h-12 bg-white/10" style={MILITARY_CLIP} />
-                <div>
-                  <p className="text-sm font-black text-white italic uppercase tracking-tighter">{ally.username}</p>
+                <img 
+                  src={ally.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${ally.username}`} 
+                  className="w-12 h-12 bg-white/10 cursor-pointer" 
+                  style={MILITARY_CLIP} 
+                  onClick={() => openUserPanel(ally.id)}
+                />
+                <div className="cursor-pointer" onClick={() => openUserPanel(ally.id)}>
+                  <p className="text-sm font-black text-white italic uppercase tracking-tighter hover:underline">{ally.username}</p>
                   <p className="text-[8px] font-mono text-cyan-500 uppercase tracking-widest">Nível {ally.level} • RECO_MODE</p>
                 </div>
               </div>
