@@ -45,7 +45,7 @@ export default function ParallelDeckPage() {
     const h = Math.floor(seconds / 3600);
     const m = Math.floor((seconds % 3600) / 60);
     const s = seconds % 60;
-    return `${h > 0 ? h + 'H ' : ''}${m > 0 ? m + 'M ' : ''}${s}S`;
+    return `${String(h).padStart(2, '0')}H ${String(m).padStart(2, '0')}M ${String(s).padStart(2, '0')}S`;
   };
   
   const { data: dailyCards, error, isLoading } = useSWR<DailyCardsData>(
@@ -206,9 +206,9 @@ export default function ParallelDeckPage() {
 
             <div className="flex items-center gap-4 flex-1 justify-center md:justify-start">
               <span className="text-[10px] font-mono text-white/70 uppercase">Novo protocolo em:</span>
-              <div className="bg-black/60 px-4 py-1.5 border border-emerald-500/30" style={MILITARY_CLIP}>
-                <span className="text-xl font-orbitron font-black text-white tracking-tighter">
-                  {timeLeft !== null ? formatTime(timeLeft) : '--:--:--'}
+              <div className="bg-black/60 px-4 py-1.5 border border-emerald-500/30 min-w-[140px] text-center" style={MILITARY_CLIP}>
+                <span className="text-xl font-mono font-black text-white tracking-widest" style={{ fontVariantNumeric: 'tabular-nums' }}>
+                  {timeLeft !== null ? formatTime(timeLeft) : '00H 00M 00S'}
                 </span>
               </div>
             </div>
@@ -296,8 +296,8 @@ export default function ParallelDeckPage() {
           </div>
           <div className="flex items-center gap-2">
             <ClockIcon className="w-4 h-4 text-emerald-400" />
-            <span className="text-[10px] font-mono uppercase tracking-widest">
-              PRÓXIMO RESET EM: {timeLeft !== null ? formatTime(timeLeft) : '--:--:--'}
+            <span className="text-[10px] font-mono uppercase tracking-widest" style={{ fontVariantNumeric: 'tabular-nums' }}>
+              PRÓXIMO RESET EM: {timeLeft !== null ? formatTime(timeLeft) : '00H 00M 00S'}
             </span>
           </div>
         </div>

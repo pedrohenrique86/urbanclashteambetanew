@@ -168,24 +168,10 @@ const TopBar: React.FC<TopBarProps> = ({ userProfile }) => {
                       />
                     )}
 
-                    {/* Status Edge Indicator (Only for Level) */}
-                    {metric.label === "NVL" && userProfile?.status && (
-                      <motion.div
-                        initial={{ opacity: 0.6 }}
-                        animate={{ 
-                          opacity: [0.4, 1, 0.4],
-                          boxShadow: [
-                            "0 0 5px currentColor",
-                            "0 0 15px currentColor",
-                            "0 0 5px currentColor"
-                          ]
-                        }}
-                        transition={{ 
-                          duration: 2,
-                          repeat: Infinity,
-                          ease: "easeInOut"
-                        }}
-                        className={`absolute left-0 top-0 bottom-0 w-1.5 z-20 ${
+                    {/* Status Edge Indicator (Left side for first item, Right side for last item) */}
+                    {(metric.label === "NVL" || index === metrics.length - 1) && userProfile?.status && (
+                      <div
+                        className={`absolute ${index === 0 ? 'left-0' : 'right-0'} top-0 bottom-0 w-1.5 z-20 animate-status-pulse ${
                           userProfile.status === 'Ruptura' ? 'bg-red-500 text-red-500/50' :
                           userProfile.status === 'Isolamento' ? 'bg-zinc-400 text-zinc-400/50' :
                           userProfile.status === 'Recondicionamento' ? 'bg-amber-400 text-amber-400/50' :
