@@ -561,28 +561,23 @@ router.put(
       const updateValues = [];
       let paramCount = 1;
 
+      // SÊNIOR: Segurança Crítica. 
+      // APENAS campos estéticos e de perfil público podem ser editados aqui.
+      // Atributos de combate, dinheiro e tokens são gerenciados exclusivamente por serviços internos.
       const allowedFields = [
-        "faction",
         "bio",
         "avatar_url",
-        "level",
-        "total_xp",
-        "energy",
-        "action_points",
-        "money",
-        "victories",
-        "defeats",
-        "winning_streak",
+        "display_name"
       ];
 
-      for (const [key, value] of Object.entries(updateData)) {
-        if (allowedFields.includes(key) && value !== undefined) {
-          updateFields.push(`${key} = $${paramCount++}`);
-          updateValues.push(value);
+      const filteredUpdates = {};
+      for (const field of allowedFields) {
+        if (req.body[field] !== undefined) {
+          filteredUpdates[field] = req.body[field];
         }
       }
 
-      if (updateFields.length === 0) {
+      if (Object.keys(filteredUpdates).length === 0) {
         return res
           .status(400)
           .json({ error: "Nenhum campo válido para atualizar" });
@@ -590,7 +585,7 @@ router.put(
 
       updateValues.push(req.user.id);
 
-      const newState = await playerStateService.updatePlayerState(req.user.id, updateData);
+      const newState = await playerStateService.updatePlayerState(req.user.id, filteredUpdates);
 
       if (!newState) {
         return res.status(404).json({ error: "Perfil não encontrado" });
