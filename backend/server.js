@@ -60,7 +60,9 @@ const PORT = process.env.PORT || 3001;
 const allowedOrigins = [
   process.env.FRONTEND_URL,
   "https://www.urbanclashteam.com",
-  "https://urbanclashteam.com", // SÊNIOR: Adicionado para evitar falha se o usuário omitir o WWW
+  "https://urbanclashteam.com",
+  "https://www.urbanclashteam.com/",
+  "https://urbanclashteam.com/",
   "http://localhost:3000",
   "http://localhost:5173",
   "http://localhost:3002"
@@ -86,8 +88,14 @@ app.use("/api/daily-cards", require("./routes/dailyCards"));
 app.use("/api/recovery", require("./routes/recovery"));
 app.use("/api/isolation", require("./routes/isolation"));
 
-app.get("/health", (req, res) => {
-  res.json({ status: "OK", env: isProduction ? "production" : "development", port: PORT });
+app.get("/api/public/health", (req, res) => {
+  const redisReady = redisClient.client.isReady;
+  res.json({ 
+    status: "OK", 
+    redis: redisReady ? "CONNECTED" : "DISCONNECTED",
+    env: isProduction ? "production" : "development", 
+    port: PORT 
+  });
 });
 
 async function startServer() {
