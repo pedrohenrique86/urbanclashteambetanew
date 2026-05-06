@@ -58,10 +58,9 @@ class SocketService {
         reconnectionAttempts: 20,
         reconnectionDelay: 2000,
         path: "/socket.io/",
-        transports: ["polling", "websocket"],
+        transports: ["websocket"],
         secure: socketUrl.startsWith("https") || window.location.protocol === "https:",
         withCredentials: true,
-        forceNew: true, // Garante que não reusa conexão suja
       });
 
 

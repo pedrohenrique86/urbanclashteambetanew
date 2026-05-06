@@ -105,7 +105,7 @@ async function startServer() {
       await redisClient.delAsync("online_players:isolation");
       console.log("🧹 Set de jogadores online, lista de recuperação e isolamento resetados no Redis.");
     }
-    const io = new Server(server, { cors: { origin: allowedOrigins } });
+    const io = new Server(server, { cors: { origin: allowedOrigins, credentials: true } });
     initializeSocket(io);
     schedulePersistence();
     server.listen(PORT, () => {
