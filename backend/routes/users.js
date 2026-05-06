@@ -213,7 +213,8 @@ router.get("/state/subscribe", authenticateToken, (req, res) => {
   if (res.flushHeaders) res.flushHeaders();
   res.write("\n");
 
-  sseService.subscribe(res, topic);
+  const cid = req.query.cid || "legacy";
+  sseService.subscribe(res, topic, cid);
 
   // Confirmação de conexão
   res.write(

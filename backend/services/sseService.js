@@ -33,7 +33,14 @@ async function initRedisBridge() {
     // Link: Qualquer mensagem no canal 'SSE_BRIDGE' é repassada para os clientes locais
     await redisSubscriber.subscribe("SSE_BRIDGE", (message) => {
       try {
-        const { topic, event, data } = JSON.parse(message);
+        const { topic, event, data, action, userId } = JSON.parse(message);
+        
+        // SÊNIOR: Suporte a ações administrativas via Bridge (ex: KICK)
+        if (action === "KICK") {
+          _localKick(userId, data?.excludeCid);
+          return;
+        }
+
         _localPublish(topic, event, data);
       } catch (err) {
         console.error("[SSE-Bridge] Erro ao processar mensagem Redis:", err.message);
@@ -48,7 +55,29 @@ async function initRedisBridge() {
   }
 }
 
-function subscribe(client, topic) {
+function subscribe(client, topic, cid = null) {
+  // SÊNIOR: Single Session Enforcement (Anti-Multi-Aba)
+  // Se for um tópico de jogador, derrubamos sessões anteriores ANTES de aceitar a nova.
+  if (topic.startsWith("player:")) {
+    const userId = topic.replace("player:", "");
+    
+    // 1. Kick Local (Mesmo Processo)
+    // Passamos o cid para que o _localKick não derrube a própria conexão que está entrando.
+    _localKick(userId, cid);
+
+    // 2. Kick Global (Outros Processos via Redis)
+    if (redisPublisher && redisPublisher.isOpen) {
+      redisPublisher.publish("SSE_BRIDGE", JSON.stringify({ 
+        action: "KICK", 
+        userId, 
+        data: { excludeCid: cid } 
+      })).catch(() => {});
+    }
+  }
+
+  // Atrela o CID ao cliente para identificação futura
+  client.cid = cid;
+
   if (!topics.has(topic)) {
     topics.set(topic, new Set());
     
@@ -139,6 +168,34 @@ function broadcast(event, data) {
       // Falha silenciosa
     }
   });
+}
+
+/**
+ * SÊNIOR: Remove e desconecta todos os clientes de um jogador no processo local.
+ * excludeCid: Opcional. Se fornecido, ignora o cliente com este ID (evita auto-kick).
+ */
+function _localKick(userId, excludeCid = null) {
+  const topic = `player:${userId}`;
+  if (topics.has(topic)) {
+    const clients = topics.get(topic);
+    const kickMsg = `event: security:duplicate_session\ndata: ${JSON.stringify({ message: "Sessão finalizada: outra aba foi aberta." })}\n\n`;
+    
+    clients.forEach(client => {
+      // SÊNIOR: Pulo do gato — não chuta a própria conexão que acabou de pedir o subscribe!
+      if (excludeCid && client.cid === excludeCid) return;
+
+      try {
+        client.write(kickMsg);
+        // Pequeno delay para garantir que o evento chegue antes de fechar o socket
+        setTimeout(() => {
+          try { client.end(); } catch(e) {}
+        }, 100);
+      } catch (e) {}
+    });
+
+    // Se após o kick não sobrou ninguém (ou apenas o excluído), limpamos se necessário
+    // (O subscribe vai adicionar o novo logo em seguida).
+  }
 }
 
 // Inicia a ponte automaticamente se estiver em modo servidor

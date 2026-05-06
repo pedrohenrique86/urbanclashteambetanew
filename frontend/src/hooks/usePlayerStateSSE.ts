@@ -70,21 +70,32 @@ export interface PlayerStatusPayload {
   status_ends_at: string | null;
 }
 
+/**
+ * Payload do evento security:duplicate_session.
+ */
+export interface DuplicateSessionPayload {
+  message: string;
+}
+
 interface UsePlayerStateSSEOptions {
-  userId         : string | null;
-  onStateUpdate  : (payload: PlayerStatePayload) => void;
-  onStatusUpdate?: (payload: PlayerStatusPayload) => void;
+  userId          : string | null;
+  onStateUpdate   : (payload: PlayerStatePayload) => void;
+  onStatusUpdate? : (payload: PlayerStatusPayload) => void;
+  onDuplicateSession?: (payload: DuplicateSessionPayload) => void;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────────
 
-function buildSSEUrl(): string {
+function buildSSEUrl(cid: string): string {
   const envUrl = import.meta.env.VITE_API_URL as string | undefined;
-  if (!envUrl) return "/api/users/state/subscribe";
-  const base = envUrl.endsWith("/") ? envUrl.slice(0, -1) : envUrl;
-  return base.endsWith("/api")
+  let base = envUrl || "";
+  if (base.endsWith("/")) base = base.slice(0, -1);
+  
+  const path = base.endsWith("/api")
     ? `${base}/users/state/subscribe`
     : `${base}/api/users/state/subscribe`;
+    
+  return `${path}?cid=${cid}`;
 }
 
 // ─── Hook ─────────────────────────────────────────────────────────────────────────
@@ -93,6 +104,7 @@ export function usePlayerStateSSE({
   userId,
   onStateUpdate,
   onStatusUpdate,
+  onDuplicateSession,
 }: UsePlayerStateSSEOptions): void {
   const mountedRef       = useRef(true);
   const esRef            = useRef<EventSource | null>(null);
@@ -101,26 +113,31 @@ export function usePlayerStateSSE({
   const lastVersionRef   = useRef(0);            // versão do último patch recebido
   const onUpdateRef      = useRef(onStateUpdate);
   const onStatusRef      = useRef(onStatusUpdate);
+  const onDuplicateRef    = useRef(onDuplicateSession);
+  const wasKickedRef     = useRef(false);
 
   // Mantém referências atualizadas sem recriar a conexão
   useEffect(() => {
     onUpdateRef.current = onStateUpdate;
     onStatusRef.current = onStatusUpdate;
+    onDuplicateRef.current = onDuplicateSession;
   });
 
   useEffect(() => {
     if (!userId) return;
 
     mountedRef.current = true;
+    wasKickedRef.current = false;
     backoffRef.current = 1000;
 
     const connect = () => {
       if (!mountedRef.current) return;
 
+      const cid   = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
       const token = tokenStorage.getToken();
       const url   = token
-        ? `${buildSSEUrl()}?token=${encodeURIComponent(token)}`
-        : buildSSEUrl();
+        ? `${buildSSEUrl(cid)}&token=${encodeURIComponent(token)}`
+        : buildSSEUrl(cid);
 
       const es = new EventSource(url, { withCredentials: true });
       esRef.current = es;
@@ -163,6 +180,24 @@ export function usePlayerStateSSE({
           console.warn("[playerSSE] Falha ao parsear evento status:", err);
         }
       });
+      
+      // ── Segurança: Duplicate Session (Anti-Multi-Aba) ────────────────────────
+      es.addEventListener("security:duplicate_session", (e: MessageEvent) => {
+        if (!mountedRef.current) return;
+        try {
+          const payload = JSON.parse(e.data) as DuplicateSessionPayload;
+          
+          // Marca que foi expulso para NÃO tentar reconectar no onerror
+          wasKickedRef.current = true;
+          es.close();
+          
+          if (onDuplicateRef.current) {
+            onDuplicateRef.current(payload);
+          }
+        } catch (err) {
+          console.warn("[playerSSE] Falha ao parsear evento duplicate session:", err);
+        }
+      });
 
       // ── Confirmação de conexão ────────────────────────────────────────────────
       es.addEventListener("player:connected", () => {
@@ -178,7 +213,7 @@ export function usePlayerStateSSE({
         es.close();
         esRef.current = null;
 
-        if (!mountedRef.current) return;
+        if (!mountedRef.current || wasKickedRef.current) return;
 
         const delay = Math.min(backoffRef.current, 30_000);
         backoffRef.current = Math.min(backoffRef.current * 2, 30_000);
