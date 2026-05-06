@@ -61,6 +61,7 @@ jobs:
             pm2 start server.js \
               --name "backend" \
               --node-args="--max-old-space-size=512" \
+              --env NODE_ENV=production \
               --log ~/urbanclashteambetanew/backend/logs/pm2-combined.log \
               --error ~/urbanclashteambetanew/backend/logs/pm2-error.log \
               --output ~/urbanclashteambetanew/backend/logs/pm2-out.log \
