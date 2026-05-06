@@ -3,7 +3,7 @@ const { authenticateSocket } = require("./services/authService");
 const chatService = require("./services/chatService");
 const redisClient = require("./config/redisClient");
 
-
+const redisClient = require("./config/redisClient");
 
 // ─── SÊNIOR: Helper de Anti-Multi-Aba para Socket.IO ───────────────────────
 async function enforceSingleSession(io, socket, user, cid) {
