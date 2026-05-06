@@ -50,7 +50,12 @@ export default function ParallelDeckPage() {
   
   const { data: dailyCards, error, isLoading } = useSWR<DailyCardsData>(
     "/daily-cards",
-    (url: string) => api.get(url).then((res: any) => res.data)
+    (url: string) => api.get(url).then((res: any) => res.data),
+    { 
+      revalidateOnFocus: false, 
+      revalidateIfStale: false,
+      dedupingInterval: 60000 
+    }
   );
 
   useEffect(() => {
@@ -74,6 +79,13 @@ export default function ParallelDeckPage() {
     const timer = setInterval(tick, 1000);
     return () => clearInterval(timer);
   }, [dailyCards?.expires_at]);
+
+  // Efeito para resetar a página automaticamente quando o tempo acaba
+  useEffect(() => {
+    if (timeLeft === 0) {
+      mutate("/daily-cards");
+    }
+  }, [timeLeft]);
 
   const handleChoose = async (optionIndex: number) => {
     if (dailyCards?.chosen_option || isChoosing) return;

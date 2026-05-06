@@ -8,17 +8,28 @@ class DailyCardService {
    * Se ainda não existirem para hoje, gera 3 novas opções baseadas no pool.
    */
   async getDailyOptions(userId) {
-    const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' });
+    const cacheKey = `daily_cards:${userId}`;
     
-    // 1. Verificar se o jogador já tem sorteio para hoje
+    // 1. Tentar buscar do Cache (Redis) para evitar query no BD Neon
+    const cached = await redisClient.getAsync(cacheKey);
+    if (cached) {
+      return JSON.parse(cached);
+    }
+
+    // 2. Verificar se o jogador já tem sorteio ativo (não expirado) no BD
     const existing = await query(
       `SELECT * FROM player_daily_cards 
-       WHERE user_id = $1 AND DATE(presented_at AT TIME ZONE 'UTC') = $2`,
-      [userId, today]
+       WHERE user_id = $1 AND expires_at > CURRENT_TIMESTAMP
+       ORDER BY presented_at DESC LIMIT 1`,
+      [userId]
     );
 
     if (existing.rows.length > 0) {
-      return existing.rows[0];
+      const data = existing.rows[0];
+      // Salvar no cache antes de retornar
+      const ttl = Math.max(0, Math.floor((new Date(data.expires_at).getTime() - Date.now()) / 1000));
+      if (ttl > 0) await redisClient.setAsync(cacheKey, JSON.stringify(data), "EX", ttl);
+      return data;
     }
 
     // 2. Se não existir, gera 3 opções aleatórias do pool
@@ -30,9 +41,8 @@ class DailyCardService {
 
     const options = this._drawFromPool(await this._getPool(), 3);
     
-    // 3. Salvar as opções geradas
-    const expiresAt = new Date();
-    expiresAt.setUTCHours(23, 59, 59, 999);
+    // 3. Salvar as opções geradas com validade de 24 horas exatas
+    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
 
     const insertResult = await query(
       `INSERT INTO player_daily_cards (user_id, expires_at, card_option_1, card_option_2, card_option_3)
@@ -41,7 +51,12 @@ class DailyCardService {
       [userId, expiresAt, options[0], options[1], options[2]]
     );
 
-    return insertResult.rows[0];
+    const result = insertResult.rows[0];
+
+    // 4. Salvar no cache (24h)
+    await redisClient.setAsync(cacheKey, JSON.stringify(result), "EX", 24 * 60 * 60);
+
+    return result;
   }
 
   /**
@@ -52,14 +67,13 @@ class DailyCardService {
       throw new Error("Opção de carta inválida.");
     }
 
-    const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' });
-    
     return await transaction(async (client) => {
-      // 1. Buscar o sorteio do dia
+      // 1. Buscar o sorteio ativo
       const dailyCardResult = await client.query(
         `SELECT * FROM player_daily_cards 
-         WHERE user_id = $1 AND DATE(presented_at AT TIME ZONE 'UTC') = $2`,
-        [userId, today]
+         WHERE user_id = $1 AND expires_at > CURRENT_TIMESTAMP
+         ORDER BY presented_at DESC LIMIT 1`,
+        [userId]
       );
 
       if (dailyCardResult.rows.length === 0) {
@@ -97,6 +111,12 @@ class DailyCardService {
       // 5. Aplicar a recompensa no estado do jogador
       await this._applyReward(userId, chosenCard, client);
 
+      // 6. Atualizar cache para refletir que a carta foi escolhida
+      const cacheKey = `daily_cards:${userId}`;
+      const updatedDailyCard = { ...dailyCard, chosen_option: optionIndex, chosen_at: new Date().toISOString() };
+      const ttl = Math.max(0, Math.floor((new Date(dailyCard.expires_at).getTime() - Date.now()) / 1000));
+      if (ttl > 0) await redisClient.setAsync(cacheKey, JSON.stringify(updatedDailyCard), "EX", ttl);
+
       return {
         card: chosenCard,
         reward: rewardResult.rows[0]
@@ -107,8 +127,18 @@ class DailyCardService {
   // ─── Métodos Privados ──────────────────────────────────────────────────────────
 
   async _getPool() {
+    const cacheKey = "daily_card_pool_active";
+    const cached = await redisClient.getAsync(cacheKey);
+    if (cached) return JSON.parse(cached);
+
     const result = await query("SELECT * FROM daily_card_pools WHERE is_active = TRUE");
-    return result.rows;
+    const data = result.rows;
+    
+    if (data.length > 0) {
+      await redisClient.setAsync(cacheKey, JSON.stringify(data), "EX", 3600); // 1 hora de cache
+    }
+    
+    return data;
   }
 
   _drawFromPool(pool, count) {
