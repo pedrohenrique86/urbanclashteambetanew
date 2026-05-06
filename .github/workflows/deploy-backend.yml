@@ -24,6 +24,9 @@ jobs:
           username: ${{ secrets.ORACLE_USERNAME }}
           key: ${{ secrets.ORACLE_SSH_KEY }}
           script: |
+            # Reinicia o Redis para dar um "choque" nele em caso de travamento
+            sudo systemctl restart redis-server || sudo systemctl restart redis || true
+            
             cd ~/urbanclashteambetanew
             git fetch origin
             git reset --hard origin/main
