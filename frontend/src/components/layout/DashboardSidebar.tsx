@@ -508,7 +508,12 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = React.memo(({
                                 <div 
                                   className={className}
                                   data-tooltip-id="sidebar-tooltip"
-                                  data-tooltip-content={isCollapsed ? subItem.name : "Sistema Indisponível"}
+                                  data-tooltip-content={isCollapsed 
+                                    ? subItem.name 
+                                    : (LEVEL_REQUIREMENTS[subItem.path] && (userProfile?.level || 0) < LEVEL_REQUIREMENTS[subItem.path])
+                                      ? `Disponível a partir NVL${LEVEL_REQUIREMENTS[subItem.path]}`
+                                      : "Sistema Indisponível"
+                                  }
                                 >
                                   {content}
                                 </div>

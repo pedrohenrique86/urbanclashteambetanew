@@ -63,6 +63,16 @@ const redisWrapper = {
     }
   },
 
+  incrAsync: async (k) => {
+    if (!k || !isReady) return null;
+    try {
+      return await client.incr(String(k));
+    } catch (err) {
+      console.error(`[RedisClient] Erro em incrAsync key=${k}:`, err.message);
+      return null;
+    }
+  },
+
   setAsync: async (k, v, m, t) => {
     if (!k || !isReady) return null;
     try {
