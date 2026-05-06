@@ -45,12 +45,10 @@ class SocketService {
    */
   connect(): Socket {
     if (!this.socket) {
-      let socketUrl = (VITE_API_URL || "").replace(/\/api\/?$/, "");
-      
-      // SÊNIOR: Se a URL for relativa ou estiver vazia, usa a origem do navegador
-      if (!socketUrl || socketUrl.startsWith("/")) {
-        socketUrl = window.location.origin;
-      }
+      // Remove o sufixo /api da URL para evitar o erro de "Invalid namespace"
+      // O Socket.IO entende qualquer path na URL (ex: http://localhost:3001/api)
+      // como sendo um "namespace" (/api), que não existe no backend.
+      const socketUrl = (VITE_API_URL || "").replace(/\/api\/?$/, "");
 
       console.log("🔌 Iniciando conexão Socket.IO em:", socketUrl);
 
@@ -58,8 +56,8 @@ class SocketService {
         reconnectionAttempts: 20,
         reconnectionDelay: 2000,
         path: "/socket.io/",
-        transports: ["websocket"],
-        secure: socketUrl.startsWith("https") || window.location.protocol === "https:",
+        transports: ["websocket"], // Apenas websocket como o usuário pediu
+        secure: socketUrl.startsWith("https"),
         withCredentials: true,
       });
 

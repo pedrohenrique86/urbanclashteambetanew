@@ -27,16 +27,11 @@ router.get("/rankings", async (req, res) => {
 router.get("/rankings/subscribe", (req, res) => {
   res.set({
     "Content-Type": "text/event-stream",
-    "Cache-Control": "no-cache, no-transform",
-    "Connection": "keep-alive",
+    "Cache-Control": "no-cache",
+    Connection: "keep-alive",
     "Access-Control-Allow-Origin": "*",
-    "X-Accel-Buffering": "no",
-    "Pragma": "no-cache",
-    "Expires": "0",
   });
   if (res.flushHeaders) res.flushHeaders();
-  // SÊNIOR: Padding para forçar proxies a entregar o stream imediatamente no mobile
-  res.write(" ".repeat(1024) + "\n");
   res.write("\n");
 
   sseService.subscribe(res, "ranking");
