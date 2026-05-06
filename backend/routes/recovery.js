@@ -13,6 +13,16 @@ router.post("/antidote", authenticateToken, async (req, res) => {
   }
 });
 
+// Reativar a si mesmo (5 U-CRYPTON TOKENS)
+router.post("/reactivate", authenticateToken, async (req, res) => {
+  try {
+    const result = await recoveryService.reactivateSelf(req.user.id);
+    res.json(result);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+});
+
 // Resgatar aliado (5 U-CRYPTON TOKENS)
 router.post("/rescue-ally", authenticateToken, async (req, res) => {
   try {

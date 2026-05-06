@@ -150,7 +150,7 @@ export default function RecoveryBasePage() {
               </div>
               <div>
                 <h3 className="text-[9px] font-orbitron text-slate-500 tracking-[0.2em]">PREMIUM_ASSETS</h3>
-                <p className="text-xl font-black font-orbitron text-yellow-500 italic">{(userProfile as any).premium_coins || 0} <span className="text-[9px] text-white">UC</span></p>
+                <p className="text-xl font-black font-orbitron text-yellow-500 italic">{userProfile.ucrypto || 0} <span className="text-[9px] text-white">UC</span></p>
               </div>
             </div>
           </div>
@@ -212,6 +212,24 @@ export default function RecoveryBasePage() {
       </footer>
     </div>
   );
+}
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function getStatusColor(status: string) {
+  switch (status) {
+    case 'Ruptura': return 'text-red-500';
+    case 'Recondicionamento': return 'text-yellow-500';
+    case 'Operacional': return 'text-green-500';
+    default: return 'text-gray-400';
+  }
+}
+
+export function getFactionColor(faction?: string) {
+  const f = String(faction || "").toLowerCase().trim();
+  if (['gangsters', 'gangster', 'renegados', 'renegado'].includes(f)) return 'text-orange-500';
+  if (['guardas', 'guarda', 'guardioes', 'guardião', 'guardiões', 'guardiao'].includes(f)) return 'text-blue-400';
+  return 'text-slate-400';
 }
 
 // ─── Componentes de Visão ────────────────────────────────────────────────────────
@@ -282,8 +300,24 @@ function ReconditioningView({ user, timeLeft, formatTime }: { user: any, timeLef
   const [onlineUsers, setOnlineUsers] = useState<any[]>([]);
   const [inputText, setInputText] = useState("");
   const [isCooldown, setIsCooldown] = useState(false);
+  const [loadingAction, setLoadingAction] = useState(false);
+  const { showToast } = useToast();
+  const { refreshProfile } = useUserProfile();
   const scrollRef = useRef<HTMLDivElement>(null);
   const { openUserPanel } = useHUD();
+
+  const handleReactivate = async () => {
+    setLoadingAction(true);
+    try {
+      await recoveryService.reactivateSelf();
+      showToast("Protocolo de reativação concluído!", "success");
+      refreshProfile();
+    } catch (err: any) {
+      showToast(err.response?.data?.message || "Erro na reativação.", "error");
+    } finally {
+      setLoadingAction(false);
+    }
+  };
 
   const userRef = useRef(user);
   useEffect(() => {
@@ -428,7 +462,42 @@ function ReconditioningView({ user, timeLeft, formatTime }: { user: any, timeLef
   };
 
   return (
-    <div className="flex flex-col h-[550px] cyber-card relative overflow-hidden" style={MILITARY_CLIP}>
+    <div className="space-y-6">
+      {/* REACTIVATION ACTION CARD */}
+      <div className="cyber-card p-6 border-yellow-500/20 bg-yellow-500/5 relative overflow-hidden" style={MILITARY_CLIP}>
+        <div className="absolute top-0 right-0 p-4 opacity-5">
+           <BoltIcon className="w-32 h-32 text-yellow-500" />
+        </div>
+        <div className="flex flex-col md:flex-row items-center justify-between gap-6 relative z-10">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 bg-yellow-500/10 border border-yellow-500/30 flex items-center justify-center animate-pulse" style={MILITARY_CLIP}>
+              <BoltIcon className="w-6 h-6 text-yellow-500" />
+            </div>
+            <div>
+              <h3 className="text-lg font-orbitron font-black text-white uppercase italic tracking-widest">Reativação Imediata</h3>
+              <p className="text-slate-400 font-mono text-[10px] uppercase tracking-widest mt-1">Forçar reinicialização dos sistemas neurais</p>
+            </div>
+          </div>
+          
+          <div className="flex items-center gap-4">
+             <div className="bg-black/60 px-4 py-2 border border-yellow-500/30 flex items-center gap-3" style={MILITARY_CLIP}>
+                <span className="text-[10px] font-mono text-gray-500 uppercase">Custo</span>
+                <span className="text-xl font-orbitron font-black text-yellow-500 italic">5 <span className="text-white">UC</span></span>
+             </div>
+             
+             <button 
+               onClick={handleReactivate}
+               disabled={loadingAction}
+               className="px-8 py-3 bg-yellow-600 hover:bg-yellow-500 text-white font-orbitron font-black uppercase italic tracking-[0.2em] transition-all hover:scale-105 active:scale-95 disabled:opacity-50"
+               style={MILITARY_CLIP}
+             >
+               {loadingAction ? "..." : "REACTIVATE_NOW"}
+             </button>
+          </div>
+        </div>
+      </div>
+
+      <div className="flex flex-col h-[550px] cyber-card relative overflow-hidden" style={MILITARY_CLIP}>
       {/* HEADER DO CHAT */}
       <div className="p-4 bg-white/5 border-b border-white/10 flex justify-between items-center relative z-10">
         <div className="flex items-center gap-3">
@@ -568,6 +637,7 @@ function ReconditioningView({ user, timeLeft, formatTime }: { user: any, timeLef
         </div>
       </div>
     </div>
+    </div>
   );
 }
 
@@ -684,19 +754,4 @@ function OperationalView({ onAction }: { onAction: () => void }) {
     </div>
   );
 }
-
-function getStatusColor(status: string) {
-  switch (status) {
-    case 'Ruptura': return 'text-red-500';
-    case 'Recondicionamento': return 'text-yellow-500';
-    case 'Operacional': return 'text-green-500';
-    default: return 'text-gray-400';
-  }
-}
-
-export function getFactionColor(faction?: string) {
-  const f = String(faction || "").toLowerCase().trim();
-  if (['gangsters', 'gangster', 'renegados', 'renegado'].includes(f)) return 'text-orange-500';
-  if (['guardas', 'guarda', 'guardioes', 'guardião', 'guardiões', 'guardiao'].includes(f)) return 'text-blue-400';
-  return 'text-slate-400';
-}
+

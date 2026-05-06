@@ -70,6 +70,29 @@ async function rescueAlly(userId, allyId) {
   return { message: `Você resgatou ${allyState.username}! Ele está operacional novamente.` };
 }
 
+async function reactivateSelf(userId) {
+  const state = await playerStateService.getPlayerState(userId);
+  if (!state) throw new Error("Jogador não encontrado.");
+
+  if (state.status !== 'Recondicionamento') {
+    throw new Error("Sua unidade não está em recondicionamento.");
+  }
+
+  const premiumCoins = Number(state.premium_coins || 0);
+  if (premiumCoins < 5) {
+    throw new Error("Saldo de U-CRYPTON TOKENS insuficiente. (Custo: 5 U-CRYPTON TOKENS)");
+  }
+
+  // Dedução e atualização de estado
+  await playerStateService.updatePlayerState(userId, {
+    premium_coins: -5,
+    status: 'Operacional',
+    status_ends_at: null
+  });
+
+  return { message: "Protocolo de reativação concluído! Você está operacional." };
+}
+
 async function getAlliesInReconditioning(userId) {
   const player = await playerStateService.getPlayerState(userId);
   if (!player) return [];
@@ -96,5 +119,6 @@ async function getAlliesInReconditioning(userId) {
 module.exports = {
   buyAntidote,
   rescueAlly,
+  reactivateSelf,
   getAlliesInReconditioning
 };

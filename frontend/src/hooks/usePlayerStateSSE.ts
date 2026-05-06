@@ -48,6 +48,7 @@ export interface PlayerStatePatch {
   toxicity?      : number;
   bio?           : string;
   avatar_url?    : string;
+  uCrypto?       : number;
 }
 
 /**

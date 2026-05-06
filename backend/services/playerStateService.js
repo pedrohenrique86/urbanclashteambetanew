@@ -138,7 +138,8 @@ const FIELD_TO_SSE = {
   active_training_type: "activeTrainingType",
   toxicity          : "toxicity",
   bio               : "bio",
-  avatar_url        : "avatar_url"
+  avatar_url        : "avatar_url",
+  premium_coins     : "uCrypto"
 };
 
 // ─── Campos numéricos no Redis Hash ──────────────────────────────────────────────

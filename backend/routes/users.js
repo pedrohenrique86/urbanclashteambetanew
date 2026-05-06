@@ -144,6 +144,7 @@ function convertProfileData(profile) {
     victories: parseInt(profile.victories, 10) || 0,
     defeats: parseInt(profile.defeats, 10) || 0,
     winning_streak: parseInt(profile.winning_streak, 10) || 0,
+    ucrypto: parseInt(profile.premium_coins, 10) || 0,
     // SÊNIOR: Valores DERIVADOS calculados em tempo real — nunca persistidos
     crit_chance_pct : gameLogic.calcCritChance(profile),
     crit_damage_mult: gameLogic.calcCritDamageMultiplier(profile),

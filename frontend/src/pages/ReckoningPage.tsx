@@ -586,7 +586,16 @@ export default function ReckoningPage() {
           )}
 
           {combatPhase === "fighting" && (
-            <motion.div key="fighting" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="max-w-4xl mx-auto">
+            <motion.div 
+              key="fighting" 
+              initial={{ opacity: 0 }} 
+              animate={{ 
+                opacity: 1,
+                x: battleLogs.length > 0 && battleLogs[battleLogs.length-1].defender.damage > 0 ? [0, -4, 4, -4, 4, 0] : 0
+              }} 
+              transition={{ duration: 0.4 }}
+              className="max-w-4xl mx-auto"
+            >
               <div className="bg-black/90 border border-red-500/30 p-6 md:p-10 relative overflow-hidden" style={MILITARY_CLIP}>
                 {/* Rancor Bar */}
                 <div className="mb-8">
@@ -703,40 +712,99 @@ export default function ReckoningPage() {
                 </div>
 
                 {/* VISCERAL TEXT LOGS */}
-                <div className="space-y-4 min-h-[300px] flex flex-col justify-end bg-black/40 p-6 border border-white/5">
+                <div className="space-y-4 min-h-[300px] flex flex-col justify-end bg-black/60 p-6 border border-white/5 relative overflow-hidden">
+                  {/* Scanner line overlay for logs */}
+                  <div className="absolute inset-0 pointer-events-none bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%),linear-gradient(90deg,rgba(255,0,0,0.06),rgba(0,255,0,0.02),rgba(0,0,255,0.06))] bg-[length:100%_2px,3px_100%] z-20" />
+                  
                   <AnimatePresence mode="popLayout">
-                    {battleLogs.map((log, i) => (
-                      <motion.div 
-                        key={i}
-                        initial={{ opacity: 0, x: -20, filter: "blur(10px)" }}
-                        animate={{ opacity: 1, x: 0, filter: "blur(0px)" }}
-                        className={`flex gap-4 items-start ${i === battleLogs.length - 1 ? 'scale-105' : 'opacity-40'}`}
-                      >
-                        <div className="mt-1">
-                          <div className={`w-2 h-2 rounded-full ${log.attacker.damage > log.defender.damage ? 'bg-cyan-500' : 'bg-red-500'}`} />
-                        </div>
-                        <div className="flex-1">
-                          <p className={`font-mono text-xs uppercase tracking-wider leading-relaxed ${log.attacker.damage > log.defender.damage ? 'text-cyan-100' : 'text-red-100'}`}>
-                            <span className="font-black opacity-50 mr-2">[{log.segment}]</span>
-                            {log.label}
-                          </p>
-                          <div className="mt-1 flex gap-4 text-[9px] font-black font-mono uppercase">
-                            <span className="text-cyan-500">Dano: {log.attacker.damage}</span>
-                            <span className="text-red-500">Dano Recebido: {log.defender.damage}</span>
+                    {battleLogs.map((log, i) => {
+                      const isLast = i === battleLogs.length - 1;
+                      const isCritical = log.effect === 'special' || log.effect === 'heavy';
+                      const isParry = log.effect === 'parry' || log.effect === 'tech';
+                      
+                      return (
+                        <motion.div 
+                          key={i}
+                          initial={{ opacity: 0, x: -50, filter: "blur(10px)" }}
+                          animate={{ 
+                            opacity: isLast ? 1 : 0.4, 
+                            x: 0, 
+                            filter: "blur(0px)",
+                            scale: isLast ? 1 : 0.95 
+                          }}
+                          className={`relative flex gap-4 items-start p-3 border-l-2 transition-all duration-500 ${
+                            isLast 
+                              ? (log.attacker.damage > log.defender.damage ? 'border-cyan-500 bg-cyan-500/5' : 'border-red-500 bg-red-500/5') 
+                              : 'border-white/10'
+                          }`}
+                        >
+                          <div className="mt-1">
+                            <div className={`w-3 h-3 rotate-45 ${
+                              log.attacker.damage > log.defender.damage 
+                                ? (isCritical ? 'bg-cyan-400 animate-pulse shadow-[0_0_10px_cyan]' : 'bg-cyan-600') 
+                                : (isCritical ? 'bg-red-400 animate-pulse shadow-[0_0_10px_red]' : 'bg-red-600')
+                            }`} />
                           </div>
-                        </div>
-                      </motion.div>
-                    ))}
+                          
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="font-orbitron font-black text-[8px] opacity-40 tracking-widest uppercase">
+                                T-STAMP: {new Date().toLocaleTimeString([], { hour12: false, minute: '2-digit', second: '2-digit' })}
+                              </span>
+                              <span className={`px-1.5 py-0.5 text-[7px] font-black uppercase rounded-sm ${
+                                isCritical ? 'bg-red-500/20 text-red-400' : isParry ? 'bg-cyan-500/20 text-cyan-400' : 'bg-slate-800 text-slate-400'
+                              }`}>
+                                {log.effect.toUpperCase()}
+                              </span>
+                            </div>
+                            
+                            <p className={`font-mono text-xs uppercase tracking-tight leading-relaxed ${
+                              log.attacker.damage > log.defender.damage ? 'text-cyan-100' : 'text-red-100'
+                            } ${isLast && isCritical ? 'text-sm font-bold' : ''}`}>
+                              {log.label}
+                            </p>
+                            
+                            <div className="mt-2 flex gap-4 text-[9px] font-black font-mono uppercase">
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-slate-500">OUT:</span>
+                                <span className="text-cyan-500">-{log.attacker.damage} HP</span>
+                              </div>
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-slate-500">IN:</span>
+                                <span className="text-red-500">-{log.defender.damage} HP</span>
+                              </div>
+                            </div>
+                          </div>
+
+                          {isLast && isCritical && (
+                            <motion.div 
+                              initial={{ opacity: 0 }}
+                              animate={{ opacity: [0, 1, 0] }}
+                              transition={{ duration: 0.2, repeat: 3 }}
+                              className="absolute inset-0 bg-red-500/10 pointer-events-none"
+                            />
+                          )}
+                        </motion.div>
+                      );
+                    })}
                   </AnimatePresence>
                   
                   {isProcessing && (
-                    <motion.div 
-                      animate={{ opacity: [0.3, 1, 0.3] }}
-                      transition={{ duration: 1, repeat: Infinity }}
-                      className="text-[10px] font-black font-mono text-red-500 uppercase tracking-[0.4em] pt-4"
-                    >
-                      Processando Dados de Combate...
-                    </motion.div>
+                    <div className="pt-4 flex items-center gap-3">
+                      <div className="flex gap-1">
+                        {[0, 1, 2].map(d => (
+                          <motion.div 
+                            key={d}
+                            animate={{ height: [4, 12, 4], opacity: [0.3, 1, 0.3] }}
+                            transition={{ duration: 0.6, repeat: Infinity, delay: d * 0.1 }}
+                            className="w-1 bg-red-500"
+                          />
+                        ))}
+                      </div>
+                      <span className="text-[10px] font-black font-mono text-red-500 uppercase tracking-[0.4em] animate-pulse">
+                        Sincronizando Matriz de Combate...
+                      </span>
+                    </div>
                   )}
                 </div>
 

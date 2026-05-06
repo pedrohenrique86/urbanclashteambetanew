@@ -381,63 +381,63 @@ function resolveStrategicCombat(attacker, defender, attackerChips = [], playerAc
     opponentActions.push(actionPool[Math.floor(Math.random() * actionPool.length)]);
   }
 
-  // Pools de Narração (Garantir variedade extrema)
+  // Pools de Narração (Garantir variedade extrema e imersão visceral)
   const LOG_POOLS = {
     draw: [
-      "Choque de frames! Faíscas saltam enquanto os sistemas colidem em um impasse técnico.",
-      "As lâminas se cruzam no ar, gerando um chiado estático que ecoa pelo beco úmido.",
-      "Empate de processamento. Nenhum dos dois encontrou uma brecha na defesa do outro.",
-      "O impacto mútuo lança ambos para trás, os servos hidráulicos rangendo sob a pressão.",
-      "Sincronização perfeita de movimentos. É como lutar contra o próprio reflexo no espelho."
+      "ESTASE TÁTICA: O choque dos frames cria uma zona de vácuo estático. Nenhum avanço registrado.",
+      "PARIDADE DE DADOS: As lâminas de frequência se anulam em um ângulo perfeito. Faíscas de neon cegam os sensores.",
+      "IMPASSE CIBERNÉTICO: Os núcleos de processamento entram em loop enquanto ambos buscam uma falha inexistente.",
+      "DISSIPAÇÃO DE IMPACTO: O golpe é absorvido pelas placas de blindagem mútua. O som do metal rangendo ecoa pelo setor.",
+      "SINCRONIA MORTAL: Movimentos idênticos. É como se os dois sistemas estivessem espelhados no mesmo código-fonte."
     ],
     pWinBrutal: [
-      "Seu golpe brutal atravessa a guarda, amassando a blindagem do oponente com um estalo seco.",
-      "Um soco carregado de energia atinge o chassi inimigo, descalibrando seus sensores ópticos.",
-      "A força do seu ataque é devastadora, forçando o inimigo a recuar enquanto óleo vaza de suas juntas.",
-      "Você descarrega uma sequência violenta que faz o metal do oponente gemer sob o estresse térmico.",
-      "Um impacto direto no núcleo! O inimigo cambaleia enquanto alertas de danos críticos piscam em seu HUD."
+      "ANOMALIA ESTRUTURAL: Seu soco hidráulico amassa o peito do alvo, expondo fiação e servos danificados.",
+      "SOBRECARGA DE IMPACTO: A lâmina térmica atravessa a guarda, deixando uma trilha de metal derretido no chassi inimigo.",
+      "FRATURA DE CÓDIGO: Você descarrega uma sequência violenta que faz o crânio de metal do oponente estalar sob a pressão.",
+      "DEMOLIÇÃO NEON: Um golpe brutal arremessa o alvo contra os destroços. Alertas de falha crítica piscam no radar dele.",
+      "RUPTURA CINÉTICA: A força pura do seu ataque ignora os dissipadores, atingindo diretamente o núcleo de energia inimigo."
     ],
     pWinFeint: [
-      "Finta cirúrgica. O inimigo mordeu a isca e agora está totalmente vulnerável ao seu próximo movimento.",
-      "Você simulou uma falha no sistema, atraindo o oponente para uma armadilha de processamento fatal.",
-      "Movimento fantasmagórico! O inimigo golpeou o ar enquanto você se posicionava para o abate.",
-      "A finta foi tão rápida que os sensores do alvo perderam o lock. Agora ele está cego para o que virá.",
-      "Leitura perfeita. Você contornou a defesa pesada com um movimento fluido e humilhante."
+      "GHOST IN THE SHELL: Você simulou uma queda de sistema, atraindo o oponente para um golpe fantasma devastador.",
+      "LOGICA CORROMPIDA: O inimigo tentou bloquear um sinal falso enquanto sua lâmina real encontrava a brecha perfeita.",
+      "DESVIO SINÁPTICO: Uma manobra tão fluida que os sensores de movimento do alvo travaram em um loop de busca.",
+      "ERRO DE PREDIÇÃO: Você mudou o vetor de ataque no último milissegundo. O oponente só sentiu o corte.",
+      "SUBVERSÃO TÁTICA: Uma finta elegante que deixou o inimigo totalmente exposto. O próximo frame será o fim dele."
     ],
     pWinBlock: [
-      "Bloqueio perfeito! O impacto foi absorvido e devolvido com um contra-golpe que quebrou a postura dele.",
-      "Seu escudo de energia estabilizou no momento exato, transformando o ataque inimigo em uma abertura letal.",
-      "A defesa sólida como concreto fez o oponente recuar com os punhos avariados.",
-      "Você aparou o golpe com maestria técnica, deixando o inimigo exposto e desorientado.",
-      "Blindagem reativa ativada! O inimigo atingiu um muro e sentiu o rebote em seus próprios servos."
+      "DEFESA ABSOLUTA: O escudo de energia estabilizou no ápice do ataque, devolvendo a onda de choque para o agressor.",
+      "APARADA CIRÚRGICA: Você interceptou o golpe com a ponta da lâmina, usando o momentum dele para um contra-ataque letal.",
+      "MURO DE DADOS: Sua blindagem reativa detonou no momento exato, lançando o oponente para trás com servos avariados.",
+      "NEGATIVA TÁTICA: O inimigo golpeou um vácuo defensivo. O rebote hidráulico quase arrancou o braço dele.",
+      "ESTABILIDADE CORE: Nem um milímetro de recuo. Você absorveu a fúria dele e agora detém o controle do setor."
     ],
     pWinCounter: [
-      "Contra-ataque relâmpago! Você usou a própria força do inimigo para lançá-lo contra o chão de concreto.",
-      "No momento do impacto, você girou o eixo e desferiu um golpe devastador no flanco desprotegido.",
-      "Interceptação tática executada. O ataque dele foi anulado e substituído por sua fúria.",
-      "Você antecipou o movimento e aplicou uma chave de braço hidráulica, estraçalhando os conectores do alvo.",
-      "Um contra-golpe preciso que atingiu o ponto de articulação, travando o braço direito do oponente."
+      "PUNÇÃO REATIVA: No momento em que ele avançou, sua lâmina já estava cravada no ponto de articulação dele.",
+      "INVERSÃO DE VETOR: Você usou a aceleração do inimigo para amplificar seu próprio golpe. Um erro fatal para ele.",
+      "RESPOSTA INSTANTÂNEA: O ataque dele foi o gatilho para sua execução. O sistema dele sequer registrou o impacto vindo.",
+      "CONTRA-GOLPE SÔNICO: Um movimento reflexo que estraçalhou os sensores frontais do oponente em pleno ataque.",
+      "DOMÍNIO DE FLUXO: Você fluiu ao redor do golpe pesado e atingiu as juntas expostas com precisão cirúrgica."
     ],
     pWinStealth: [
-      "Você desapareceu do radar por um milissegundo, reaparecendo atrás do alvo para um golpe surpresa.",
-      "Evasão fantástica! O inimigo golpeou a poeira enquanto você descarregava seu arsenal nas costas dele.",
-      "Sombra neon. Você se moveu entre os frames do oponente, atingindo-o antes mesmo dele perceber sua presença.",
-      "Manobra furtiva concluída. O inimigo está confuso, procurando um sinal que já está atrás dele.",
-      "Você deslizou por baixo do ataque pesado, atingindo os cabos de energia expostos nas pernas do oponente."
+      "ASSINATURA ZERO: Você desapareceu entre os frames de neon, reaparecendo como um espectro de morte nas costas dele.",
+      "EVASÃO FANTASMA: O inimigo cortou o ar enquanto você deslizava por baixo de sua guarda, atingindo os cabos vitais.",
+      "BORRÃO CROMADO: Um movimento tão rápido que deixou apenas um rastro de luz para trás. O golpe veio do nada.",
+      "DESLOCAMENTO DE FASE: Você se moveu para fora do campo de visão tático, golpeando o ponto cego com fúria silenciosa.",
+      "INFILTRAÇÃO DE COMBATE: Enquanto ele procurava seu sinal, seu punho já estava atravessando o radiador dele."
     ],
     pWinSpecial: [
-      "EXECUÇÃO MÁXIMA! Você liberou todo o rancor acumulado em uma explosão de energia que derreteu o chassi alvo!",
-      "Protocolo de aniquilação ativado! Suas lâminas se tornaram um borrão de morte que desintegrou a defesa inimiga.",
-      "O golpe final! Um impacto tão poderoso que a onda de choque estourou as janelas dos prédios ao redor.",
-      "Você se tornou um demônio de metal por um instante, rasgando o inimigo de cima a baixo com fúria cega.",
-      "Sobrecarga total dos núcleos! O golpe especial atravessou o inimigo como se ele fosse feito de papel."
+      "PROTOCOLO DE ANIQUILAÇÃO: Você liberou o Rancor total! Uma explosão de dados e sangue sintético decora o asfalto.",
+      "SINGULARIDADE DE COMBATE: O golpe final dobra o espaço ao redor do alvo, desintegrando sua blindagem em pó metálico.",
+      "SENTENÇA EXECUTADA: Um impacto tão massivo que o sinal do inimigo foi deletado da rede antes mesmo do corpo cair.",
+      "DIVINDADE CIBERNÉTICA: Por um segundo, você se tornou puro código de morte. O inimigo não passou de um erro deletado.",
+      "SOBRECARGA ABSOLUTA: O núcleo do alvo entrou em colapso sob sua fúria. A zona de combate brilha com o fim dele."
     ],
     pLose: [
-      "O inimigo foi mais rápido! Um golpe seco atinge seu peito, fazendo seu sistema de suporte de vida tossir.",
-      "Sua defesa falhou miseravelmente. O oponente encontrou a brecha e castigou seu chassi sem piedade.",
-      "Você foi lido como um livro aberto. O contra-ataque dele deixou seu HUD em estática vermelha.",
-      "Impacto violento! Seus servos rangem enquanto o inimigo domina o espaço com força bruta.",
-      "Você cambaleia enquanto o oponente desfere uma sequência que sobrecarrega seus dissipadores de calor."
+      "SINAL PERDIDO: Um golpe pesado atinge seus sensores ópticos. A escuridão e o erro de sistema são tudo o que resta.",
+      "FALHA DE INTEGRIDADE: O inimigo atravessou sua guarda com uma violência que seus dissipadores não puderam conter.",
+      "EXTRAÇÃO FORÇADA: Seu chassi geme sob a pressão do ataque inimigo. O óleo quente escorre por seus circuitos.",
+      "DESCALIBRAÇÃO TOTAL: Você foi atingido no plexo neural. Seus movimentos agora são lentos e cheios de latência.",
+      "DOMÍNIO HOSTIL: O oponente encontrou o ponto fraco na sua lógica de combate. O impacto foi devastador e humilhante."
     ]
   };
 

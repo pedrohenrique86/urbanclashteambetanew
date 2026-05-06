@@ -143,6 +143,7 @@ function mergePlayerStateIntoProfile(
   if (patch.toxicity !== undefined) next.toxicity = patch.toxicity;
   if (patch.bio !== undefined) next.bio = patch.bio;
   if (patch.avatar_url !== undefined) next.avatar_url = patch.avatar_url;
+  if (patch.uCrypto !== undefined) next.ucrypto = patch.uCrypto;
   
   return next;
 }
@@ -245,6 +246,7 @@ export const UserProfileProvider = ({ children }: { children: ReactNode }) => {
         bio: profileData.bio,
         avatar_url: profileData.avatar_url,
         active_chips: profileData.active_chips || [],
+        ucrypto: Number(profileData.ucrypto) || 0,
       };
     },
     [],

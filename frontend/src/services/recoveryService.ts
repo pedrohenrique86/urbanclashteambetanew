@@ -15,6 +15,11 @@ export const recoveryService = {
     return data;
   },
 
+  reactivateSelf: async (): Promise<RecoveryActionResponse> => {
+    const { data } = await api.post("/recovery/reactivate");
+    return data;
+  },
+
   getAllies: async (): Promise<any[]> => {
     const { data } = await api.get("/recovery/allies");
     return data;
