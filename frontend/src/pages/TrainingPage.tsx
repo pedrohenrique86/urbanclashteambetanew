@@ -340,7 +340,7 @@ export default function TrainingPage() {
 
                 <div className="space-y-4">
                   <div>
-                    <h3 className="text-lg font-orbitron font-black text-white tracking-wider uppercase mb-1">{opt.name}</h3>
+                    <h3 className="text-base font-orbitron font-black text-white tracking-wider uppercase mb-1">{opt.name}</h3>
                     <div className="flex items-center justify-center gap-2 font-mono text-[10px]">
                       <ClockIcon className="w-3 h-3 text-slate-500" />
                       <span className="text-slate-300">{opt.duration} MINUTOS</span>
