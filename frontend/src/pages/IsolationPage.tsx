@@ -21,6 +21,8 @@ import { socketService, ChatMessage } from "../services/socketService";
 import { format } from "date-fns";
 import { getFactionColor } from "./RecoveryBasePage";
 
+import { Avatar } from "../components/ui/Avatar";
+
 /**
  * ISOLATION PAGE - High Security Containment Unit
  * Visual style: Military Cyberpunk, Predominant Black.
@@ -384,10 +386,9 @@ function IsolationChatView({ user }: { user: any }) {
             )}
             {messages.map((msg) => (
               <div key={msg.id} className="flex gap-3 items-start group">
-                <img 
-                  src={msg.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${msg.username}`} 
-                  className="w-8 h-8 bg-white/5 border border-white/10 cursor-pointer" 
-                  style={MILITARY_CLIP} 
+                <Avatar 
+                  src={msg.avatar} 
+                  className="w-8 h-8 cursor-pointer" 
                   onClick={() => openUserPanel(msg.userId)}
                 />
                 <div className="flex-1 min-w-0">
@@ -548,10 +549,9 @@ function OperationalIsolationView({ onAction }: { onAction: () => void }) {
               style={MILITARY_CLIP}
             >
               <div className="flex items-center gap-4">
-                <img 
-                  src={ally.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${ally.username}`} 
-                  className="w-12 h-12 bg-white/5 border border-white/10 cursor-pointer" 
-                  style={MILITARY_CLIP} 
+                <Avatar 
+                  src={ally.avatar_url} 
+                  className="w-12 h-12 cursor-pointer" 
                   onClick={() => openUserPanel(ally.id)}
                 />
                 <div className="cursor-pointer" onClick={() => openUserPanel(ally.id)}>

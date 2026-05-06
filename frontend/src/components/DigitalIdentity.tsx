@@ -25,6 +25,8 @@ import {
 } from "lucide-react";
 import { getFactionRank, getRankIcon } from "../utils/leveling";
 
+import { Avatar } from "./ui/Avatar";
+
 const RankBadgeIdentity = ({ level, isGangster }: { level: number, isGangster: boolean }) => {
   const iconData = getRankIcon(level);
   const colorClass = isGangster ? "text-orange-500" : "text-blue-500";
@@ -345,11 +347,11 @@ const DigitalIdentity = React.memo(
                              />
                           </div>
                        ) : null}
-                       {player.avatar_url ? (
-                          <img src={player.avatar_url} className="w-full h-full object-cover" alt="" />
-                       ) : (
-                          <div className="w-full h-full flex items-center justify-center opacity-10"><factionTheme.icon className="w-10 h-10 text-white" /></div>
-                       )}
+                       <Avatar 
+                          src={player.avatar_url} 
+                          className="w-full h-full"
+                          style={{ borderRadius: "1rem" }}
+                       />
                     </div>
                     {!isCompact && <div className={`absolute -bottom-2 -right-2 px-3 py-1 rounded-lg ${factionTheme.button} border border-white/10 shadow-lg text-[10px] font-black font-orbitron text-white italic`}>LVL {player.level}</div>}
                  </div>

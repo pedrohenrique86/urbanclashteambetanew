@@ -39,6 +39,8 @@ interface UserInfoCardProps {
   compact?: boolean;
 }
 
+import { Avatar } from "../ui/Avatar";
+
 const UserInfoCard: React.FC<UserInfoCardProps> = ({
   userProfile,
   combatStats,
@@ -168,11 +170,10 @@ const UserInfoCard: React.FC<UserInfoCardProps> = ({
   return (
     <div className="user-info mt-4 px-4">
       <div className="flex flex-col items-center mb-4">
-        <div className="w-20 h-20 rounded-full bg-orange-500 flex items-center justify-center mb-2">
-          <span className="text-white text-2xl font-bold">
-            {userProfile?.username?.charAt(0).toUpperCase() || "U"}
-          </span>
-        </div>
+        <Avatar 
+          src={(userProfile as any)?.avatar_url} 
+          className="w-20 h-20 mb-2"
+        />
         <h2 className={`text-xl font-bold ${themeClasses.text}`}>
           {userProfile?.username || "Usuário"}
         </h2>

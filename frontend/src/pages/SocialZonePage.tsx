@@ -16,6 +16,8 @@ import { socketService, ChatMessage } from "../services/socketService";
 import { format } from "date-fns";
 import { getFactionColor } from "./RecoveryBasePage";
 
+import { Avatar } from "../components/ui/Avatar";
+
 const MILITARY_CLIP = { clipPath: "polygon(8px 0%, 100% 0%, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0% 100%, 0% 8px)" };
 
 export default function SocialZonePage() {
@@ -146,11 +148,9 @@ export default function SocialZonePage() {
                     animate={{ opacity: 1, x: 0 }}
                     className="flex gap-4 items-start group"
                   >
-                    <img 
-                      src={msg.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${msg.username}`} 
-                      className="w-10 h-10 bg-white/5 border border-white/10 group-hover:border-violet-500/50 transition-colors cursor-pointer" 
-                      style={MILITARY_CLIP}
-                      alt="avatar"
+                    <Avatar 
+                      src={msg.avatar} 
+                      className="w-10 h-10 group-hover:border-violet-500/50 transition-colors cursor-pointer" 
                       onClick={() => openUserPanel(msg.userId)}
                     />
                     
@@ -228,7 +228,7 @@ export default function SocialZonePage() {
                   onClick={() => openUserPanel(u.id)}
                 >
                   <div className="relative">
-                    <img src={u.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${u.username}`} className="w-7 h-7 bg-black/40" style={MILITARY_CLIP} />
+                    <Avatar src={u.avatar} className="w-7 h-7" />
                     <div className="absolute -bottom-0.5 -right-0.5 w-2 h-2 bg-emerald-500 rounded-full border border-black animate-pulse"></div>
                   </div>
                   <div className="flex items-center gap-1.5 min-w-0">

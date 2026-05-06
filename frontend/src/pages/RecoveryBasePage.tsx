@@ -20,6 +20,8 @@ import { socketService, ChatMessage } from "../services/socketService";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
+import { Avatar } from "../components/ui/Avatar";
+
 /**
  * RECOVERY BASE PAGE - AAA Military Cyberpunk Aesthetic
  * Follows the standard established in TrainingPage.tsx
@@ -354,12 +356,10 @@ function ReconditioningView({ user, timeLeft, formatTime }: { user: any, timeLef
             )}
             {messages.map((msg) => (
               <div key={msg.id} className="flex gap-3 items-start group">
-                <img 
-                  src={msg.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${msg.username}`} 
-                  className="w-8 h-8 bg-white/5 border border-white/10 cursor-pointer" 
-                  style={MILITARY_CLIP} 
+                <Avatar 
+                  src={msg.avatar} 
+                  className="w-8 h-8 cursor-pointer" 
                   onClick={() => openUserPanel(msg.userId)}
-                  alt="avatar"
                 />
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
@@ -530,10 +530,9 @@ function OperationalView({ onAction }: { onAction: () => void }) {
               style={MILITARY_CLIP}
             >
               <div className="flex items-center gap-4">
-                <img 
-                  src={ally.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${ally.username}`} 
-                  className="w-12 h-12 bg-white/10 cursor-pointer" 
-                  style={MILITARY_CLIP} 
+                <Avatar 
+                  src={ally.avatar_url} 
+                  className="w-12 h-12 cursor-pointer" 
                   onClick={() => openUserPanel(ally.id)}
                 />
                 <div className="cursor-pointer" onClick={() => openUserPanel(ally.id)}>

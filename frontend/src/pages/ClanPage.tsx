@@ -20,6 +20,8 @@ import {
   Globe
 } from "lucide-react";
 
+import { Avatar } from "../components/ui/Avatar";
+
 type Player = {
   id?: string;
   user_id?: string;
