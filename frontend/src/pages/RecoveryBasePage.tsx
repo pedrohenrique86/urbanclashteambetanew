@@ -147,7 +147,7 @@ export default function RecoveryBasePage() {
               </div>
               <div>
                 <h3 className="text-[9px] font-orbitron text-slate-500 tracking-[0.2em]">PREMIUM_ASSETS</h3>
-                <p className="text-xl font-black font-orbitron text-white italic">{(userProfile as any).premium_coins || 0} <span className="text-[9px] text-yellow-500">UC</span></p>
+                <p className="text-xl font-black font-orbitron text-yellow-500 italic">{(userProfile as any).premium_coins || 0} <span className="text-[9px] text-white">UC</span></p>
               </div>
             </div>
           </div>
@@ -256,7 +256,7 @@ function BleedingView({ user, onAction, timeLeft, formatTime }: { user: any, onA
           <div className="flex flex-wrap gap-6 items-center pt-4">
             <div className="bg-black/60 px-4 py-2 border border-yellow-500/30 flex items-center gap-3" style={MILITARY_CLIP}>
                <span className="text-[10px] font-mono text-gray-500 uppercase">Custo</span>
-               <span className="text-xl font-orbitron font-black text-yellow-500 italic">1 UC</span>
+               <span className="text-xl font-orbitron font-black text-yellow-500 italic">1 <span className="text-white">UC</span></span>
             </div>
             
             <button 
@@ -484,7 +484,7 @@ function OperationalView({ onAction }: { onAction: () => void }) {
           </h3>
           <p className="text-slate-400 font-mono text-[10px] uppercase tracking-widest leading-relaxed border-l-2 border-cyan-500/50 pl-4">
             Aliados em recondicionamento podem ser reativados via transferência de créditos. 
-            Custo operacional: <span className="text-yellow-500 font-bold">5 U-CRYPTON TOKENS</span> por unidade.
+            Custo operacional: <span className="text-yellow-500 font-bold">5</span> <span className="text-white font-bold">U-CRYPTON TOKENS</span> por unidade.
           </p>
       </div>
 

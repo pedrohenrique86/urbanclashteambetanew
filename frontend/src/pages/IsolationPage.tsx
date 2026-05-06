@@ -113,50 +113,59 @@ export default function IsolationPage() {
         {/* TOP STATUS ROW */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* USER STATUS CARD */}
-          <div className="cyber-card bg-black/60 p-6 relative group border-white/5" style={MILITARY_CLIP}>
-            <div className="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-25 transition-opacity">
-              <ShieldExclamationIcon className="w-12 h-12 text-white" />
+          <div className="cyber-card p-4 flex items-center justify-between" style={MILITARY_CLIP}>
+            <div className="flex items-center gap-4">
+              <div className="w-10 h-10 bg-white/5 border border-white/10 flex items-center justify-center" style={MILITARY_CLIP}>
+                <ShieldExclamationIcon className="w-6 h-6 text-white/40" />
+              </div>
+              <div>
+                <h3 className="text-[9px] font-orbitron text-white/40 tracking-[0.2em]">CURRENT_STATUS</h3>
+                <p className={`text-xl font-black font-orbitron italic uppercase ${status === 'Isolamento' ? 'text-white' : 'text-green-500'}`}>{status}</p>
+              </div>
             </div>
-            <h3 className="text-[10px] font-orbitron text-white/40 mb-6 flex items-center gap-2 tracking-[0.3em]">
-              <div className="w-2 h-2 bg-white/20"></div> CURRENT_STATUS
-            </h3>
-            <div className="flex items-end justify-between mb-2">
-              <span className={`text-4xl font-black font-orbitron leading-none uppercase italic ${status === 'Isolamento' ? 'text-white' : 'text-green-500'}`}>
-                {status}
-              </span>
 
-              {timeLeft !== null && (
-                <div className="bg-black/60 px-4 py-2 border border-red-500/20 flex flex-col items-end relative overflow-hidden" style={MILITARY_CLIP}>
-                  <div className="absolute inset-0 bg-red-500/5 animate-pulse pointer-events-none" />
-                  <span className="text-[8px] font-mono text-red-500/60 uppercase tracking-widest relative z-10">Tempo de Contenção</span>
-                  <span className="text-2xl font-orbitron font-black text-red-500 italic relative z-10" style={{ textShadow: "0 0 10px rgba(239, 68, 68, 0.5)" }}>
+            {timeLeft !== null && (
+              <div className="flex flex-col items-end">
+                <div className="flex items-center gap-3 bg-red-500/10 px-4 py-2 border border-red-500/30" style={MILITARY_CLIP}>
+                  <ClockIcon className="w-4 h-4 text-red-500" />
+                  <span className="text-2xl font-orbitron font-black text-white italic tracking-tighter">
                     {formatTime(timeLeft)}
                   </span>
                 </div>
-              )}
-            </div>
+                <span className="text-[8px] font-mono text-white/30 uppercase tracking-widest mt-1">
+                  Liberação: {userProfile.status_ends_at ? format(new Date(userProfile.status_ends_at), "HH:mm:ss") : "--:--:--"}
+                </span>
+              </div>
+            )}
           </div>
 
           {/* ASSETS CARD */}
-          <div className="cyber-card bg-black/60 p-6 relative group border-white/5" style={MILITARY_CLIP}>
-            <div className="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-25 transition-opacity">
-              <BanknotesIcon className="w-12 h-12 text-white" />
-            </div>
-            <h3 className="text-[10px] font-orbitron text-white/40 mb-6 flex items-center gap-2 tracking-[0.3em]">
-              <div className="w-2 h-2 bg-white/20"></div> ASSET_INVENTORY
-            </h3>
-            <div className="flex flex-col gap-2">
-              <div className="flex items-end gap-2">
-                <span className="text-3xl font-black text-amber-400 font-orbitron leading-none" style={{ textShadow: "0 0 10px #f59e0b" }}>
-                  {(userProfile as any).premium_coins || 0}
-                </span>
-                <span className="text-amber-400 font-black uppercase text-[10px] tracking-widest mb-1 italic">U-CRYPTON</span>
+          <div className="cyber-card p-4 flex items-center justify-between" style={MILITARY_CLIP}>
+            <div className="flex items-center gap-6">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-amber-500/10 border border-amber-500/30 flex items-center justify-center" style={MILITARY_CLIP}>
+                  <BanknotesIcon className="w-6 h-6 text-amber-500" />
+                </div>
+                <div>
+                  <h3 className="text-[9px] font-orbitron text-white/40 tracking-[0.2em]">U-CRYPTON</h3>
+                  <p className="text-xl font-black font-orbitron text-amber-400 italic">
+                    {(userProfile as any).premium_coins || 0} <span className="text-[9px] text-white">UC</span>
+                  </p>
+                </div>
               </div>
-              <div className="flex items-end gap-2">
-                <span className="text-xl font-black text-lime-400 font-orbitron leading-none" style={{ textShadow: "0 0 10px #84cc16" }}>
-                  $ {(userProfile as any).money?.toLocaleString() || 0}
-                </span>
-                <span className="text-lime-400 font-black uppercase text-[8px] tracking-widest mb-1 italic">CASH</span>
+
+              <div className="h-8 w-px bg-white/10" />
+
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-lime-500/10 border border-lime-500/30 flex items-center justify-center" style={MILITARY_CLIP}>
+                  <CurrencyDollarIcon className="w-6 h-6 text-lime-500" />
+                </div>
+                <div>
+                  <h3 className="text-[9px] font-orbitron text-white/40 tracking-[0.2em]">CASH</h3>
+                  <p className="text-xl font-black font-orbitron text-lime-400 italic">
+                    $ {(userProfile as any).money?.toLocaleString() || 0}
+                  </p>
+                </div>
               </div>
             </div>
           </div>
@@ -288,7 +297,7 @@ function IsolationActionsView({ user, onAction }: { user: any, onAction: () => v
           <div className="flex items-center gap-4 pt-4">
             <div className="bg-black/60 px-4 py-2 border border-yellow-500/20 flex items-center gap-3" style={MILITARY_CLIP}>
               <span className="text-[10px] font-mono text-gray-500 uppercase">Custo</span>
-              <span className="text-xl font-orbitron font-black text-amber-400 italic" style={{ textShadow: "0 0 10px #f59e0b" }}>5 UC</span>
+              <span className="text-xl font-orbitron font-black text-amber-400 italic" style={{ textShadow: "0 0 10px #f59e0b" }}>5 <span className="text-white">UC</span></span>
             </div>
             <button
               disabled={!!loading}
@@ -504,7 +513,7 @@ function OperationalIsolationView({ onAction }: { onAction: () => void }) {
         </h3>
         <p className="text-slate-400 font-mono text-[10px] uppercase tracking-widest leading-relaxed border-l-2 border-white/20 pl-4">
           Aliados em isolamento podem ser liberados via transferência de tokens criptografados para as autoridades.
-          Custo operacional: <span className="text-amber-400 font-black" style={{ textShadow: "0 0 8px #f59e0b" }}>10 U-CRYPTON TOKENS</span> por unidade.
+          Custo operacional: <span className="text-amber-400 font-black" style={{ textShadow: "0 0 8px #f59e0b" }}>10</span> <span className="text-white font-black">U-CRYPTON TOKENS</span> por unidade.
         </p>
       </div>
 
