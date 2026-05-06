@@ -373,7 +373,7 @@ function IsolationChatView({ user }: { user: any }) {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
                     <span className={`text-[10px] font-black uppercase italic tracking-tighter ${getFactionColor((msg as any).faction)}`}>{msg.username}</span>
-                    <span className="text-[8px] font-mono text-slate-600">[{format(new Date(msg.timestamp), "HH:mm")}]</span>
+                    <span className="text-[8px] font-mono text-slate-400">[{format(new Date(msg.timestamp), "dd/MM/yyyy HH:mm")}]</span>
                   </div>
                   <div className="bg-white/5 p-3 text-xs text-slate-300 border-l border-white/20 break-words" style={{ clipPath: "polygon(0 0, 100% 0, 100% 100%, 4px 100%, 0 calc(100% - 4px))" }}>
                     {msg.text}

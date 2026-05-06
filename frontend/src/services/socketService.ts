@@ -26,6 +26,7 @@ interface ChatMessage {
   userId: string;
   username: string;
   avatar?: string;
+  faction?: string;
   text: string;
   timestamp: string;
 }
@@ -227,6 +228,32 @@ class SocketService {
 
   onIsolationUsers(callback: (users: any[]) => void): void {
     this.on<any[]>("isolation:users", callback);
+  }
+
+  // --- Métodos específicos do Chat Global (Zona Social) ---
+
+  authenticateGlobal(token: string): void {
+    this.emit("global:authenticate", { token });
+  }
+
+  sendGlobalMessage(text: string): void {
+    this.emit("global:sendMessage", { text });
+  }
+
+  onGlobalAuthSuccess(callback: () => void): void {
+    this.on<void>("global:auth_success", callback);
+  }
+
+  onGlobalHistory(callback: (history: ChatMessage[]) => void): void {
+    this.on<ChatMessage[]>("global:history", callback);
+  }
+
+  onGlobalMessageReceived(callback: (message: ChatMessage) => void): void {
+    this.on<ChatMessage>("global:message", callback);
+  }
+
+  onGlobalUsers(callback: (users: any[]) => void): void {
+    this.on<any[]>("global:users", callback);
   }
 
 }

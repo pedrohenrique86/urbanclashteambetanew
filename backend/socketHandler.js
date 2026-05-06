@@ -209,6 +209,58 @@ function initializeSocket(server) {
         socket.emit("recovery:auth_failed", { message: err.message });
       }
     });
+
+    // ─── CHAT GLOBAL (ZONA SOCIAL) ──────────────────────────────────────────────
+    socket.on("global:authenticate", async (data) => {
+      try {
+        const token = data.token;
+        if (!token) throw new Error("Token não fornecido.");
+
+        const user = await authenticateSocket(token);
+        const playerStateService = require("./services/playerStateService");
+        const playerState = await playerStateService.getPlayerState(user.id);
+        user.faction = playerState ? playerState.faction : 'gangsters';
+        user.avatar_url = playerState ? playerState.avatar_url : user.avatar_url;
+
+        socket.user = user;
+        socket.join("global:room");
+
+        const globalChatService = require("./services/globalChatService");
+        await globalChatService.addUserOnline(user.id, user.username, user.avatar_url, user.faction);
+
+        const emitGlobalUsers = async () => {
+          const users = await globalChatService.getOnlineUsers();
+          io.to("global:room").emit("global:users", users);
+        };
+
+        await emitGlobalUsers();
+        socket.emit("global:auth_success");
+        socket.emit("global:history", await globalChatService.getHistory());
+
+        socket.on("disconnect", async () => {
+          await globalChatService.removeUserOnline(user.id, user.username, user.avatar_url, user.faction);
+          await emitGlobalUsers();
+        });
+
+        if (!socket.hasGlobalListener) {
+          socket.hasGlobalListener = true;
+          socket.on("global:sendMessage", async (msgData) => {
+            if (!socket.user) return;
+            const now = Date.now();
+            if (now - (socket.lastGlobalMsg || 0) < 2000) return; // Cooldown 2s (Global mais rápido)
+            
+            let text = typeof msgData.text === "string" ? msgData.text.trim() : "";
+            if (text.length === 0) return;
+            if (text.length > 120) text = text.substring(0, 120);
+
+            socket.lastGlobalMsg = now;
+            await globalChatService.handleNewMessage(io, socket, text);
+          });
+        }
+      } catch (err) {
+        socket.emit("global:auth_failed", { message: err.message });
+      }
+    });
   });
 }
 
