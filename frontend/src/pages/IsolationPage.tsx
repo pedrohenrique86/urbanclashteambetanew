@@ -411,7 +411,7 @@ function IsolationChatView({ user }: { user: any }) {
                 disabled={isCooldown}
                 className="w-full bg-white/5 border border-white/10 px-4 py-2 pr-16 text-xs font-mono focus:outline-none focus:border-white/30 text-white placeholder:text-white/20 disabled:opacity-50"
               />
-              <div className="absolute right-3 top-1/2 -translate-y-1/2 text-[9px] font-mono text-white/20">
+              <div className="absolute right-3 top-1/2 -translate-y-1/2 text-[9px] font-mono text-white/40">
                 {inputText.length}/120
               </div>
             </div>

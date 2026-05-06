@@ -391,7 +391,7 @@ function ReconditioningView({ user, timeLeft, formatTime }: { user: any, timeLef
                 disabled={isCooldown}
                 className="w-full bg-white/5 border border-white/10 px-4 py-3 pr-16 text-xs font-mono text-white placeholder:text-slate-600 focus:outline-none focus:border-red-500/50 transition-colors disabled:opacity-50"
               />
-              <div className="absolute right-3 top-1/2 -translate-y-1/2 text-[9px] font-mono text-slate-600">
+              <div className="absolute right-3 top-1/2 -translate-y-1/2 text-[9px] font-mono text-slate-400">
                 {inputText.length}/120
               </div>
             </div>
