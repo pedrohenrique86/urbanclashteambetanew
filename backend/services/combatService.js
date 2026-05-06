@@ -262,7 +262,7 @@ class CombatService {
         } catch (err) {
           console.error(`[Combat_Delayed_Update] Erro:`, err.message);
         }
-      }, 8500);
+      }, 30000);
 
       return {
         outcome: isAttackerWin ? "win_ko" : (isDraw ? "draw" : "loss_ko"), 

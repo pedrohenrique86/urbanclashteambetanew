@@ -361,20 +361,99 @@ function resolveWinOutcome(attacker, defender, attackerChips = [], tactic = 'tec
  * Nova Lógica: Acerto de Contas Estratégico (Cyberpunk Mind Games)
  * 5 Rounds fixos. O jogador envia uma sequência de 5 ações.
  */
+/**
+ * Nova Lógica: Acerto de Contas Estratégico (Cyberpunk Mind Games)
+ * 5 Rounds fixos. O jogador envia uma sequência de 5 ações.
+ */
 function resolveStrategicCombat(attacker, defender, attackerChips = [], playerActions = []) {
   const rounds = [];
   let playerHP = 100;
   let opponentHP = 100;
   let playerRancor = 0;
-  let playerBuff = 1.0; // Multiplicador de dano (ex: finta)
+  let playerBuff = 1.0; 
   let opponentBuff = 1.0;
 
-  // IA do oponente: Padrão estratégico baseado em nível/estatísticas
+  const actionPool = ['brutal', 'block', 'feint', 'counter', 'stealth'];
+  
+  // IA do oponente: Padrão estratégico
   const opponentActions = [];
-  const actionPool = ['brutal', 'block', 'feint'];
   for (let i = 0; i < 5; i++) {
-    opponentActions.push(actionPool[Math.floor(Math.random() * 3)]);
+    opponentActions.push(actionPool[Math.floor(Math.random() * actionPool.length)]);
   }
+
+  // Pools de Narração (Garantir variedade extrema)
+  const LOG_POOLS = {
+    draw: [
+      "Choque de frames! Faíscas saltam enquanto os sistemas colidem em um impasse técnico.",
+      "As lâminas se cruzam no ar, gerando um chiado estático que ecoa pelo beco úmido.",
+      "Empate de processamento. Nenhum dos dois encontrou uma brecha na defesa do outro.",
+      "O impacto mútuo lança ambos para trás, os servos hidráulicos rangendo sob a pressão.",
+      "Sincronização perfeita de movimentos. É como lutar contra o próprio reflexo no espelho."
+    ],
+    pWinBrutal: [
+      "Seu golpe brutal atravessa a guarda, amassando a blindagem do oponente com um estalo seco.",
+      "Um soco carregado de energia atinge o chassi inimigo, descalibrando seus sensores ópticos.",
+      "A força do seu ataque é devastadora, forçando o inimigo a recuar enquanto óleo vaza de suas juntas.",
+      "Você descarrega uma sequência violenta que faz o metal do oponente gemer sob o estresse térmico.",
+      "Um impacto direto no núcleo! O inimigo cambaleia enquanto alertas de danos críticos piscam em seu HUD."
+    ],
+    pWinFeint: [
+      "Finta cirúrgica. O inimigo mordeu a isca e agora está totalmente vulnerável ao seu próximo movimento.",
+      "Você simulou uma falha no sistema, atraindo o oponente para uma armadilha de processamento fatal.",
+      "Movimento fantasmagórico! O inimigo golpeou o ar enquanto você se posicionava para o abate.",
+      "A finta foi tão rápida que os sensores do alvo perderam o lock. Agora ele está cego para o que virá.",
+      "Leitura perfeita. Você contornou a defesa pesada com um movimento fluido e humilhante."
+    ],
+    pWinBlock: [
+      "Bloqueio perfeito! O impacto foi absorvido e devolvido com um contra-golpe que quebrou a postura dele.",
+      "Seu escudo de energia estabilizou no momento exato, transformando o ataque inimigo em uma abertura letal.",
+      "A defesa sólida como concreto fez o oponente recuar com os punhos avariados.",
+      "Você aparou o golpe com maestria técnica, deixando o inimigo exposto e desorientado.",
+      "Blindagem reativa ativada! O inimigo atingiu um muro e sentiu o rebote em seus próprios servos."
+    ],
+    pWinCounter: [
+      "Contra-ataque relâmpago! Você usou a própria força do inimigo para lançá-lo contra o chão de concreto.",
+      "No momento do impacto, você girou o eixo e desferiu um golpe devastador no flanco desprotegido.",
+      "Interceptação tática executada. O ataque dele foi anulado e substituído por sua fúria.",
+      "Você antecipou o movimento e aplicou uma chave de braço hidráulica, estraçalhando os conectores do alvo.",
+      "Um contra-golpe preciso que atingiu o ponto de articulação, travando o braço direito do oponente."
+    ],
+    pWinStealth: [
+      "Você desapareceu do radar por um milissegundo, reaparecendo atrás do alvo para um golpe surpresa.",
+      "Evasão fantástica! O inimigo golpeou a poeira enquanto você descarregava seu arsenal nas costas dele.",
+      "Sombra neon. Você se moveu entre os frames do oponente, atingindo-o antes mesmo dele perceber sua presença.",
+      "Manobra furtiva concluída. O inimigo está confuso, procurando um sinal que já está atrás dele.",
+      "Você deslizou por baixo do ataque pesado, atingindo os cabos de energia expostos nas pernas do oponente."
+    ],
+    pWinSpecial: [
+      "EXECUÇÃO MÁXIMA! Você liberou todo o rancor acumulado em uma explosão de energia que derreteu o chassi alvo!",
+      "Protocolo de aniquilação ativado! Suas lâminas se tornaram um borrão de morte que desintegrou a defesa inimiga.",
+      "O golpe final! Um impacto tão poderoso que a onda de choque estourou as janelas dos prédios ao redor.",
+      "Você se tornou um demônio de metal por um instante, rasgando o inimigo de cima a baixo com fúria cega.",
+      "Sobrecarga total dos núcleos! O golpe especial atravessou o inimigo como se ele fosse feito de papel."
+    ],
+    pLose: [
+      "O inimigo foi mais rápido! Um golpe seco atinge seu peito, fazendo seu sistema de suporte de vida tossir.",
+      "Sua defesa falhou miseravelmente. O oponente encontrou a brecha e castigou seu chassi sem piedade.",
+      "Você foi lido como um livro aberto. O contra-ataque dele deixou seu HUD em estática vermelha.",
+      "Impacto violento! Seus servos rangem enquanto o inimigo domina o espaço com força bruta.",
+      "Você cambaleia enquanto o oponente desfere uma sequência que sobrecarrega seus dissipadores de calor."
+    ]
+  };
+
+  // Função para pegar log sem repetir
+  const usedLogs = new Set();
+  const getLog = (type) => {
+    const pool = LOG_POOLS[type] || LOG_POOLS.draw;
+    let available = pool.filter(l => !usedLogs.has(l));
+    if (available.length === 0) {
+      usedLogs.clear();
+      available = pool;
+    }
+    const picked = available[Math.floor(Math.random() * available.length)];
+    usedLogs.add(picked);
+    return picked;
+  };
 
   // Modificadores de Chips
   let chipDmgMult = 1.0;
@@ -382,7 +461,7 @@ function resolveStrategicCombat(attacker, defender, attackerChips = [], playerAc
   let xpBonus = 1.0;
   attackerChips.forEach(chip => {
     if (chip.effect_type === 'power_boost') chipDmgMult += (chip.effect_value / 100);
-    if (chip.effect_type === 'money_shield') chipResist += (chip.effect_value); // money_shield costumava ser porcentagem
+    if (chip.effect_type === 'money_shield') chipResist += (chip.effect_value);
     if (chip.effect_type === 'xp_boost') xpBonus += (chip.effect_value / 100);
   });
 
@@ -396,73 +475,66 @@ function resolveStrategicCombat(attacker, defender, attackerChips = [], playerAc
     let pRoundDmg = 0;
     let oRoundDmg = 0;
     let roundLog = "";
-    let impact = "normal"; // Para sons/efeitos
+    let impact = "normal";
 
-    // Lógica RPS Evoluída
-    // brutal > feint | block > brutal | feint > block
-    
+    const pWinMap = {
+      brutal: ['feint', 'stealth'],
+      block: ['brutal', 'counter'],
+      feint: ['block', 'counter'],
+      counter: ['brutal', 'stealth'],
+      stealth: ['block', 'feint']
+    };
+
     if (pAction === oAction) {
-      // Empate técnico
       pRoundDmg = Math.floor(baseDmg * 0.5 * chipDmgMult);
       oRoundDmg = Math.floor(oppBaseDmg * 0.5);
-      roundLog = "Choque de forças! Ambos recuam com o impacto dos frames.";
+      roundLog = getLog('draw');
       impact = "clash";
-    } else if (
-      (pAction === 'brutal' && oAction === 'feint') ||
-      (pAction === 'block' && oAction === 'brutal') ||
-      (pAction === 'feint' && oAction === 'block') ||
-      (pAction === 'special')
-    ) {
-      // Vitória do Player no Round
-      if (pAction === 'feint' && oAction === 'block') {
-        playerBuff = 2.2;
-        pRoundDmg = 5;
-        roundLog = "Você leu os movimentos dele. O próximo golpe será fatal.";
-        impact = "tech";
-      } else if (pAction === 'block' && oAction === 'brutal') {
-        pRoundDmg = Math.floor(baseDmg * 0.8 * chipDmgMult);
-        oRoundDmg = Math.floor(oppBaseDmg * 0.2);
-        roundLog = "Bloqueio perfeito! Contra-ataque desferido com precisão.";
-        impact = "parry";
-      } else if (i === 4 && pAction === 'special') {
-        if (playerRancor >= 100) {
-          pRoundDmg = Math.floor(baseDmg * 2.8 * chipDmgMult);
-          roundLog = "EXECUÇÃO MÁXIMA! Você liberou todo o rancor acumulado!";
-          impact = "special";
-          playerRancor = 0; // Consome tudo
-        } else {
-          // Fallback para brutal se falhar no rancor
-          pRoundDmg = Math.floor(baseDmg * 0.8 * chipDmgMult);
-          roundLog = "Você tentou um golpe especial, mas faltou fúria. Impacto reduzido.";
-          impact = "clash";
-        }
+    } else if (pAction === 'special' && i === 4) {
+      if (playerRancor >= 100) {
+        pRoundDmg = Math.floor(baseDmg * 3.0 * chipDmgMult);
+        roundLog = getLog('pWinSpecial');
+        impact = "special";
+        playerRancor = 0;
       } else {
-        pRoundDmg = Math.floor(baseDmg * 1.3 * playerBuff * chipDmgMult);
+        pRoundDmg = Math.floor(baseDmg * 0.8 * chipDmgMult);
+        roundLog = "Você tentou um golpe especial sem fúria suficiente. O impacto foi pífio.";
+        impact = "clash";
+      }
+    } else if (pWinMap[pAction]?.includes(oAction)) {
+      if (pAction === 'feint') {
+        playerBuff = 2.5;
+        pRoundDmg = 8;
+        roundLog = getLog('pWinFeint');
+        impact = "tech";
+      } else if (pAction === 'stealth') {
+        playerBuff = 1.8;
+        pRoundDmg = Math.floor(baseDmg * 0.6 * chipDmgMult);
+        roundLog = getLog('pWinStealth');
+        impact = "tech";
+      } else if (pAction === 'block') {
+        pRoundDmg = Math.floor(baseDmg * 0.9 * chipDmgMult);
+        oRoundDmg = Math.floor(oppBaseDmg * 0.1);
+        roundLog = getLog('pWinBlock');
+        impact = "parry";
+      } else if (pAction === 'counter') {
+        pRoundDmg = Math.floor(baseDmg * 1.5 * chipDmgMult);
+        oRoundDmg = Math.floor(oppBaseDmg * 0.2);
+        roundLog = getLog('pWinCounter');
+        impact = "parry";
+      } else {
+        pRoundDmg = Math.floor(baseDmg * 1.4 * playerBuff * chipDmgMult);
         playerBuff = 1.0;
-        roundLog = "Impacto brutal! Você ouviu o estalo do chassi dele.";
+        roundLog = getLog('pWinBrutal');
         impact = "heavy";
       }
     } else {
-      // Vitória do Oponente no Round
-      if (oAction === 'feint' && pAction === 'block') {
-        opponentBuff = 2.2;
-        oRoundDmg = 5;
-        roundLog = "Ele antecipou seu bloqueio. A tensão aumenta.";
-        impact = "tech";
-      } else if (oAction === 'block' && pAction === 'brutal') {
-        oRoundDmg = Math.floor(oppBaseDmg * 0.8);
-        pRoundDmg = Math.floor(baseDmg * 0.2);
-        roundLog = "Seu ataque foi aparado! Ele contra-ataca violentamente.";
-        impact = "parry";
-      } else {
-        oRoundDmg = Math.floor(oppBaseDmg * 1.3 * opponentBuff);
-        opponentBuff = 1.0;
-        roundLog = "Você foi atingido! O sistema acusa falha de integridade.";
-        impact = "heavy";
-      }
+      oRoundDmg = Math.floor(oppBaseDmg * 1.4 * opponentBuff);
+      opponentBuff = 1.0;
+      roundLog = getLog('pLose');
+      impact = "heavy";
     }
 
-    // Aplicar Dano e Rancor
     playerHP = Math.max(0, playerHP - oRoundDmg);
     opponentHP = Math.max(0, opponentHP - pRoundDmg);
     if (oRoundDmg > 0) playerRancor = Math.min(100, playerRancor + 25);

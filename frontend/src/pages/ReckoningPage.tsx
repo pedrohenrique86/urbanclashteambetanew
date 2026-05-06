@@ -65,17 +65,19 @@ const BattleRulesInfo = () => {
                 Matriz de Combate (Power Clash)
               </h3>
               <div className="space-y-4 font-mono text-[10px] leading-relaxed text-slate-400">
-                <p>O combate Spectro agora é <span className="text-yellow-500 font-black">INSTANTÂNEO</span> baseado em <span className="text-white">POWER LEVEL</span>:</p>
+                <p>O combate Spectro é <span className="text-yellow-500 font-black">ESTRATÉGICO</span> baseado em <span className="text-white">SEQUÊNCIAS TÁTICAS</span>:</p>
                 <div className="bg-black/40 p-3 border border-cyan-500/20 rounded">
-                  <p className="text-cyan-400 font-bold mb-1">Fórmula de Poder:</p>
-                  <p>(Ataque × 1.25) + (Defesa × 1.10) + (Foco × 0.90)</p>
+                  <p className="text-cyan-400 font-bold mb-1">Matriz de Vantagem:</p>
+                  <p className="text-[8px] leading-relaxed">
+                    BRUTAL &gt; FINTA/EVASÃO | DEFESA &gt; ATAQUE/CONTRA | FINTA &gt; DEFESA/CONTRA | CONTRA &gt; ATAQUE/EVASÃO | EVASÃO &gt; DEFESA/FINTA
+                  </p>
                 </div>
                 <ul className="space-y-2 list-disc list-inside">
-                  <li><span className="text-white uppercase">Chips Táticos:</span> Bônus ativos de Chips Diários são aplicados multiplicativamente.</li>
-                  <li><span className="text-white uppercase">Fator Sorte:</span> Uma variância de +/- 15% simula o caos das ruas (The Crims Style).</li>
-                  <li><span className="text-white uppercase">Veredito:</span> O sinal com maior poder residual após a variância vence o confronto.</li>
+                  <li><span className="text-white uppercase">Sincronização:</span> Escolha 5 ações para os 5 rounds de combate.</li>
+                  <li><span className="text-white uppercase">Rancor:</span> Acumule dano para liberar o <span className="text-yellow-500">GOLPE ESPECIAL</span> no 5º Round.</li>
+                  <li><span className="text-white uppercase">Veredito:</span> A vitória depende da sua leitura dos movimentos do oponente.</li>
                 </ul>
-                <p className="border-t border-white/5 pt-2 italic text-slate-500 text-[8px]">Nota: O Poder da Dashboard (Power Solo) usa pesos diferentes para o ranking global.</p>
+                <p className="border-t border-white/5 pt-2 italic text-slate-500 text-[8px]">Nota: Bônus de Chips Táticos e atributos de classe influenciam o dano final.</p>
               </div>
               <button 
                 onClick={() => setIsOpen(false)}
@@ -225,7 +227,7 @@ export default function ReckoningPage() {
       
       // Iniciar processamento dos rounds
       if (result.details?.turns) {
-        processRounds(result.details.turns);
+        await processRounds(result.details.turns);
       } else {
         throw new Error("Falha na sincronização dos dados de combate.");
       }
@@ -262,7 +264,7 @@ export default function ReckoningPage() {
       else if (turn.effect === 'parry') soundEngine.playClick();
       else soundEngine.playClick();
 
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      await new Promise(resolve => setTimeout(resolve, 5000));
     }
     setIsProcessing(false);
   };
@@ -500,7 +502,7 @@ export default function ReckoningPage() {
                         style={MILITARY_CLIP}
                       >
                         <FireIcon className="w-4 h-4" />
-                        <span>Brutal Strike</span>
+                        <span>(ATAQUE) Brutal</span>
                       </button>
 
                       <button 
@@ -509,7 +511,7 @@ export default function ReckoningPage() {
                         style={MILITARY_CLIP}
                       >
                         <ShieldExclamationIcon className="w-4 h-4" />
-                        <span>Tech Block</span>
+                        <span>(DEFESA) Block</span>
                       </button>
 
                       <button 
@@ -518,7 +520,25 @@ export default function ReckoningPage() {
                         style={MILITARY_CLIP}
                       >
                         <BoltIcon className="w-4 h-4" />
-                        <span>Neural Feint</span>
+                        <span>(FINTA) Feint</span>
+                      </button>
+
+                      <button 
+                        onClick={() => handleActionSelect(idx, 'counter')}
+                        className={`p-3 border text-[9px] font-black uppercase transition-all flex flex-col items-center gap-1 ${selectedActions[idx] === 'counter' ? 'bg-orange-500/30 border-orange-500 text-white shadow-[0_0_10px_rgba(249,115,22,0.3)]' : 'bg-black/40 border-slate-800 text-slate-400 font-bold hover:border-orange-500/50'}`}
+                        style={MILITARY_CLIP}
+                      >
+                        <AdjustmentsHorizontalIcon className="w-4 h-4" />
+                        <span>(CONTRA) Counter</span>
+                      </button>
+
+                      <button 
+                        onClick={() => handleActionSelect(idx, 'stealth')}
+                        className={`p-3 border text-[9px] font-black uppercase transition-all flex flex-col items-center gap-1 ${selectedActions[idx] === 'stealth' ? 'bg-violet-500/30 border-violet-500 text-white shadow-[0_0_10px_rgba(139,92,246,0.3)]' : 'bg-black/40 border-slate-800 text-slate-400 font-bold hover:border-violet-500/50'}`}
+                        style={MILITARY_CLIP}
+                      >
+                        <UserCircleIcon className="w-4 h-4" />
+                        <span>(EVASÃO) Stealth</span>
                       </button>
 
                       {idx === 4 && (
@@ -528,7 +548,7 @@ export default function ReckoningPage() {
                           style={MILITARY_CLIP}
                         >
                           <StarIcon className="w-4 h-4" />
-                          <span>GOLPE ESPECIAL</span>
+                          <span>(ESPECIAL) Finish</span>
                         </button>
                       )}
                     </div>
