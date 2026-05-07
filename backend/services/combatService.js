@@ -207,18 +207,18 @@ class CombatService {
       const winMoney = isNpc ? Math.floor(targetLevel * 10 + Math.random() * 50) : Math.floor(targetMoney * 0.20);
       const winStatVal = Math.max(1, Math.floor(baseRatio * 0.8));
 
-      // Penalidades de Derrota
+      // Penalidades de Derrota (Geral)
       const lossXp = Math.floor(targetLevel * 0.5 + 5);
-      const lossMoney = Math.floor(Number(attacker.money || 0) * 0.20);
+      const lossMoneyAtk = Math.floor(Number(attacker.money || 0) * 0.20); // Atacante perde 20%
+      const lossMoneyDef = Math.floor(targetMoney * 0.05); // Defensor perde apenas 5%
 
       if (outcome === "WIN_KO") {
-        const hospitalTime = Math.min(45, Math.floor(30 + baseRatio * 5));
+        const hospitalTime = 5; // Defensor atacado volta rápido (5 min)
         msg = "VITÓRIA ESMAGADORA! O alvo foi obliterado e enviado para a base de recuperação.";
         loot.xp = Math.floor(winXp * 1.5);
-        loot.money = winMoney;
+        loot.money = winMoney; // Atacante ganha 20% (Subsidiado pelo sistema se for PvP)
         loot.energyLost = 5;
         loot.apLost = 100;
-        // Ganha mais atributos em vitórias esmagadoras
         loot.stats[statsList[Math.floor(Math.random() * 3)]] = winStatVal + 1;
         if (Math.random() < 0.5) loot.stats[statsList[Math.floor(Math.random() * 3)]] = 1;
 
@@ -231,12 +231,12 @@ class CombatService {
 
         if (!isNpc) {
           await playerStateService.updatePlayerState(targetId, {
-            money: -loot.money, total_xp: -lossXp, defeats: 1,
+            money: -lossMoneyDef, total_xp: 0, defeats: 1, // Defensor não perde XP em PvP
             status: 'Recondicionamento', status_ends_at: new Date(Date.now() + hospitalTime * 60000).toISOString(),
             recon_reason: "Derrota Crítica (KO)",
-            recon_phrase: "Sua unidade foi obliterada. Reinicialização necessária.",
-            recon_loss_credits: loot.money,
-            recon_loss_xp: lossXp,
+            recon_phrase: "Sua unidade foi neutralizada por um invasor. Protocolo de reparo rápido iniciado.",
+            recon_loss_credits: lossMoneyDef,
+            recon_loss_xp: 0,
             recon_power_result: `${oFinalPower} vs ${pFinalPower}`
           });
         }
@@ -256,7 +256,7 @@ class CombatService {
         });
         await playerStateService.updatePlayerState(userId, updateData);
 
-        if (!isNpc) await playerStateService.updatePlayerState(targetId, { money: -loot.money, total_xp: -lossXp, defeats: 1 });
+        if (!isNpc) await playerStateService.updatePlayerState(targetId, { money: -lossMoneyDef, total_xp: 0, defeats: 1 });
       } 
       else if (outcome === "DRAW") {
         const rupturaTime = Math.min(25, Math.floor(10 + (1 / baseRatio) * 10));
@@ -278,7 +278,7 @@ class CombatService {
 
         if (!isNpc) {
           await playerStateService.updatePlayerState(targetId, {
-            total_xp: Math.floor(lossXp * 0.5), // Ganha um pouco de XP no empate
+            total_xp: Math.floor(lossXp * 0.5),
             status: 'Ruptura', status_ends_at: new Date(Date.now() + rupturaTime * 60000).toISOString()
           });
         }
@@ -286,7 +286,7 @@ class CombatService {
       else if (outcome === "LOSS") {
         const hospitalTime = Math.min(45, Math.floor(15 + (1 / baseRatio) * 5));
         msg = "DERROTA! O inimigo superou suas defesas. Sistemas avariados.";
-        loot.moneyLost = lossMoney;
+        loot.moneyLost = lossMoneyAtk;
         loot.xp = -lossXp;
         loot.energyLost = 15;
         loot.apLost = 100;
@@ -301,7 +301,6 @@ class CombatService {
           recon_power_result: `${pFinalPower} vs ${oFinalPower}`
         };
 
-        // SÊNIOR: Atacante perde atributos APENAS em PvP
         if (!isNpc) {
           const lossStatVal = Math.max(1, Math.floor((1/baseRatio) * 0.5));
           const statLost = statsList[Math.floor(Math.random() * 3)];
@@ -314,7 +313,7 @@ class CombatService {
         if (!isNpc) {
           const targetXpGain = Math.floor(winXp * 0.5);
           const targetStatGain = Math.max(1, Math.floor((1/baseRatio) * 0.5));
-          const targetUpdate = { money: loot.moneyLost, victories: 1, total_xp: targetXpGain };
+          const targetUpdate = { money: Math.floor(lossMoneyAtk * 0.25), victories: 1, total_xp: targetXpGain };
           const defenderStat = statsList[Math.floor(Math.random() * 3)];
           targetUpdate[defenderStat] = (Number(defender[defenderStat]) || 0) + targetStatGain;
           await playerStateService.updatePlayerState(targetId, targetUpdate);
@@ -323,7 +322,7 @@ class CombatService {
       else if (outcome === "LOSS_KO") {
         const hospitalTime = Math.min(45, Math.floor(30 + (1 / baseRatio) * 6));
         msg = "DERROTA SUICIDA! Você atacou um alvo impossível e foi dizimado.";
-        loot.moneyLost = lossMoney;
+        loot.moneyLost = lossMoneyAtk;
         loot.xp = Math.floor(-lossXp * 1.5);
         loot.energyLost = 15;
         loot.apLost = 100;
@@ -338,7 +337,6 @@ class CombatService {
           recon_power_result: `${pFinalPower} vs ${oFinalPower}`
         };
 
-        // SÊNIOR: Atacante perde atributos APENAS em PvP
         if (!isNpc) {
           const lossStatVal = Math.max(1, Math.floor((1/baseRatio) * 0.8));
           const statLost = statsList[Math.floor(Math.random() * 3)];
@@ -351,7 +349,7 @@ class CombatService {
         if (!isNpc) {
           const targetXpGain = Math.floor(winXp * 0.7);
           const targetStatGain = Math.max(1, Math.floor((1/baseRatio) * 0.8));
-          const targetUpdate = { money: loot.moneyLost, victories: 1, total_xp: targetXpGain };
+          const targetUpdate = { money: Math.floor(lossMoneyAtk * 0.25), victories: 1, total_xp: targetXpGain };
           const defenderStat = statsList[Math.floor(Math.random() * 3)];
           targetUpdate[defenderStat] = (Number(defender[defenderStat]) || 0) + targetStatGain;
           await playerStateService.updatePlayerState(targetId, targetUpdate);
