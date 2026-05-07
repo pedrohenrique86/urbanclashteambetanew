@@ -219,7 +219,7 @@ const BattleRulesInfo = ({ isOpen, onClose }: { isOpen: boolean, onClose: () => 
                     <div className="bg-emerald-950/20 border border-emerald-500/20 p-3">
                       <p className="text-[10px] text-emerald-400 font-black mb-2 tracking-widest">● POTENCIAL DE GANHO</p>
                       <ul className="text-[9px] font-mono text-slate-400 space-y-1 uppercase">
-                        <li>• <span className="text-white font-bold">BÔNUS TOTAL (K.O):</span> XP Máximo e 12% CASH MONEY</li>
+                        <li>• <span className="text-white font-bold">BÔNUS TOTAL (K.O):</span> XP Máximo e 12% CASH</li>
                         <li>• <span className="text-white font-bold">BÔNUS BASE (PADRÃO):</span> XP Reduzido e Loot Parcial</li>
                         <li>• <span className="text-white">ATRIBUTOS:</span> Melhoria contínua de ATK/DEF/FOC</li>
                       </ul>
@@ -227,7 +227,7 @@ const BattleRulesInfo = ({ isOpen, onClose }: { isOpen: boolean, onClose: () => 
                     <div className="bg-red-950/20 border border-red-500/20 p-3">
                       <p className="text-[10px] text-red-400 font-black mb-2 tracking-widest">● RISCOS & PENALIDADES</p>
                       <ul className="text-[9px] font-mono text-slate-400 space-y-1 uppercase">
-                        <li>• <span className="text-white">Perda de CASH MONEY</span> (Em caso de derrota)</li>
+                        <li>• <span className="text-white">Perda de CASH</span> (Em caso de derrota)</li>
                         <li>• <span className="text-white">Perda de XP</span> (-15 XP em falhas críticas)</li>
                         <li>• <span className="text-white">Recondicionamento</span> (20 min de bloqueio)</li>
                         <li>• <span className="text-white">Energia</span> (Até -20% em derrotas intensas)</li>
@@ -241,7 +241,7 @@ const BattleRulesInfo = ({ isOpen, onClose }: { isOpen: boolean, onClose: () => 
             <div className="mt-12 p-6 bg-cyan-950/20 border border-cyan-500/30 relative overflow-hidden group">
                <div className="absolute inset-y-0 left-0 w-1 bg-cyan-500 group-hover:h-full transition-all duration-500 h-1/2 top-1/4" />
                <p className="text-xs font-mono text-cyan-400/80 leading-relaxed uppercase text-center italic tracking-widest">
-                  "A eficiência tática não reside na força bruta, mas na gestão otimizada dos seus recursos de PA."
+                  &quot;A eficiência tática não reside na força bruta, mas na gestão otimizada dos seus recursos de PA.&quot;
                </p>
             </div>
 
