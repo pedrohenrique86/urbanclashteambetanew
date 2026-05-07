@@ -85,7 +85,7 @@ export default function RecoveryBasePage() {
       </div>
 
       {/* HEADER */}
-      <header className="max-w-6xl mx-auto mb-12 relative z-10">
+      <header className="max-w-6xl mx-auto mb-4 md:mb-12 relative z-10">
         <div className="absolute -left-4 top-1/2 -translate-y-1/2 w-1 h-12 bg-red-500 shadow-[0_0_15px_rgba(239,68,68,0.8)]"></div>
         <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}>
           <h1 className="text-4xl md:text-6xl font-orbitron font-black tracking-widest text-white uppercase" style={{ textShadow: "2px 0px 0px rgba(239,68,68,0.7), -2px 0px 0px rgba(34,211,238,0.7)" }}>
@@ -505,23 +505,25 @@ function ReconditioningView({ user, timeLeft, formatTime }: { user: any, timeLef
         </div>
       </div>
 
-      {/* MOBILE TABS */}
-      <div className="flex md:hidden border-b border-white/10">
+      {/* MOBILE TABS - SÊNIOR: Melhoria de UX Mobile */}
+      <div className="flex md:hidden mb-4 border-2 border-red-500 bg-black/80 p-1.5 rounded-lg relative z-20 shadow-[0_0_20px_rgba(239,68,68,0.3)]">
         <button 
           onClick={() => setActiveTab("chat")}
-          className={`flex-1 py-4 font-orbitron font-black text-[10px] uppercase tracking-[0.2em] transition-all ${activeTab === "chat" ? 'text-red-500 border-b-2 border-red-500 bg-red-500/5' : 'text-slate-500'}`}
+          className={`flex-1 py-3.5 font-orbitron font-black text-[13px] uppercase tracking-[0.1em] transition-all rounded-md flex items-center justify-center gap-2 ${activeTab === "chat" ? 'text-white bg-red-600 shadow-[0_0_15px_rgba(239,68,68,0.6)]' : 'text-slate-400'}`}
         >
-          Canal Emergência
+          <ChatBubbleLeftRightIcon className="w-4 h-4" />
+          Chat
         </button>
         <button 
           onClick={() => setActiveTab("users")}
-          className={`flex-1 py-4 font-orbitron font-black text-[10px] uppercase tracking-[0.2em] transition-all ${activeTab === "users" ? 'text-red-500 border-b-2 border-red-500 bg-red-500/5' : 'text-slate-500'}`}
+          className={`flex-1 py-3.5 font-orbitron font-black text-[13px] uppercase tracking-[0.1em] transition-all rounded-md flex items-center justify-center gap-2 ${activeTab === "users" ? 'text-white bg-red-600 shadow-[0_0_15px_rgba(239,68,68,0.6)]' : 'text-slate-400'}`}
         >
-          Online ({onlineUsers.length})
+          <UserGroupIcon className="w-4 h-4" />
+          On ({onlineUsers.length})
         </button>
       </div>
 
-      <div className="flex flex-col md:flex-row h-[500px] md:h-[550px] cyber-card relative overflow-hidden" style={MILITARY_CLIP}>
+      <div className="flex flex-col md:flex-row h-[60vh] md:h-[550px] cyber-card border-red-500/20 relative overflow-hidden" style={MILITARY_CLIP}>
         {/* HEADER DO CHAT */}
         <div className="p-4 bg-white/5 border-b border-white/10 flex justify-between items-center relative z-10 md:hidden">
           <div className="flex items-center gap-3">
@@ -620,7 +622,7 @@ function ReconditioningView({ user, timeLeft, formatTime }: { user: any, timeLef
                   value={inputText}
                   onChange={handleInputChange}
                   onKeyDown={handleKeyDown}
-                  placeholder={isCooldown ? "Cooldown..." : "Transmitir..."}
+                  placeholder={isCooldown ? "Aguarde..." : "Sinal (use @ para marcar)..."}
                   disabled={isCooldown}
                   className="w-full bg-white/5 border border-white/10 px-4 py-3 pr-16 text-xs font-mono text-white placeholder:text-slate-600 focus:outline-none focus:border-red-500/50 transition-colors disabled:opacity-50"
                 />
