@@ -57,11 +57,15 @@ class SocketService {
 
       console.log("🔌 Iniciando conexão Socket.IO em:", socketUrl);
 
+      // Desktop: websocket puro (máxima performance)
+      // Mobile: polling primeiro → upgrade automático para websocket (garante 4G/proxies)
+      const isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
+
       this.socket = io(socketUrl, {
         reconnectionAttempts: 20,
         reconnectionDelay: 2000,
         path: "/socket.io/",
-        transports: ["websocket"],
+        transports: isMobile ? ["polling", "websocket"] : ["websocket"],
         secure: socketUrl.startsWith("https"),
         withCredentials: true,
       });
