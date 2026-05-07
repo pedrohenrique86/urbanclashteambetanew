@@ -1230,6 +1230,9 @@ async function processTrainingQueue() {
             console.warn(`[worker] ⚠️ Jogador ${uid} inexistente. Removendo da fila de treino (prevenção de ghost).`);
             await redisClient.zRemAsync(TRAINING_QUEUE_KEY, uid).catch(() => {});
             await deletePlayerState(uid).catch(() => {});
+          } else if (e.message && e.message.includes("Nenhum treinamento ativo para completar")) {
+            console.warn(`[worker] ⚠️ Treino já concluído/cancelado para ${uid}. Removendo da fila.`);
+            await redisClient.zRemAsync(TRAINING_QUEUE_KEY, uid).catch(() => {});
           } else {
             // Será re-tentado no próximo ciclo (5s)
             console.warn(`[worker] ⚠️ Falha ao concluir treino para ${uid} (re-tentará):`, e.message);
