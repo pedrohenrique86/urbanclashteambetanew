@@ -197,12 +197,14 @@ export default function ReckoningPage() {
   };
 
   useEffect(() => {
-    if (userProfile?.status === "Recondicionamento") {
+    // SÊNIOR: Só redireciona automaticamente se o jogador já estiver em recondicionamento
+    // ao entrar na página, ou se o status mudar e NÃO estivermos mostrando um resultado de luta.
+    if (userProfile?.status === "Recondicionamento" && !isAnyResultShowing && !isCurrentlyProcessing) {
       navigate("/recovery-base");
     }
-  }, [userProfile?.status, navigate]);
+  }, [userProfile?.status, navigate, isAnyResultShowing, isCurrentlyProcessing]);
 
-  if (userProfile?.status === "Recondicionamento") return null;
+  if (userProfile?.status === "Recondicionamento" && !isAnyResultShowing && !isCurrentlyProcessing) return null;
 
   return (
     <div className="min-h-screen p-4 md:p-8 bg-transparent relative text-slate-300 font-sans selection:bg-yellow-500/30">
@@ -313,17 +315,17 @@ export default function ReckoningPage() {
         {userProfile?.status === "Ruptura" && (
           <motion.div 
             initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
-            className="mb-6 bg-red-950/90 border-l-4 border-r-4 border-red-500 p-4 flex items-center justify-between shadow-[0_0_30px_rgba(239,68,68,0.4)]" 
+            className="mb-6 bg-red-950/80 border-l-2 border-r-2 border-red-500 p-3 md:p-4 flex items-center shadow-[0_0_20px_rgba(239,68,68,0.2)]" 
             style={MILITARY_CLIP}
           >
-             <div className="flex items-center gap-4">
-               <div className="w-10 h-10 bg-red-600 border border-red-400 flex items-center justify-center animate-pulse">
-                 <ExclamationTriangleIcon className="w-6 h-6 text-white" />
+             <div className="flex items-center gap-3 md:gap-4">
+               <div className="w-8 h-8 md:w-10 md:h-10 bg-red-600/20 border border-red-500/50 flex items-center justify-center animate-pulse flex-shrink-0">
+                 <ExclamationTriangleIcon className="w-5 h-5 md:w-6 md:h-6 text-red-500" />
                </div>
                <div>
-                 <h3 className="font-orbitron font-black text-white uppercase tracking-widest text-sm md:text-base">Aviso: Estado de Ruptura Ativo</h3>
-                 <p className="text-[10px] md:text-xs font-mono text-slate-200 uppercase leading-relaxed">
-                   Sistemas avariados. Redução de 20% no Power_Solo. Aguarde a auto-restauração ou visite a <span className="text-white font-black bg-red-600 px-1.5 py-0.5 rounded-sm shadow-[0_0_10px_rgba(220,38,38,0.5)]">Base de Recuperação</span> para reparos imediatos.
+                 <h3 className="font-orbitron font-black text-white uppercase tracking-tighter text-[11px] md:text-sm">SISTEMA EM RUPTURA</h3>
+                 <p className="text-[9px] md:text-[10px] font-mono text-slate-400 uppercase leading-tight max-w-2xl">
+                   Integridade comprometida (-20% Power). Aguarde estabilização ou utilize a <span className="text-red-400 font-black">Base de Recuperação</span> para reparos imediatos.
                  </p>
                </div>
              </div>
@@ -442,9 +444,9 @@ export default function ReckoningPage() {
                               }`}>
                                 {battleResults[tgt.id].outcome.replace('_', ' ')}
                               </div>
-                              <h4 className="text-white/70 font-bold uppercase text-[10px] mb-4 tracking-widest leading-tight px-2">{battleResults[tgt.id].message}</h4>
+                              <h4 className="text-white/70 font-bold uppercase text-[9px] md:text-[10px] mb-3 md:mb-4 tracking-widest leading-tight px-2 max-w-[200px] mx-auto">{battleResults[tgt.id].message}</h4>
                               
-                              <div className="grid grid-cols-2 gap-2 mb-4">
+                              <div className="grid grid-cols-2 gap-2 mb-3 md:mb-4">
                                 <div className="bg-black/40 p-2.5 border border-white/5">
                                   <span className="block text-[8px] text-slate-500 uppercase font-black tracking-widest mb-1">Créditos</span>
                                   <span className={`text-sm font-black font-orbitron ${battleResults[tgt.id].loot?.moneyLost ? 'text-red-400' : 'text-emerald-400'}`}>

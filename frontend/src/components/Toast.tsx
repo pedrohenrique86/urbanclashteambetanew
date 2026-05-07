@@ -134,7 +134,7 @@ export default function Toast({
 
                     if (idx === 0) {
                       return (
-                        <p key={idx} className="text-[12px] font-black text-white leading-tight break-words font-orbitron uppercase tracking-widest mb-1.5 border-b border-white/5 pb-1">
+                        <p key={idx} className="text-[10px] font-black text-white leading-tight break-words font-orbitron uppercase tracking-widest mb-1.5 border-b border-white/5 pb-1">
                           {trimmedLine}
                         </p>
                       );
@@ -145,9 +145,9 @@ export default function Toast({
 
                     return (
                       <p key={idx} className={`leading-snug break-words mb-0.5 ${
-                        isQuote ? 'text-[9.5px] italic text-slate-500 mt-1.5 font-sans' : 
-                        isData ? 'text-[11px] font-bold text-slate-200 font-mono' :
-                        'text-[10.5px] font-medium text-slate-400 font-sans'
+                        isQuote ? 'text-[8.5px] italic text-slate-500 mt-1.5 font-sans' : 
+                        isData ? 'text-[9.5px] font-bold text-slate-200 font-mono' :
+                        'text-[9px] font-medium text-slate-400 font-sans'
                       }`}>
                         {trimmedLine}
                       </p>
