@@ -214,7 +214,12 @@ class CombatService {
         if (!isNpc) {
           await playerStateService.updatePlayerState(targetId, {
             money: -loot.money, defeats: 1,
-            status: 'Recondicionamento', status_ends_at: new Date(Date.now() + hospitalTime * 60000).toISOString()
+            status: 'Recondicionamento', status_ends_at: new Date(Date.now() + hospitalTime * 60000).toISOString(),
+            recon_reason: "Derrota Crítica (KO)",
+            recon_phrase: "Sua unidade foi obliterada. Reinicialização necessária.",
+            recon_loss_credits: loot.money,
+            recon_loss_xp: 0,
+            recon_power_result: `${oFinalPower} vs ${pFinalPower}`
           });
         }
       } 
@@ -266,7 +271,12 @@ class CombatService {
 
         await playerStateService.updatePlayerState(userId, { 
           energy: -loot.energyLost, action_points: -loot.apLost, money: -loot.moneyLost, total_xp: loot.xp, defeats: 1,
-          status: 'Recondicionamento', status_ends_at: new Date(Date.now() + hospitalTime * 60000).toISOString()
+          status: 'Recondicionamento', status_ends_at: new Date(Date.now() + hospitalTime * 60000).toISOString(),
+          recon_reason: "Derrota em Combate Direto",
+          recon_phrase: gameLogic.getRandomDefeatPhrase(),
+          recon_loss_credits: loot.moneyLost,
+          recon_loss_xp: Math.abs(loot.xp),
+          recon_power_result: `${pFinalPower} vs ${oFinalPower}`
         });
 
         if (!isNpc) await playerStateService.updatePlayerState(targetId, { money: loot.moneyLost, victories: 1 });
@@ -286,7 +296,12 @@ class CombatService {
 
         const updateData = { 
           energy: -loot.energyLost, action_points: -loot.apLost, money: -loot.moneyLost, total_xp: loot.xp, defeats: 1,
-          status: 'Recondicionamento', status_ends_at: new Date(Date.now() + hospitalTime * 60000).toISOString()
+          status: 'Recondicionamento', status_ends_at: new Date(Date.now() + hospitalTime * 60000).toISOString(),
+          recon_reason: "Derrota Crítica (Suicida)",
+          recon_phrase: gameLogic.getRandomDefeatPhrase(),
+          recon_loss_credits: loot.moneyLost,
+          recon_loss_xp: Math.abs(loot.xp),
+          recon_power_result: `${pFinalPower} vs ${oFinalPower}`
         };
         Object.entries(loot.stats).forEach(([stat, val]) => {
           const currentVal = Number(attacker[stat]) || 1;
@@ -296,6 +311,9 @@ class CombatService {
 
         if (!isNpc) await playerStateService.updatePlayerState(targetId, { money: loot.moneyLost, victories: 1 });
       }
+
+      // SÊNIOR: Limpa o cache do radar para forçar novo sorteio após o combate
+      await redisClient.delAsync(`radar_lock:${userId}`);
 
       return { 
         outcome, 
@@ -400,7 +418,12 @@ class CombatService {
             if (!isNpc) {
               await playerStateService.updatePlayerState(targetId, { 
                 money: -loot.money, status: "Recondicionamento", 
-                status_ends_at: new Date(Date.now() + 20 * 60000).toISOString(), defeats: 1 
+                status_ends_at: new Date(Date.now() + 20 * 60000).toISOString(), defeats: 1,
+                recon_reason: "Derrota por Invasão Hostil",
+                recon_phrase: "Seus sistemas foram invadidos e neutralizados.",
+                recon_loss_credits: loot.money,
+                recon_loss_xp: 0,
+                recon_power_result: "Defesa Superada"
               });
             }
           } else if (isDraw) {
@@ -409,9 +432,16 @@ class CombatService {
             });
             if (!isNpc) await playerStateService.updatePlayerState(targetId, { total_xp: 5 });
           } else {
+            const pPower = gameLogic.calculateTotalPower(attacker).powerSolo;
+            const oPower = gameLogic.calculateTotalPower(defender).powerSolo;
             await playerStateService.updatePlayerState(userId, { 
               money: -loot.moneyLost, total_xp: loot.xp, defeats: 1,
-              status: "Recondicionamento", status_ends_at: new Date(Date.now() + 20 * 60000).toISOString()
+              status: "Recondicionamento", status_ends_at: new Date(Date.now() + 20 * 60000).toISOString(),
+              recon_reason: "Derrota em Combate Estratégico",
+              recon_phrase: gameLogic.getRandomDefeatPhrase(),
+              recon_loss_credits: loot.moneyLost,
+              recon_loss_xp: Math.abs(loot.xp),
+              recon_power_result: `${pPower} vs ${oPower}`
             });
           }
 
@@ -562,7 +592,12 @@ class CombatService {
         if (!state.isNpc) {
           await playerStateService.updatePlayerState(state.defender.id, { 
             money: -loot.money, status: "Recondicionamento", 
-            status_ends_at: new Date(Date.now() + 20 * 60000).toISOString(), defeats: 1 
+            status_ends_at: new Date(Date.now() + 20 * 60000).toISOString(), defeats: 1,
+            recon_reason: "Derrota em Combate Ativo",
+            recon_phrase: "Sua estratégia falhou contra o invasor.",
+            recon_loss_credits: loot.money,
+            recon_loss_xp: 0,
+            recon_power_result: "KO"
           });
         }
         finalResult.outcome = willBleed ? "win_bleeding" : "win_ko";
@@ -577,7 +612,12 @@ class CombatService {
         loot = { xp: -15, moneyLost, status: "Recondicionamento", outcome: "DERROTA" };
         await playerStateService.updatePlayerState(userId, { 
           money: -loot.moneyLost, total_xp: loot.xp, defeats: 1,
-          status: "Recondicionamento", status_ends_at: new Date(Date.now() + 20 * 60000).toISOString()
+          status: "Recondicionamento", status_ends_at: new Date(Date.now() + 20 * 60000).toISOString(),
+          recon_reason: "Derrota em Combate Ativo",
+          recon_phrase: gameLogic.getRandomDefeatPhrase(),
+          recon_loss_credits: loot.moneyLost,
+          recon_loss_xp: Math.abs(loot.xp),
+          recon_power_result: `HP Final: ${Math.floor(finalResult.playerHP)} vs ${Math.floor(finalResult.enemyHP)}`
         });
         finalResult.outcome = "loss_ko";
       }

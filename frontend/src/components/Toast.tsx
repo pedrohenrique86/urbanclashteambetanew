@@ -127,11 +127,33 @@ export default function Toast({
               <div className={`flex-shrink-0 p-2.5 ${iconBg} ${iconBorder} border shadow-inner`}>
                 {icon}
               </div>
-              <div className="flex-1 min-w-0 pr-2">
-                <p className="text-[13px] font-medium text-slate-100 leading-snug break-words font-sans">
-                  {message}
-                </p>
-              </div>
+                <div className="flex-1 min-w-0 pr-2">
+                  {message.split('\n').map((line, idx) => {
+                    const trimmedLine = line.trim();
+                    if (!trimmedLine) return null;
+
+                    if (idx === 0) {
+                      return (
+                        <p key={idx} className="text-[12px] font-black text-white leading-tight break-words font-orbitron uppercase tracking-widest mb-1.5 border-b border-white/5 pb-1">
+                          {trimmedLine}
+                        </p>
+                      );
+                    }
+                    
+                    const isQuote = trimmedLine.startsWith('"');
+                    const isData = /^[💸📉📊]/.test(trimmedLine) || trimmedLine.includes(':');
+
+                    return (
+                      <p key={idx} className={`leading-snug break-words mb-0.5 ${
+                        isQuote ? 'text-[9.5px] italic text-slate-500 mt-1.5 font-sans' : 
+                        isData ? 'text-[11px] font-bold text-slate-200 font-mono' :
+                        'text-[10.5px] font-medium text-slate-400 font-sans'
+                      }`}>
+                        {trimmedLine}
+                      </p>
+                    );
+                  })}
+                </div>
             </div>
 
             {/* Progress Bar */}

@@ -99,16 +99,18 @@ const BattleRulesInfo = () => {
   );
 };
 
-const RefreshTimer = ({ targets }: { targets: any }) => {
+const RefreshTimer = ({ targets, isPaused }: { targets: any, isPaused: boolean }) => {
   const [seconds, setSeconds] = useState(20);
   
   useEffect(() => {
+    if (isPaused) return;
+
     setSeconds(20);
     const interval = setInterval(() => {
       setSeconds(s => (s > 0 ? s - 1 : 20));
     }, 1000);
     return () => clearInterval(interval);
-  }, [targets]);
+  }, [targets, isPaused]);
 
   return (
     <div className="flex items-center gap-2 px-3 py-1.5 bg-cyan-900/20 border border-cyan-500/30 backdrop-blur-sm" style={MILITARY_CLIP}>
@@ -136,13 +138,20 @@ export default function ReckoningPage() {
   const { powerSolo: playerPower } = calculateTotalPower(userProfile || {}, userProfile?.active_chips || []);
 
   const playerLevel = userProfile?.level || 1;
+  const [processingId, setProcessingId] = useState<string | null>(null);
+  const [battleResults, setBattleResults] = useState<Record<string, any>>({});
+
+  const isAnyResultShowing = Object.keys(battleResults).length > 0;
+  const isCurrentlyProcessing = !!processingId;
+
   const { data: targets, mutate } = useSWR(
     playerLevel >= 10 ? "/combat/radar" : null, 
     combatService.getRadarTokens,
-    { revalidateOnFocus: false, refreshInterval: 20000 }
+    { 
+      revalidateOnFocus: false, 
+      refreshInterval: (isAnyResultShowing || isCurrentlyProcessing) ? 0 : 20000 
+    }
   );
-  
-  const [isProcessing, setIsProcessing] = useState(false);
 
   const handleInstantAttack = async (targetId: string) => {
     const currentPA = userProfile?.action_points || 0;
@@ -157,45 +166,33 @@ export default function ReckoningPage() {
       return;
     }
     
-    setIsProcessing(true);
+    setProcessingId(targetId);
     soundEngine.playClick();
     
     try {
       const result = await combatService.instantAttack(targetId);
       
-      let type: "success" | "error" | "warning" = "warning";
-      if (result.outcome.includes("WIN")) type = "success";
-      if (result.outcome.includes("LOSS")) type = "error";
-      if (result.outcome === "DRAW") type = "warning";
-
-      const lootText = result.loot?.money ? `+${result.loot.money.toLocaleString()} CC | ` : (result.loot?.moneyLost ? `-${result.loot.moneyLost.toLocaleString()} CC | ` : "0 CC | ");
-      const xpText = `${result.loot?.xp > 0 ? '+' : ''}${result.loot?.xp} XP`;
+      setBattleResults(prev => ({ ...prev, [targetId]: result }));
       
-      let statsText = "";
-      if (result.loot?.stats && Object.keys(result.loot.stats).length > 0) {
-        statsText = ` | Atributos: ` + Object.entries(result.loot.stats).map(([k, v]) => `${k.substring(0,3).toUpperCase()} ${Number(v)>0?'+':''}${v}`).join(', ');
-      }
-      
-      const pCritText = result.battleReport?.pIsCrit ? "🔥 SEU CRÍTICO! " : "";
-      const oCritText = result.battleReport?.oIsCrit ? "⚠️ CRÍTICO INIMIGO! " : "";
-      const powerComparison = ` [FORÇA: ${result.battleReport?.pPower.toLocaleString()} vs ${result.battleReport?.oPower.toLocaleString()}]`;
-      const costsText = ` | -${result.loot?.energyLost}% EN | -${result.loot?.apLost} PA`;
-      
-      showToast(`${pCritText}${oCritText}${result.message} (${lootText}${xpText}${statsText}${costsText})${powerComparison}`, type, 8000);
-
-      // SÊNIOR: Delay de 2 segundos para o jogador ler o resultado antes da transição de estado
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // SÊNIOR: Delay de 8 segundos para o jogador ler o resultado no próprio card
+      await new Promise(resolve => setTimeout(resolve, 8000));
       await refreshProfile();
       
       if (result.outcome.includes("LOSS")) {
         navigate("/recovery-base");
       } else {
         mutate();
+        // Limpa o resultado após o refresh para não poluir novos alvos na mesma posição
+        setBattleResults(prev => {
+          const newState = { ...prev };
+          delete newState[targetId];
+          return newState;
+        });
       }
     } catch (err: any) {
       showToast(err.response?.data?.error || "Erro no combate", "error");
     } finally {
-      setIsProcessing(false);
+      setProcessingId(null);
     }
   };
 
@@ -262,7 +259,7 @@ export default function ReckoningPage() {
               </div>
               
               <div className="flex flex-col gap-2">
-                <RefreshTimer targets={targets} />
+                <RefreshTimer targets={targets} isPaused={isAnyResultShowing || isCurrentlyProcessing} />
                 <div className="flex items-center gap-2 text-[9px] font-mono text-cyan-500/80 font-black uppercase tracking-widest px-2">
                   <div className="w-1 h-1 bg-cyan-500 animate-ping" />
                   Auto-Sync_Enabled
@@ -385,11 +382,16 @@ export default function ReckoningPage() {
                         </div>
                         <button 
                           onClick={(e) => { e.stopPropagation(); handleInstantAttack(tgt.id); }}
-                          disabled={isProcessing}
-                          className="px-6 py-2 bg-red-600/90 hover:bg-red-500 text-white font-orbitron font-black text-[10px] uppercase tracking-widest shadow-[0_0_15px_rgba(220,38,38,0.4)] disabled:opacity-50 transition-all"
+                          disabled={!!processingId || !!battleResults[tgt.id]}
+                          className="px-6 py-2 bg-red-600/90 hover:bg-red-500 text-white font-orbitron font-black text-[10px] uppercase tracking-widest shadow-[0_0_15px_rgba(220,38,38,0.4)] disabled:opacity-50 transition-all relative overflow-hidden"
                           style={MILITARY_CLIP}
                         >
-                          Atacar
+                          {processingId === tgt.id ? (
+                            <span className="flex items-center gap-2">
+                              <div className="w-2 h-2 bg-white rounded-full animate-ping" />
+                              Sync...
+                            </span>
+                          ) : "Atacar"}
                         </button>
                       </div>
 
@@ -409,6 +411,92 @@ export default function ReckoningPage() {
                           <span className="text-[8px] font-black text-emerald-500 uppercase tracking-tighter">ALVO ÓTIMO</span>
                         </div>
                       )}
+
+                      {/* COMBAT RESULT OVERLAY */}
+                      <AnimatePresence>
+                        {battleResults[tgt.id] && (
+                          <motion.div 
+                            initial={{ opacity: 0, backdropFilter: "blur(0px)" }}
+                            animate={{ opacity: 1, backdropFilter: "blur(8px)" }}
+                            exit={{ opacity: 0, backdropFilter: "blur(0px)" }}
+                            className={`absolute inset-0 z-20 flex flex-col items-center justify-center p-4 text-center ${
+                              battleResults[tgt.id].outcome.includes("WIN") ? 'bg-emerald-950/90' : 
+                              battleResults[tgt.id].outcome === "DRAW" ? 'bg-amber-950/90' : 'bg-red-950/90'
+                            }`}
+                          >
+                            <div className="absolute top-0 left-0 w-full h-1 bg-white/20">
+                              <motion.div 
+                                initial={{ width: "100%" }}
+                                animate={{ width: "0%" }}
+                                transition={{ duration: 8, ease: "linear" }}
+                                className={`h-full ${
+                                  battleResults[tgt.id].outcome.includes("WIN") ? 'bg-emerald-400' : 
+                                  battleResults[tgt.id].outcome === "DRAW" ? 'bg-amber-400' : 'bg-red-400'
+                                }`}
+                              />
+                            </div>
+
+                            <motion.div
+                              initial={{ scale: 0.8, y: 10 }}
+                              animate={{ scale: 1, y: 0 }}
+                              className="relative"
+                            >
+                              <div className={`text-[9px] font-black font-orbitron uppercase tracking-[0.3em] mb-1 ${
+                                battleResults[tgt.id].outcome.includes("WIN") ? 'text-emerald-400' : 
+                                battleResults[tgt.id].outcome === "DRAW" ? 'text-amber-400' : 'text-red-400'
+                              }`}>
+                                {battleResults[tgt.id].outcome.replace('_', ' ')}
+                              </div>
+                              <h4 className="text-white/70 font-bold uppercase text-[10px] mb-4 tracking-widest leading-tight px-2">{battleResults[tgt.id].message}</h4>
+                              
+                              <div className="grid grid-cols-2 gap-2 mb-4">
+                                <div className="bg-black/40 p-2.5 border border-white/5">
+                                  <span className="block text-[8px] text-slate-500 uppercase font-black tracking-widest mb-1">Créditos</span>
+                                  <span className={`text-sm font-black font-orbitron ${battleResults[tgt.id].loot?.moneyLost ? 'text-red-400' : 'text-emerald-400'}`}>
+                                    {battleResults[tgt.id].loot?.money ? `+${battleResults[tgt.id].loot.money.toLocaleString()}` : 
+                                     battleResults[tgt.id].loot?.moneyLost ? `-${battleResults[tgt.id].loot.moneyLost.toLocaleString()}` : '0'}
+                                  </span>
+                                </div>
+                                <div className="bg-black/40 p-2.5 border border-white/5">
+                                  <span className="block text-[8px] text-slate-500 uppercase font-black tracking-widest mb-1">Experiência</span>
+                                  <span className={`text-sm font-black font-orbitron ${battleResults[tgt.id].loot?.xp > 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                                    {battleResults[tgt.id].loot?.xp > 0 ? '+' : ''}{battleResults[tgt.id].loot?.xp} XP
+                                  </span>
+                                </div>
+                              </div>
+
+                              {battleResults[tgt.id].loot?.stats && Object.keys(battleResults[tgt.id].loot.stats).length > 0 && (
+                                <div className="flex flex-wrap justify-center gap-2 mb-4">
+                                  {Object.entries(battleResults[tgt.id].loot.stats).map(([stat, val]: [string, any]) => (
+                                    <div key={stat} className="bg-emerald-500 border border-emerald-400 px-3 py-1 shadow-[0_0_10px_rgba(16,185,129,0.3)]">
+                                      <span className="text-[10px] font-black text-black uppercase tracking-widest font-orbitron">
+                                        {stat.substring(0,3)} {Number(val) > 0 ? '+' : ''}{val}
+                                      </span>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+
+                              {(battleResults[tgt.id].battleReport) && (
+                                <div className="bg-black/60 p-2.5 border border-white/10 mb-2">
+                                  <div className="flex justify-between items-center text-[9px] font-mono mb-1">
+                                    <span className="text-slate-400 uppercase">Sua Força:</span>
+                                    <span className="text-white font-black text-xs">{battleResults[tgt.id].battleReport.pPower.toLocaleString()}</span>
+                                  </div>
+                                  <div className="flex justify-between items-center text-[9px] font-mono">
+                                    <span className="text-slate-400 uppercase">Alvo Força:</span>
+                                    <span className="text-white font-black text-xs">{battleResults[tgt.id].battleReport.oPower.toLocaleString()}</span>
+                                  </div>
+                                </div>
+                              )}
+
+                              {battleResults[tgt.id].battleReport?.pIsCrit && (
+                                <div className="text-[8px] font-black text-yellow-400 uppercase animate-pulse mb-1">🔥 IMPACTO CRÍTICO DETECTADO</div>
+                              )}
+                            </motion.div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
                     </div>
                    );
                  })}

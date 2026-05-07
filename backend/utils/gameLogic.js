@@ -823,7 +823,30 @@ function getFactionRank(level, faction) {
   }
 }
 
+const RECON_DEFEAT_PHRASES = [
+  "Parece que seu sistema operacional é o Windows 95.",
+  "Seu chassi de lata não aguentou o tranco, hein?",
+  "O oponente te deletou da existência... temporariamente.",
+  "Até uma calculadora de bolso teria lutado melhor.",
+  "Seu cooler parou de girar ou você é ruim assim mesmo?",
+  "Reiniciando... na esperança de que você aprenda a lutar.",
+  "Seus circuitos estão fritando de vergonha.",
+  "Você foi transformado em sucata premium.",
+  "Erro 404: Habilidade não encontrada.",
+  "Talvez o Pac-Man seja mais o seu nível.",
+  "Sua placa de vídeo deve estar com artefatos, porque você não viu esse golpe vindo.",
+  "Apanhou tanto que seu avatar está em 144p agora.",
+  "Iniciando protocolo de reparo de ego ferido.",
+  "O inimigo te deu um 'format C:' sem pedir permissão.",
+  "Seu ping deve estar em 999ms, só pode ser isso.",
+];
+
+function getRandomDefeatPhrase() {
+  return RECON_DEFEAT_PHRASES[Math.floor(Math.random() * RECON_DEFEAT_PHRASES.length)];
+}
+
 module.exports = {
+
   getXpRequiredForNextLevel,
   calculateDynamicLevel,
   getFactionRank,
@@ -845,4 +868,6 @@ module.exports = {
   COMBAT,
   XP_SCALING,
   ENERGY,
+  getRandomDefeatPhrase,
+
 };

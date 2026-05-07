@@ -151,8 +151,16 @@ const GlobalLayout: React.FC<GlobalLayoutProps> = ({ children }) => {
           type = 'error';
           break;
         case 'Recondicionamento':
-          message = "🛠️ RECON: Iniciando protocolo de reparo e recondicionamento.";
-          type = 'warning';
+          {
+            const reason = (userProfile as any)?.reconReason || "Iniciando protocolo de reparo.";
+            const phrase = (userProfile as any)?.reconPhrase ? `\n"${(userProfile as any).reconPhrase}"` : "";
+            const lossCredits = (userProfile as any)?.reconLossCredits ? `\n💸 -$${(userProfile as any).reconLossCredits}` : "";
+            const lossXp = (userProfile as any)?.reconLossXp ? `\n📉 -${(userProfile as any).reconLossXp} XP` : "";
+            const power = (userProfile as any)?.reconPowerResult ? `\n📊 ${(userProfile as any).reconPowerResult}` : "";
+            
+            message = `🛠️ RECON: ${reason}${phrase}${lossCredits}${lossXp}${power}`;
+            type = 'warning';
+          }
           break;
         case 'Aprimoramento':
           message = "⚡ SISTEMA: Sequência de aprimoramento físico/neural em curso.";

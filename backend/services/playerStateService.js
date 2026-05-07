@@ -109,6 +109,7 @@ const DB_PERSIST_FIELDS = new Set([
 //                   quando absolutamente necessário — energia regenera sozinha)
 const VOLATILE_FIELDS = new Set([
   "max_energy",
+  "recon_reason", "recon_phrase", "recon_loss_credits", "recon_loss_xp", "recon_power_result"
 ]);
 
 // ─── Todos os campos que disparam SSE ao frontend ────────────────────────────────
@@ -143,7 +144,12 @@ const FIELD_TO_SSE = {
   toxicity          : "toxicity",
   bio               : "bio",
   avatar_url        : "avatar_url",
-  premium_coins     : "uCrypto"
+  premium_coins     : "uCrypto",
+  recon_reason      : "reconReason",
+  recon_phrase      : "reconPhrase",
+  recon_loss_credits: "reconLossCredits",
+  recon_loss_xp     : "reconLossXp",
+  recon_power_result: "reconPowerResult"
 };
 
 // ─── Campos numéricos no Redis Hash ──────────────────────────────────────────────
@@ -151,7 +157,8 @@ const NUMERIC_FIELDS = new Set([
   "level", "total_xp", "energy", "max_energy", "action_points",
   "attack", "defense", "focus", "luck", "critical_damage", "critical_chance",
   "money", "intimidation", "discipline", "victories", "defeats", 
-  "winning_streak", "daily_training_count", "toxicity"
+  "winning_streak", "daily_training_count", "toxicity",
+  "recon_loss_credits", "recon_loss_xp"
 ]);
 
 // ─── Estado interno ───────────────────────────────────────────────────────────────
