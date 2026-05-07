@@ -61,7 +61,7 @@ class SocketService {
         reconnectionAttempts: 20,
         reconnectionDelay: 2000,
         path: "/socket.io/",
-        transports: ["websocket", "polling"], // websocket primeiro; polling como fallback para Cloudflare/proxies mobile
+        transports: ["websocket"],
         secure: socketUrl.startsWith("https"),
         withCredentials: true,
       });
