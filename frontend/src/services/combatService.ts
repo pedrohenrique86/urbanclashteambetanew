@@ -74,7 +74,7 @@ export interface CombatResult {
 }
 
 export const combatService = {
-  getRadarTokens: async (): Promise<RadarTarget[]> => {
+  getRadarTokens: async (): Promise<{ targets: RadarTarget[], limits: { pvp: number, pve: number } }> => {
     const { data } = await api.get("/combat/radar");
     return data;
   },

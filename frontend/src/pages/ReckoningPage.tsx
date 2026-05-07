@@ -144,7 +144,7 @@ export default function ReckoningPage() {
   const isAnyResultShowing = Object.keys(battleResults).length > 0;
   const isCurrentlyProcessing = !!processingId;
 
-  const { data: targets, mutate } = useSWR(
+  const { data: radarData, mutate } = useSWR(
     playerLevel >= 10 ? "/combat/radar" : null, 
     combatService.getRadarTokens,
     { 
@@ -153,12 +153,15 @@ export default function ReckoningPage() {
     }
   );
 
+  const targets = radarData?.targets;
+  const limits = radarData?.limits;
+
   const handleInstantAttack = async (targetId: string) => {
     const currentPA = userProfile?.action_points || 0;
     const currentEN = userProfile?.energy || 0;
 
-    if (currentPA < 100) {
-      showToast("PONTOS DE AÇÃO INSUFICIENTES (REQUER 100 PA)", "warning");
+    if (currentPA < 250) {
+      showToast("PONTOS DE AÇÃO INSUFICIENTES (REQUER 250 PA)", "warning");
       return;
     }
     if (currentEN < 10) {
@@ -256,6 +259,18 @@ export default function ReckoningPage() {
               </div>
               
               <div className="flex flex-col gap-2">
+                <div className="flex items-center gap-3 px-3 py-1.5 bg-black/60 border border-yellow-500/20 backdrop-blur-sm" style={MILITARY_CLIP}>
+                   <ShieldExclamationIcon className="w-3.5 h-3.5 text-yellow-500" />
+                   <div className="flex items-center gap-2">
+                     <span className="text-[8px] font-mono text-slate-500 uppercase tracking-tighter">PvP/Elite:</span>
+                     <span className={`text-[10px] font-orbitron font-black ${(limits?.pvp ?? 0) >= 5 ? 'text-red-500 animate-pulse' : 'text-white'}`}>{limits?.pvp || 0}/5</span>
+                   </div>
+                   <div className="w-[1px] h-3 bg-yellow-500/20 mx-1" />
+                   <div className="flex items-center gap-2">
+                     <span className="text-[8px] font-mono text-slate-500 uppercase tracking-tighter">PvE/Sync:</span>
+                     <span className={`text-[10px] font-orbitron font-black ${(limits?.pve ?? 0) >= 5 ? 'text-red-500 animate-pulse' : 'text-white'}`}>{limits?.pve || 0}/5</span>
+                   </div>
+                </div>
                 <RefreshTimer targets={targets} isPaused={isAnyResultShowing || isCurrentlyProcessing} />
                 <div className="flex items-center gap-2 text-[9px] font-mono text-cyan-500/80 font-black uppercase tracking-widest px-2">
                   <div className="w-1 h-1 bg-cyan-500 animate-ping" />
@@ -294,7 +309,7 @@ export default function ReckoningPage() {
                 <div className="flex gap-4">
                   <div className="flex items-center gap-2">
                     <FingerPrintIcon className="w-3 h-3 text-emerald-400" />
-                    <span className="text-[9px] font-orbitron font-black text-emerald-400 italic">100 PA</span>
+                    <span className="text-[9px] font-orbitron font-black text-emerald-400 italic">250 PA</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <BoltIcon className="w-3 h-3 text-yellow-400" />
@@ -353,10 +368,12 @@ export default function ReckoningPage() {
                          <div className="w-12 h-12 bg-black/60 border border-white/10 group-hover:border-yellow-500/40 flex items-center justify-center text-slate-600 group-hover:text-yellow-500 transition-all duration-300 transform group-hover:scale-105">
                            <UserCircleIcon className="w-8 h-8" />
                          </div>
-                         <div className="min-w-0 flex-1">
-                           <p className="text-[9px] uppercase font-mono text-yellow-500/60 font-black tracking-[0.2em]">{tgt.is_npc ? 'SYNC_BOT' : 'PLAYER_SIGNAL'}</p>
-                           <h3 className="font-orbitron font-black text-sm text-white truncate tracking-wider group-hover:text-yellow-400 transition-colors">{tgt.name}</h3>
-                         </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-[9px] uppercase font-mono text-yellow-500/60 font-black tracking-[0.2em]">{tgt.is_npc ? (tgt.name.includes("[ELITE]") ? 'ELITE_SIGNAL' : 'SYNC_BOT') : 'PLAYER_SIGNAL'}</p>
+                            <h3 className={`font-orbitron font-black text-sm truncate tracking-wider transition-colors ${tgt.name.includes("[ELITE]") ? 'text-fuchsia-400 group-hover:text-fuchsia-300' : (tgt.name.includes("[BOSS]") ? 'text-red-500 group-hover:text-red-400' : 'text-white group-hover:text-yellow-400')}`}>
+                              {tgt.name}
+                            </h3>
+                          </div>
                       </div>
 
                       <div className="relative z-10 mt-5 grid grid-cols-2 gap-3">

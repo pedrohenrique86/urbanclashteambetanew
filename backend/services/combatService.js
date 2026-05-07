@@ -42,6 +42,7 @@ function censorName(name) {
 
 function getNpcData(targetId, attacker) {
   const isRare = targetId.includes("_rare");
+  const isElite = targetId.includes("_elite");
   const seedStr = targetId.replace("npc_", "").replace("_rare", "");
   let hash = 0;
   for (let i = 0; i < seedStr.length; i++) {
@@ -55,7 +56,9 @@ function getNpcData(targetId, attacker) {
   else pool = [...RENEGADO_BOT_NAMES, ...GUARDIAO_BOT_NAMES];
 
   const rawName = pool[Math.abs(hash) % pool.length];
-  const name = isRare ? `[BOSS] ${rawName}` : `[BOT] ${rawName}`;
+  let name = `[BOT] ${rawName}`;
+  if (isRare) name = `[BOSS] ${rawName}`;
+  else if (isElite) name = `[ELITE] ${rawName}`;
   const attackerLevel = Number(attacker?.level || 10);
   const level = Math.max(1, attackerLevel + (Math.abs(hash * 31) % 5) - 2);
 
@@ -129,14 +132,35 @@ class CombatService {
       }
     } catch (e) {}
 
+    const today = new Date().toISOString().split('T')[0];
+    const pvpLimit = await redisClient.getAsync(`combat:limit:pvp:${userId}:${today}`) || 0;
+    const pveLimit = await redisClient.getAsync(`combat:limit:pve:${userId}:${today}`) || 0;
+
+    const pveExhausted = parseInt(pveLimit) >= 5;
+    const hasRealPlayers = targets.some(t => !t.is_npc);
+
     while (targets.length < 6) {
-      const isRare = Math.random() < 0.05;
-      const npcId = `npc_${Math.random().toString(36).substr(2, 9)}${isRare ? '_rare' : ''}`;
+      // SÊNIOR: Sistema inteligente. Se o PvE acabou e não há players, gera Elites para o slot PvP.
+      const shouldForceElite = pveExhausted && !hasRealPlayers;
+      const isRare = !shouldForceElite && Math.random() < 0.05;
+      const isElite = shouldForceElite;
+
+      const npcId = `npc_${Math.random().toString(36).substr(2, 9)}${isRare ? '_rare' : ''}${isElite ? '_elite' : ''}`;
       const npcData = getNpcData(npcId, attacker);
-      targets.push({ id: npcId, level: npcData.level, faction: npcData.faction, name: npcData.username, online: true, is_npc: true, is_rare: isRare });
+      targets.push({ id: npcId, level: npcData.level, faction: npcData.faction, name: npcData.username, online: true, is_npc: true, is_rare: isRare || isElite });
     }
-    await redisClient.setAsync(CACHE_KEY, JSON.stringify(targets), "EX", 18);
-    return targets;
+
+    const response = {
+      targets,
+      limits: {
+        pvp: parseInt(pvpLimit),
+        pve: parseInt(pveLimit)
+      }
+    };
+
+    await redisClient.setAsync(CACHE_KEY, JSON.stringify(response), "EX", 18);
+    
+    return response;
   }
 
   async getPreCombatStatus(userId, targetId) {
@@ -164,11 +188,23 @@ class CombatService {
     try {
       const attacker = await playerStateService.getPlayerState(userId);
       const isNpc = targetId.startsWith("npc_");
+      const isRareOrElite = isNpc && (targetId.includes("_rare") || targetId.includes("_elite"));
+      
+      // SÊNIOR: Determina o tipo de limite. Bots raros ou Elites forçados contam como PvP
+      const limitType = (isNpc && !isRareOrElite) ? "pve" : "pvp";
+      const today = new Date().toISOString().split('T')[0];
+      const LIMIT_KEY = `combat:limit:${limitType}:${userId}:${today}`;
+
+      const currentCount = await redisClient.getAsync(LIMIT_KEY) || 0;
+      if (parseInt(currentCount) >= 5) {
+        throw new Error(`Limite diário de ataques ${limitType.toUpperCase()} atingido (5/5). Tente novamente amanhã.`);
+      }
+
       const defender = isNpc ? getNpcData(targetId, attacker) : await playerStateService.getPlayerState(targetId);
 
       if (!attacker || !defender) throw new Error("Alvo não encontrado.");
       if (attacker.energy < 10) throw new Error("Nível de energia crítico. Recarregue.");
-      if (attacker.action_points < 100) throw new Error("Pontos de Ação insuficientes (Requer 100).");
+      if (attacker.action_points < 250) throw new Error("Pontos de Ação insuficientes (Requer 250).");
       if (attacker.status !== 'Operacional' && attacker.status !== 'Ruptura') throw new Error(`Sistema em modo ${attacker.status}. Combate bloqueado.`);
 
       const pChips = await this._getEquippedChips(userId);
@@ -224,7 +260,7 @@ class CombatService {
         loot.xp = Math.floor(winXp * 1.5);
         loot.money = winMoney; // Atacante ganha 20% (Subsidiado pelo sistema se for PvP)
         loot.energyLost = 5;
-        loot.apLost = 100;
+        loot.apLost = 250;
         loot.stats[statsList[Math.floor(Math.random() * 3)]] = winStatVal + 1;
         if (Math.random() < 0.5) loot.stats[statsList[Math.floor(Math.random() * 3)]] = 1;
 
@@ -252,7 +288,7 @@ class CombatService {
         loot.xp = winXp;
         loot.money = winMoney;
         loot.energyLost = 5;
-        loot.apLost = 100;
+        loot.apLost = 250;
         loot.stats[statsList[Math.floor(Math.random() * 3)]] = winStatVal;
 
         const updateData = { energy: -loot.energyLost, action_points: -loot.apLost, money: loot.money, total_xp: loot.xp, victories: 1 };
@@ -269,7 +305,7 @@ class CombatService {
         msg = "EMPATE TÁTICO! Forças equivalentes. Ambos os sistemas entraram em RUPTURA!";
         loot.xp = Math.floor(winXp * 0.8);
         loot.energyLost = 10;
-        loot.apLost = 100;
+        loot.apLost = 250;
         loot.stats[statsList[Math.floor(Math.random() * 3)]] = 1;
 
         const updateData = { 
@@ -295,7 +331,7 @@ class CombatService {
         loot.moneyLost = lossMoneyAtk;
         loot.xp = -lossXp;
         loot.energyLost = 15;
-        loot.apLost = 100;
+        loot.apLost = 250;
 
         const updateData = { 
           energy: -loot.energyLost, action_points: -loot.apLost, money: -loot.moneyLost, total_xp: loot.xp, defeats: 1,
@@ -331,7 +367,7 @@ class CombatService {
         loot.moneyLost = lossMoneyAtk;
         loot.xp = Math.floor(-lossXp * 1.5);
         loot.energyLost = 15;
-        loot.apLost = 100;
+        loot.apLost = 250;
 
         const updateData = { 
           energy: -loot.energyLost, action_points: -loot.apLost, money: -loot.moneyLost, total_xp: loot.xp, defeats: 1,
@@ -365,7 +401,9 @@ class CombatService {
       // SÊNIOR: Limpa o cache do radar para forçar novo sorteio após o combate
       await redisClient.delAsync(`radar_lock:${userId}`);
       
-      // SÊNIOR: Define cooldown de 10 segundos para evitar bypass de animação
+      // SÊNIOR: Incrementa limite diário e define cooldown
+      await redisClient.incrAsync(LIMIT_KEY);
+      await redisClient.expireAsync(LIMIT_KEY, 86400 * 2); // 2 dias para limpeza
       await redisClient.setAsync(COOLDOWN, "1", "EX", 10);
 
       return { 
