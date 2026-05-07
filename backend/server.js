@@ -89,13 +89,15 @@ const corsOptions = {
     const isAllowed = allowedOrigins.includes(origin) || 
                      /^https?:\/\/(.*\.)?urbanclashteam\.com\/?$/.test(origin) ||
                      /^http:\/\/localhost(:\d+)?$/.test(origin) ||
-                     /^http:\/\/192\.168\.\d{1,3}\.\d{1,3}(:\d+)?$/.test(origin) || // WiFi Local (Mobile)
-                     /^http:\/\/10\.\d{1,3}\.\d{1,3}\.\d{1,3}(:\d+)?$/.test(origin); // WiFi Local Alternativo
+                     (!isProduction && (
+                       /^http:\/\/192\.168\.\d{1,3}\.\d{1,3}(:\d+)?$/.test(origin) || 
+                       /^http:\/\/10\.\d{1,3}\.\d{1,3}\.\d{1,3}(:\d+)?$/.test(origin)
+                     ));
 
     if (isAllowed) {
       callback(null, true);
     } else {
-      console.warn(`🛑 CORS bloqueado para origin: ${origin}`);
+      console.warn(`🛑 CORS bloqueado para origin: ${origin} (Modo: ${isProduction ? 'PROD' : 'DEV'})`);
       callback(null, false);
     }
   },
