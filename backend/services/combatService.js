@@ -58,7 +58,6 @@ function getNpcData(targetId, attacker) {
   const rawName = pool[Math.abs(hash) % pool.length];
   let name = `[BOT] ${rawName}`;
   if (isRare) name = `[BOSS] ${rawName}`;
-  else if (isElite) name = `[ELITE] ${rawName}`;
   const attackerLevel = Number(attacker?.level || 10);
   const level = Math.max(1, attackerLevel + (Math.abs(hash * 31) % 5) - 2);
 
@@ -132,29 +131,54 @@ class CombatService {
       }
     } catch (e) {}
 
-    const today = new Date().toISOString().split('T')[0];
-    const pvpLimit = await redisClient.getAsync(`combat:limit:pvp:${userId}:${today}`) || 0;
-    const pveLimit = await redisClient.getAsync(`combat:limit:pve:${userId}:${today}`) || 0;
+    const RESET_KEY = `combat:reset_at:${userId}`;
+    const pvpKey = `combat:count:pvp:${userId}`;
+    const pveKey = `combat:count:pve:${userId}`;
+
+    const resetAt = await redisClient.getAsync(RESET_KEY);
+    const pvpLimit = await redisClient.getAsync(pvpKey) || 0;
+    const pveLimit = await redisClient.getAsync(pveKey) || 0;
 
     const pveExhausted = parseInt(pveLimit) >= 5;
     const hasRealPlayers = targets.some(t => !t.is_npc);
+    const usedNames = new Set(targets.map(t => t.name));
 
     while (targets.length < 6) {
-      // SÊNIOR: Sistema inteligente. Se o PvE acabou e não há players, gera Elites para o slot PvP.
+      // SÊNIOR: BOSS (Rare) aparece apenas no PvE (se não esgotado). ELITE aparece para suprir o PvP.
       const shouldForceElite = pveExhausted && !hasRealPlayers;
-      const isRare = !shouldForceElite && Math.random() < 0.05;
+      const isRare = !pveExhausted && Math.random() < 0.05;
       const isElite = shouldForceElite;
 
-      const npcId = `npc_${Math.random().toString(36).substr(2, 9)}${isRare ? '_rare' : ''}${isElite ? '_elite' : ''}`;
-      const npcData = getNpcData(npcId, attacker);
-      targets.push({ id: npcId, level: npcData.level, faction: npcData.faction, name: npcData.username, online: true, is_npc: true, is_rare: isRare || isElite });
+      let npcData;
+      let npcId;
+      let attempts = 0;
+
+      // SÊNIOR: Garante que o nome do bot seja único no radar atual
+      do {
+        npcId = `npc_${Math.random().toString(36).substr(2, 5)}_${attempts}${isRare ? '_rare' : ''}${isElite ? '_elite' : ''}`;
+        npcData = getNpcData(npcId, attacker);
+        attempts++;
+      } while (usedNames.has(npcData.username) && attempts < 15);
+
+      usedNames.add(npcData.username);
+      targets.push({ 
+        id: npcId, 
+        level: npcData.level, 
+        faction: npcData.faction, 
+        name: npcData.username, 
+        online: true, 
+        is_npc: true, 
+        is_rare: isRare,
+        is_elite: isElite 
+      });
     }
 
     const response = {
       targets,
       limits: {
         pvp: parseInt(pvpLimit),
-        pve: parseInt(pveLimit)
+        pve: parseInt(pveLimit),
+        reset_at: resetAt ? parseInt(resetAt) : null
       }
     };
 
@@ -182,22 +206,30 @@ class CombatService {
     const onCooldown = await redisClient.getAsync(COOLDOWN);
     if (onCooldown) throw new Error("Sistemas em resfriamento. Aguarde a sincronização da matriz.");
 
-    const hasLock = await redisClient.setNXAsync(LOCK, "1", 15000); // 15s em ms
+    const hasLock = await redisClient.setNXAsync(LOCK, "1", 15000);
     if (!hasLock) throw new Error("Aguarde a resolução do ataque atual.");
 
     try {
       const attacker = await playerStateService.getPlayerState(userId);
       const isNpc = targetId.startsWith("npc_");
-      const isRareOrElite = isNpc && (targetId.includes("_rare") || targetId.includes("_elite"));
       
-      // SÊNIOR: Determina o tipo de limite. Bots raros ou Elites forçados contam como PvP
-      const limitType = (isNpc && !isRareOrElite) ? "pve" : "pvp";
-      const today = new Date().toISOString().split('T')[0];
-      const LIMIT_KEY = `combat:limit:${limitType}:${userId}:${today}`;
+      const pvpKey = `combat:count:pvp:${userId}`;
+      const pveKey = `combat:count:pve:${userId}`;
+      const isElite = isNpc && targetId.includes("_elite");
+      const RESET_KEY = `combat:reset_at:${userId}`;
 
-      const currentCount = await redisClient.getAsync(LIMIT_KEY) || 0;
-      if (parseInt(currentCount) >= 5) {
-        throw new Error(`Limite diário de ataques ${limitType.toUpperCase()} atingido (5/5). Tente novamente amanhã.`);
+      // 1. Verifica se está em cooldown de 24h
+      const resetAt = await redisClient.getAsync(RESET_KEY);
+      if (resetAt && parseInt(resetAt) > Date.now()) {
+        throw new Error("Matriz de combate em reidratação energética. Aguarde o reset de 24h.");
+      }
+
+      // 2. Verifica limites individuais
+      const limitType = (isNpc && !isElite) ? "pve" : "pvp";
+      const currentCount = parseInt(await redisClient.getAsync(limitType === "pvp" ? pvpKey : pveKey) || 0);
+      
+      if (currentCount >= 5) {
+        throw new Error(`Limite de ataques ${limitType.toUpperCase()} (5/5) atingido.`);
       }
 
       const defender = isNpc ? getNpcData(targetId, attacker) : await playerStateService.getPlayerState(targetId);
@@ -246,7 +278,7 @@ class CombatService {
       
       // Recompensas de Vitória
       const winXp = Math.floor(targetLevel * 2 + (baseRatio * 5) + Math.random() * 10);
-      const winMoney = isNpc ? Math.floor(targetLevel * 10 + Math.random() * 50) : Math.floor(targetMoney * 0.20);
+      const winMoneyBase = isNpc ? Math.floor(targetLevel * 10 + Math.random() * 50) : Math.floor(targetMoney * 0.08);
       const winStatVal = Math.max(1, Math.floor(baseRatio * 0.8));
 
       // Penalidades de Derrota (Geral)
@@ -258,7 +290,8 @@ class CombatService {
         const hospitalTime = 5; // Defensor atacado volta rápido (5 min)
         msg = "VITÓRIA ESMAGADORA! O alvo foi obliterado e enviado para a base de recuperação.";
         loot.xp = Math.floor(winXp * 1.5);
-        loot.money = winMoney; // Atacante ganha 20% (Subsidiado pelo sistema se for PvP)
+        // SÊNIOR: Bônus Total de CASH MONEY em K.O (1.5x bônus sobre os 8% base = 12%)
+        loot.money = Math.floor(winMoneyBase * 1.5); 
         loot.energyLost = 5;
         loot.apLost = 250;
         loot.stats[statsList[Math.floor(Math.random() * 3)]] = winStatVal + 1;
@@ -286,7 +319,7 @@ class CombatService {
       else if (outcome === "WIN") {
         msg = "VITÓRIA! Combate intenso, mas seus sistemas prevaleceram.";
         loot.xp = winXp;
-        loot.money = winMoney;
+        loot.money = winMoneyBase;
         loot.energyLost = 5;
         loot.apLost = 250;
         loot.stats[statsList[Math.floor(Math.random() * 3)]] = winStatVal;
@@ -401,9 +434,20 @@ class CombatService {
       // SÊNIOR: Limpa o cache do radar para forçar novo sorteio após o combate
       await redisClient.delAsync(`radar_lock:${userId}`);
       
-      // SÊNIOR: Incrementa limite diário e define cooldown
-      await redisClient.incrAsync(LIMIT_KEY);
-      await redisClient.expireAsync(LIMIT_KEY, 86400 * 2); // 2 dias para limpeza
+      // SÊNIOR: Incrementa limite e verifica se completou as 10 para disparar o reset de 24h
+      const limitKey = limitType === "pvp" ? pvpKey : pveKey;
+      const newCount = await redisClient.incrAsync(limitKey);
+      
+      const otherCount = parseInt(await redisClient.getAsync(limitType === "pvp" ? pveKey : pvpKey) || 0);
+      
+      if (newCount + otherCount >= 10) {
+        // Dispara o cooldown de 24h
+        const resetTimestamp = Date.now() + 86400000;
+        await redisClient.setAsync(RESET_KEY, String(resetTimestamp), "EX", 86400);
+        await redisClient.delAsync(pvpKey);
+        await redisClient.delAsync(pveKey);
+      }
+
       await redisClient.setAsync(COOLDOWN, "1", "EX", 10);
 
       return { 
@@ -470,12 +514,18 @@ class CombatService {
       if (isNaN(challengeMod) || !isFinite(challengeMod)) challengeMod = 1.0;
 
       if (isAttackerWin) {
-        const xpGain = Math.round(gameLogic.COMBAT.XP_WIN_BASE * challengeMod * xpBonus * (0.9 + Math.random() * 0.2));
-        let money = isNpc ? Math.floor(50 + defender.level * 15) : Math.floor(defender.money * 0.12); 
+        // SÊNIOR: Implementação do "Bônus Total" para K.O (Ratio >= 2.0)
+        const koMultiplier = isKO ? 1.5 : 1.0;
+        const xpGain = Math.round(gameLogic.COMBAT.XP_WIN_BASE * challengeMod * xpBonus * koMultiplier * (0.9 + Math.random() * 0.2));
+        
+        // Em K.O, o saque de CASH MONEY é maior (Bônus Total 12% vs Base 8%)
+        let moneyBase = isNpc ? Math.floor(50 + defender.level * 15) : Math.floor(defender.money * 0.08); 
+        let money = Math.floor(moneyBase * koMultiplier);
+
         let statGain = isNpc ? (0.1 * challengeMod) : (0.5 + Math.random() * 1.0) * challengeMod;
         
         loot = { 
-          xp: xpGain, money, outcome: "VITÓRIA",
+          xp: xpGain, money, outcome: isKO ? "VITÓRIA K.O" : "VITÓRIA",
           stats: { attack: Number((statGain * 0.4).toFixed(2)), defense: Number((statGain * 0.4).toFixed(2)), focus: Number((statGain * 0.2).toFixed(2)) }
         };
       } else if (isDraw) {
@@ -663,12 +713,17 @@ class CombatService {
       
       let loot = null;
       if (isAttackerWin) {
-        const xpGain = Math.round(gameLogic.COMBAT.XP_WIN_BASE * challengeMod * xpBonus * (0.9 + Math.random() * 0.2));
-        let money = state.isNpc ? Math.floor(50 + state.defender.level * 15) : Math.floor(state.defender.money * 0.12);
+        // SÊNIOR: Bônus Total em K.O (Ratio >= 2.0)
+        const isKO = state.defender.stagger <= 0;
+        const koMultiplier = isKO ? 1.5 : 1.0;
+        const pFinalPower = state.attacker.attack + state.attacker.defense;
+        const oFinalPower = state.defender.attack + state.defender.defense;
+        const xpGain = Math.round(gameLogic.COMBAT.XP_WIN_BASE * (1 + (pFinalPower - oFinalPower) / (oFinalPower || 1)) * koMultiplier * xpBonus);
+        let money = state.isNpc ? Math.floor(50 + state.defender.level * 15) : Math.floor(state.defender.money * 0.12 * koMultiplier);
         let statGain = state.isNpc ? (0.1 * challengeMod) : (0.5 + Math.random() * 1.0) * challengeMod;
         
         loot = {
-          xp: xpGain, money, outcome: "VITÓRIA",
+          xp: xpGain, money, outcome: isKO ? "VITÓRIA K.O" : "VITÓRIA",
           stats: { attack: Number((statGain * 0.4).toFixed(2)), defense: Number((statGain * 0.4).toFixed(2)), focus: Number((statGain * 0.2).toFixed(2)) }
         };
 

@@ -8,6 +8,7 @@ export interface RadarTarget {
   online: boolean;
   is_npc?: boolean;
   is_rare?: boolean;
+  is_elite?: boolean;
   expires_at?: string;
 }
 
@@ -74,7 +75,7 @@ export interface CombatResult {
 }
 
 export const combatService = {
-  getRadarTokens: async (): Promise<{ targets: RadarTarget[], limits: { pvp: number, pve: number } }> => {
+  getRadarTokens: async (): Promise<{ targets: RadarTarget[], limits: { pvp: number, pve: number, reset_at: number | null } }> => {
     const { data } = await api.get("/combat/radar");
     return data;
   },
