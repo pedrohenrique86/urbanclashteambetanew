@@ -158,7 +158,7 @@ function calculateTotalPower(user, chips = []) {
 
   // Fórmula unificada SSOT
   // (ATK + DEF + FOC×0.5) + (NVL×2) + (CRIT%×0.2 + CRITx)
-  let powerSolo = (atk + def + foc * 0.5) + (level * 2) + (critChance * 0.2 + critMult);
+  let powerSolo = (atk + (Number(user.weapon_damage) || 0) + def + (Number(user.shield_protection) || 0) + foc * 0.5) + (level * 2) + (critChance * 0.2 + critMult);
   
   if (chips && chips.length > 0) {
     chips.forEach(chip => {
@@ -497,6 +497,7 @@ function resolveStrategicCombat(attacker, defender, attackerChips = [], playerAc
   };
 
   // Modificadores de Chips
+  // Modificadores de Chips
   let chipDmgMult = 1.0;
   let chipResist = 0;
   let xpBonus = 1.0;
@@ -506,13 +507,31 @@ function resolveStrategicCombat(attacker, defender, attackerChips = [], playerAc
     if (chip.effect_type === 'xp_boost') xpBonus += (chip.effect_value / 100);
   });
 
-  const pAtk = Number(attacker.attack) || 1;
-  const pDef = Number(attacker.defense) || 1;
+  const pAtk = (Number(attacker.attack) || 1) + (Number(attacker.weapon_damage) || 0);
+  const pDef = (Number(attacker.defense) || 1) + (Number(attacker.shield_protection) || 0);
   const pFoc = Number(attacker.focus) || 1;
   
-  const oAtk = Number(defender.attack) || 1;
-  const oDef = Number(defender.defense) || 1;
+  const oAtk = (Number(defender.attack) || 1) + (Number(defender.weapon_damage) || 0);
+  const oDef = (Number(defender.defense) || 1) + (Number(defender.shield_protection) || 0);
   const oFoc = Number(defender.focus) || 1;
+  
+  const pFaction = String(attacker.faction || '').toLowerCase();
+  const oFaction = String(defender.faction || '').toLowerCase();
+
+  // Perícias Fixas de Classe: Renegado (35% Intimidação) | Guardião (40% Disciplina)
+  const pIsRenegado = pFaction === 'gangsters' || pFaction === 'renegados';
+  const pIsGuardian = pFaction === 'guardas' || pFaction === 'guardioes';
+  const oIsRenegado = oFaction === 'gangsters' || oFaction === 'renegados';
+  const oIsGuardian = oFaction === 'guardas' || oFaction === 'guardioes';
+
+  const pIntimidation = pIsRenegado ? 35 : 0;
+  const pDiscipline = pIsGuardian ? 40 : 0;
+  const oIntimidation = oIsRenegado ? 35 : 0;
+  const oDiscipline = oIsGuardian ? 40 : 0;
+
+  // Flags para uso no loop
+  const isAttackerRenegado = pIsRenegado;
+  const isDefenderGuardian = oIsGuardian;
 
   // Base Dmg from Power
   const baseDmg = 12 + (pAtk / (pAtk + oDef)) * 25;
@@ -579,6 +598,10 @@ function resolveStrategicCombat(attacker, defender, attackerChips = [], playerAc
       } else if (pAction === 'block') {
         pRoundDmg = Math.floor(baseDmg * 0.9 * chipDmgMult * critMult);
         oRoundDmg = Math.floor(oppBaseDmg * 0.1);
+        // Habilidade Fixa Guardião: Disciplina (Redução de dano no bloqueio)
+        if (isDefenderGuardian && pDiscipline > 0) {
+          oRoundDmg = Math.floor(oRoundDmg * (1 - pDiscipline / 100));
+        }
         roundLog = getLog('pWinBlock');
         impact = "parry";
       } else if (pAction === 'counter') {
@@ -588,6 +611,10 @@ function resolveStrategicCombat(attacker, defender, attackerChips = [], playerAc
         impact = "parry";
       } else {
         pRoundDmg = Math.floor(baseDmg * 1.5 * playerCombo * chipDmgMult * critMult);
+        // Habilidade Fixa Renegado: Intimidação (Bônus de dano em ataques brutais)
+        if (isAttackerRenegado && pIntimidation > 0) {
+          pRoundDmg = Math.floor(pRoundDmg * (1 + pIntimidation / 100));
+        }
         roundLog = getLog('pWinBrutal');
         impact = "heavy";
       }

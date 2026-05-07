@@ -449,10 +449,11 @@ const PowerPanel = React.memo(({ user }: { user: any }) => {
           </div>
           {/* Tooltip Hover - Simplificado e para baixo */}
           <div className="absolute top-full right-0 mt-2 w-64 bg-zinc-900/95 backdrop-blur-md border border-zinc-700 text-[11px] text-slate-300 p-3 rounded-lg shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-[100] pointer-events-none">
-            <p className="font-bold text-white border-b border-zinc-700 pb-1 mb-2 text-center">Fórmula Power Solo</p>
-            <p className="text-center leading-relaxed">
-              (ATK + DEF + FOC×0.5 + NVL×2)<br/>
-              + (CRIT%×0.2 + CRITx×1)
+            <p className="font-bold text-white border-b border-zinc-700 pb-1 mb-2 text-center uppercase tracking-tighter">Fórmula Power Solo</p>
+            <p className="text-center leading-relaxed text-[10px]">
+              (ATK + ARMA + DEF + ESCUDO + FOC×0.5)<br/>
+              + (NVL×2) + (CRIT%×0.2 + CRITx)<br/>
+              <span className="text-emerald-400">× BÔNUS DE CHIPS</span>
             </p>
             <div className="mt-2 text-yellow-400 font-black text-center text-sm border-t border-zinc-800 pt-1">Total: {powerSolo}</div>
           </div>

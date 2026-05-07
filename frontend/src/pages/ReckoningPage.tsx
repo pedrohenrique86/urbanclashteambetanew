@@ -127,11 +127,15 @@ const BattleRulesInfo = ({ isOpen, onClose }: { isOpen: boolean, onClose: () => 
                     </div>
                     <p className="text-white font-black mb-4 italic border-b border-white/10 pb-2">Fórmula de Base:</p>
                     <div className="space-y-2 text-fuchsia-300 text-sm mb-6 bg-fuchsia-500/5 p-4 border border-fuchsia-500/10">
-                      <p>(ATK + DEF + FOCUS × 0.5)</p>
+                      <p>(ATK + ARMA + DEF + ESCUDO + FOCUS × 0.5)</p>
                       <p>+ (LVL × 2)</p>
                       <p>+ (CRIT% × 0.2 + CRIT_MULT)</p>
                     </div>
                     <ul className="space-y-2 text-[10px]">
+                      <li className="flex justify-between border-b border-white/5 pb-1">
+                        <span>Equipamentos</span>
+                        <span className="text-white">ARMA / ESCUDO (Dâm/Prot)</span>
+                      </li>
                       <li className="flex justify-between border-b border-white/5 pb-1">
                         <span>Status <span className="text-red-400">Ruptura</span></span>
                         <span className="text-white">-20% POWER</span>
@@ -141,6 +145,33 @@ const BattleRulesInfo = ({ isOpen, onClose }: { isOpen: boolean, onClose: () => 
                         <span className="text-white">MULT. VARIÁVEL</span>
                       </li>
                     </ul>
+                  </div>
+                </section>
+
+                <section>
+                  <h4 className="text-amber-500 font-orbitron font-black text-sm mb-6 tracking-widest uppercase italic flex items-center gap-2">
+                    <span className="w-2 h-2 bg-amber-500" />
+                    Habilidades de Facção
+                  </h4>
+                  <div className="grid grid-cols-1 gap-3 font-mono text-[10px]">
+                    <div className="p-3 border border-red-500/30 bg-red-950/10 relative overflow-hidden group">
+                      <div className="absolute top-0 right-0 p-1 opacity-20">
+                        <span className="text-[8px] text-red-500 font-black">OFFENSE_MOD</span>
+                      </div>
+                      <p className="text-red-400 font-black mb-1 italic">GANGSTERS / RENEGADOS</p>
+                      <p className="text-slate-400 uppercase italic leading-tight">
+                        <span className="text-white font-bold">INTIMIDAÇÃO (35%):</span> Bônus fixo de dano em ataques <span className="text-white">BRUTAIS</span> aplicado à sua matriz de ataque.
+                      </p>
+                    </div>
+                    <div className="p-3 border border-blue-500/30 bg-blue-950/10 relative overflow-hidden group">
+                      <div className="absolute top-0 right-0 p-1 opacity-20">
+                        <span className="text-[8px] text-blue-500 font-black">DEFENSE_MOD</span>
+                      </div>
+                      <p className="text-blue-400 font-black mb-1 italic">GUARDAS / GUARDIÕES</p>
+                      <p className="text-slate-400 uppercase italic leading-tight">
+                        <span className="text-white font-bold">DISCIPLINA (40%):</span> Redução fixa de dano recebido durante <span className="text-white">BLOQUEIOS</span> bem-sucedidos.
+                      </p>
+                    </div>
                   </div>
                 </section>
               </div>

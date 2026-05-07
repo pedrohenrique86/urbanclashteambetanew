@@ -91,14 +91,19 @@ export const calculateTotalPower = (user: any, chips: any[] = []) => {
   const critMult = Number(user.crit_damage_mult || 1);
   const specialValue = Number(user.intimidation || user.discipline || 0);
 
+  const weaponDmg = Number(user.weapon_damage || 0);
+  const shieldProt = Number(user.shield_protection || 0);
+
   // Fórmula unificada SSOT
-  // (ATK + DEF + FOC×0.5) + (NVL×2) + (CRIT%×0.2 + CRITx)
-  let powerSolo = (atk + def + foc * 0.5) + (level * 2) + (critChance * 0.2 + critMult);
+  // (ATK + ARMA + DEF + ESCUDO + FOC×0.5) + (NVL×2) + (CRIT%×0.2 + CRITx)
+  let powerSolo = (atk + weaponDmg + def + shieldProt + foc * 0.5) + (level * 2) + (critChance * 0.2 + critMult);
   
   if (chips && chips.length > 0) {
     chips.forEach(chip => {
-      if (chip && chip.power_boost > 0) {
-        powerSolo *= (1 + chip.power_boost / 100);
+      // Usando power_boost (que é o efeito que aumenta o poder total)
+      const boost = Number(chip.power_boost || chip.effect_value || 0);
+      if (boost > 0 && (chip.effect_type === 'power_boost' || chip.power_boost)) {
+        powerSolo *= (1 + boost / 100);
       }
     });
   }
