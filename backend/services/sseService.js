@@ -56,24 +56,16 @@ async function initRedisBridge() {
 }
 
 function subscribe(client, topic, cid = null) {
-  // SÊNIOR: Single Session Enforcement (Anti-Multi-Aba)
-  // Se for um tópico de jogador, derrubamos sessões anteriores ANTES de aceitar a nova.
-  if (topic.startsWith("player:")) {
-    const userId = topic.replace("player:", "");
-    
-    // 1. Kick Local (Mesmo Processo)
-    // Passamos o cid para que o _localKick não derrube a própria conexão que está entrando.
-    _localKick(userId, cid);
-
-    // 2. Kick Global (Outros Processos via Redis)
-    if (redisPublisher && redisPublisher.isOpen) {
-      redisPublisher.publish("SSE_BRIDGE", JSON.stringify({ 
-        action: "KICK", 
-        userId, 
-        data: { excludeCid: cid } 
-      })).catch(() => {});
-    }
-  }
+  // TESTE MOBILE: Anti-Multi-Aba DESABILITADO temporariamente para diagnóstico
+  // if (topic.startsWith("player:")) {
+  //   const userId = topic.replace("player:", "");
+  //   _localKick(userId, cid);
+  //   if (redisPublisher && redisPublisher.isOpen) {
+  //     redisPublisher.publish("SSE_BRIDGE", JSON.stringify({ 
+  //       action: "KICK", userId, data: { excludeCid: cid } 
+  //     })).catch(() => {});
+  //   }
+  // }
 
   // Atrela o CID ao cliente para identificação futura
   client.cid = cid;

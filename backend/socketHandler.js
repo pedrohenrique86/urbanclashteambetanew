@@ -48,8 +48,8 @@ function initializeSocket(server) {
         const user = await authenticateSocket(token);
         if (currentAuthVersion !== socket.authVersion) return;
 
-        // SÊNIOR: Valida sessão única usando o CID
-        await enforceSingleSession(io, socket, user, data.cid);
+        // TESTE MOBILE: enforceSingleSession DESABILITADO
+        // await enforceSingleSession(io, socket, user, data.cid);
 
         const clanId = String(user?.clan_id ?? "").trim();
         if (!clanId || clanId === "null" || clanId === "undefined") {
@@ -123,8 +123,8 @@ function initializeSocket(server) {
         user.faction = playerState ? playerState.faction : 'gangsters';
         user.avatar_url = playerState ? playerState.avatar_url : user.avatar_url;
 
-        // SÊNIOR: Valida sessão única usando o CID
-        await enforceSingleSession(io, socket, user, data.cid);
+        // TESTE MOBILE: enforceSingleSession DESABILITADO
+        // await enforceSingleSession(io, socket, user, data.cid);
 
         socket.user = user;
         socket.join("isolation:room");
@@ -186,8 +186,8 @@ function initializeSocket(server) {
         user.faction = playerState ? playerState.faction : 'gangsters';
         user.avatar_url = playerState ? playerState.avatar_url : user.avatar_url;
 
-        // SÊNIOR: Valida sessão única usando o CID
-        await enforceSingleSession(io, socket, user, data.cid);
+        // TESTE MOBILE: enforceSingleSession DESABILITADO
+        // await enforceSingleSession(io, socket, user, data.cid);
 
         socket.user = user;
         socket.join("recovery:room");
@@ -249,8 +249,8 @@ function initializeSocket(server) {
         user.faction = playerState ? playerState.faction : 'gangsters';
         user.avatar_url = playerState ? playerState.avatar_url : user.avatar_url;
 
-        // SÊNIOR: Valida sessão única usando o CID
-        await enforceSingleSession(io, socket, user, data.cid);
+        // TESTE MOBILE: enforceSingleSession DESABILITADO
+        // await enforceSingleSession(io, socket, user, data.cid);
 
         socket.user = user;
         socket.join("global:room");
