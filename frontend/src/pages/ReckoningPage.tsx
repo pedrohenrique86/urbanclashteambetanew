@@ -196,18 +196,13 @@ export default function ReckoningPage() {
     }
   };
 
-  if (userProfile?.status === "Recondicionamento") {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-4">
-        <ExclamationTriangleIcon className="w-20 h-20 text-red-500 mb-6 animate-pulse" />
-        <h1 className="text-3xl font-orbitron font-black text-white uppercase tracking-widest mb-4">SISTEMA COMPROMETIDO</h1>
-        <p className="text-slate-300 font-mono text-sm max-w-md tracking-wider leading-relaxed bg-red-500/5 px-4 py-2 border-x border-red-500/20 shadow-[0_0_15px_rgba(239,68,68,0.05)]">
-          Unidade em <span className="text-red-400 font-black animate-pulse">recondicionamento forçado</span>. Aguarde a sincronização total dos núcleos.
-        </p>
-        <button onClick={() => navigate("/recovery-base")} className="mt-8 px-8 py-3 bg-red-600/20 border border-red-600 text-red-500 font-black uppercase text-xs tracking-widest hover:bg-red-600 hover:text-white transition-all" style={MILITARY_CLIP}>Ir para Base de Recuperação</button>
-      </div>
-    );
-  }
+  useEffect(() => {
+    if (userProfile?.status === "Recondicionamento") {
+      navigate("/recovery-base");
+    }
+  }, [userProfile?.status, navigate]);
+
+  if (userProfile?.status === "Recondicionamento") return null;
 
   return (
     <div className="min-h-screen p-4 md:p-8 bg-transparent relative text-slate-300 font-sans selection:bg-yellow-500/30">
