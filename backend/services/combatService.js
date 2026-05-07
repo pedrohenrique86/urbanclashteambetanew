@@ -152,7 +152,13 @@ class CombatService {
 
   async executeInstantAttack(userId, targetId) {
     const LOCK = `combat:lock:${userId}`;
-    const hasLock = await redisClient.setNXAsync(LOCK, "1", 15);
+    const COOLDOWN = `combat:cooldown:${userId}`;
+
+    // SÊNIOR: Verificação de resfriamento para evitar spam/trapaças via refresh
+    const onCooldown = await redisClient.getAsync(COOLDOWN);
+    if (onCooldown) throw new Error("Sistemas em resfriamento. Aguarde a sincronização da matriz.");
+
+    const hasLock = await redisClient.setNXAsync(LOCK, "1", 15000); // 15s em ms
     if (!hasLock) throw new Error("Aguarde a resolução do ataque atual.");
 
     try {
@@ -358,6 +364,9 @@ class CombatService {
 
       // SÊNIOR: Limpa o cache do radar para forçar novo sorteio após o combate
       await redisClient.delAsync(`radar_lock:${userId}`);
+      
+      // SÊNIOR: Define cooldown de 10 segundos para evitar bypass de animação
+      await redisClient.setAsync(COOLDOWN, "1", "EX", 10);
 
       return { 
         outcome, 
@@ -377,7 +386,7 @@ class CombatService {
 
   async executeAttack(userId, targetId, tactic = 'technological') {
     const LOCK = `combat:lock:${userId}`;
-    const hasLock = await redisClient.setNXAsync(LOCK, "1", 15);
+    const hasLock = await redisClient.setNXAsync(LOCK, "1", 15000); // 15s em ms
     if (!hasLock) throw new Error("Sincronização tática em andamento. Aguarde a conclusão da sequência.");
 
     try {
