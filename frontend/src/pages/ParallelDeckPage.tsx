@@ -80,12 +80,27 @@ export default function ParallelDeckPage() {
     return () => clearInterval(timer);
   }, [dailyCards?.expires_at]);
 
+  const [isResetting, setIsResetting] = useState(false);
+
   // Efeito para resetar a página automaticamente quando o tempo acaba
   useEffect(() => {
-    if (timeLeft === 0) {
-      mutate("/daily-cards");
+    if (timeLeft === 0 && !isResetting) {
+      handleAutoReset();
     }
   }, [timeLeft]);
+
+  const handleAutoReset = async () => {
+    setIsResetting(true);
+    try {
+      // Pequeno delay para o backend processar a expiração e o banco virar a data
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      await mutate("/daily-cards");
+      await refreshProfile();
+    } finally {
+      // Mantém o overlay por mais um pouco para o usuário perceber a mudança
+      setTimeout(() => setIsResetting(false), 1500);
+    }
+  };
 
   const handleChoose = async (optionIndex: number) => {
     if (dailyCards?.chosen_option || isChoosing) return;
@@ -139,6 +154,47 @@ export default function ParallelDeckPage() {
         <div className="absolute bottom-0 left-0 w-16 h-16 border-b-2 border-l-2 border-emerald-500/50"></div>
         <div className="absolute bottom-0 right-0 w-16 h-16 border-b-2 border-r-2 border-emerald-500/50"></div>
       </div>
+
+      {/* RESETTING OVERLAY */}
+      <AnimatePresence>
+        {isResetting && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-xl flex flex-col items-center justify-center overflow-hidden"
+          >
+            <div className="absolute inset-0 bg-grid-white/[0.03] pointer-events-none"></div>
+            <motion.div
+              animate={{ 
+                opacity: [1, 0.5, 1, 0.8, 1],
+                scale: [1, 1.02, 1, 0.98, 1],
+                x: [0, -2, 2, -1, 0]
+              }}
+              transition={{ repeat: Infinity, duration: 0.2 }}
+              className="relative"
+            >
+              <h2 className="text-4xl md:text-6xl font-orbitron font-black text-white tracking-[0.2em] mb-4 text-center">
+                RECALIBRANDO <span className="text-emerald-500">SISTEMA</span>
+              </h2>
+              <div className="h-1 bg-emerald-500/20 w-full relative">
+                <motion.div 
+                  className="absolute inset-y-0 left-0 bg-emerald-500 shadow-[0_0_15px_#10b981]"
+                  initial={{ width: "0%" }}
+                  animate={{ width: "100%" }}
+                  transition={{ duration: 3, ease: "easeInOut" }}
+                />
+              </div>
+              <p className="mt-6 text-emerald-400 font-mono text-sm tracking-[0.5em] text-center uppercase animate-pulse">
+                Sincronizando Rede Paralela...
+              </p>
+            </motion.div>
+            
+            {/* Scanline effect */}
+            <div className="absolute inset-0 pointer-events-none bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%),linear-gradient(90deg,rgba(255,0,0,0.06),rgba(0,255,0,0.02),rgba(0,0,255,0.06))] bg-[length:100%_4px,3px_100%]"></div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <header className="max-w-6xl mx-auto mb-12 relative z-10">
         <div className="absolute -left-4 top-1/2 -translate-y-1/2 w-1 h-12 bg-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.8)]"></div>
