@@ -56,31 +56,17 @@ async function initRedisBridge() {
 }
 
 function subscribe(client, topic, cid = null) {
-  // TESTE MOBILE: Anti-Multi-Aba DESABILITADO temporariamente para diagnóstico
-  // if (topic.startsWith("player:")) {
-  //   const userId = topic.replace("player:", "");
-  //   _localKick(userId, cid);
-  //   if (redisPublisher && redisPublisher.isOpen) {
-  //     redisPublisher.publish("SSE_BRIDGE", JSON.stringify({ 
-  //       action: "KICK", userId, data: { excludeCid: cid } 
-  //     })).catch(() => {});
-  //   }
-  // }
-
-  // Atrela o CID ao cliente para identificação futura
+  // 1. Atrela o CID ao cliente PRIMEIRO
   client.cid = cid;
 
+  // 2. Registra o novo cliente no tópico ANTES de qualquer kick
+  //    Isso garante que nunca haja uma janela onde o tópico fica vazio.
   if (!topics.has(topic)) {
     topics.set(topic, new Set());
-    
-    // SÊNIOR: Se é um novo canal de jogador, marca como online no Redis
+
     if (topic.startsWith("player:")) {
       const userId = topic.replace("player:", "");
       redisClient.sAddAsync(ONLINE_SET_KEY, userId).catch(() => {});
-
-      // SÊNIOR: Indexação por Facção para Matchmaking Ultra-Rápido (O(1))
-      // Buscamos a facção no Redis para categorizar o jogador online.
-      // Isso permite que o Radar busque diretamente inimigos sem filtrar 5000+ IDs no JS.
       redisClient.hGetAsync(`playerState:${userId}`, "faction").then(faction => {
         if (faction) {
           const canonical = faction.toLowerCase().trim().includes('guard') ? 'guardas' : 'gangsters';
@@ -90,6 +76,12 @@ function subscribe(client, topic, cid = null) {
     }
   }
   topics.get(topic).add(client);
+
+  // 3. SÓ DEPOIS de registrado: kick sessões antigas (apenas local, sem Redis bounce)
+  if (topic.startsWith("player:")) {
+    const userId = topic.replace("player:", "");
+    _localKick(userId, cid);
+  }
 }
 
 function unsubscribe(client, topic) {
@@ -97,12 +89,10 @@ function unsubscribe(client, topic) {
     topics.get(topic).delete(client);
     if (topics.get(topic).size === 0) {
       topics.delete(topic);
-      
-      // SÊNIOR: Se ninguém mais ouve este jogador, remove do set de online
+
       if (topic.startsWith("player:")) {
         const userId = topic.replace("player:", "");
         redisClient.sRemAsync(ONLINE_SET_KEY, userId).catch(() => {});
-        // Limpa de ambos os índices de facção por segurança
         redisClient.sRemAsync(`${ONLINE_SET_KEY}:gangsters`, userId).catch(() => {});
         redisClient.sRemAsync(`${ONLINE_SET_KEY}:guardas`, userId).catch(() => {});
       }
@@ -130,7 +120,7 @@ function _localPublish(topic, event, data) {
 }
 
 /**
- * SÊNIOR: Publica um evento. 
+ * Publica um evento. 
  * Se o Redis estiver ativo, envia para a ponte (alcança todos os processos).
  * Se não, tenta enviar apenas localmente.
  */
@@ -139,7 +129,6 @@ function publish(topic, event, data) {
     redisPublisher.publish("SSE_BRIDGE", JSON.stringify({ topic, event, data }))
       .catch(err => console.error("[SSE] Erro ao publicar no Redis:", err.message));
   } else {
-    // Fallback: se Redis cair, pelo menos funciona no mesmo processo
     _localPublish(topic, event, data);
   }
 }
@@ -163,31 +152,37 @@ function broadcast(event, data) {
 }
 
 /**
- * SÊNIOR: Remove e desconecta todos os clientes de um jogador no processo local.
- * excludeCid: Opcional. Se fornecido, ignora o cliente com este ID (evita auto-kick).
+ * Remove e desconecta sessões antigas de um jogador no processo local.
+ * - Remove do Set IMEDIATAMENTE (evita enviar eventos para clientes mortos)
+ * - Envia evento de kick e fecha TCP após delay seguro
+ * - excludeCid: ignora o cliente com este ID (a sessão nova que acabou de entrar)
  */
 function _localKick(userId, excludeCid = null) {
   const topic = `player:${userId}`;
-  if (topics.has(topic)) {
-    const clients = topics.get(topic);
-    const kickMsg = `event: security:duplicate_session\ndata: ${JSON.stringify({ message: "Sessão finalizada: outra aba foi aberta." })}\n\n`;
-    
-    clients.forEach(client => {
-      // SÊNIOR: Pulo do gato — não chuta a própria conexão que acabou de pedir o subscribe!
-      if (excludeCid && client.cid === excludeCid) return;
+  if (!topics.has(topic)) return;
 
-      try {
-        client.write(kickMsg);
-        // Delay seguro (3s) para garantir que o evento chegue no Mobile antes de fechar o socket TCP
-        // O frontend fechará por conta própria (es.close()) ao receber o evento.
-        setTimeout(() => {
-          try { client.end(); } catch(e) {}
-        }, 3000);
-      } catch (e) {}
-    });
+  const clients = topics.get(topic);
+  const kickMsg = `event: security:duplicate_session\ndata: ${JSON.stringify({ message: "Sessão finalizada: outra aba foi aberta." })}\n\n`;
 
-    // Se após o kick não sobrou ninguém (ou apenas o excluído), limpamos se necessário
-    // (O subscribe vai adicionar o novo logo em seguida).
+  // Coleta antes de iterar (evita modificar Set durante forEach)
+  const toKick = [];
+  for (const client of clients) {
+    if (excludeCid && client.cid === excludeCid) continue;
+    toKick.push(client);
+  }
+
+  for (const client of toKick) {
+    // Remove do Set IMEDIATAMENTE — publish() nunca mais envia para este client
+    clients.delete(client);
+
+    try {
+      client.write(kickMsg);
+    } catch (e) { /* stream já fechada */ }
+
+    // Fecha TCP após delay para o evento chegar no frontend
+    setTimeout(() => {
+      try { client.end(); } catch (e) { /* já fechada */ }
+    }, 1500);
   }
 }
 
