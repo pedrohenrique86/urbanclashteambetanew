@@ -82,14 +82,7 @@ export default function ParallelDeckPage() {
 
   const [isResetting, setIsResetting] = useState(false);
 
-  // Efeito para resetar a página automaticamente quando o tempo acaba
-  useEffect(() => {
-    if (timeLeft === 0 && !isResetting) {
-      handleAutoReset();
-    }
-  }, [timeLeft]);
-
-  const handleAutoReset = async () => {
+  const handleAutoReset = React.useCallback(async () => {
     setIsResetting(true);
     try {
       // Pequeno delay para o backend processar a expiração e o banco virar a data
@@ -100,7 +93,14 @@ export default function ParallelDeckPage() {
       // Mantém o overlay por mais um pouco para o usuário perceber a mudança
       setTimeout(() => setIsResetting(false), 1500);
     }
-  };
+  }, [refreshProfile]);
+
+  // Efeito para resetar a página automaticamente quando o tempo acaba
+  useEffect(() => {
+    if (timeLeft === 0 && !isResetting) {
+      handleAutoReset();
+    }
+  }, [timeLeft, isResetting, handleAutoReset]);
 
   const handleChoose = async (optionIndex: number) => {
     if (dailyCards?.chosen_option || isChoosing) return;

@@ -288,7 +288,9 @@ export default function ReckoningPage() {
       <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-4">
         <ExclamationTriangleIcon className="w-20 h-20 text-red-500 mb-6 animate-pulse" />
         <h1 className="text-3xl font-orbitron font-black text-white uppercase tracking-widest mb-4">SISTEMA COMPROMETIDO</h1>
-        <p className="text-slate-500 font-mono text-sm max-w-md">Unidade em recondicionamento forçado. Aguarde a sincronização total dos núcleos.</p>
+        <p className="text-slate-300 font-mono text-sm max-w-md tracking-wider leading-relaxed bg-red-500/5 px-4 py-2 border-x border-red-500/20 shadow-[0_0_15px_rgba(239,68,68,0.05)]">
+          Unidade em <span className="text-red-400 font-black animate-pulse">recondicionamento forçado</span>. Aguarde a sincronização total dos núcleos.
+        </p>
         <button onClick={() => navigate("/recovery-base")} className="mt-8 px-8 py-3 bg-red-600/20 border border-red-600 text-red-500 font-black uppercase text-xs tracking-widest hover:bg-red-600 hover:text-white transition-all" style={MILITARY_CLIP}>Ir para Base de Recuperação</button>
       </div>
     );
@@ -711,78 +713,69 @@ export default function ReckoningPage() {
                   </div>
                 </div>
 
-                {/* VISCERAL TEXT LOGS */}
-                <div className="space-y-4 min-h-[300px] flex flex-col justify-end bg-black/60 p-6 border border-white/5 relative overflow-hidden">
-                  {/* Scanner line overlay for logs */}
-                  <div className="absolute inset-0 pointer-events-none bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%),linear-gradient(90deg,rgba(255,0,0,0.06),rgba(0,255,0,0.02),rgba(0,0,255,0.06))] bg-[length:100%_2px,3px_100%] z-20" />
+                {/* CLEAN & PREMIUM COMBAT LOGS */}
+                <div className="space-y-3 min-h-[350px] flex flex-col justify-end bg-black/40 p-6 border border-white/5 relative overflow-hidden group">
+                  <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-red-500/10 to-transparent" />
                   
                   <AnimatePresence mode="popLayout">
                     {battleLogs.map((log, i) => {
                       const isLast = i === battleLogs.length - 1;
                       const isCritical = log.effect === 'special' || log.effect === 'heavy';
-                      const isParry = log.effect === 'parry' || log.effect === 'tech';
+                      const isNeutral = log.attacker.damage === 0 && log.defender.damage === 0;
                       
                       return (
                         <motion.div 
                           key={i}
-                          initial={{ opacity: 0, x: -50, filter: "blur(10px)" }}
+                          initial={{ opacity: 0, x: -10 }}
                           animate={{ 
-                            opacity: isLast ? 1 : 0.4, 
-                            x: 0, 
-                            filter: "blur(0px)",
-                            scale: isLast ? 1 : 0.95 
+                            opacity: isLast ? 1 : 0.5, 
+                            x: 0,
+                            scale: isLast ? 1 : 0.98 
                           }}
-                          className={`relative flex gap-4 items-start p-3 border-l-2 transition-all duration-500 ${
+                          className={`relative flex items-center gap-4 py-2 px-4 transition-all duration-500 border-l-[3px] ${
                             isLast 
-                              ? (log.attacker.damage > log.defender.damage ? 'border-cyan-500 bg-cyan-500/5' : 'border-red-500 bg-red-500/5') 
-                              : 'border-white/10'
+                              ? (log.attacker.damage > log.defender.damage ? 'border-cyan-500 bg-cyan-500/5' : log.defender.damage > log.attacker.damage ? 'border-red-500 bg-red-500/5' : 'border-slate-500 bg-slate-500/5') 
+                              : 'border-white/5'
                           }`}
                         >
-                          <div className="mt-1">
-                            <div className={`w-3 h-3 rotate-45 ${
-                              log.attacker.damage > log.defender.damage 
-                                ? (isCritical ? 'bg-cyan-400 animate-pulse shadow-[0_0_10px_cyan]' : 'bg-cyan-600') 
-                                : (isCritical ? 'bg-red-400 animate-pulse shadow-[0_0_10px_red]' : 'bg-red-600')
-                            }`} />
-                          </div>
-                          
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-1">
-                              <span className="font-orbitron font-black text-[8px] opacity-40 tracking-widest uppercase">
-                                T-STAMP: {new Date().toLocaleTimeString([], { hour12: false, minute: '2-digit', second: '2-digit' })}
-                              </span>
-                              <span className={`px-1.5 py-0.5 text-[7px] font-black uppercase rounded-sm ${
-                                isCritical ? 'bg-red-500/20 text-red-400' : isParry ? 'bg-cyan-500/20 text-cyan-400' : 'bg-slate-800 text-slate-400'
-                              }`}>
-                                {log.effect.toUpperCase()}
-                              </span>
-                            </div>
-                            
-                            <p className={`font-mono text-xs uppercase tracking-tight leading-relaxed ${
-                              log.attacker.damage > log.defender.damage ? 'text-cyan-100' : 'text-red-100'
-                            } ${isLast && isCritical ? 'text-sm font-bold' : ''}`}>
-                              {log.label}
-                            </p>
-                            
-                            <div className="mt-2 flex gap-4 text-[9px] font-black font-mono uppercase">
-                              <div className="flex items-center gap-1.5">
-                                <span className="text-slate-500">OUT:</span>
-                                <span className="text-cyan-500">-{log.attacker.damage} HP</span>
-                              </div>
-                              <div className="flex items-center gap-1.5">
-                                <span className="text-slate-500">IN:</span>
-                                <span className="text-red-500">-{log.defender.damage} HP</span>
-                              </div>
-                            </div>
+                          {/* Round Marker */}
+                          <div className={`font-orbitron font-black text-[9px] w-6 opacity-40 ${isLast ? 'text-white opacity-100' : 'text-slate-500'}`}>
+                            R{i + 1}
                           </div>
 
+                          {/* Action Label */}
+                          <div className="flex-1">
+                            <p className={`font-mono text-xs uppercase tracking-normal leading-relaxed ${
+                              isLast ? 'text-white' : 'text-slate-400'
+                            } ${isLast && isCritical ? 'font-bold' : ''}`}>
+                              {log.label}
+                            </p>
+                          </div>
+                          
+                          {/* Damage Indicators - Clean Minimalist Pills */}
+                          <div className="flex gap-2 items-center">
+                            {log.attacker.damage > 0 && (
+                              <div className="flex items-center gap-1.5 bg-cyan-500/10 border border-cyan-500/20 px-2 py-0.5 rounded-sm">
+                                <span className="text-[10px] font-orbitron font-black text-cyan-400">-{log.attacker.damage}</span>
+                                <BoltIcon className="w-2.5 h-2.5 text-cyan-400/50" />
+                              </div>
+                            )}
+                            {log.defender.damage > 0 && (
+                              <div className="flex items-center gap-1.5 bg-red-500/10 border border-red-500/20 px-2 py-0.5 rounded-sm">
+                                <span className="text-[10px] font-orbitron font-black text-red-400">-{log.defender.damage}</span>
+                                <FireIcon className="w-2.5 h-2.5 text-red-400/50" />
+                              </div>
+                            )}
+                            {isNeutral && (
+                              <div className="bg-slate-800/50 border border-slate-700/50 px-2 py-0.5 rounded-sm">
+                                <span className="text-[8px] font-black font-mono text-slate-500 uppercase tracking-widest italic">Anulado</span>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Subtle Bloom for critical hits */}
                           {isLast && isCritical && (
-                            <motion.div 
-                              initial={{ opacity: 0 }}
-                              animate={{ opacity: [0, 1, 0] }}
-                              transition={{ duration: 0.2, repeat: 3 }}
-                              className="absolute inset-0 bg-red-500/10 pointer-events-none"
-                            />
+                            <div className="absolute inset-0 bg-red-500/5 pointer-events-none animate-pulse" />
                           )}
                         </motion.div>
                       );
@@ -790,20 +783,20 @@ export default function ReckoningPage() {
                   </AnimatePresence>
                   
                   {isProcessing && (
-                    <div className="pt-4 flex items-center gap-3">
-                      <div className="flex gap-1">
-                        {[0, 1, 2].map(d => (
-                          <motion.div 
-                            key={d}
-                            animate={{ height: [4, 12, 4], opacity: [0.3, 1, 0.3] }}
-                            transition={{ duration: 0.6, repeat: Infinity, delay: d * 0.1 }}
-                            className="w-1 bg-red-500"
-                          />
-                        ))}
-                      </div>
-                      <span className="text-[10px] font-black font-mono text-red-500 uppercase tracking-[0.4em] animate-pulse">
-                        Sincronizando Matriz de Combate...
-                      </span>
+                    <div className="pt-4 flex items-center justify-center gap-4 border-t border-white/5 mt-2">
+                       <div className="flex gap-1.5">
+                         {[0, 1, 2, 3].map(d => (
+                           <motion.div 
+                             key={d}
+                             animate={{ height: [4, 16, 4], backgroundColor: ["#334155", "#ef4444", "#334155"] }}
+                             transition={{ duration: 0.8, repeat: Infinity, delay: d * 0.15 }}
+                             className="w-[2px] rounded-full"
+                           />
+                         ))}
+                       </div>
+                       <span className="text-[9px] font-black font-mono text-slate-500 uppercase tracking-[0.4em]">
+                         Sincronizando Matriz...
+                       </span>
                     </div>
                   )}
                 </div>
