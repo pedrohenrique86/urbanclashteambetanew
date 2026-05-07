@@ -65,7 +65,7 @@ class SocketService {
         reconnectionAttempts: 20,
         reconnectionDelay: 2000,
         path: "/socket.io/",
-        transports: isMobile ? ["polling", "websocket"] : ["websocket"],
+        transports: isMobile ? ["websocket", "polling"] : ["websocket"],
         secure: socketUrl.startsWith("https"),
         withCredentials: true,
       });
