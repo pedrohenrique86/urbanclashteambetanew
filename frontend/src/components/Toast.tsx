@@ -141,7 +141,7 @@ export default function Toast({
                     }
                     
                     const isQuote = trimmedLine.startsWith('"');
-                    const isData = /^[💸📉📊]/.test(trimmedLine) || trimmedLine.includes(':');
+                    const isData = /^[💸📉📊]/u.test(trimmedLine) || trimmedLine.includes(':');
 
                     return (
                       <p key={idx} className={`leading-snug break-words mb-0.5 ${
