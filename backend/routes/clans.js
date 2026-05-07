@@ -47,6 +47,14 @@ router.get("/:id/events", authenticateToken, (req, res) => {
     `event: connection_established\ndata: ${JSON.stringify({ message: "Conectado aos eventos do clã." })}\n\n`,
   );
 
+  // Previne crash do servidor quando mobile troca de rede (WiFi↔4G)
+  res.on("error", () => {
+    clients.delete(res);
+    if (clients.size === 0) {
+      clanEventClients.delete(clanId);
+    }
+  });
+
   req.on("close", () => {
     clients.delete(res);
     if (clients.size === 0) {

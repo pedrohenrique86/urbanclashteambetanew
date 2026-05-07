@@ -46,6 +46,12 @@ router.get("/rankings/subscribe", (req, res) => {
     }
   }, 25_000);
 
+  // Previne crash do servidor quando mobile troca de rede (WiFi↔4G)
+  res.on("error", () => {
+    clearInterval(pingInterval);
+    sseService.unsubscribe(res, "ranking");
+  });
+
   req.on("close", () => {
     clearInterval(pingInterval);
     sseService.unsubscribe(res, "ranking");

@@ -22,16 +22,27 @@ const morgan = require("morgan");
 const http = require("http");
 const { Server } = require("socket.io");
 
-// SÊNIOR: Global Error Handlers para depuração de crash loops
-process.on("unhandledRejection", (reason, promise) => {
-  console.error("🚨 Unhandled Rejection at:", promise, "reason:", reason);
+// Erros de stream (mobile trocando WiFi↔4G, conexão caindo).
+// NÃO devem derrubar o servidor — são inofensivos.
+const NON_FATAL_ERRORS = new Set([
+  "EPIPE", "ECONNRESET", "ECONNABORTED", "ECANCELED",
+  "ERR_STREAM_WRITE_AFTER_END", "ERR_STREAM_DESTROYED",
+]);
+
+process.on("unhandledRejection", (reason) => {
+  const code = reason?.code || "";
+  if (NON_FATAL_ERRORS.has(code)) return;
+  console.error("🚨 Unhandled Rejection:", reason);
 });
 
 process.on("uncaughtException", (err) => {
-  console.error("🚨 Uncaught Exception:", err);
-  // Em produção, queremos logar e talvez sair graciosamente
+  const code = err.code || "";
+  if (NON_FATAL_ERRORS.has(code)) {
+    console.warn("⚠️ Stream error ignorado:", code);
+    return;
+  }
+  console.error("🚨 Uncaught Exception (FATAL):", err);
   if (process.env.NODE_ENV === "production") {
-    // O PM2 reiniciará o processo
     setTimeout(() => process.exit(1), 1000);
   }
 });

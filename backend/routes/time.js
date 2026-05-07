@@ -15,13 +15,20 @@ router.get('/updates', (req, res) => {
   res.flushHeaders();
 
   const sendState = (state) => {
-    res.write(`data: ${JSON.stringify(state)}\n\n`);
+    try {
+      res.write(`data: ${JSON.stringify(state)}\n\n`);
+    } catch (_) { /* stream morta */ }
   };
 
   // Envia o estado atual imediatamente na conexão
   getGameState().then(sendState).catch(() => {});
 
   sseGameStateEmitter.on('gameStateChanged', sendState);
+
+  // Previne crash do servidor quando mobile troca de rede (WiFi↔4G)
+  res.on('error', () => {
+    sseGameStateEmitter.removeListener('gameStateChanged', sendState);
+  });
 
   req.on('close', () => {
     sseGameStateEmitter.removeListener('gameStateChanged', sendState);
