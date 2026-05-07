@@ -97,10 +97,14 @@ export const calculateTotalPower = (user: any, chips: any[] = []) => {
   
   if (chips && chips.length > 0) {
     chips.forEach(chip => {
-      if (chip.power_boost > 0) {
+      if (chip && chip.power_boost > 0) {
         powerSolo *= (1 + chip.power_boost / 100);
       }
     });
+  }
+
+  if (user.status === 'Ruptura') {
+    powerSolo *= 0.8; // 20% penalty
   }
   
   const powerSoloFinal = Math.floor(powerSolo);

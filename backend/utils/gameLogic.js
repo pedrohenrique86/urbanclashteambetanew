@@ -142,6 +142,47 @@ function deriveXpStatus(totalXp, level) {
 }
 
 /**
+ * Calcula o Poder Total unificado (Power Solo).
+ * SSOT (Single Source of Truth) para o cálculo de força.
+ */
+function calculateTotalPower(user, chips = []) {
+  if (!user) return { powerSolo: 0, powerWar: 0 };
+
+  const atk = Number(user.attack || 0);
+  const def = Number(user.defense || 0);
+  const foc = Number(user.focus || 0);
+  const level = Number(user.level || 1);
+  const critChance = Number(user.crit_chance_pct || 0);
+  const critMult = Number(user.crit_damage_mult || 1);
+  const specialValue = Number(user.intimidation || user.discipline || 0);
+
+  // Fórmula unificada SSOT
+  // (ATK + DEF + FOC×0.5) + (NVL×2) + (CRIT%×0.2 + CRITx)
+  let powerSolo = (atk + def + foc * 0.5) + (level * 2) + (critChance * 0.2 + critMult);
+  
+  if (chips && chips.length > 0) {
+    chips.forEach(chip => {
+      if (chip && chip.power_boost > 0) {
+        powerSolo *= (1 + chip.power_boost / 100);
+      }
+    });
+  }
+  
+  // Se o usuário estiver em Ruptura, perde 20% da força
+  if (user.status === 'Ruptura') {
+    powerSolo *= 0.8;
+  }
+  
+  const powerSoloFinal = Math.floor(powerSolo);
+  const powerWarFinal = Math.floor(powerSoloFinal + specialValue);
+
+  return {
+    powerSolo: powerSoloFinal,
+    powerWar: powerWarFinal
+  };
+}
+
+/**
  * Calcula qual deveria ser o nível do jogador baseado no XP total.
  * Suporta múltiplos level-ups instantâneos.
  */
@@ -370,8 +411,8 @@ function resolveStrategicCombat(attacker, defender, attackerChips = [], playerAc
   let playerHP = 100;
   let opponentHP = 100;
   let playerRancor = 0;
-  let playerBuff = 1.0; 
-  let opponentBuff = 1.0;
+  let playerCombo = 1.0; 
+  let opponentCombo = 1.0;
 
   const actionPool = ['brutal', 'block', 'feint', 'counter', 'stealth'];
   
@@ -465,8 +506,21 @@ function resolveStrategicCombat(attacker, defender, attackerChips = [], playerAc
     if (chip.effect_type === 'xp_boost') xpBonus += (chip.effect_value / 100);
   });
 
-  const baseDmg = (Number(attacker.attack) * 0.1) + 15;
-  const oppBaseDmg = (Number(defender.attack) * 0.1) + 15;
+  const pAtk = Number(attacker.attack) || 1;
+  const pDef = Number(attacker.defense) || 1;
+  const pFoc = Number(attacker.focus) || 1;
+  
+  const oAtk = Number(defender.attack) || 1;
+  const oDef = Number(defender.defense) || 1;
+  const oFoc = Number(defender.focus) || 1;
+
+  // Base Dmg from Power
+  const baseDmg = 12 + (pAtk / (pAtk + oDef)) * 25;
+  const oppBaseDmg = 12 + (oAtk / (oAtk + pDef)) * 25;
+  
+  // Crit/Evasion setup
+  const pCritChance = Math.min(60, 5 + (pFoc * 0.05));
+  const oCritChance = Math.min(60, 5 + (oFoc * 0.05));
 
   for (let i = 0; i < 5; i++) {
     const pAction = playerActions[i] || 'brutal';
@@ -476,6 +530,8 @@ function resolveStrategicCombat(attacker, defender, attackerChips = [], playerAc
     let oRoundDmg = 0;
     let roundLog = "";
     let impact = "normal";
+    let pIsCrit = false;
+    let oIsCrit = false;
 
     const pWinMap = {
       brutal: ['feint', 'stealth'],
@@ -486,58 +542,72 @@ function resolveStrategicCombat(attacker, defender, attackerChips = [], playerAc
     };
 
     if (pAction === oAction) {
-      pRoundDmg = Math.floor(baseDmg * 0.5 * chipDmgMult);
-      oRoundDmg = Math.floor(oppBaseDmg * 0.5);
+      pRoundDmg = Math.floor(baseDmg * 0.4 * chipDmgMult);
+      oRoundDmg = Math.floor(oppBaseDmg * 0.4);
       roundLog = getLog('draw');
       impact = "clash";
+      playerCombo = 1.0;
+      opponentCombo = 1.0;
     } else if (pAction === 'special' && i === 4) {
       if (playerRancor >= 100) {
-        pRoundDmg = Math.floor(baseDmg * 3.0 * chipDmgMult);
+        pRoundDmg = Math.floor(baseDmg * 3.5 * chipDmgMult * playerCombo);
         roundLog = getLog('pWinSpecial');
         impact = "special";
         playerRancor = 0;
+        pIsCrit = true;
       } else {
-        pRoundDmg = Math.floor(baseDmg * 0.8 * chipDmgMult);
-        roundLog = "Você tentou um golpe especial sem fúria suficiente. O impacto foi pífio.";
+        pRoundDmg = Math.floor(baseDmg * 0.5 * chipDmgMult);
+        roundLog = "Você tentou um golpe especial sem fúria suficiente. O impacto foi mitigado e bloqueado.";
         impact = "clash";
+        playerCombo = 1.0;
       }
     } else if (pWinMap[pAction]?.includes(oAction)) {
+      playerCombo += 0.2; 
+      opponentCombo = 1.0;
+      if (Math.random() * 100 < pCritChance) pIsCrit = true;
+
+      const critMult = pIsCrit ? 1.5 : 1.0;
+
       if (pAction === 'feint') {
-        playerBuff = 2.5;
-        pRoundDmg = 8;
+        pRoundDmg = Math.floor(10 * critMult);
         roundLog = getLog('pWinFeint');
         impact = "tech";
       } else if (pAction === 'stealth') {
-        playerBuff = 1.8;
-        pRoundDmg = Math.floor(baseDmg * 0.6 * chipDmgMult);
+        pRoundDmg = Math.floor(baseDmg * 0.8 * chipDmgMult * critMult);
         roundLog = getLog('pWinStealth');
         impact = "tech";
       } else if (pAction === 'block') {
-        pRoundDmg = Math.floor(baseDmg * 0.9 * chipDmgMult);
+        pRoundDmg = Math.floor(baseDmg * 0.9 * chipDmgMult * critMult);
         oRoundDmg = Math.floor(oppBaseDmg * 0.1);
         roundLog = getLog('pWinBlock');
         impact = "parry";
       } else if (pAction === 'counter') {
-        pRoundDmg = Math.floor(baseDmg * 1.5 * chipDmgMult);
-        oRoundDmg = Math.floor(oppBaseDmg * 0.2);
+        pRoundDmg = Math.floor(baseDmg * 1.6 * chipDmgMult * critMult);
+        oRoundDmg = Math.floor(oppBaseDmg * 0.1);
         roundLog = getLog('pWinCounter');
         impact = "parry";
       } else {
-        pRoundDmg = Math.floor(baseDmg * 1.4 * playerBuff * chipDmgMult);
-        playerBuff = 1.0;
+        pRoundDmg = Math.floor(baseDmg * 1.5 * playerCombo * chipDmgMult * critMult);
         roundLog = getLog('pWinBrutal');
         impact = "heavy";
       }
     } else {
-      oRoundDmg = Math.floor(oppBaseDmg * 1.4 * opponentBuff);
-      opponentBuff = 1.0;
+      opponentCombo += 0.2;
+      playerCombo = 1.0;
+      if (Math.random() * 100 < oCritChance) oIsCrit = true;
+      const oCritMult = oIsCrit ? 1.5 : 1.0;
+
+      oRoundDmg = Math.floor(oppBaseDmg * 1.4 * opponentCombo * oCritMult);
       roundLog = getLog('pLose');
       impact = "heavy";
     }
 
+    if (pIsCrit && pRoundDmg > oRoundDmg) roundLog = "[CRITICAL STRIKE] " + roundLog;
+    if (oIsCrit && oRoundDmg > pRoundDmg) roundLog = "[SYSTEM BREACH] " + roundLog;
+
     playerHP = Math.max(0, playerHP - oRoundDmg);
     opponentHP = Math.max(0, opponentHP - pRoundDmg);
-    if (oRoundDmg > 0) playerRancor = Math.min(100, playerRancor + 25);
+    if (oRoundDmg > 0) playerRancor = Math.min(100, playerRancor + (oRoundDmg > 15 ? 30 : 15));
 
     rounds.push({
       round: i + 1,
@@ -549,7 +619,10 @@ function resolveStrategicCombat(attacker, defender, attackerChips = [], playerAc
       opponentHP,
       playerRancor,
       log: roundLog,
-      impact
+      impact,
+      pIsCrit,
+      oIsCrit,
+      isKO: playerHP === 0 || opponentHP === 0
     });
 
     if (playerHP <= 0 || opponentHP <= 0) break;
@@ -557,21 +630,125 @@ function resolveStrategicCombat(attacker, defender, attackerChips = [], playerAc
 
   const isAttackerWin = opponentHP <= 0 || (opponentHP < playerHP && playerHP > 0);
   const isDraw = opponentHP === playerHP;
+  const isKO = opponentHP === 0 || playerHP === 0;
 
   return {
     isAttackerWin,
     isDraw,
+    isKO,
     playerHP,
     opponentHP,
     rounds,
     xpBonus, 
     moneyProtection: chipResist,
-    willBleed: isAttackerWin && playerHP <= 20,
+    willBleed: isAttackerWin && playerHP <= 20 && playerHP > 0,
     logs: rounds.map(r => ({ segment: `ROUND ${r.round}`, label: r.log, winner: r.playerDamage > r.opponentDamage ? "attacker" : "defender" }))
   };
 }
 
 
+
+function resolveActiveTurn(state, action) {
+  const pAtk = state.attacker.attack;
+  const oDef = state.defender.defense;
+  let pBaseDmg = 15 + (pAtk / (pAtk + oDef)) * 30;
+  
+  const oAtk = state.defender.attack;
+  const pDef = state.attacker.defense;
+  let oBaseDmg = 15 + (oAtk / (oAtk + pDef)) * 30;
+
+  let chipDmgMult = 1.0;
+  if (state.attacker.chips) {
+    state.attacker.chips.forEach(c => {
+      if (c.effect_type === 'power_boost') chipDmgMult += (c.effect_value / 100);
+    });
+  }
+  pBaseDmg *= chipDmgMult;
+
+  let pDmg = 0;
+  let oDmg = 0;
+  let pStaggerDmg = 0;
+  let oStaggerDmg = 0;
+  let log = "";
+  
+  if (action === 'fast') {
+    pDmg = Math.floor(pBaseDmg * 0.4);
+    pStaggerDmg = 30;
+    log = "Golpe rápido conectou! Defesa do alvo desestabilizando.";
+  } else if (action === 'heavy') {
+    pDmg = Math.floor(pBaseDmg * (state.defender.stagger <= 0 ? 1.8 : 0.6));
+    pStaggerDmg = 10;
+    if (state.defender.stagger <= 0) log = "ATAQUE PESADO! O inimigo atordoado sofreu dano massivo!";
+    else log = "Ataque pesado colidiu na blindagem do inimigo (pouco efeito).";
+  } else if (action === 'emp') {
+    pDmg = Math.floor(pBaseDmg * 0.1);
+    pStaggerDmg = 50;
+    log = "Sobrecarga EMP liberada! Escudos inimigos severamente danificados.";
+  } else if (action === 'finisher') {
+    if (state.defender.stagger <= 0 || state.rancor >= 100) {
+      pDmg = Math.floor(pBaseDmg * 3.5);
+      log = "EXECUÇÃO INICIADA! Golpe fatal destruiu as defesas do alvo.";
+      state.rancor = 0;
+    } else {
+      pDmg = Math.floor(pBaseDmg * 0.4);
+      log = "Tentativa de Execução falhou. O alvo previu e bloqueou parcialmente.";
+    }
+  }
+
+  const oActionRoll = Math.random();
+  if (state.attacker.stagger <= 0) {
+    oDmg = Math.floor(oBaseDmg * 1.5);
+    oStaggerDmg = 10;
+    log += " | Inimigo aproveitou sua postura quebrada e deferiu um golpe brutal!";
+  } else {
+    if (oActionRoll < 0.4) {
+      oDmg = Math.floor(oBaseDmg * 0.5);
+      oStaggerDmg = 25;
+      log += " | Inimigo revidou com uma sequência ágil.";
+    } else if (oActionRoll < 0.8) {
+      oDmg = Math.floor(oBaseDmg * 0.8);
+      oStaggerDmg = 15;
+      log += " | Inimigo tentou um contra-ataque pesado.";
+    } else {
+      oDmg = Math.floor(oBaseDmg * 0.2);
+      oStaggerDmg = 40;
+      log += " | Inimigo disparou um dreno no seu escudo.";
+    }
+  }
+
+  const pCritChance = Math.min(60, 5 + state.attacker.focus * 0.05);
+  const oCritChance = Math.min(60, 5 + state.defender.focus * 0.05);
+
+  if (Math.random() * 100 < pCritChance) {
+    pDmg = Math.floor(pDmg * 1.5);
+    pStaggerDmg = Math.floor(pStaggerDmg * 1.5);
+    log = "[CRÍTICO] " + log;
+  }
+  if (Math.random() * 100 < oCritChance) {
+    oDmg = Math.floor(oDmg * 1.5);
+    oStaggerDmg = Math.floor(oStaggerDmg * 1.5);
+  }
+
+  let newPHp = Math.max(0, state.attacker.hp - oDmg);
+  let newEHp = Math.max(0, state.defender.hp - pDmg);
+  
+  let newPStagger = Math.max(0, state.attacker.stagger - oStaggerDmg);
+  let newEStagger = Math.max(0, state.defender.stagger - pStaggerDmg);
+  
+  if (state.attacker.stagger <= 0) newPStagger = 100;
+  if (state.defender.stagger <= 0) newEStagger = 100;
+
+  let newRancor = Math.min(100, state.rancor + (oDmg > 0 ? 20 : 0));
+
+  return {
+    playerHP: newPHp,
+    enemyHP: newEHp,
+    playerStagger: newPStagger,
+    enemyStagger: newEStagger,
+    rancor: newRancor,
+    log
+  };
+}
 
 /**
  * Escala o XP de treino pelo nível atual do jogador.
@@ -659,6 +836,9 @@ module.exports = {
   calcCritDamageMultiplier,
   resolveCombatHit,
   resolveWinOutcome,
+  resolveStrategicCombat,
+  resolveActiveTurn,
+  calculateTotalPower,
   scaleXpByLevel,
   calculateTrainingCost,
   // Constantes exportadas para uso em rotas/serviços
@@ -666,4 +846,3 @@ module.exports = {
   XP_SCALING,
   ENERGY,
 };
-

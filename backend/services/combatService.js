@@ -150,6 +150,169 @@ class CombatService {
     };
   }
 
+  async executeInstantAttack(userId, targetId) {
+    const LOCK = `combat:lock:${userId}`;
+    const hasLock = await redisClient.setNXAsync(LOCK, "1", 15);
+    if (!hasLock) throw new Error("Aguarde a resolução do ataque atual.");
+
+    try {
+      const attacker = await playerStateService.getPlayerState(userId);
+      const isNpc = targetId.startsWith("npc_");
+      const defender = isNpc ? getNpcData(targetId, attacker) : await playerStateService.getPlayerState(targetId);
+
+      if (!attacker || !defender) throw new Error("Alvo não encontrado.");
+      if (attacker.energy < 10) throw new Error("Nível de energia crítico. Recarregue.");
+      if (attacker.action_points < 100) throw new Error("Pontos de Ação insuficientes (Requer 100).");
+      if (attacker.status !== 'Operacional' && attacker.status !== 'Ruptura') throw new Error(`Sistema em modo ${attacker.status}. Combate bloqueado.`);
+
+      const pChips = await this._getEquippedChips(userId);
+      const dChips = isNpc ? [] : await this._getEquippedChips(targetId);
+
+      // SÊNIOR: Pegamos as chances reais de crit e multiplicadores baseados nos atributos e treinos
+      const pCritChance = gameLogic.calcCritChance(attacker);
+      const pCritMult = gameLogic.calcCritDamageMultiplier(attacker);
+      const dCritChance = gameLogic.calcCritChance(defender);
+      const dCritMult = gameLogic.calcCritDamageMultiplier(defender);
+
+      let pPower = gameLogic.calculateTotalPower(attacker, pChips).powerSolo;
+      let oPower = gameLogic.calculateTotalPower(defender, dChips).powerSolo;
+
+      // SÊNIOR: Sorteio de Crítico
+      const pIsCrit = (Math.random() * 100) < pCritChance;
+      const oIsCrit = (Math.random() * 100) < dCritChance;
+
+      const pFinalPower = Math.floor(pPower * (pIsCrit ? pCritMult : 1));
+      const oFinalPower = Math.floor(oPower * (oIsCrit ? dCritMult : 1));
+
+      const baseRatio = pFinalPower / Math.max(1, oFinalPower);
+      const effectiveRatio = baseRatio * (0.85 + Math.random() * 0.3);
+
+      let outcome = "DRAW";
+      if (effectiveRatio >= 2.0) outcome = "WIN_KO";
+      else if (effectiveRatio <= 0.5) outcome = "LOSS_KO";
+      else if (effectiveRatio >= 0.9 && effectiveRatio <= 1.1) outcome = "DRAW";
+      else if (effectiveRatio > 1.1) outcome = "WIN";
+      else outcome = "LOSS";
+
+      let loot = { xp: 0, money: 0, stats: {} };
+      let msg = "";
+      const statsList = ['attack', 'defense', 'focus'];
+
+      if (outcome === "WIN_KO") {
+        const hospitalTime = Math.min(45, Math.floor(30 + baseRatio * 5));
+        msg = "VITÓRIA ESMAGADORA! O alvo foi obliterado e enviado para a base de recuperação.";
+        loot.xp = Math.floor(10 + Math.random() * 10);
+        loot.money = isNpc ? Math.floor(20 + defender.level * 2) : Math.floor(defender.money * 0.05);
+        loot.energyLost = 5;
+        loot.apLost = 100;
+        if (Math.random() < 0.3) loot.stats[statsList[Math.floor(Math.random() * 3)]] = 1;
+
+        const updateData = { energy: -loot.energyLost, action_points: -loot.apLost, money: loot.money, total_xp: loot.xp, victories: 1 };
+        Object.entries(loot.stats).forEach(([stat, val]) => updateData[stat] = (Number(attacker[stat]) || 0) + val);
+        await playerStateService.updatePlayerState(userId, updateData);
+
+        if (!isNpc) {
+          await playerStateService.updatePlayerState(targetId, {
+            money: -loot.money, defeats: 1,
+            status: 'Recondicionamento', status_ends_at: new Date(Date.now() + hospitalTime * 60000).toISOString()
+          });
+        }
+      } 
+      else if (outcome === "WIN") {
+        msg = "VITÓRIA! Combate intenso, mas seus sistemas prevaleceram.";
+        loot.xp = Math.floor(25 + Math.random() * 20);
+        loot.money = isNpc ? Math.floor(40 + defender.level * 5) : Math.floor(defender.money * 0.1);
+        loot.energyLost = 5;
+        loot.apLost = 100;
+        if (Math.random() < 0.7) {
+          const statGained = statsList[Math.floor(Math.random() * 3)];
+          loot.stats[statGained] = Math.floor(Math.random() * 2) + 1;
+        }
+
+        const updateData = { energy: -loot.energyLost, action_points: -loot.apLost, money: loot.money, total_xp: loot.xp, victories: 1 };
+        Object.entries(loot.stats).forEach(([stat, val]) => updateData[stat] = (Number(attacker[stat]) || 0) + val);
+        await playerStateService.updatePlayerState(userId, updateData);
+
+        if (!isNpc) await playerStateService.updatePlayerState(targetId, { money: -loot.money, defeats: 1 });
+      } 
+      else if (outcome === "DRAW") {
+        const rupturaTime = Math.min(25, Math.floor(10 + (1 / baseRatio) * 10));
+        msg = "EMPATE TÁTICO! Forças equivalentes. Ambos os sistemas entraram em RUPTURA!";
+        loot.xp = Math.floor(35 + Math.random() * 20); // High XP for fair fight
+        loot.energyLost = 10;
+        loot.apLost = 100;
+        loot.stats[statsList[Math.floor(Math.random() * 3)]] = 1;
+
+        const updateData = { 
+          energy: -loot.energyLost, action_points: -loot.apLost, total_xp: loot.xp,
+          status: 'Ruptura', status_ends_at: new Date(Date.now() + rupturaTime * 60000).toISOString()
+        };
+        Object.entries(loot.stats).forEach(([stat, val]) => updateData[stat] = (Number(attacker[stat]) || 0) + val);
+        await playerStateService.updatePlayerState(userId, updateData);
+
+        if (!isNpc) {
+          await playerStateService.updatePlayerState(targetId, {
+            status: 'Ruptura', status_ends_at: new Date(Date.now() + rupturaTime * 60000).toISOString()
+          });
+        }
+      } 
+      else if (outcome === "LOSS") {
+        const hospitalTime = Math.min(45, Math.floor(15 + (1 / baseRatio) * 5));
+        msg = "DERROTA! O inimigo superou suas defesas. Sistemas avariados.";
+        loot.moneyLost = Math.floor(attacker.money * 0.05);
+        loot.xp = -10;
+        loot.energyLost = 15;
+        loot.apLost = 100;
+
+        await playerStateService.updatePlayerState(userId, { 
+          energy: -loot.energyLost, action_points: -loot.apLost, money: -loot.moneyLost, total_xp: loot.xp, defeats: 1,
+          status: 'Recondicionamento', status_ends_at: new Date(Date.now() + hospitalTime * 60000).toISOString()
+        });
+
+        if (!isNpc) await playerStateService.updatePlayerState(targetId, { money: loot.moneyLost, victories: 1 });
+      } 
+      else if (outcome === "LOSS_KO") {
+        const hospitalTime = Math.min(45, Math.floor(30 + (1 / baseRatio) * 6));
+        msg = "DERROTA SUICIDA! Você atacou um alvo impossível e foi dizimado.";
+        loot.moneyLost = Math.floor(attacker.money * 0.1);
+        loot.xp = -25;
+        loot.energyLost = 15;
+        loot.apLost = 100;
+        // Chance de perder um atributo
+        if (Math.random() < 0.5) {
+          const statLost = statsList[Math.floor(Math.random() * 3)];
+          loot.stats[statLost] = -1;
+        }
+
+        const updateData = { 
+          energy: -loot.energyLost, action_points: -loot.apLost, money: -loot.moneyLost, total_xp: loot.xp, defeats: 1,
+          status: 'Recondicionamento', status_ends_at: new Date(Date.now() + hospitalTime * 60000).toISOString()
+        };
+        Object.entries(loot.stats).forEach(([stat, val]) => {
+          const currentVal = Number(attacker[stat]) || 1;
+          updateData[stat] = Math.max(1, currentVal + val); // Nunca menor que 1
+        });
+        await playerStateService.updatePlayerState(userId, updateData);
+
+        if (!isNpc) await playerStateService.updatePlayerState(targetId, { money: loot.moneyLost, victories: 1 });
+      }
+
+      return { 
+        outcome, 
+        message: msg, 
+        loot,
+        battleReport: {
+          pPower: pFinalPower,
+          oPower: oFinalPower,
+          pIsCrit,
+          oIsCrit
+        }
+      };
+    } finally {
+      await redisClient.delAsync(LOCK);
+    }
+  }
+
   async executeAttack(userId, targetId, tactic = 'technological') {
     const LOCK = `combat:lock:${userId}`;
     const hasLock = await redisClient.setNXAsync(LOCK, "1", 15);
@@ -177,7 +340,7 @@ class CombatService {
 
       const chips = await this._getEquippedChips(userId);
       const result = gameLogic.resolveWinOutcome(attacker, defender, chips, tactic);
-      const { isAttackerWin, isDraw, willBleed, rounds, xpBonus, moneyProtection } = result;
+      const { isAttackerWin, isDraw, isKO, willBleed, rounds, xpBonus, moneyProtection } = result;
 
       const turns = rounds.map(r => ({
         round: r.round,
@@ -262,8 +425,13 @@ class CombatService {
         }
       }, 30000);
 
+      let finalOutcome = isAttackerWin ? "win" : "loss";
+      if (isDraw) finalOutcome = "draw";
+      else if (isKO) finalOutcome = isAttackerWin ? "win_ko" : "loss_ko";
+      else if (willBleed) finalOutcome = "win_bleeding";
+
       return {
-        outcome: isAttackerWin ? "win_ko" : (isDraw ? "draw" : "loss_ko"), 
+        outcome: finalOutcome, 
         winner: isAttackerWin,
         details: { turns },
         loot, 
@@ -273,6 +441,160 @@ class CombatService {
       await redisClient.delAsync(LOCK);
       throw err;
     }
+  }
+  async startActiveCombat(userId, targetId) {
+    const attacker = await playerStateService.getPlayerState(userId);
+    const defender = targetId.startsWith("npc_") ? getNpcData(targetId, attacker) : await playerStateService.getPlayerState(targetId);
+    
+    if (!attacker || !defender) throw new Error("Alvos não encontrados.");
+    if (attacker.energy < 10) throw new Error("Nível de energia crítico.");
+    if (attacker.action_points < 300) throw new Error("Pontos de Ação insuficientes.");
+
+    await playerStateService.updatePlayerState(userId, { energy: -10, action_points: -300 });
+
+    const chips = await this._getEquippedChips(userId);
+    const state = {
+      targetId,
+      isNpc: targetId.startsWith("npc_"),
+      attacker: {
+        id: userId,
+        name: attacker.username,
+        hp: 100,
+        stagger: 100,
+        attack: Number(attacker.attack) || 1,
+        defense: Number(attacker.defense) || 1,
+        focus: Number(attacker.focus) || 1,
+        level: Number(attacker.level) || 1,
+        money: Number(attacker.money) || 0,
+        chips
+      },
+      defender: {
+        id: targetId,
+        name: defender.username,
+        hp: 100,
+        stagger: 100,
+        attack: Number(defender.attack) || 1,
+        defense: Number(defender.defense) || 1,
+        focus: Number(defender.focus) || 1,
+        level: Number(defender.level) || 1,
+        money: Number(defender.money) || 0,
+        isRare: defender.is_rare || false
+      },
+      turn: 1,
+      rancor: 0
+    };
+
+    await redisClient.setAsync(`active_combat:${userId}`, JSON.stringify(state), "EX", 300); // 5 min expire
+    
+    return {
+      status: "combat_started",
+      playerHP: 100,
+      enemyHP: 100,
+      playerStagger: 100,
+      enemyStagger: 100,
+      enemyName: state.defender.name
+    };
+  }
+
+  async processActiveTurn(userId, action) {
+    const rawState = await redisClient.getAsync(`active_combat:${userId}`);
+    if (!rawState) throw new Error("Nenhum combate ativo ou a sessão expirou.");
+
+    const state = JSON.parse(rawState);
+    const { attacker, defender } = state;
+
+    // Resolvendo Turno Dinâmico via GameLogic
+    const turnResult = gameLogic.resolveActiveTurn(state, action);
+
+    state.attacker.hp = turnResult.playerHP;
+    state.defender.hp = turnResult.enemyHP;
+    state.attacker.stagger = turnResult.playerStagger;
+    state.defender.stagger = turnResult.enemyStagger;
+    state.rancor = turnResult.rancor;
+    state.turn += 1;
+
+    let finalResult = {
+      turnLog: turnResult.log,
+      playerHP: state.attacker.hp,
+      enemyHP: state.defender.hp,
+      playerStagger: state.attacker.stagger,
+      enemyStagger: state.defender.stagger,
+      rancor: state.rancor,
+      isFinished: false
+    };
+
+    if (state.attacker.hp <= 0 || state.defender.hp <= 0) {
+      finalResult.isFinished = true;
+      const isAttackerWin = state.defender.hp <= 0 && state.attacker.hp > 0;
+      const isDraw = state.attacker.hp <= 0 && state.defender.hp <= 0;
+      
+      let xpBonus = 1.0;
+      let moneyProtection = 0;
+      state.attacker.chips.forEach(c => {
+        if (c.effect_type === 'xp_boost') xpBonus += (c.effect_value / 100);
+        if (c.effect_type === 'money_shield') moneyProtection += c.effect_value;
+      });
+
+      const attStats = state.attacker.attack + state.attacker.defense;
+      const defStats = state.defender.attack + state.defender.defense;
+      let challengeMod = 1.0;
+      if (attStats > 0) challengeMod = Math.min(2.5, Math.max(0.5, defStats / attStats));
+      
+      let loot = null;
+      if (isAttackerWin) {
+        const xpGain = Math.round(gameLogic.COMBAT.XP_WIN_BASE * challengeMod * xpBonus * (0.9 + Math.random() * 0.2));
+        let money = state.isNpc ? Math.floor(50 + state.defender.level * 15) : Math.floor(state.defender.money * 0.12);
+        let statGain = state.isNpc ? (0.1 * challengeMod) : (0.5 + Math.random() * 1.0) * challengeMod;
+        
+        loot = {
+          xp: xpGain, money, outcome: "VITÓRIA",
+          stats: { attack: Number((statGain * 0.4).toFixed(2)), defense: Number((statGain * 0.4).toFixed(2)), focus: Number((statGain * 0.2).toFixed(2)) }
+        };
+
+        const willBleed = state.attacker.hp <= 20;
+        await playerStateService.updatePlayerState(userId, { 
+          money: loot.money, total_xp: loot.xp, victories: 1,
+          attack: loot.stats.attack, defense: loot.stats.defense, focus: loot.stats.focus,
+          status: willBleed ? 'Ruptura' : 'Operacional',
+          status_ends_at: willBleed ? new Date(Date.now() + 10 * 60000).toISOString() : null
+        });
+
+        if (!state.isNpc) {
+          await playerStateService.updatePlayerState(state.defender.id, { 
+            money: -loot.money, status: "Recondicionamento", 
+            status_ends_at: new Date(Date.now() + 20 * 60000).toISOString(), defeats: 1 
+          });
+        }
+        finalResult.outcome = willBleed ? "win_bleeding" : "win_ko";
+
+      } else if (isDraw) {
+        loot = { xp: 5, money: 0, stats: { attack: 0.01, defense: 0.01, focus: 0.01 }, outcome: "EMPATE" };
+        await playerStateService.updatePlayerState(userId, { total_xp: loot.xp, attack: loot.stats.attack, defense: loot.stats.defense, focus: loot.stats.focus });
+        finalResult.outcome = "draw";
+
+      } else {
+        const moneyLost = Math.floor(state.attacker.money * 0.10 * (1 - moneyProtection/100));
+        loot = { xp: -15, moneyLost, status: "Recondicionamento", outcome: "DERROTA" };
+        await playerStateService.updatePlayerState(userId, { 
+          money: -loot.moneyLost, total_xp: loot.xp, defeats: 1,
+          status: "Recondicionamento", status_ends_at: new Date(Date.now() + 20 * 60000).toISOString()
+        });
+        finalResult.outcome = "loss_ko";
+      }
+
+      await actionLogService.log(userId, 'combat', 'player', state.isNpc ? 'npc' : state.defender.id, {
+        target_name: state.defender.name, outcome: isAttackerWin ? 'win' : (isDraw ? 'draw' : 'loss'),
+        xp_gain: loot.xp || -15, money_gain: loot.money || 0, money_loss: loot.moneyLost || 0,
+        stats_gained: loot.stats || null, is_rare: state.defender.isRare
+      });
+
+      finalResult.loot = loot;
+      await redisClient.delAsync(`active_combat:${userId}`);
+    } else {
+      await redisClient.setAsync(`active_combat:${userId}`, JSON.stringify(state), "EX", 300);
+    }
+
+    return finalResult;
   }
 }
 

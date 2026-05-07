@@ -39,12 +39,52 @@ router.get("/precalc/:targetId", authenticateToken, requireMinLevel(10), async (
 
 /**
  * @route POST /api/combat/attack/:targetId
- * @desc Execute the attack
+ * @desc Execute the old strategic attack (Legacy)
  */
 router.post("/attack/:targetId", authenticateToken, requireMinLevel(10), async (req, res) => {
   try {
     const { tactic } = req.body;
     const result = await combatService.executeAttack(req.user.id, req.params.targetId, tactic);
+    res.json(result);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+/**
+ * @route POST /api/combat/instant-attack/:targetId
+ * @desc Executa o ataque no estilo The Crims (Instantâneo)
+ */
+router.post("/instant-attack/:targetId", authenticateToken, requireMinLevel(10), async (req, res) => {
+  try {
+    const result = await combatService.executeInstantAttack(req.user.id, req.params.targetId);
+    res.json(result);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+/**
+ * @route POST /api/combat/active-start/:targetId
+ * @desc Start Active Turn-based Combat
+ */
+router.post("/active-start/:targetId", authenticateToken, requireMinLevel(10), async (req, res) => {
+  try {
+    const state = await combatService.startActiveCombat(req.user.id, req.params.targetId);
+    res.json(state);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+/**
+ * @route POST /api/combat/active-turn
+ * @desc Process a single turn
+ */
+router.post("/active-turn", authenticateToken, async (req, res) => {
+  try {
+    const { action } = req.body;
+    const result = await combatService.processActiveTurn(req.user.id, action);
     res.json(result);
   } catch (error) {
     res.status(400).json({ error: error.message });

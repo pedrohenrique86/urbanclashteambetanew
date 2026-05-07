@@ -43,7 +43,7 @@ export interface CombatLoot {
 }
 
 /** Resultado possível de um combate 1x1 */
-export type CombatOutcome = "win" | "loss" | "draw_dko" | "draw_flee" | "win_ko" | "win_decision" | "loss_ko" | "loss_bleeding" | "win_pure" | "win_bleeding";
+export type CombatOutcome = "win" | "loss" | "draw" | "draw_dko" | "draw_flee" | "win_ko" | "win_decision" | "loss_ko" | "loss_bleeding" | "win_pure" | "win_bleeding";
 
 export interface CombatResult {
   /** Tipo de resultado: vitória, derrota ou um dos dois tipos de empate */
@@ -86,6 +86,31 @@ export const combatService = {
 
   attack: async (targetId: string, tactic: string = 'technological'): Promise<CombatResult> => {
     const { data } = await api.post(`/combat/attack/${targetId}`, { tactic });
+    return data;
+  },
+
+  startActiveCombat: async (targetId: string): Promise<any> => {
+    const { data } = await api.post(`/combat/active-start/${targetId}`);
+    return data;
+  },
+
+  processActiveTurn: async (action: 'fast' | 'heavy' | 'emp' | 'finisher'): Promise<any> => {
+    const { data } = await api.post(`/combat/active-turn`, { action });
+    return data;
+  },
+
+  instantAttack: async (targetId: string): Promise<{ 
+    outcome: string; 
+    message: string; 
+    loot: any; 
+    battleReport?: {
+      pPower: number;
+      oPower: number;
+      pIsCrit: boolean;
+      oIsCrit: boolean;
+    };
+  }> => {
+    const { data } = await api.post(`/combat/instant-attack/${targetId}`);
     return data;
   }
 };
