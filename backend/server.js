@@ -80,11 +80,39 @@ const allowedOrigins = [
   "http://localhost:3002"
 ].filter(Boolean);
 
-app.use(cors({ origin: allowedOrigins, credentials: true }));
-app.set("trust proxy", 1);
+// CORS dinâmico e robusto
+const corsOptions = {
+  origin: (origin, callback) => {
+    // Permite requests sem origin (mobile apps, curl, etc)
+    if (!origin) return callback(null, true);
+    
+    const isAllowed = allowedOrigins.includes(origin) || 
+                     /^https?:\/\/(.*\.)?urbanclashteam\.com\/?$/.test(origin) ||
+                     /^http:\/\/localhost(:\d+)?$/.test(origin);
+
+    if (isAllowed) {
+      callback(null, true);
+    } else {
+      console.warn(`🛑 CORS bloqueado para origin: ${origin}`);
+      callback(null, false);
+    }
+  },
+  credentials: true,
+  optionsSuccessStatus: 200
+};
+
+app.use(cors(corsOptions));
+app.set("trust proxy", true); // Essencial para Cloudflare/Nginx identificar IP real do mobile
 app.use(helmet({ crossOriginResourcePolicy: { policy: "cross-origin" }, contentSecurityPolicy: false }));
 app.use(express.json({ limit: "10mb" }));
-app.use(morgan("dev"));
+
+// Log de debug para ver o que chega do mobile
+app.use((req, res, next) => {
+  if (req.path.includes('/api/auth') || req.path.includes('/subscribe')) {
+    console.log(`[DEBUG] ${req.method} ${req.path} - Origin: ${req.get('origin')} - UA: ${req.get('user-agent')}`);
+  }
+  next();
+});
 
 app.use("/api/public", publicRoutes);
 app.use("/api/auth", authRoutes);
@@ -124,7 +152,7 @@ async function startServer() {
       await redisClient.delAsync("online_players:isolation");
       console.log("🧹 Set de jogadores online, lista de recuperação e isolamento resetados no Redis.");
     }
-    const io = new Server(server, { cors: { origin: allowedOrigins, credentials: true } });
+    const io = new Server(server, { cors: corsOptions });
     initializeSocket(io);
     schedulePersistence();
     server.listen(PORT, () => {
