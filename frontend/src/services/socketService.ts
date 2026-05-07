@@ -66,33 +66,9 @@ class SocketService {
         reconnectionDelay: 2000,
         path: "/socket.io/",
         transports: isMobile ? ["websocket", "polling"] : ["websocket"],
-        timeout: isMobile ? 5000 : 20000,
         secure: socketUrl.startsWith("https"),
         withCredentials: true,
       });
-
-      // ── Mobile: troca de transport automática no reconnect ──────────────
-      if (isMobile) {
-        this.socket.io.on("reconnect_attempt", (attempt: number) => {
-          if (attempt > 1) {
-            this.socket!.io.opts.transports = ["polling", "websocket"];
-          }
-        });
-
-        this.socket.on("connect", () => {
-          this.socket!.io.opts.transports = ["websocket", "polling"];
-        });
-
-        // Detecta mudança de rede (WiFi↔4G) e força reconexão limpa
-        if (typeof navigator !== "undefined" && (navigator as any).connection) {
-          (navigator as any).connection.addEventListener("change", () => {
-            if (this.socket?.connected) {
-              this.socket.disconnect();
-              setTimeout(() => this.socket?.connect(), 500);
-            }
-          });
-        }
-      }
 
       this.socket.on("connect", () => {
         console.log("🔌 Conectado ao servidor Socket.IO:", this.socket?.id);
