@@ -68,6 +68,19 @@ jobs:
               --time \
               --restart-delay=3000 \
               --max-restarts=10
+
+            # Aguarda servidor subir e verifica saúde
+            echo "⏳ Aguardando servidor iniciar..."
+            sleep 5
+            pm2 list
+            if curl -sf http://localhost:3001/api/public/health > /dev/null 2>&1; then
+              echo "✅ Backend respondendo na porta 3001"
+            else
+              echo "❌ Backend NÃO respondeu — Logs de erro:"
+              pm2 logs backend --err --lines 30 --nostream || true
+              echo "--- Últimas linhas do output ---"
+              pm2 logs backend --out --lines 15 --nostream || true
+            fi
             pm2 save
 
   # --- DEPLOY DO FRONTEND NO CLOUDFLARE ---
