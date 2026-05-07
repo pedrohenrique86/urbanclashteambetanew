@@ -88,7 +88,9 @@ const corsOptions = {
     
     const isAllowed = allowedOrigins.includes(origin) || 
                      /^https?:\/\/(.*\.)?urbanclashteam\.com\/?$/.test(origin) ||
-                     /^http:\/\/localhost(:\d+)?$/.test(origin);
+                     /^http:\/\/localhost(:\d+)?$/.test(origin) ||
+                     /^http:\/\/192\.168\.\d{1,3}\.\d{1,3}(:\d+)?$/.test(origin) || // WiFi Local (Mobile)
+                     /^http:\/\/10\.\d{1,3}\.\d{1,3}\.\d{1,3}(:\d+)?$/.test(origin); // WiFi Local Alternativo
 
     if (isAllowed) {
       callback(null, true);

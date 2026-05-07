@@ -158,8 +158,10 @@ function convertProfileData(profile) {
 router.get("/rankings/subscribe", (req, res) => {
   res.set({
     "Content-Type": "text/event-stream",
-    "Cache-Control": "no-cache",
-    Connection: "keep-alive",
+    "Cache-Control": "no-cache, no-transform",
+    "Connection": "keep-alive",
+    "X-Accel-Buffering": "no",
+    "Content-Encoding": "identity",
   });
   if (res.flushHeaders) res.flushHeaders();
   res.write("\n");
@@ -172,14 +174,14 @@ router.get("/rankings/subscribe", (req, res) => {
     })}\n\n`,
   );
 
-  // Keep-alive: envia comentário SSE a cada 25s para evitar timeout de proxies
+  // Keep-alive: envia comentário SSE a cada 15s para evitar timeout de proxies (mobile)
   const pingInterval = setInterval(() => {
     try {
       res.write(": ping\n\n");
     } catch (_) {
       clearInterval(pingInterval);
     }
-  }, 25_000);
+  }, 15_000);
 
   // Previne crash do servidor quando mobile troca de rede (WiFi↔4G)
   res.on("error", () => {
@@ -241,15 +243,15 @@ router.get("/state/subscribe", authenticateToken, (req, res) => {
     })}\n\n`,
   );
 
-  // Keep-alive: envia comentário SSE a cada 25s para evitar timeout
-  // de proxies/load balancers (padrão é 30–60s)
+  // Keep-alive: envia comentário SSE a cada 15s para evitar timeout
+  // de proxies/load balancers (padrão em redes móveis é agressivo)
   const pingInterval = setInterval(() => {
     try {
       res.write(": ping\n\n");
     } catch (_) {
       clearInterval(pingInterval);
     }
-  }, 25_000);
+  }, 15_000);
 
   // Previne crash do servidor quando mobile troca de rede (WiFi↔4G)
   res.on("error", () => {

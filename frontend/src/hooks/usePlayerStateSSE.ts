@@ -209,7 +209,13 @@ export function usePlayerStateSSE({
       });
 
       // ── Erro / reconexão com backoff exponencial ──────────────────────────────
-      es.onerror = () => {
+      es.onerror = (err) => {
+        console.error("[playerSSE] Erro na conexão SSE:", {
+          readyState: es.readyState,
+          url: es.url,
+          error: err
+        });
+        
         es.close();
         esRef.current = null;
 
