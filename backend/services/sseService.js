@@ -186,10 +186,11 @@ function _localKick(userId, excludeCid = null) {
 
       try {
         client.write(kickMsg);
-        // Pequeno delay para garantir que o evento chegue antes de fechar o socket
+        // Delay seguro (3s) para garantir que o evento chegue no Mobile antes de fechar o socket TCP
+        // O frontend fechará por conta própria (es.close()) ao receber o evento.
         setTimeout(() => {
           try { client.end(); } catch(e) {}
-        }, 100);
+        }, 3000);
       } catch (e) {}
     });
 

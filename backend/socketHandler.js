@@ -15,7 +15,7 @@ async function enforceSingleSession(io, socket, user, cid) {
     // Se for o mesmo usuário, porém em outro socket com CID diferente (outra aba)
     if (s.id !== socket.id && s.cid !== socket.cid) {
       s.emit("socket:duplicate_session", { message: "Sessão finalizada: outra aba foi aberta." });
-      s.disconnect(true);
+      setTimeout(() => s.disconnect(true), 2000);
     }
   }
 }
