@@ -152,8 +152,14 @@ function initializeSocket(server) {
         socket.emit("isolation:history", await isolationChatService.getHistory());
 
         socket.on("disconnect", async () => {
-          await redisClient.hDelAsync(ISOLATION_USERS_KEY, String(user.id));
-          await emitIsolationUsers();
+          // SÊNIOR: Anti-Race-Condition para Multi-Aba (Anti-Multi-Aba)
+          // Só remove do Redis se este for o ÚLTIMO socket ativo do usuário.
+          const userRoom = `user:${user.id}`;
+          const sockets = await io.in(userRoom).fetchSockets();
+          if (sockets.length === 0) {
+            await redisClient.hDelAsync(ISOLATION_USERS_KEY, String(user.id));
+            await emitIsolationUsers();
+          }
         });
 
         if (!socket.hasIsolationListener) {
@@ -214,8 +220,13 @@ function initializeSocket(server) {
         socket.emit("recovery:history", await recoveryChatService.getHistory());
 
         socket.on("disconnect", async () => {
-          await redisClient.hDelAsync(RECOVERY_USERS_KEY, String(user.id));
-          await emitRecoveryUsers();
+          // SÊNIOR: Anti-Race-Condition para Multi-Aba
+          const userRoom = `user:${user.id}`;
+          const sockets = await io.in(userRoom).fetchSockets();
+          if (sockets.length === 0) {
+            await redisClient.hDelAsync(RECOVERY_USERS_KEY, String(user.id));
+            await emitRecoveryUsers();
+          }
         });
 
         if (!socket.hasRecoveryListener) {
@@ -269,8 +280,13 @@ function initializeSocket(server) {
         socket.emit("global:history", await globalChatService.getHistory());
 
         socket.on("disconnect", async () => {
-          await globalChatService.removeUserOnline(user.id);
-          await emitGlobalUsers();
+          // SÊNIOR: Anti-Race-Condition para Multi-Aba
+          const userRoom = `user:${user.id}`;
+          const sockets = await io.in(userRoom).fetchSockets();
+          if (sockets.length === 0) {
+            await globalChatService.removeUserOnline(user.id);
+            await emitGlobalUsers();
+          }
         });
 
         if (!socket.hasGlobalListener) {

@@ -154,7 +154,8 @@ async function startServer() {
       await redisClient.delAsync("online_players_set");
       await redisClient.delAsync("online_players:recovery");
       await redisClient.delAsync("online_players:isolation");
-      console.log("🧹 Set de jogadores online, lista de recuperação e isolamento resetados no Redis.");
+      await redisClient.delAsync("chat:global:online");
+      console.log("🧹 Set de jogadores online, listas de recuperação, isolamento e global resetados no Redis.");
     }
     const io = new Server(server, { cors: corsOptions });
     initializeSocket(io);
