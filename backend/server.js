@@ -157,14 +157,37 @@ async function startServer() {
       await redisClient.delAsync("chat:global:online");
       console.log("🧹 Set de jogadores online, listas de recuperação, isolamento e global resetados no Redis.");
     }
-    const io = new Server(server, { cors: corsOptions });
+    // SÊNIOR: Handler para Rotas não encontradas (evita que a requisição fique pendurada)
+    app.use((req, res) => {
+      res.status(404).json({ error: "Rota não encontrada ou indisponível no momento." });
+    });
+
+    // SÊNIOR: Middleware de Erro Global — Captura qualquer falha e impede o crash
+    app.use((err, req, res, next) => {
+      console.error(`🚨 [Global Error] ${req.method} ${req.url}:`, err.message);
+      
+      if (res.headersSent) {
+        return next(err);
+      }
+      
+      res.status(err.status || 500).json({
+        error: "Erro temporário na central de dados. Tente atualizar a página.",
+        code: err.code || "INTERNAL_ERROR"
+      });
+    });
+
+    const io = new Server(server, { 
+      cors: corsOptions,
+      pingTimeout: 10000,
+      pingInterval: 5000,
+      connectTimeout: 10000
+    });
     initializeSocket(io);
     schedulePersistence();
-    server.listen(PORT, () => {
+const serverInstance = server.listen(PORT, () => {
       console.log(`🚀 SERVIDOR INICIADO NA PORTA ${PORT} [${isProduction ? 'PROD' : 'DEV'}]`);
       
-      // SÊNIOR: Tarefas de background movidas para um contexto que não bloqueia o listen
-      // e com delay para permitir que o processo estabilize (passar health checks do Oracle/Cloud)
+      // SÊNIOR: Tarefas de background com delay para estabilização
       setTimeout(async () => {
         try {
           console.log("🌌 Iniciando subsistemas de background...");
@@ -179,6 +202,13 @@ async function startServer() {
         }
       }, 5000); 
     });
+
+    // SÊNIOR: Configurações de Resiliência para Cloudflare/Mobile
+    // Evita erro 502 Bad Gateway aumentando os limites de espera por pacotes lentos (4G)
+    serverInstance.keepAliveTimeout = 65000; // 65s (deve ser maior que o timeout do Cloudflare)
+    serverInstance.headersTimeout = 66000;
+    serverInstance.requestTimeout = 30000; // 30s max por request
+    
   } catch (error) {
     console.error("❌ Erro fatal:", error);
     process.exit(1);

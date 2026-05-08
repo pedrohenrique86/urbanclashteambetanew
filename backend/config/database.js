@@ -31,6 +31,9 @@ if (databaseUrl) {
     ssl: {
       rejectUnauthorized: false,
     },
+    // SÊNIOR: Cancela queries que demoram mais de 8s (evita travar o backend inteiro)
+    statement_timeout: 8000,
+    query_timeout: 10000,
   };
 } else {
   if (isProduction) {
@@ -48,6 +51,8 @@ if (databaseUrl) {
     port: 5433,
     database: "urbanclash",
     ssl: false,
+    statement_timeout: 8000,
+    query_timeout: 10000,
   };
 }
 
