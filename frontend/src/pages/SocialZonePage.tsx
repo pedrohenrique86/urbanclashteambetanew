@@ -263,10 +263,8 @@ export default function SocialZonePage() {
                     <span className="text-[10px] font-mono text-emerald-400 font-bold uppercase tracking-tighter">Live_Uplink</span>
                 </div>
               </div>
-            </div>
-
-            {/* MESSAGES AREA */}
-            <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6 custom-scrollbar bg-gradient-to-b from-transparent to-violet-500/5">
+                   {/* MESSAGES AREA - CLAN STYLE */}
+            <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 md:p-6 space-y-4 custom-scrollbar bg-black/20">
               {messages.length === 0 && (
                 <div className="h-full flex flex-col items-center justify-center opacity-20">
                   <ChatBubbleLeftRightIcon className="w-12 h-12 text-slate-500 mb-4" />
@@ -275,49 +273,50 @@ export default function SocialZonePage() {
               )}
               
               <AnimatePresence initial={false}>
-                {messages.map((msg: ChatMessage) => (
-                  <motion.div 
-                    key={msg.id}
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    className="flex gap-3 md:gap-4 items-start group"
-                  >
-                    <Avatar 
-                      src={msg.avatar} 
-                      className="w-8 h-8 md:w-10 md:h-10 group-hover:border-violet-500/50 transition-colors cursor-pointer flex-shrink-0" 
-                      onClick={() => openUserPanel(msg.userId)}
-                    />
-                    
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        {msg.country && (
-                          <img 
-                            src={`https://flagcdn.com/w20/${msg.country.toLowerCase()}.png`} 
-                            className="w-3 h-auto opacity-80" 
-                            alt="flag" 
-                          />
-                        )}
-                        <span 
-                          className={`text-[10px] font-black uppercase italic tracking-tighter cursor-pointer hover:underline ${getFactionColor(msg.faction)}`}
-                          onClick={() => openUserPanel(msg.userId)}
-                        >
-                          {msg.username}
-                        </span>
-                        <span className="text-[8px] font-mono text-slate-400">
-                          [{format(new Date(msg.timestamp), "HH:mm")}]
-                        </span>
+                {messages.map((msg: ChatMessage) => {
+                  const isMe = userProfile && msg.userId === userProfile.id;
+                  
+                  return (
+                    <motion.div 
+                      key={msg.id}
+                      initial={{ opacity: 0, x: isMe ? 10 : -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      className={`flex flex-col ${isMe ? 'items-end' : 'items-start'} group w-full`}
+                    >
+                      <div className={`flex items-center gap-2 mb-1 px-1 ${isMe ? 'flex-row-reverse' : 'flex-row'}`}>
+                         {msg.country && (
+                            <img 
+                              src={`https://flagcdn.com/w20/${msg.country.toLowerCase()}.png`} 
+                              className="w-3 h-auto opacity-80" 
+                              alt="flag" 
+                            />
+                         )}
+                         <span 
+                            className={`text-[10px] font-black font-orbitron uppercase tracking-widest cursor-pointer hover:underline ${getFactionColor(msg.faction)}`}
+                            onClick={() => openUserPanel(msg.userId)}
+                         >
+                            {msg.username}
+                         </span>
+                         <span className="text-[8px] font-mono text-slate-500">
+                            {format(new Date(msg.timestamp), "HH:mm")}
+                         </span>
                       </div>
+                      
                       <div 
-                        className="bg-white/5 p-3 md:p-4 text-[11px] md:text-xs text-slate-300 border-l-2 border-violet-500/30 break-words group-hover:border-violet-500/50 transition-colors"
-                        style={{ clipPath: "polygon(0 0, 100% 0, 100% 100%, 8px 100%, 0 calc(100% - 8px))" }}
+                        className={`relative max-w-[90%] md:max-w-[80%] px-4 py-3 text-[12px] md:text-sm text-slate-200 border transition-all ${
+                          isMe 
+                            ? 'bg-violet-900/20 border-violet-500/30 rounded-2xl rounded-tr-none shadow-[0_0_15px_rgba(139,92,246,0.1)]' 
+                            : 'bg-white/5 border-white/10 rounded-2xl rounded-tl-none shadow-[0_0_10px_rgba(0,0,0,0.3)]'
+                        } group-hover:border-violet-500/50 break-words`}
                       >
                         {renderMessageText(msg.text)}
                       </div>
-                    </div>
-                  </motion.div>
-                ))}
+                    </motion.div>
+                  );
+                })}
               </AnimatePresence>
             </div>
+        </div>
 
             {/* INPUT FORM */}
             <form onSubmit={sendMessage} className="p-3 md:p-4 bg-black/40 border-t border-white/5 flex gap-3">

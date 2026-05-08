@@ -548,7 +548,7 @@ function ReconditioningView({ user, timeLeft, formatTime }: { user: any, timeLef
         </div>
 
         <div className="flex-1 flex overflow-hidden pt-0 md:pt-14">
-          {/* ÁREA DE MENSAGENS */}
+          {/* ÁREA DE MENSAGENS - CLAN STYLE */}
           <div className={`${activeTab === "chat" ? "flex" : "hidden"} md:flex flex-1 flex-col min-w-0 bg-black/40`}>
             <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 md:p-6 space-y-4 custom-scrollbar">
               {messages.length === 0 && (
@@ -557,15 +557,17 @@ function ReconditioningView({ user, timeLeft, formatTime }: { user: any, timeLef
                   <p className="text-[10px] font-mono uppercase tracking-widest">Nenhuma transmissão detectada...</p>
                 </div>
               )}
-              {messages.map((msg: ChatMessage) => (
-                <div key={msg.id} className="flex gap-3 items-start group">
-                  <Avatar 
-                    src={msg.avatar} 
-                    className="w-8 h-8 cursor-pointer" 
-                    onClick={() => openUserPanel(msg.userId)}
-                  />
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
+              {messages.map((msg: ChatMessage) => {
+                const isMe = user && msg.userId === user.id;
+
+                return (
+                  <motion.div 
+                    key={msg.id}
+                    initial={{ opacity: 0, x: isMe ? 10 : -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    className={`flex flex-col ${isMe ? 'items-end' : 'items-start'} group w-full`}
+                  >
+                    <div className={`flex items-center gap-2 mb-1 px-1 ${isMe ? 'flex-row-reverse' : 'flex-row'}`}>
                       {msg.country && (
                         <img 
                           src={`https://flagcdn.com/w20/${msg.country.toLowerCase()}.png`} 
@@ -579,14 +581,23 @@ function ReconditioningView({ user, timeLeft, formatTime }: { user: any, timeLef
                       >
                         {msg.username}
                       </span>
-                      <span className="text-[8px] font-mono text-slate-400">[{format(new Date(msg.timestamp), "HH:mm")}]</span>
+                      <span className="text-[8px] font-mono text-slate-400">
+                        {format(new Date(msg.timestamp), "HH:mm")}
+                      </span>
                     </div>
-                    <div className="bg-white/5 p-3 text-xs text-slate-300 border-l-2 border-red-500/30 break-words" style={{ clipPath: "polygon(0 0, 100% 0, 100% 100%, 4px 100%, 0 calc(100% - 4px))" }}>
+
+                    <div 
+                      className={`relative max-w-[90%] md:max-w-[80%] p-3 text-xs text-slate-300 border transition-all ${
+                        isMe 
+                          ? 'bg-red-900/20 border-red-500/30 rounded-2xl rounded-tr-none shadow-[0_0_10px_rgba(239,68,68,0.1)]' 
+                          : 'bg-white/5 border-white/10 rounded-2xl rounded-tl-none shadow-[0_0_5px_rgba(0,0,0,0.3)]'
+                      } group-hover:border-red-500/50 break-words`}
+                    >
                       {renderMessageText(msg.text)}
                     </div>
-                  </div>
-                </div>
-              ))}
+                  </motion.div>
+                );
+              })}
             </div>
 
             {/* INPUT FIXO */}
