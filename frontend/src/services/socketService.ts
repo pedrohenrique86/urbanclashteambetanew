@@ -274,11 +274,8 @@ class SocketService {
   // --- SÊNIOR: Handler de Sessão Duplicada (Anti-Multi-Aba) ---
   onDuplicateSession(callback: (data: { message: string }) => void): void {
     this.on<{ message: string }>("socket:duplicate_session", (data) => {
-      // Quando tomar kick, desabilita a reconexão automática para evitar ping-pong loop no mobile
-      if (this.socket && this.socket.io) {
-        this.socket.io.reconnection(false);
-        this.socket.disconnect();
-      }
+      // SÊNIOR: Não desabilitamos mais a reconexão. 
+      // Deixamos o sistema tentar voltar se for uma oscilação de rede.
       callback(data);
     });
   }

@@ -12,15 +12,10 @@ async function enforceSingleSession(io, socket, user, cid) {
 
     const socketsInRoom = await io.in(userRoom).fetchSockets();
     for (const s of socketsInRoom) {
-      // Se o CID for igual, é o mesmo dispositivo/aba reconectando. 
-      // Desconectamos o antigo imediatamente sem delay para liberar a vaga.
+      // SÊNIOR: Mata QUALQUER outro socket do mesmo usuário instantaneamente.
+      // Sem avisos, sem delays. A nova conexão (4G ou Wi-Fi) SEMPRE ganha.
       if (s.id !== socket.id) {
-        if (s.cid === socket.cid) {
-           s.disconnect(true);
-        } else {
-           s.emit("socket:duplicate_session", { message: "Sessão finalizada: outra aba foi aberta." });
-           setTimeout(() => { try { s.disconnect(true); } catch (_) {} }, 1000);
-        }
+        s.disconnect(true);
       }
     }
   } catch (err) {
