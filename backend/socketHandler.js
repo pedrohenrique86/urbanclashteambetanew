@@ -5,6 +5,8 @@ const redisClient = require("./config/redisClient");
 
 // ─── Anti-Multi-Aba para Socket.IO (blindado) ──────────────────────────────
 async function enforceSingleSession(io, socket, user, cid) {
+  // TRAVA DESATIVADA A PEDIDO DO USUÁRIO PARA TESTE DE 4G
+  /*
   try {
     const userRoom = `user:${user.id}`;
     socket.cid = cid || "unknown";
@@ -12,16 +14,14 @@ async function enforceSingleSession(io, socket, user, cid) {
 
     const socketsInRoom = await io.in(userRoom).fetchSockets();
     for (const s of socketsInRoom) {
-      // SÊNIOR: Mata QUALQUER outro socket do mesmo usuário instantaneamente.
-      // Sem avisos, sem delays. A nova conexão (4G ou Wi-Fi) SEMPRE ganha.
       if (s.id !== socket.id) {
         s.disconnect(true);
       }
     }
   } catch (err) {
-    // Falha no fetchSockets/join — NÃO impede a conexão do novo socket
-    console.error("[enforceSingleSession] Erro não-bloqueante:", err.message);
+    console.error("[enforceSingleSession] Erro:", err.message);
   }
+  */
 }
 // ──────────────────────────────────────────────────────────────────────────
 
