@@ -64,13 +64,15 @@ class SocketService {
 
       console.log("🔌 Iniciando conexão Socket.IO em:", socketUrl);
 
-      // SÊNIOR: Reativamos 'polling' como fallback obrigatório para 4G/redes instáveis.
-      // Adicionado 'rememberUpgrade' para evitar loops de handshake em redes móveis.
+      const isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
+
+      // SÊNIOR: Para Mobile, iniciamos com 'polling' para garantir que passe por qualquer proxy de operadora.
+      // Para Desktop, mantemos a tentativa direta de 'websocket' para performance.
       this.socket = io(socketUrl, {
         reconnectionAttempts: 20,
         reconnectionDelay: 2000,
         path: "/socket.io/",
-        transports: ["polling", "websocket"],
+        transports: isMobile ? ["polling", "websocket"] : ["websocket", "polling"],
         rememberUpgrade: true,
         secure: socketUrl.startsWith("https"),
         withCredentials: true,
