@@ -68,13 +68,6 @@ const rankingCacheService = require("./services/rankingCacheService");
 const compression = require("compression");
 
 const app = express();
-
-// LOG DE EMERGÊNCIA - Roda antes de TUDO
-app.use((req, res, next) => {
-  console.log(`[ENTRADA-BRUTA] ${req.method} ${req.url} | IP: ${req.ip}`);
-  next();
-});
-
 app.use(compression()); 
 const server = http.createServer(app);
 

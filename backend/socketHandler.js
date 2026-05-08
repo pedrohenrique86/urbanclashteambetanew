@@ -4,8 +4,29 @@ const chatService = require("./services/chatService");
 const redisClient = require("./config/redisClient");
 
 async function enforceSingleSession(io, socket, user, cid) {
-  // FUNÇÃO DESATIVADA DEFINITIVAMENTE
+  const userId = String(user.id);
+  const userRoom = `user:${userId}`;
+
+  // SÊNIOR: Identificação de Dispositivo (CID) para evitar duplicidade real
+  // O CID é gerado no frontend e amarrado à sessão do socket.
+  socket.cid = cid;
+
+  const existingSockets = await io.in(userRoom).fetchSockets();
+  
+  for (const s of existingSockets) {
+    if (s.id !== socket.id) {
+      console.log(`[AUTH] 🛡️ Derrubando sessão duplicada (User: ${userId}, NewCID: ${cid}, OldCID: ${s.cid})`);
+      s.emit("session_duplicate", { 
+        message: "Sua conta foi conectada em outro dispositivo ou aba.",
+        new_cid: cid 
+      });
+      s.disconnect(true);
+    }
+  }
+
+  socket.join(userRoom);
 }
+
 // ──────────────────────────────────────────────────────────────────────────
 
 const MESSAGE_COOLDOWN_MS = 5000;
@@ -14,6 +35,22 @@ let io;
 function initializeSocket(server) {
   io = server;
   io.on("connection", async (socket) => {
+    // SÊNIOR: Autenticação via query param (suporta reconexão rápida 4G)
+    const token = socket.handshake.query.token;
+    const cid = socket.handshake.query.cid || "legacy";
+
+    if (token) {
+      try {
+        const user = await authenticateSocket(token);
+        if (user) {
+          socket.user = user;
+          await enforceSingleSession(io, socket, user, cid);
+          console.log(`[SOCKET] ✅ Usuário ${user.username} conectado (4G/Wi-Fi Ready)`);
+        }
+      } catch (err) {
+        console.warn(`[SOCKET] ❌ Falha na auth inicial: ${err.message}`);
+      }
+    }
     // Sincronização inicial do estado do jogo
     socket.on("getGameState", async () => {
       try {

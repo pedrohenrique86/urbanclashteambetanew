@@ -275,9 +275,7 @@ class SocketService {
 
   // --- SÊNIOR: Handler de Sessão Duplicada (Anti-Multi-Aba) ---
   onDuplicateSession(callback: (data: { message: string }) => void): void {
-    this.on<{ message: string }>("socket:duplicate_session", (data) => {
-      // SÊNIOR: Não desabilitamos mais a reconexão. 
-      // Deixamos o sistema tentar voltar se for uma oscilação de rede.
+    this.on<{ message: string }>("session_duplicate", (data) => {
       callback(data);
     });
   }

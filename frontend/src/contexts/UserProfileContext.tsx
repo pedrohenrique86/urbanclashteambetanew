@@ -395,16 +395,62 @@ export const UserProfileProvider = ({ children }: { children: ReactNode }) => {
     } : prev);
   }, []);
 
+  // ─── Proteção contra Multi-Aba (Duplicate Session) ──────────────
+  const [isDuplicate, setIsDuplicate] = useState(false);
+
   usePlayerStateSSE({
     userId: user?.id ?? null,
     onStateUpdate: handlePlayerStateUpdate,
     onStatusUpdate: handlePlayerStatusUpdate,
-    onDuplicateSession: () => {},
+    onDuplicateSession: () => setIsDuplicate(true),
   });
 
-  // SÊNIOR: Listener global para Socket.IO removido a pedido do usuário
+  // SÊNIOR: Listener global para Socket.IO para detecção de duplicidade
   useEffect(() => {
-  }, []);
+    if (!user) {
+      setIsDuplicate(false);
+      return;
+    }
+
+    const handleDuplicate = () => {
+      console.warn("[SOCKET] 🛡️ Sessão duplicada detectada via Socket.IO");
+      setIsDuplicate(true);
+    };
+
+    socketService.onDuplicateSession(handleDuplicate);
+    return () => {
+      socketService.off("session_duplicate", handleDuplicate);
+    };
+  }, [user]);
+
+  const DuplicateSessionOverlay = () => {
+    if (!isDuplicate) return null;
+    return (
+      <div className="fixed inset-0 z-[9999] bg-black/90 backdrop-blur-xl flex items-center justify-center p-6 text-center animate-in fade-in duration-500">
+        <div className="max-w-md w-full border-2 border-red-500/30 p-8 bg-black/60 relative overflow-hidden" style={{ clipPath: "polygon(12px 0%, 100% 0%, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0% 100%, 0% 12px)" }}>
+          <div className="absolute top-0 left-0 bg-red-500 px-3 py-1">
+            <span className="text-[10px] font-black text-black uppercase tracking-tighter">System_Alert</span>
+          </div>
+          <div className="flex flex-col items-center gap-6 mt-4">
+            <div className="w-16 h-16 rounded-full bg-red-500/10 border border-red-500/20 flex items-center justify-center animate-pulse">
+              <span className="text-3xl">⚠️</span>
+            </div>
+            <h1 className="text-2xl font-black text-white uppercase tracking-tight font-orbitron">Sincronização Interrompida</h1>
+            <p className="text-zinc-400 text-sm leading-relaxed uppercase tracking-widest font-medium">
+              Sua conta foi conectada em outro dispositivo ou aba. Por segurança, esta sessão foi encerrada.
+            </p>
+            <button
+              onClick={() => window.location.reload()}
+              className="w-full py-4 bg-red-500 hover:bg-red-400 text-black font-black font-orbitron text-xs tracking-[0.3em] uppercase transition-all"
+              style={{ clipPath: "polygon(10px 0%, 100% 0%, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0% 100%, 0% 10px)" }}
+            >
+              Sair e Limpar Cache
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
   // ───────────────────────────────────────────────────────────────────
   const isProfileLoading =
     loading || (user !== null && fetchedForUser.current !== user.id);
@@ -487,6 +533,7 @@ export const UserProfileProvider = ({ children }: { children: ReactNode }) => {
 
   return (
     <UserProfileContext.Provider value={contextValue}>
+      <DuplicateSessionOverlay />
       {children}
     </UserProfileContext.Provider>
   );
