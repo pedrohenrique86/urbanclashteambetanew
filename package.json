@@ -4,7 +4,6 @@
   "private": true,
   "description": "Orquestrador principal para o projeto UrbanClash Team",
   "scripts": {
-    "tunnel:backup": "cloudflared.exe tunnel run --token eyJhIjoiOTZlOWFiNjY5ZDgyMzBmOTNiODUzZmFiMjkxZDZhMjMiLCJ0IjoiMWVhY2QzYTUtNjc4NS00NTAxLWFmNDQtM2I4OTIzYjQ2NDhmIiwicyI6Ik1qUmtNMkUxWmpRdE9EVTRPQzAwTVdZM0xXRmxPVFV0TTJRNVpEaGpObVF5TXpVeCJ9 --url http://127.0.0.1:3002",
     "dev": "concurrently --names \"FRONT,BACKS\" --prefix-colors \"bgBlue.bold,bgGreen.bold\" \"npm run dev --prefix frontend\" \"npm run dev:all --prefix backend\"",
     "dev:all": "npm run dev:all --prefix backend",
     "build": "npm run build --prefix frontend && npm run build --prefix backend",
