@@ -68,7 +68,14 @@ const rankingCacheService = require("./services/rankingCacheService");
 const compression = require("compression");
 
 const app = express();
-app.use(compression()); // SÊNIOR: Compacta respostas para passar em redes 4G/IPv6 instáveis
+
+// LOG DE EMERGÊNCIA - Roda antes de TUDO
+app.use((req, res, next) => {
+  console.log(`[ENTRADA-BRUTA] ${req.method} ${req.url} | IP: ${req.ip}`);
+  next();
+});
+
+app.use(compression()); 
 const server = http.createServer(app);
 
 // SÊNIOR: Aumenta timeouts para aguentar latência de 4G instável
@@ -105,8 +112,11 @@ const corsOptions = {
 };
 
 app.use(cors(corsOptions));
-app.set("trust proxy", true); // Essencial para Cloudflare/Nginx identificar IP real do mobile
-// app.use(helmet({ crossOriginResourcePolicy: { policy: "cross-origin" }, contentSecurityPolicy: false }));
+app.set("trust proxy", true); 
+app.use((req, res, next) => {
+  req.realIP = req.headers['cf-connecting-ip'] || req.headers['x-forwarded-for'] || req.ip;
+  next();
+});
 app.use(express.json({ limit: "10mb" }));
 
 // Log de debug para ver o que chega do mobile (4G Diagnostic)
