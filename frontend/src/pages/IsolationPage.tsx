@@ -323,7 +323,6 @@ function IsolationChatView({ user }: { user: any }) {
   const [onlineUsers, setOnlineUsers] = useState<any[]>([]);
   const [inputText, setInputText] = useState("");
   const [isCooldown, setIsCooldown] = useState(false);
-  const [activeTab, setActiveTab] = useState<"chat" | "users">("chat");
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const userRef = useRef(user);
@@ -335,29 +334,18 @@ function IsolationChatView({ user }: { user: any }) {
     const token = tokenStorage.getToken();
     if (!token) return;
 
-    const handleHistory = (history: ChatMessage[]) => setMessages(history);
-    const handleMessage = (msg: ChatMessage) => {
+    socketService.onIsolationHistory((history) => setMessages(history));
+    socketService.onIsolationMessageReceived((msg) => {
       const currentUser = userRef.current;
       if (currentUser && msg.text.toLowerCase().includes(`@${currentUser.username.toLowerCase()}`)) {
         playMentionSound();
       }
-      setMessages((prev: ChatMessage[]) => {
-        if (prev.some((m: ChatMessage) => m.id === msg.id)) return prev;
+      setMessages(prev => {
+        if (prev.some(m => m.id === msg.id)) return prev;
         return [...prev.slice(-19), msg];
       });
-    };
-    const handleUsers = (users: any[]) => setOnlineUsers(users);
-    
-    // SÊNIOR: Re-autenticação automática essencial para mobile (quedas de sinal/4G)
-    const handleConnect = () => {
-      const t = tokenStorage.getToken();
-      if (t) socketService.authenticateIsolation(t);
-    };
-
-    socketService.onIsolationHistory(handleHistory);
-    socketService.onIsolationMessageReceived(handleMessage);
-    socketService.onIsolationUsers(handleUsers);
-    socketService.on("connect", handleConnect);
+    });
+    socketService.onIsolationUsers((users) => setOnlineUsers(users));
 
     const timer = setTimeout(() => {
       socketService.authenticateIsolation(token);
@@ -365,10 +353,6 @@ function IsolationChatView({ user }: { user: any }) {
 
     return () => {
       clearTimeout(timer);
-      socketService.off("isolation:history", handleHistory);
-      socketService.off("isolation:message", handleMessage);
-      socketService.off("isolation:users", handleUsers);
-      socketService.off("connect", handleConnect);
       setMessages([]);
       setOnlineUsers([]);
     };
@@ -376,7 +360,7 @@ function IsolationChatView({ user }: { user: any }) {
 
   useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-  }, [messages, activeTab]);
+  }, [messages]);
 
   // --- Mention System State ---
   const [showMentions, setShowMentions] = useState(false);
@@ -385,7 +369,7 @@ function IsolationChatView({ user }: { user: any }) {
   const inputRef = useRef<HTMLInputElement>(null);
 
   const filteredUsers = useMemo(() => {
-    return onlineUsers.filter((u: any) =>
+    return onlineUsers.filter((u) =>
       u.username.toLowerCase().includes(mentionFilter.toLowerCase())
     );
   }, [onlineUsers, mentionFilter]);
@@ -476,173 +460,140 @@ function IsolationChatView({ user }: { user: any }) {
   };
 
   return (
-    <div className="flex flex-col space-y-4">
-      {/* MOBILE TABS */}
-      <div className="flex md:hidden border-b border-white/10">
-        <button 
-          onClick={() => setActiveTab("chat")}
-          className={`flex-1 py-4 font-orbitron font-black text-[10px] uppercase tracking-[0.2em] transition-all ${activeTab === "chat" ? 'text-white border-b-2 border-white bg-white/5' : 'text-slate-500'}`}
-        >
-          Transmissão
-        </button>
-        <button 
-          onClick={() => setActiveTab("users")}
-          className={`flex-1 py-4 font-orbitron font-black text-[10px] uppercase tracking-[0.2em] transition-all ${activeTab === "users" ? 'text-white border-b-2 border-white bg-white/5' : 'text-slate-500'}`}
-        >
-          Detidos ({onlineUsers.length})
-        </button>
-      </div>
-
-      <div className="flex flex-col md:flex-row h-[450px] md:h-[500px] cyber-card bg-black/60 border-white/5 relative overflow-hidden" style={MILITARY_CLIP}>
-        {/* HEADER DO CHAT DESKTOP */}
-        <div className="absolute top-0 left-0 right-0 p-4 bg-white/5 border-b border-white/10 hidden md:flex justify-between items-center z-10">
-          <div className="flex items-center gap-2">
-            <div className="w-2 h-2 bg-white/40 animate-pulse"></div>
-            <h3 className="font-orbitron font-black text-white text-[10px] uppercase tracking-widest italic">Containment_Frequency_X</h3>
-          </div>
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-1.5 bg-white/10 px-2 py-0.5 border border-white/10">
-              <UserGroupIcon className="w-3 h-3 text-white/40" />
-              <span className="text-[10px] font-black text-white/60">{onlineUsers.length}</span>
-            </div>
+    <div className="flex flex-col h-[500px] cyber-card bg-black/60 border-white/5 relative overflow-hidden" style={MILITARY_CLIP}>
+      {/* HEADER DO CHAT */}
+      <div className="p-4 bg-white/5 border-b border-white/10 flex justify-between items-center relative z-10">
+        <div className="flex items-center gap-2">
+          <div className="w-2 h-2 bg-white/40 animate-pulse"></div>
+          <h3 className="font-orbitron font-black text-white text-[10px] uppercase tracking-widest italic">Containment_Frequency_X</h3>
+        </div>
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-1.5 bg-white/10 px-2 py-0.5 border border-white/10">
+            <UserGroupIcon className="w-3 h-3 text-white/40" />
+            <span className="text-[10px] font-black text-white/60">{onlineUsers.length}</span>
           </div>
         </div>
+      </div>
 
-        <div className="flex-1 flex overflow-hidden pt-0 md:pt-12">
-          {/* ÁREA DE MENSAGENS - CLAN STYLE */}
-          <div className={`${activeTab === "chat" ? "flex" : "hidden"} md:flex flex-1 flex-col min-w-0`}>
-            <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 md:p-6 space-y-4 custom-scrollbar">
-              {messages.length === 0 && (
-                <div className="h-full flex items-center justify-center opacity-20">
-                  <p className="text-[10px] font-mono text-white uppercase tracking-[0.5em]">Sem transmissões...</p>
-                </div>
-              )}
-              {messages.map((msg: ChatMessage) => {
-                const isMe = user && msg.userId === user.id;
-
-                return (
-                  <motion.div 
-                    key={msg.id}
-                    initial={{ opacity: 0, x: isMe ? 10 : -10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    className={`flex flex-col ${isMe ? 'items-end' : 'items-start'} group w-full`}
-                  >
-                    <div className={`flex items-center gap-2 mb-1 px-1 ${isMe ? 'flex-row-reverse' : 'flex-row'}`}>
-                      {msg.country && (
-                        <img 
-                          src={`https://flagcdn.com/w20/${msg.country.toLowerCase()}.png`} 
-                          className="w-3 h-auto opacity-80" 
-                          alt="flag" 
-                        />
-                      )}
-                      <span 
-                        className={`text-[10px] font-black uppercase italic tracking-tighter cursor-pointer hover:underline ${getFactionColor((msg as any).faction)}`}
-                        onClick={() => openUserPanel(msg.userId)}
-                      >
-                        {msg.username}
-                      </span>
-                      <span className="text-[8px] font-mono text-slate-400">
-                        {format(new Date(msg.timestamp), "HH:mm")}
-                      </span>
-                    </div>
-
-                    <div 
-                      className={`relative max-w-[90%] md:max-w-[80%] p-3 text-xs text-slate-300 border transition-all ${
-                        isMe 
-                          ? 'bg-white/10 border-white/20 rounded-2xl rounded-tr-none' 
-                          : 'bg-white/5 border-white/10 rounded-2xl rounded-tl-none'
-                      } group-hover:border-white/30 break-words`}
-                    >
-                      {renderMessageText(msg.text)}
-                    </div>
-                  </motion.div>
-                );
-              })}
-            </div>
-
-            {/* INPUT FIXO */}
-            <form onSubmit={sendMessage} className="p-3 md:p-4 bg-black border-t border-white/5 flex gap-2">
-              <div className="flex-1 relative">
-                <AnimatePresence>
-                  {showMentions && filteredUsers.length > 0 && (
-                    <motion.div 
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: 10 }}
-                      className="absolute bottom-full left-0 mb-2 w-48 bg-black/90 border border-white/20 max-h-40 overflow-y-auto custom-scrollbar z-50 rounded"
-                    >
-                      {filteredUsers.map((u: any, idx: number) => (
-                        <div
-                          key={u.id}
-                          onClick={() => insertMention(u.username)}
-                          className={`p-2 text-xs font-black uppercase italic cursor-pointer flex items-center gap-2 ${idx === mentionIndex ? 'bg-white/20 text-white' : 'text-slate-400 hover:bg-white/10 hover:text-white'}`}
-                        >
-                          {u.country && (
-                            <img src={`https://flagcdn.com/w20/${u.country.toLowerCase()}.png`} className="w-3 h-auto" alt="flag" />
-                          )}
-                          {u.username}
-                        </div>
-                      ))}
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-                <input
-                  ref={inputRef}
-                  type="text"
-                  maxLength={120}
-                  value={inputText}
-                  onChange={handleInputChange}
-                  onKeyDown={handleKeyDown}
-                  placeholder={isCooldown ? "Cooldown..." : "Transmitir..."}
-                  disabled={isCooldown}
-                  className="w-full bg-white/5 border border-white/10 px-4 py-2 pr-16 text-xs font-mono focus:outline-none focus:border-white/30 text-white placeholder:text-white/20 disabled:opacity-50"
+      <div className="flex-1 flex overflow-hidden">
+        {/* ÁREA DE MENSAGENS */}
+        <div className="flex-1 flex flex-col min-w-0">
+          <div ref={scrollRef} className="flex-1 overflow-y-auto p-6 space-y-4 custom-scrollbar">
+            {messages.length === 0 && (
+              <div className="h-full flex items-center justify-center opacity-20">
+                <p className="text-[10px] font-mono text-white uppercase tracking-[0.5em]">Sem transmissões...</p>
+              </div>
+            )}
+            {messages.map((msg) => (
+              <div key={msg.id} className="flex gap-3 items-start group">
+                <Avatar 
+                  src={msg.avatar} 
+                  className="w-8 h-8 cursor-pointer" 
+                  onClick={() => openUserPanel(msg.userId)}
                 />
-                <div className="absolute right-3 top-1/2 -translate-y-1/2 text-[9px] font-mono text-white/40">
-                  {inputText.length}/120
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1">
+                    {msg.country && (
+                      <img 
+                        src={`https://flagcdn.com/w20/${msg.country.toLowerCase()}.png`} 
+                        className="w-3 h-auto opacity-80" 
+                        alt="flag" 
+                      />
+                    )}
+                    <span 
+                      className={`text-[10px] font-black uppercase italic tracking-tighter cursor-pointer hover:underline ${getFactionColor((msg as any).faction)}`}
+                      onClick={() => openUserPanel(msg.userId)}
+                    >
+                      {msg.username}
+                    </span>
+                    <span className="text-[8px] font-mono text-slate-400">[{format(new Date(msg.timestamp), "dd/MM/yyyy HH:mm")}]</span>
+                  </div>
+                  <div className="bg-white/5 p-3 text-xs text-slate-300 border-l border-white/20 break-words" style={{ clipPath: "polygon(0 0, 100% 0, 100% 100%, 4px 100%, 0 calc(100% - 4px))" }}>
+                    {renderMessageText(msg.text)}
+                  </div>
                 </div>
               </div>
-              <button 
-                type="submit" 
-                disabled={isCooldown}
-                className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed" 
-                style={MILITARY_CLIP}
-              >
-                <PaperAirplaneIcon className="w-5 h-5 -rotate-45" />
-              </button>
-            </form>
+            ))}
           </div>
 
-          {/* SIDEBAR DE USUÁRIOS */}
-          <div className={`${activeTab === "users" ? "flex" : "hidden"} md:flex w-full md:w-40 bg-black/40 border-l border-white/5 flex flex-col`}>
-            <div className="p-2 bg-white/5 border-b border-white/5 hidden md:block">
-              <span className="text-[8px] font-black font-orbitron text-white/20 uppercase tracking-widest">Detidos</span>
-            </div>
-            <div className="flex-1 overflow-y-auto p-2 space-y-1.5 custom-scrollbar">
-              {onlineUsers.length === 0 ? (
-                <div className="text-[9px] font-mono text-white/20 text-center mt-4">Zero Sinais</div>
-              ) : (
-                onlineUsers.map((u: any) => (
-                  <div 
-                    key={u.id} 
-                    className="flex items-center gap-2 p-1.5 bg-white/5 border border-white/5 group cursor-pointer" 
-                    style={MILITARY_CLIP}
-                    onClick={() => openUserPanel(u.id)}
+          {/* INPUT FIXO */}
+          <form onSubmit={sendMessage} className="p-4 bg-black border-t border-white/5 flex gap-2">
+            <div className="flex-1 relative">
+              <AnimatePresence>
+                {showMentions && filteredUsers.length > 0 && (
+                  <motion.div 
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 10 }}
+                    className="absolute bottom-full left-0 mb-2 w-48 bg-black/90 border border-white/20 max-h-40 overflow-y-auto custom-scrollbar z-50 rounded"
                   >
-                    <div className="w-1 h-1 bg-white/20 rounded-full" />
-                    <div className="flex items-center gap-1.5 min-w-0">
-                      {u.country && (
-                        <img 
-                          src={`https://flagcdn.com/w20/${u.country.toLowerCase()}.png`} 
-                          className="w-2.5 h-auto opacity-40" 
-                          alt="flag" 
-                        />
-                      )}
-                      <span className={`text-[9px] font-black uppercase italic truncate group-hover:text-white transition-colors ${getFactionColor(u.faction)}`}>{u.username}</span>
-                    </div>
-                  </div>
-                ))
-              )}
+                    {filteredUsers.map((u, idx) => (
+                      <div
+                        key={u.id}
+                        onClick={() => insertMention(u.username)}
+                        className={`p-2 text-xs font-black uppercase italic cursor-pointer flex items-center gap-2 ${idx === mentionIndex ? 'bg-white/20 text-white' : 'text-slate-400 hover:bg-white/10 hover:text-white'}`}
+                      >
+                        {u.country && (
+                          <img src={`https://flagcdn.com/w20/${u.country.toLowerCase()}.png`} className="w-3 h-auto" alt="flag" />
+                        )}
+                        {u.username}
+                      </div>
+                    ))}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+              <input
+                ref={inputRef}
+                type="text"
+                maxLength={120}
+                value={inputText}
+                onChange={handleInputChange}
+                onKeyDown={handleKeyDown}
+                placeholder={isCooldown ? "Aguarde..." : "Sussurrar transmissão..."}
+                disabled={isCooldown}
+                className="w-full bg-white/5 border border-white/10 px-4 py-2 pr-16 text-xs font-mono focus:outline-none focus:border-white/30 text-white placeholder:text-white/20 disabled:opacity-50"
+              />
+              <div className="absolute right-3 top-1/2 -translate-y-1/2 text-[9px] font-mono text-white/40">
+                {inputText.length}/120
+              </div>
             </div>
+            <button 
+              type="submit" 
+              disabled={isCooldown}
+              className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed" 
+              style={MILITARY_CLIP}
+            >
+              <PaperAirplaneIcon className="w-5 h-5 -rotate-45" />
+            </button>
+          </form>
+        </div>
+
+        {/* SIDEBAR DE USUÁRIOS */}
+        <div className="w-40 bg-black/40 border-l border-white/5 hidden md:flex flex-col">
+          <div className="p-2 bg-white/5 border-b border-white/5">
+            <span className="text-[8px] font-black font-orbitron text-white/20 uppercase tracking-widest">Detidos</span>
+          </div>
+          <div className="flex-1 overflow-y-auto p-2 space-y-1.5 custom-scrollbar">
+            {onlineUsers.map(u => (
+              <div 
+                key={u.id} 
+                className="flex items-center gap-2 p-1.5 bg-white/5 border border-white/5 group cursor-pointer" 
+                style={MILITARY_CLIP}
+                onClick={() => openUserPanel(u.id)}
+              >
+                <div className="w-1 h-1 bg-white/20 rounded-full" />
+                <div className="flex items-center gap-1.5 min-w-0">
+                  {u.country && (
+                    <img 
+                      src={`https://flagcdn.com/w20/${u.country.toLowerCase()}.png`} 
+                      className="w-2.5 h-auto opacity-40" 
+                      alt="flag" 
+                    />
+                  )}
+                  <span className={`text-[9px] font-black uppercase italic truncate group-hover:text-white transition-colors ${getFactionColor(u.faction)}`}>{u.username}</span>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </div>
