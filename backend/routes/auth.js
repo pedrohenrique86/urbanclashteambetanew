@@ -31,8 +31,8 @@ const oauth2Client = new google.auth.OAuth2(
 // Rate limiting específico para autenticação
 const authLimiter = rateLimit({
   windowMs: 1 * 60 * 1000, // 1 minuto
-  max: 10, // SÊNIOR: Aumentado para 10 para tolerar reconexões mobile (4G/Wi-Fi)
-  message: { error: "Muitas tentativas de login, tente novamente em 1 minuto" },
+  max: 100, // SÊNIOR: Aumentado para 100 para suportar IPs compartilhados de operadoras (CGNAT) no 4G
+  message: { error: "Muitas tentativas de login do seu grupo de rede, tente novamente em 1 minuto" },
   standardHeaders: true,
   legacyHeaders: false,
 });

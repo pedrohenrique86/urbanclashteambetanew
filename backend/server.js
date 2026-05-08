@@ -97,14 +97,23 @@ const corsOptions = {
 
 app.use(cors(corsOptions));
 app.set("trust proxy", true); // Essencial para Cloudflare/Nginx identificar IP real do mobile
-app.use(helmet({ crossOriginResourcePolicy: { policy: "cross-origin" }, contentSecurityPolicy: false }));
+// app.use(helmet({ crossOriginResourcePolicy: { policy: "cross-origin" }, contentSecurityPolicy: false }));
 app.use(express.json({ limit: "10mb" }));
 
-// Log de debug para ver o que chega do mobile
+// Log de debug para ver o que chega do mobile (4G Diagnostic)
 app.use((req, res, next) => {
-  if (req.path.includes('/api/auth') || req.path.includes('/subscribe')) {
-    console.log(`[DEBUG] ${req.method} ${req.path} - Origin: ${req.get('origin')} - UA: ${req.get('user-agent')}`);
-  }
+  const oldJson = res.json;
+  res.json = function(data) {
+    if (res.statusCode >= 400 && (req.path.includes('/auth') || req.path.includes('/profile'))) {
+      console.log(`[4G-DIAGNOSTIC] ❌ Falha em ${req.method} ${req.path}`);
+      console.log(` > Status: ${res.statusCode}`);
+      console.log(` > IP: ${req.ip}`);
+      console.log(` > Auth Header: ${req.headers.authorization ? 'Presente' : 'AUSENTE'}`);
+      console.log(` > Token Query: ${req.query.token ? 'Presente' : 'AUSENTE'}`);
+      console.log(` > UA: ${req.get('user-agent')}`);
+    }
+    return oldJson.apply(res, arguments);
+  };
   next();
 });
 
