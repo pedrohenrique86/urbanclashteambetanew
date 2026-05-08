@@ -300,6 +300,7 @@ function ReconditioningView({ user, timeLeft, formatTime }: { user: any, timeLef
   const [onlineUsers, setOnlineUsers] = useState<any[]>([]);
   const [inputText, setInputText] = useState("");
   const [isCooldown, setIsCooldown] = useState(false);
+  const [activeTab, setActiveTab] = useState<'chat' | 'online'>('chat');
   const [loadingAction, setLoadingAction] = useState(false);
   const { showToast } = useToast();
   const { refreshProfile } = useUserProfile();
@@ -335,7 +336,6 @@ function ReconditioningView({ user, timeLeft, formatTime }: { user: any, timeLef
         playMentionSound();
       }
       setMessages(prev => {
-        // Evitar duplicatas por ID
         if (prev.some(m => m.id === msg.id)) return prev;
         return [...prev.slice(-19), msg];
       });
@@ -346,15 +346,12 @@ function ReconditioningView({ user, timeLeft, formatTime }: { user: any, timeLef
     socketService.onRecoveryMessageReceived(handleMessage);
     socketService.onRecoveryUsers(handleUsers);
 
-    // Pequeno delay para garantir que os listeners estão prontos
     const timer = setTimeout(() => {
       socketService.authenticateRecovery(token);
     }, 500);
 
     return () => {
       clearTimeout(timer);
-      // O ideal seria dar off nos listeners, mas o Singleton socketService
-      // costuma gerenciar isso. Para garantir, limpamos o estado local.
       setMessages([]);
       setOnlineUsers([]);
     };
@@ -497,146 +494,189 @@ function ReconditioningView({ user, timeLeft, formatTime }: { user: any, timeLef
         </div>
       </div>
 
-      <div className="flex flex-col h-[550px] cyber-card relative overflow-hidden" style={MILITARY_CLIP}>
-      {/* HEADER DO CHAT */}
-      <div className="p-4 bg-white/5 border-b border-white/10 flex justify-between items-center relative z-10">
-        <div className="flex items-center gap-3">
-          <div className="w-3 h-3 bg-red-500 animate-pulse shadow-[0_0_10px_rgba(239,68,68,0.5)]"></div>
-          <h3 className="font-orbitron font-black text-white text-[11px] uppercase tracking-[0.3em] italic">Frequency_Emergency_B01</h3>
-        </div>
-        <div className="flex items-center gap-4">
-          <span className="text-[9px] font-mono text-slate-500 uppercase tracking-tighter hidden md:inline">Status: <span className="text-emerald-500">Encrypted_Link</span></span>
-          <div className="flex items-center gap-1.5 bg-red-500/10 px-2 py-1 border border-red-500/20" style={MILITARY_CLIP}>
-            <UserGroupIcon className="w-3 h-3 text-red-500" />
-            <span className="text-[10px] font-black text-red-500">{onlineUsers.length}</span>
-          </div>
-        </div>
-      </div>
+      <div className="flex flex-col space-y-4">
+        {/* MOBILE TAB SWITCHER */}
+        <div className="flex md:hidden gap-2 px-1">
+          <button
+            onClick={() => setActiveTab('chat')}
+            className={`flex-1 relative py-2.5 px-3 font-orbitron font-black uppercase tracking-widest transition-all overflow-hidden ${
+              activeTab === 'chat' ? 'text-white' : 'text-red-400/50'
+            }`}
+          >
+            <div 
+              className={`absolute inset-0 transition-all duration-300 ${
+                activeTab === 'chat' 
+                ? 'bg-red-600 border-red-400 shadow-[0_0_15px_rgba(220,38,38,0.4)]' 
+                : 'bg-black/60 border-white/10'
+              } border`}
+              style={MILITARY_CLIP}
+            />
+            <div className="relative z-10 flex items-center justify-center gap-2">
+              <ChatBubbleLeftRightIcon className="w-4 h-4" />
+              <span className="text-[10px]">TERMINAL</span>
+            </div>
+          </button>
 
-      <div className="flex-1 flex overflow-hidden">
-        {/* ÁREA DE MENSAGENS */}
-        <div className="flex-1 flex flex-col min-w-0 bg-black/40">
-          <div ref={scrollRef} className="flex-1 overflow-y-auto p-6 space-y-4 custom-scrollbar">
-            {messages.length === 0 && (
-              <div className="flex flex-col items-center justify-center h-full opacity-20 grayscale">
-                <ChatBubbleLeftRightIcon className="w-12 h-12 text-slate-500 mb-2" />
-                <p className="text-[10px] font-mono uppercase tracking-widest">Nenhuma transmissão detectada...</p>
+          <button
+            onClick={() => setActiveTab('online')}
+            className={`flex-1 relative py-2.5 px-3 font-orbitron font-black uppercase tracking-widest transition-all overflow-hidden ${
+              activeTab === 'online' ? 'text-white' : 'text-red-400/50'
+            }`}
+          >
+            <div 
+              className={`absolute inset-0 transition-all duration-300 ${
+                activeTab === 'online' 
+                ? 'bg-red-600 border-red-400 shadow-[0_0_15px_rgba(220,38,38,0.4)]' 
+                : 'bg-black/60 border-white/10'
+              } border`}
+              style={MILITARY_CLIP}
+            />
+            <div className="relative z-10 flex items-center justify-center gap-2">
+              <UserGroupIcon className="w-4 h-4" />
+              <span className="text-[10px]">MEDICAL</span>
+            </div>
+          </button>
+        </div>
+
+        <div className="flex flex-col md:flex-row h-auto md:h-[550px] min-h-[450px] cyber-card relative overflow-hidden" style={MILITARY_CLIP}>
+          {/* ÁREA DE MENSAGENS */}
+          <div className={`flex-[3] flex flex-col min-w-0 bg-black/40 border-b md:border-b-0 md:border-r border-white/10 h-[450px] md:h-auto ${activeTab !== 'chat' ? 'hidden md:flex' : 'flex'}`}>
+            {/* HEADER DO CHAT */}
+            <div className="p-4 bg-white/5 border-b border-white/10 flex justify-between items-center relative z-10">
+              <div className="flex items-center gap-3">
+                <div className="w-3 h-3 bg-red-500 animate-pulse shadow-[0_0_10px_rgba(239,68,68,0.5)]"></div>
+                <h3 className="font-orbitron font-black text-white text-[11px] uppercase tracking-[0.3em] italic">Frequency_Emergency_B01</h3>
               </div>
-            )}
-            {messages.map((msg) => (
-              <div key={msg.id} className="flex gap-3 items-start group">
-                <Avatar 
-                  src={msg.avatar} 
-                  className="w-8 h-8 cursor-pointer" 
-                  onClick={() => openUserPanel(msg.userId)}
+              <div className="flex items-center gap-4">
+                <span className="text-[9px] font-mono text-slate-500 uppercase tracking-tighter hidden md:inline">Status: <span className="text-emerald-500">Encrypted_Link</span></span>
+                <div className="flex items-center gap-1.5 bg-red-500/10 px-2 py-1 border border-red-500/20" style={MILITARY_CLIP}>
+                  <UserGroupIcon className="w-3 h-3 text-red-500" />
+                  <span className="text-[10px] font-black text-red-500">{onlineUsers.length}</span>
+                </div>
+              </div>
+            </div>
+
+            <div ref={scrollRef} className="flex-1 overflow-y-auto p-6 space-y-4 custom-scrollbar">
+              {messages.length === 0 && (
+                <div className="flex flex-col items-center justify-center h-full opacity-20 grayscale">
+                  <ChatBubbleLeftRightIcon className="w-12 h-12 text-slate-500 mb-2" />
+                  <p className="text-[10px] font-mono uppercase tracking-widest">Nenhuma transmissão detectada...</p>
+                </div>
+              )}
+              {messages.map((msg) => (
+                <div key={msg.id} className="flex gap-3 items-start group">
+                  <Avatar 
+                    src={msg.avatar} 
+                    className="w-8 h-8 cursor-pointer" 
+                    onClick={() => openUserPanel(msg.userId)}
+                  />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      {msg.country && (
+                        <img 
+                          src={`https://flagcdn.com/w20/${msg.country.toLowerCase()}.png`} 
+                          className="w-3 h-auto opacity-80" 
+                          alt="flag" 
+                        />
+                      )}
+                      <span 
+                        className={`text-[10px] font-black uppercase italic tracking-tighter cursor-pointer hover:underline ${getFactionColor((msg as any).faction)}`}
+                        onClick={() => openUserPanel(msg.userId)}
+                      >
+                        {msg.username}
+                      </span>
+                      <span className="text-[8px] font-mono text-slate-400">[{format(new Date(msg.timestamp), "dd/MM/yyyy HH:mm")}]</span>
+                    </div>
+                    <div className="bg-white/5 p-3 text-xs text-slate-300 border-l-2 border-red-500/30 break-words" style={{ clipPath: "polygon(0 0, 100% 0, 100% 100%, 4px 100%, 0 calc(100% - 4px))" }}>
+                      {renderMessageText(msg.text)}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* INPUT FIXO */}
+            <form onSubmit={sendMessage} className="p-4 bg-black/80 border-t border-white/10 flex gap-2">
+              <div className="flex-1 relative">
+                <AnimatePresence>
+                  {showMentions && filteredUsers.length > 0 && (
+                    <motion.div 
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: 10 }}
+                      className="absolute bottom-full left-0 mb-2 w-48 bg-black/90 border border-red-500/30 shadow-[0_0_15px_rgba(239,68,68,0.3)] max-h-40 overflow-y-auto custom-scrollbar z-50 rounded"
+                    >
+                      {filteredUsers.map((u, idx) => (
+                        <div
+                          key={u.id}
+                          onClick={() => insertMention(u.username)}
+                          className={`p-2 text-xs font-black uppercase italic cursor-pointer flex items-center gap-2 ${idx === mentionIndex ? 'bg-red-500/30 text-white' : 'text-slate-400 hover:bg-red-500/10 hover:text-white'}`}
+                        >
+                          {u.country && (
+                            <img src={`https://flagcdn.com/w20/${u.country.toLowerCase()}.png`} className="w-3 h-auto" alt="flag" />
+                          )}
+                          {u.username}
+                        </div>
+                      ))}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+                <input 
+                  ref={inputRef}
+                  type="text"
+                  maxLength={120}
+                  value={inputText}
+                  onChange={handleInputChange}
+                  onKeyDown={handleKeyDown}
+                  placeholder={isCooldown ? "Cooldown ativo..." : "Digite sua transmissão... (@ marca usuário)"}
+                  disabled={isCooldown}
+                  className="w-full bg-white/5 border border-white/10 px-4 py-3 pr-16 text-xs font-mono text-white placeholder:text-slate-600 focus:outline-none focus:border-red-500/50 transition-colors disabled:opacity-50"
                 />
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    {msg.country && (
+                <div className="absolute right-3 top-1/2 -translate-y-1/2 text-[9px] font-mono text-slate-400">
+                  {inputText.length}/120
+                </div>
+              </div>
+              <button 
+                type="submit" 
+                disabled={isCooldown}
+                className="px-6 bg-red-600 hover:bg-red-500 text-white transition-all active:scale-95 shadow-[0_0_15px_rgba(220,38,38,0.3)] disabled:grayscale disabled:opacity-50 disabled:cursor-not-allowed" 
+                style={MILITARY_CLIP}
+              >
+                <PaperAirplaneIcon className="w-5 h-5 -rotate-45" />
+              </button>
+            </form>
+          </div>
+
+          {/* SIDEBAR DE USUÁRIOS (Compacto) */}
+          <div className={`w-full md:w-48 bg-black/60 border-l border-white/10 flex flex-col h-auto md:h-full ${activeTab !== 'online' ? 'hidden md:flex' : 'flex'}`}>
+            <div className="p-3 bg-white/5 border-b border-white/10">
+              <span className="text-[9px] font-black font-orbitron text-slate-500 uppercase tracking-widest">Medical_Contacts</span>
+            </div>
+            <div className="flex-1 overflow-y-auto p-3 space-y-2 custom-scrollbar max-h-[300px] md:max-h-none">
+              {onlineUsers.map(u => (
+                <div 
+                  key={u.id} 
+                  className="flex items-center gap-2 p-1.5 bg-white/5 border border-white/5 group cursor-pointer hover:border-red-500/30 transition-colors" 
+                  style={MILITARY_CLIP}
+                  onClick={() => openUserPanel(u.id)}
+                >
+                  <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full shadow-[0_0_5px_rgba(16,185,129,0.8)] animate-pulse" />
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    {u.country && (
                       <img 
-                        src={`https://flagcdn.com/w20/${msg.country.toLowerCase()}.png`} 
-                        className="w-3 h-auto opacity-80" 
+                        src={`https://flagcdn.com/w20/${u.country.toLowerCase()}.png`} 
+                        className="w-2.5 h-auto opacity-70" 
                         alt="flag" 
                       />
                     )}
-                    <span 
-                      className={`text-[10px] font-black uppercase italic tracking-tighter cursor-pointer hover:underline ${getFactionColor((msg as any).faction)}`}
-                      onClick={() => openUserPanel(msg.userId)}
-                    >
-                      {msg.username}
-                    </span>
-                    <span className="text-[8px] font-mono text-slate-400">[{format(new Date(msg.timestamp), "dd/MM/yyyy HH:mm")}]</span>
-                  </div>
-                  <div className="bg-white/5 p-3 text-xs text-slate-300 border-l-2 border-red-500/30 break-words" style={{ clipPath: "polygon(0 0, 100% 0, 100% 100%, 4px 100%, 0 calc(100% - 4px))" }}>
-                    {renderMessageText(msg.text)}
+                    <span className={`text-[9px] font-black uppercase italic truncate group-hover:text-white transition-colors ${getFactionColor(u.faction)}`}>{u.username}</span>
                   </div>
                 </div>
-              </div>
-            ))}
-          </div>
-
-          {/* INPUT FIXO */}
-          <form onSubmit={sendMessage} className="p-4 bg-black/80 border-t border-white/10 flex gap-2">
-            <div className="flex-1 relative">
-              <AnimatePresence>
-                {showMentions && filteredUsers.length > 0 && (
-                  <motion.div 
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: 10 }}
-                    className="absolute bottom-full left-0 mb-2 w-48 bg-black/90 border border-red-500/30 shadow-[0_0_15px_rgba(239,68,68,0.3)] max-h-40 overflow-y-auto custom-scrollbar z-50 rounded"
-                  >
-                    {filteredUsers.map((u, idx) => (
-                      <div
-                        key={u.id}
-                        onClick={() => insertMention(u.username)}
-                        className={`p-2 text-xs font-black uppercase italic cursor-pointer flex items-center gap-2 ${idx === mentionIndex ? 'bg-red-500/30 text-white' : 'text-slate-400 hover:bg-red-500/10 hover:text-white'}`}
-                      >
-                        {u.country && (
-                          <img src={`https://flagcdn.com/w20/${u.country.toLowerCase()}.png`} className="w-3 h-auto" alt="flag" />
-                        )}
-                        {u.username}
-                      </div>
-                    ))}
-                  </motion.div>
-                )}
-              </AnimatePresence>
-              <input 
-                ref={inputRef}
-                type="text"
-                maxLength={120}
-                value={inputText}
-                onChange={handleInputChange}
-                onKeyDown={handleKeyDown}
-                placeholder={isCooldown ? "Cooldown ativo..." : "Digite sua transmissão... (@ marca usuário)"}
-                disabled={isCooldown}
-                className="w-full bg-white/5 border border-white/10 px-4 py-3 pr-16 text-xs font-mono text-white placeholder:text-slate-600 focus:outline-none focus:border-red-500/50 transition-colors disabled:opacity-50"
-              />
-              <div className="absolute right-3 top-1/2 -translate-y-1/2 text-[9px] font-mono text-slate-400">
-                {inputText.length}/120
-              </div>
+              ))}
             </div>
-            <button 
-              type="submit" 
-              disabled={isCooldown}
-              className="px-6 bg-red-600 hover:bg-red-500 text-white transition-all active:scale-95 shadow-[0_0_15px_rgba(220,38,38,0.3)] disabled:grayscale disabled:opacity-50 disabled:cursor-not-allowed" 
-              style={MILITARY_CLIP}
-            >
-              <PaperAirplaneIcon className="w-5 h-5 -rotate-45" />
-            </button>
-          </form>
-        </div>
-
-        {/* SIDEBAR DE USUÁRIOS (Compacto) */}
-        <div className="w-48 bg-black/60 border-l border-white/10 hidden md:flex flex-col">
-          <div className="p-3 bg-white/5 border-b border-white/10">
-            <span className="text-[9px] font-black font-orbitron text-slate-500 uppercase tracking-widest">Contatos_Online</span>
-          </div>
-          <div className="flex-1 overflow-y-auto p-3 space-y-2 custom-scrollbar">
-            {onlineUsers.map(u => (
-              <div 
-                key={u.id} 
-                className="flex items-center gap-2 p-1.5 bg-white/5 border border-white/5 group cursor-pointer hover:border-red-500/30 transition-colors" 
-                style={MILITARY_CLIP}
-                onClick={() => openUserPanel(u.id)}
-              >
-                <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full shadow-[0_0_5px_rgba(16,185,129,0.8)] animate-pulse" />
-                <div className="flex items-center gap-1.5 min-w-0">
-                  {u.country && (
-                    <img 
-                      src={`https://flagcdn.com/w20/${u.country.toLowerCase()}.png`} 
-                      className="w-2.5 h-auto opacity-70" 
-                      alt="flag" 
-                    />
-                  )}
-                  <span className={`text-[9px] font-black uppercase italic truncate group-hover:text-white transition-colors ${getFactionColor(u.faction)}`}>{u.username}</span>
-                </div>
-              </div>
-            ))}
           </div>
         </div>
       </div>
-    </div>
     </div>
   );
 }

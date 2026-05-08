@@ -323,6 +323,7 @@ function IsolationChatView({ user }: { user: any }) {
   const [onlineUsers, setOnlineUsers] = useState<any[]>([]);
   const [inputText, setInputText] = useState("");
   const [isCooldown, setIsCooldown] = useState(false);
+  const [activeTab, setActiveTab] = useState<'chat' | 'online'>('chat');
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const userRef = useRef(user);
@@ -460,24 +461,67 @@ function IsolationChatView({ user }: { user: any }) {
   };
 
   return (
-    <div className="flex flex-col h-[500px] cyber-card bg-black/60 border-white/5 relative overflow-hidden" style={MILITARY_CLIP}>
-      {/* HEADER DO CHAT */}
-      <div className="p-4 bg-white/5 border-b border-white/10 flex justify-between items-center relative z-10">
-        <div className="flex items-center gap-2">
-          <div className="w-2 h-2 bg-white/40 animate-pulse"></div>
-          <h3 className="font-orbitron font-black text-white text-[10px] uppercase tracking-widest italic">Containment_Frequency_X</h3>
-        </div>
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-1.5 bg-white/10 px-2 py-0.5 border border-white/10">
-            <UserGroupIcon className="w-3 h-3 text-white/40" />
-            <span className="text-[10px] font-black text-white/60">{onlineUsers.length}</span>
+    <div className="flex flex-col space-y-4">
+      {/* MOBILE TAB SWITCHER */}
+      <div className="flex md:hidden gap-2 px-1">
+        <button
+          onClick={() => setActiveTab('chat')}
+          className={`flex-1 relative py-2.5 px-3 font-orbitron font-black uppercase tracking-widest transition-all overflow-hidden ${
+            activeTab === 'chat' ? 'text-white' : 'text-white/40'
+          }`}
+        >
+          <div 
+            className={`absolute inset-0 transition-all duration-300 ${
+              activeTab === 'chat' 
+              ? 'bg-white/10 border-white/40 shadow-[0_0_15px_rgba(255,255,255,0.2)]' 
+              : 'bg-black/60 border-white/10'
+            } border`}
+            style={MILITARY_CLIP}
+          />
+          <div className="relative z-10 flex items-center justify-center gap-2">
+            <ChatBubbleLeftRightIcon className="w-4 h-4" />
+            <span className="text-[10px]">TERMINAL</span>
           </div>
-        </div>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('online')}
+          className={`flex-1 relative py-2.5 px-3 font-orbitron font-black uppercase tracking-widest transition-all overflow-hidden ${
+            activeTab === 'online' ? 'text-white' : 'text-white/40'
+          }`}
+        >
+          <div 
+            className={`absolute inset-0 transition-all duration-300 ${
+              activeTab === 'online' 
+              ? 'bg-white/10 border-white/40 shadow-[0_0_15px_rgba(255,255,255,0.2)]' 
+              : 'bg-black/60 border-white/10'
+            } border`}
+            style={MILITARY_CLIP}
+          />
+          <div className="relative z-10 flex items-center justify-center gap-2">
+            <UserGroupIcon className="w-4 h-4" />
+            <span className="text-[10px]">DETENTION</span>
+          </div>
+        </button>
       </div>
 
-      <div className="flex-1 flex overflow-hidden">
+      <div className="flex flex-col md:flex-row h-auto md:h-[500px] min-h-[450px] cyber-card bg-black/60 border-white/5 relative overflow-hidden" style={MILITARY_CLIP}>
         {/* ÁREA DE MENSAGENS */}
-        <div className="flex-1 flex flex-col min-w-0">
+        <div className={`flex-[3] flex flex-col min-w-0 border-b md:border-b-0 md:border-r border-white/10 h-[450px] md:h-auto ${activeTab !== 'chat' ? 'hidden md:flex' : 'flex'}`}>
+          {/* HEADER DO CHAT */}
+          <div className="p-4 bg-white/5 border-b border-white/10 flex justify-between items-center relative z-10">
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 bg-white/40 animate-pulse"></div>
+              <h3 className="font-orbitron font-black text-white text-[10px] uppercase tracking-widest italic">Containment_Frequency_X</h3>
+            </div>
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-1.5 bg-white/10 px-2 py-0.5 border border-white/10">
+                <UserGroupIcon className="w-3 h-3 text-white/40" />
+                <span className="text-[10px] font-black text-white/60">{onlineUsers.length}</span>
+              </div>
+            </div>
+          </div>
+
           <div ref={scrollRef} className="flex-1 overflow-y-auto p-6 space-y-4 custom-scrollbar">
             {messages.length === 0 && (
               <div className="h-full flex items-center justify-center opacity-20">
@@ -569,11 +613,11 @@ function IsolationChatView({ user }: { user: any }) {
         </div>
 
         {/* SIDEBAR DE USUÁRIOS */}
-        <div className="w-40 bg-black/40 border-l border-white/5 hidden md:flex flex-col">
-          <div className="p-2 bg-white/5 border-b border-white/5">
-            <span className="text-[8px] font-black font-orbitron text-white/20 uppercase tracking-widest">Detidos</span>
+        <div className={`w-full md:w-48 bg-black/40 border-l border-white/5 flex flex-col h-auto md:h-full ${activeTab !== 'online' ? 'hidden md:flex' : 'flex'}`}>
+          <div className="p-3 bg-white/5 border-b border-white/5">
+            <span className="text-[10px] font-black font-orbitron text-white/20 uppercase tracking-widest">Detidos Online</span>
           </div>
-          <div className="flex-1 overflow-y-auto p-2 space-y-1.5 custom-scrollbar">
+          <div className="flex-1 overflow-y-auto p-3 space-y-2 custom-scrollbar max-h-[300px] md:max-h-none">
             {onlineUsers.map(u => (
               <div 
                 key={u.id} 
@@ -581,7 +625,7 @@ function IsolationChatView({ user }: { user: any }) {
                 style={MILITARY_CLIP}
                 onClick={() => openUserPanel(u.id)}
               >
-                <div className="w-1 h-1 bg-white/20 rounded-full" />
+                <div className="w-1.5 h-1.5 bg-white/20 rounded-full" />
                 <div className="flex items-center gap-1.5 min-w-0">
                   {u.country && (
                     <img 
