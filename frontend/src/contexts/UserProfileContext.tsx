@@ -12,8 +12,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "./AuthContext";
 import api from "../lib/api";
 import { HUDCache } from "../hooks/useHUDCache";
-import { usePlayerStateSSE, PlayerStatePayload, DuplicateSessionPayload } from "../hooks/usePlayerStateSSE";
-import DuplicateSessionOverlay from "../components/layout/DuplicateSessionOverlay";
+import { usePlayerStateSSE, PlayerStatePayload } from "../hooks/usePlayerStateSSE";
 import { socketService } from "../services/socketService";
 
 export interface Faction {
@@ -182,7 +181,6 @@ export const UserProfileProvider = ({ children }: { children: ReactNode }) => {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(() => readProfileCache());
   const [loading, setLoading] = useState(false);
   const [isError, setIsError] = useState(false);
-  const [isDuplicateSession, setIsDuplicateSession] = useState(false);
 
   const isFetching = useRef(false);
   const cooldownUntil = useRef(0);
@@ -401,14 +399,11 @@ export const UserProfileProvider = ({ children }: { children: ReactNode }) => {
     userId: user?.id ?? null,
     onStateUpdate: handlePlayerStateUpdate,
     onStatusUpdate: handlePlayerStatusUpdate,
-    onDuplicateSession: () => setIsDuplicateSession(true),
+    onDuplicateSession: () => {},
   });
 
-  // SÊNIOR: Listener global para kick no Socket.IO (Chat e outros eventos real-time)
+  // SÊNIOR: Listener global para Socket.IO removido a pedido do usuário
   useEffect(() => {
-    socketService.onDuplicateSession(() => {
-      setIsDuplicateSession(true);
-    });
   }, []);
   // ───────────────────────────────────────────────────────────────────
   const isProfileLoading =
@@ -493,10 +488,6 @@ export const UserProfileProvider = ({ children }: { children: ReactNode }) => {
   return (
     <UserProfileContext.Provider value={contextValue}>
       {children}
-      <DuplicateSessionOverlay 
-        isVisible={isDuplicateSession} 
-        onReconnect={() => window.location.reload()} 
-      />
     </UserProfileContext.Provider>
   );
 };
