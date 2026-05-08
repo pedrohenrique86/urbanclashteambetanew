@@ -182,10 +182,10 @@ export default function SocialZonePage() {
       </div>
 
       {/* HEADER (Exact match to Training Page style) */}
-      <header className="max-w-6xl mx-auto mb-12 relative z-10">
+      <header className="max-w-6xl mx-auto mb-6 md:mb-12 relative z-10">
         <div className="absolute -left-4 top-1/2 -translate-y-1/2 w-1 h-12 bg-violet-500 shadow-[0_0_15px_rgba(139,92,246,0.8)]"></div>
         <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}>
-          <h1 className="text-4xl md:text-6xl font-orbitron font-black tracking-widest text-white uppercase" style={{ textShadow: "2px 0px 0px rgba(139,92,246,0.7), -2px 0px 0px rgba(34,211,238,0.7)" }}>
+          <h1 className="text-3xl md:text-6xl font-orbitron font-black tracking-widest text-white uppercase" style={{ textShadow: "2px 0px 0px rgba(139,92,246,0.7), -2px 0px 0px rgba(34,211,238,0.7)" }}>
             Social <span className="text-violet-400">Zone</span> HUB
           </h1>
           <div className="flex flex-col gap-3 mt-4">
@@ -212,10 +212,10 @@ export default function SocialZonePage() {
       <main className="max-w-7xl mx-auto relative z-10">
         
         {/* UNIFIED CONTAINER */}
-        <div className="flex flex-col md:flex-row h-[650px] cyber-card cyber-card-violet bg-black/60 border-white/5 relative overflow-hidden" style={MILITARY_CLIP}>
+        <div className="flex flex-col md:flex-row h-auto md:h-[650px] min-h-[500px] cyber-card cyber-card-violet bg-black/60 border-white/5 relative overflow-hidden" style={MILITARY_CLIP}>
           
           {/* LEFT: CHAT AREA (3/4 on desktop) */}
-          <div className="flex-1 flex flex-col min-w-0 border-r border-white/10">
+          <div className="flex-[3] flex flex-col min-w-0 border-b md:border-b-0 md:border-r border-white/10 h-[500px] md:h-auto">
             {/* CHAT HEADER */}
             <div className="p-4 bg-white/5 border-b border-white/10 flex justify-between items-center">
               <div className="flex items-center gap-2">
@@ -337,13 +337,13 @@ export default function SocialZonePage() {
           </div>
 
           {/* RIGHT: ONLINE USERS (Sidebar) */}
-          <div className="w-full md:w-64 flex flex-col bg-black/20">
+          <div className="w-full md:w-64 flex flex-col bg-black/20 h-auto md:h-full">
             <div className="p-4 bg-white/5 border-b border-white/10 flex items-center gap-2">
               <UserGroupIcon className="w-4 h-4 text-violet-400" />
               <span className="text-[10px] font-orbitron font-bold text-white uppercase tracking-widest">Online ({onlineUsers.length})</span>
             </div>
             
-            <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar">
+            <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar max-h-[300px] md:max-h-none">
               {onlineUsers.map(u => (
                 <div 
                   key={u.id}
@@ -440,7 +440,7 @@ export default function SocialZonePage() {
       </main>
 
       {/* FOOTER (Exact match to Training Page) */}
-      <footer className="max-w-6xl mx-auto mt-20 pt-8 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-4 opacity-70 grayscale hover:grayscale-0 transition-all relative z-10 font-mono text-[10px] uppercase tracking-[0.5em]">
+      <footer className="max-w-6xl mx-auto mt-10 md:mt-20 pt-8 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-4 opacity-70 grayscale hover:grayscale-0 transition-all relative z-10 font-mono text-[10px] uppercase tracking-[0.5em]">
         <div className="flex items-center gap-6">
           <div className="flex flex-col">
              <span className="text-[8px] font-black tracking-widest text-white/40">Encryption</span>
