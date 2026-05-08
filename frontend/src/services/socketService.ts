@@ -64,13 +64,14 @@ class SocketService {
 
       console.log("🔌 Iniciando conexão Socket.IO em:", socketUrl);
 
-      // SÊNIOR: Forçamos apenas 'websocket' para evitar loops de reconexão
-      // no modo polling que falham devido à falta de Sticky Sessions no Cloudflare/Proxy.
+      // SÊNIOR: Reativamos 'polling' como fallback obrigatório para 4G/redes instáveis.
+      // Adicionado 'rememberUpgrade' para evitar loops de handshake em redes móveis.
       this.socket = io(socketUrl, {
         reconnectionAttempts: 20,
         reconnectionDelay: 2000,
         path: "/socket.io/",
-        transports: ["websocket"],
+        transports: ["polling", "websocket"],
+        rememberUpgrade: true,
         secure: socketUrl.startsWith("https"),
         withCredentials: true,
       });
