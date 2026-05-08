@@ -56,6 +56,7 @@ export default function ClanPage() {
   const [clanError, setClanError] = useState<string | null>(null);
   const [leaving, setLeaving] = useState<boolean>(false);
   const [confirmLeave, setConfirmLeave] = useState<boolean>(false);
+  const [activeTab, setActiveTab] = useState<"terminal" | "battalion">("terminal");
 
   const theme = useMemo(() => {
     const rawF = clan?.faction || (userProfile?.faction as any)?.name || userProfile?.faction;
@@ -211,17 +212,43 @@ export default function ClanPage() {
            </div>
         </div>
 
-        {/* 2. BODY COM DISPOSIÇÃO EMBUTIDA (Borders Divisoras Internas) */}
+        {/* 2. MOBILE TABS SWITCHER */}
+        <div className="flex md:hidden border-b border-white/10 bg-black/40 p-1">
+          <button
+            onClick={() => setActiveTab("terminal")}
+            className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl transition-all duration-300 ${
+              activeTab === "terminal"
+                ? `bg-white/10 ${theme.accent} shadow-[inset_0_0_15px_rgba(255,255,255,0.05)]`
+                : "text-zinc-500"
+            }`}
+          >
+            <Zap size={14} />
+            <span className="text-[10px] font-black font-orbitron tracking-widest uppercase">TERMINAL</span>
+          </button>
+          <button
+            onClick={() => setActiveTab("battalion")}
+            className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl transition-all duration-300 ${
+              activeTab === "battalion"
+                ? `bg-white/10 ${theme.accent} shadow-[inset_0_0_15px_rgba(255,255,255,0.05)]`
+                : "text-zinc-500"
+            }`}
+          >
+            <Users size={14} />
+            <span className="text-[10px] font-black font-orbitron tracking-widest uppercase">BATTALION</span>
+          </button>
+        </div>
+
+        {/* 3. BODY COM DISPOSIÇÃO EMBUTIDA (Borders Divisoras Internas) */}
         <div className="flex-1 flex flex-col lg:flex-row relative z-10 w-full min-h-[500px]">
            
            {/* Lado Esquerdo: Chat ocupa a maioria em telas grandes */}
-           <div className="flex-1 flex lg:min-h-[550px] border-b lg:border-b-0 lg:border-r border-white/5 bg-transparent">
+           <div className={`flex-1 flex lg:min-h-[550px] border-b lg:border-b-0 lg:border-r border-white/5 bg-transparent ${activeTab === 'terminal' ? 'flex' : 'hidden md:flex'}`}>
               {/* Passando uma nova altura h-full para alinhar */}
               <ClanChat members={clan?.members} />
            </div>
 
            {/* Lado Direito: Dossiê e Painel de Controle */}
-           <div className="w-full lg:w-[320px] xl:w-[380px] flex flex-col bg-zinc-950/40 relative">
+           <div className={`w-full lg:w-[320px] xl:w-[380px] flex flex-col bg-zinc-950/40 relative ${activeTab === 'battalion' ? 'flex' : 'hidden md:flex'}`}>
               
               {/* Título Lista */}
               <div className="px-5 py-3 border-b border-white/5 flex items-center justify-between bg-black/40">

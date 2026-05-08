@@ -117,7 +117,7 @@ const SelecaoClasPage: React.FC = () => {
       <div className="relative z-10 w-full max-w-7xl mx-auto flex flex-col h-full px-4 sm:px-8 py-6">
         
         {/* Compact Header HUD */}
-        <div className="flex justify-between items-center mb-6 shrink-0 border-b border-white/10 pb-4">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 shrink-0 border-b border-white/10 pb-4 gap-4">
           <motion.div 
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
@@ -134,7 +134,7 @@ const SelecaoClasPage: React.FC = () => {
           <motion.div 
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
-            className="hidden sm:flex items-center gap-4 text-right"
+            className="flex items-center gap-4 text-right self-end sm:self-auto"
           >
              <div className="flex flex-col">
                 <span className="text-[8px] font-bold text-zinc-500 tracking-widest uppercase">RECURSOS_DISPONIVEIS</span>

@@ -269,7 +269,7 @@ export const ClanChat: React.FC<ClanChatProps> = ({ members = [] }) => {
                 value={newMessage}
                 onChange={handleInputChange}
                 onKeyDown={handleKeyDown}
-                placeholder="TRANSMITIR MENSAGEM..."
+                placeholder="TRANSMITIR MENSAGEM... (@ marca usuário)"
                 className="w-full bg-black/60 border border-white/10 rounded-xl py-3.5 pl-11 pr-16 text-xs text-white placeholder-zinc-700 font-medium focus:outline-none focus:border-white/30 transition-all focus:bg-black/80 focus:shadow-[0_0_15px_rgba(255,255,255,0.05)] shadow-inner"
                 disabled={!isConnected}
                 maxLength={100}

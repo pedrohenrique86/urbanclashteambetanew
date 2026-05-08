@@ -447,8 +447,8 @@ const PowerPanel = React.memo(({ user }: { user: any }) => {
           <div className="w-8 h-8 rounded-full bg-zinc-800 flex items-center justify-center text-zinc-400 cursor-help">
             ?
           </div>
-          {/* Tooltip Hover - Simplificado e para baixo */}
-          <div className="absolute top-full right-0 mt-2 w-64 bg-zinc-900/95 backdrop-blur-md border border-zinc-700 text-[11px] text-slate-300 p-3 rounded-lg shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-[100] pointer-events-none">
+          {/* Tooltip Hover - Simplificado e centralizado */}
+          <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-64 bg-zinc-900/95 backdrop-blur-md border border-zinc-700 text-[11px] text-slate-300 p-3 rounded-lg shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-[100] pointer-events-none">
             <p className="font-bold text-white border-b border-zinc-700 pb-1 mb-2 text-center uppercase tracking-tighter">Fórmula Power Solo</p>
             <p className="text-center leading-relaxed text-[10px]">
               (ATK + ARMA + DEF + ESCUDO + FOC×0.5)<br/>
@@ -468,8 +468,8 @@ const PowerPanel = React.memo(({ user }: { user: any }) => {
           <div className="w-8 h-8 rounded-full bg-yellow-500/20 flex items-center justify-center text-yellow-500 cursor-help">
             ?
           </div>
-          {/* Tooltip Hover - Simplificado e para baixo */}
-          <div className="absolute top-full right-0 mt-2 w-64 bg-zinc-900/95 backdrop-blur-md border border-yellow-500/30 text-[11px] text-slate-300 p-3 rounded-lg shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-[100] pointer-events-none">
+          {/* Tooltip Hover - Simplificado e centralizado */}
+          <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-64 bg-zinc-900/95 backdrop-blur-md border border-yellow-500/30 text-[11px] text-slate-300 p-3 rounded-lg shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-[100] pointer-events-none">
             <p className="font-bold text-yellow-400 border-b border-yellow-500/20 pb-1 mb-2 text-center">Fórmula Power War</p>
             <p className="text-center leading-relaxed">Power Solo + Bônus de Facção ({specialValue}%)</p>
             <div className="mt-2 text-yellow-400 font-black text-center text-sm text-shadow-glow border-t border-yellow-500/10 pt-1">Total War: {powerWar}</div>
@@ -491,8 +491,8 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="flex justify-center p-6">
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 w-full max-w-6xl">
+    <div className="flex justify-center p-4 md:p-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 w-full max-w-6xl">
         <LevelPanel user={userProfile} />
         <PowerPanel user={userProfile} />
         <ResourcesPanel user={userProfile} />

@@ -183,7 +183,7 @@ export default function FactionSelectionPage() {
                   className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[0.05] to-transparent skew-x-12 pointer-events-none"
                 />
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-center px-4 relative z-10">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8 items-center px-2 md:px-4 relative z-10">
                    {/* 1. Live System Log (Marquee Effect) */}
                    <div className="flex items-center gap-4 border-l border-white/10 pl-4 min-w-0">
                       <span className="text-[8px] font-black font-orbitron text-orange-500 tracking-widest shrink-0 drop-shadow-md">SYSTEM_LOG:</span>

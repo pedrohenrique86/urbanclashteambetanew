@@ -54,7 +54,7 @@ const LogContent = ({ log }: { log: NetworkLog }) => {
 
       return (
         <div className="flex flex-col gap-1">
-          <div className="flex items-center gap-2">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
             <span className={`${color} font-bold`}>
               {label} NO PROTOCOLO DE ACERTO DE CONTAS
             </span>
@@ -84,7 +84,7 @@ const LogContent = ({ log }: { log: NetworkLog }) => {
     case 'training':
       return (
         <div className="flex flex-col gap-1">
-          <div className="flex items-center gap-2">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
             <span className="text-cyan-400 font-bold uppercase tracking-tight">TREINAMENTO CONCLUÍDO</span>
             <span className="text-slate-500 text-[10px] uppercase">Módulo: {log.entity_id}</span>
           </div>

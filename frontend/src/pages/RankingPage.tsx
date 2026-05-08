@@ -78,7 +78,7 @@ const PlayerRankingItem = React.memo(function PlayerRankingItem({ player, config
         <div className="flex flex-col min-w-0">
           <div className="flex items-center gap-2">
             {player.country && <img src={`https://flagcdn.com/w20/${player.country.toLowerCase()}.png`} className="w-3.5 h-auto opacity-50" alt="" />}
-            <span className="text-sm sm:text-base font-orbitron font-bold text-white truncate uppercase tracking-tight leading-none">{player.username}</span>
+            <span className="text-xs sm:text-base font-orbitron font-bold text-white truncate uppercase tracking-tight leading-none max-w-[120px] sm:max-w-none">{player.username}</span>
           </div>
           
           {/* Rank Title */}
@@ -166,8 +166,8 @@ const ClanRankingItem = React.memo(function ClanRankingItem({ clan, config }: {
         </div>
         
           <div className="flex flex-col min-w-0">
-            <span className={`text-sm sm:text-base font-orbitron font-bold ${isRenegado ? 'text-orange-500' : 'text-blue-400'} truncate uppercase tracking-tight`}>{clan.name}</span>
-            <span className={`text-[8px] sm:text-[10px] font-black tracking-[0.2em] ${isRenegado ? 'text-orange-500/50' : 'text-blue-500/50'} uppercase`}>
+            <span className={`text-xs sm:text-base font-orbitron font-bold ${isRenegado ? 'text-orange-500' : 'text-blue-400'} truncate uppercase tracking-tight max-w-[150px] sm:max-w-none`}>{clan.name}</span>
+            <span className={`text-[7px] sm:text-[10px] font-black tracking-[0.2em] ${isRenegado ? 'text-orange-500/50' : 'text-blue-500/50'} uppercase`}>
               LÍDER: {clan.leaderName || "RECRUTA"}
             </span>
           </div>

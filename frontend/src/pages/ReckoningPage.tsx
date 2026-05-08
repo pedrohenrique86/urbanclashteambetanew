@@ -70,7 +70,7 @@ const BattleRulesInfo = ({ isOpen, onClose }: { isOpen: boolean, onClose: () => 
             animate={{ scale: 1, opacity: 1, y: 0 }}
             exit={{ scale: 0.8, opacity: 0, y: 40 }}
             transition={{ type: "spring", damping: 20, stiffness: 200 }}
-            className="bg-zinc-950/95 border-2 border-cyan-500/50 p-8 max-w-4xl w-full relative shadow-[0_0_100px_rgba(6,182,212,0.3)] cursor-default overflow-y-auto max-h-[85vh] custom-scrollbar"
+            className="bg-zinc-950/95 border-2 border-cyan-500/50 p-4 sm:p-8 max-w-4xl w-full relative shadow-[0_0_100px_rgba(6,182,212,0.3)] cursor-default overflow-y-auto max-h-[90vh] custom-scrollbar"
             style={{ ...MILITARY_CLIP }}
             onClick={(e) => e.stopPropagation()}
           >
