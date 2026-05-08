@@ -198,8 +198,8 @@ export default function SocialZonePage() {
         <div className="absolute bottom-0 right-0 w-16 h-16 border-b-2 border-r-2 border-violet-500/50"></div>
       </div>
 
-      {/* HEADER */}
-      <header className="max-w-6xl mx-auto mb-4 md:mb-8 relative z-10">
+      {/* HEADER (Exact match to Training Page style) */}
+      <header className="max-w-6xl mx-auto mb-8 md:mb-12 relative z-10">
         <div className="absolute -left-4 top-1/2 -translate-y-1/2 w-1 h-12 bg-violet-500 shadow-[0_0_15px_rgba(139,92,246,0.8)]"></div>
         <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}>
           <h1 className="text-3xl md:text-6xl font-orbitron font-black tracking-widest text-white uppercase" style={{ textShadow: "2px 0px 0px rgba(139,92,246,0.7), -2px 0px 0px rgba(34,211,238,0.7)" }}>
@@ -229,25 +229,23 @@ export default function SocialZonePage() {
       <main className="max-w-7xl mx-auto relative z-10">
         
         {/* MOBILE TABS - SÊNIOR: Melhoria de UX Mobile */}
-        <div className="flex md:hidden mb-4 border-2 border-violet-500 bg-black/80 p-1.5 rounded-lg relative z-20 shadow-[0_0_20px_rgba(139,92,246,0.3)]">
+        <div className="flex md:hidden mb-4 border-b border-white/10 relative z-20">
           <button 
             onClick={() => setActiveTab("chat")}
-            className={`flex-1 py-3.5 font-orbitron font-black text-[13px] uppercase tracking-[0.1em] transition-all rounded-md flex items-center justify-center gap-2 ${activeTab === "chat" ? 'text-white bg-violet-600 shadow-[0_0_15px_rgba(139,92,246,0.6)]' : 'text-slate-400'}`}
+            className={`flex-1 py-4 font-orbitron font-black text-[10px] uppercase tracking-[0.2em] transition-all ${activeTab === "chat" ? 'text-violet-400 border-b-2 border-violet-500 bg-violet-500/5 shadow-[inset_0_-10px_20px_rgba(139,92,246,0.05)]' : 'text-slate-500'}`}
           >
-            <ChatBubbleLeftRightIcon className="w-4 h-4" />
-            Chat
+            Chat Global
           </button>
           <button 
             onClick={() => setActiveTab("users")}
-            className={`flex-1 py-3.5 font-orbitron font-black text-[13px] uppercase tracking-[0.1em] transition-all rounded-md flex items-center justify-center gap-2 ${activeTab === "users" ? 'text-white bg-violet-600 shadow-[0_0_15px_rgba(139,92,246,0.6)]' : 'text-slate-400'}`}
+            className={`flex-1 py-4 font-orbitron font-black text-[10px] uppercase tracking-[0.2em] transition-all ${activeTab === "users" ? 'text-violet-400 border-b-2 border-violet-500 bg-violet-500/5 shadow-[inset_0_-10px_20px_rgba(139,92,246,0.05)]' : 'text-slate-500'}`}
           >
-            <UserGroupIcon className="w-4 h-4" />
-            On ({onlineUsers.length})
+            Membros ({onlineUsers.length})
           </button>
         </div>
 
         {/* UNIFIED CONTAINER */}
-        <div className="flex flex-col md:flex-row h-[60vh] md:h-[650px] cyber-card cyber-card-violet bg-black/60 border-violet-500/20 relative overflow-hidden" style={MILITARY_CLIP}>
+        <div className="flex flex-col md:flex-row h-[550px] md:h-[650px] cyber-card cyber-card-violet bg-black/60 border-white/5 relative overflow-hidden" style={MILITARY_CLIP}>
           
           {/* LEFT: CHAT AREA (3/4 on desktop) */}
           <div className={`${activeTab === "chat" ? "flex" : "hidden"} md:flex flex-1 flex-col min-w-0 border-r border-white/10`}>
@@ -351,9 +349,9 @@ export default function SocialZonePage() {
                   value={inputText}
                   onChange={handleInputChange}
                   onKeyDown={handleKeyDown}
-                  placeholder={isCooldown ? "Aguarde cooldown..." : "Mensagem (use @ para marcar)..."}
+                  placeholder={isCooldown ? "COOLDOWN_ACTIVE..." : "Transmitir..."}
                   disabled={isCooldown}
-                  className="w-full bg-white/5 border border-white/10 px-4 py-3 pr-16 text-xs font-mono text-white placeholder:text-slate-600 focus:outline-none focus:border-violet-500/50 transition-colors disabled:opacity-50"
+                  className="w-full bg-white/5 border border-white/10 px-4 md:px-5 py-3 pr-16 text-xs font-mono text-white placeholder:text-slate-700 focus:outline-none focus:border-violet-500/50 transition-all disabled:opacity-50"
                 />
                 <div className="absolute right-3 top-1/2 -translate-y-1/2 text-[8px] md:text-[9px] font-mono text-slate-400">
                   {inputText.length}/120

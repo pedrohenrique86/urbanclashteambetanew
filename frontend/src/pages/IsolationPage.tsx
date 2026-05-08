@@ -85,7 +85,7 @@ export default function IsolationPage() {
       </div>
 
       {/* HEADER */}
-      <header className="max-w-6xl mx-auto mb-4 md:mb-12 relative z-10">
+      <header className="max-w-6xl mx-auto mb-12 relative z-10">
         <div className="absolute -left-4 top-1/2 -translate-y-1/2 w-1 h-12 bg-white/20 shadow-[0_0_15px_rgba(255,255,255,0.2)]"></div>
         <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}>
           <h1 className="text-4xl md:text-6xl font-orbitron font-black tracking-widest text-white uppercase" style={{ textShadow: "2px 0px 0px rgba(255,255,255,0.2), -2px 0px 0px rgba(255,255,255,0.1)" }}>
@@ -477,25 +477,23 @@ function IsolationChatView({ user }: { user: any }) {
 
   return (
     <div className="flex flex-col space-y-4">
-      {/* MOBILE TABS - SÊNIOR: Melhoria de UX Mobile */}
-      <div className="flex md:hidden mb-4 border-2 border-white bg-black/80 p-1.5 rounded-lg relative z-20 shadow-[0_0_20px_rgba(255,255,255,0.2)]">
+      {/* MOBILE TABS */}
+      <div className="flex md:hidden border-b border-white/10">
         <button 
           onClick={() => setActiveTab("chat")}
-          className={`flex-1 py-3.5 font-orbitron font-black text-[13px] uppercase tracking-[0.1em] transition-all rounded-md flex items-center justify-center gap-2 ${activeTab === "chat" ? 'text-black bg-white shadow-[0_0_15px_rgba(255,255,255,0.6)]' : 'text-slate-400'}`}
+          className={`flex-1 py-4 font-orbitron font-black text-[10px] uppercase tracking-[0.2em] transition-all ${activeTab === "chat" ? 'text-white border-b-2 border-white bg-white/5' : 'text-slate-500'}`}
         >
-          <ChatBubbleLeftRightIcon className="w-4 h-4" />
-          Chat
+          Transmissão
         </button>
         <button 
           onClick={() => setActiveTab("users")}
-          className={`flex-1 py-3.5 font-orbitron font-black text-[13px] uppercase tracking-[0.1em] transition-all rounded-md flex items-center justify-center gap-2 ${activeTab === "users" ? 'text-black bg-white shadow-[0_0_15px_rgba(255,255,255,0.6)]' : 'text-slate-400'}`}
+          className={`flex-1 py-4 font-orbitron font-black text-[10px] uppercase tracking-[0.2em] transition-all ${activeTab === "users" ? 'text-white border-b-2 border-white bg-white/5' : 'text-slate-500'}`}
         >
-          <UserGroupIcon className="w-4 h-4" />
-          On ({onlineUsers.length})
+          Detidos ({onlineUsers.length})
         </button>
       </div>
 
-      <div className="flex flex-col md:flex-row h-[60vh] md:h-[500px] cyber-card bg-black/60 border-white/10 relative overflow-hidden" style={MILITARY_CLIP}>
+      <div className="flex flex-col md:flex-row h-[450px] md:h-[500px] cyber-card bg-black/60 border-white/5 relative overflow-hidden" style={MILITARY_CLIP}>
         {/* HEADER DO CHAT DESKTOP */}
         <div className="absolute top-0 left-0 right-0 p-4 bg-white/5 border-b border-white/10 hidden md:flex justify-between items-center z-10">
           <div className="flex items-center gap-2">
@@ -595,7 +593,7 @@ function IsolationChatView({ user }: { user: any }) {
                   value={inputText}
                   onChange={handleInputChange}
                   onKeyDown={handleKeyDown}
-                  placeholder={isCooldown ? "Aguarde..." : "Sussurro (use @ para marcar)..."}
+                  placeholder={isCooldown ? "Cooldown..." : "Transmitir..."}
                   disabled={isCooldown}
                   className="w-full bg-white/5 border border-white/10 px-4 py-2 pr-16 text-xs font-mono focus:outline-none focus:border-white/30 text-white placeholder:text-white/20 disabled:opacity-50"
                 />
