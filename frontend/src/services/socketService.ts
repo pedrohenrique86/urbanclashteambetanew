@@ -57,15 +57,13 @@ class SocketService {
 
       console.log("🔌 Iniciando conexão Socket.IO em:", socketUrl);
 
-      // Desktop: websocket puro (máxima performance)
-      // Mobile: websocket primeiro, polling como fallback (garante 4G/proxies)
-      const isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
-
+      // SÊNIOR: Forçamos apenas 'websocket' para evitar loops de reconexão
+      // no modo polling que falham devido à falta de Sticky Sessions no Cloudflare/Proxy.
       this.socket = io(socketUrl, {
         reconnectionAttempts: 20,
         reconnectionDelay: 2000,
         path: "/socket.io/",
-        transports: isMobile ? ["websocket", "polling"] : ["websocket"],
+        transports: ["websocket"],
         secure: socketUrl.startsWith("https"),
         withCredentials: true,
       });

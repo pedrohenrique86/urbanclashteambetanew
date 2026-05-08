@@ -31,7 +31,7 @@ const oauth2Client = new google.auth.OAuth2(
 // Rate limiting específico para autenticação
 const authLimiter = rateLimit({
   windowMs: 1 * 60 * 1000, // 1 minuto
-  max: 5, // máximo 5 tentativas por IP
+  max: 10, // SÊNIOR: Aumentado para 10 para tolerar reconexões mobile (4G/Wi-Fi)
   message: { error: "Muitas tentativas de login, tente novamente em 1 minuto" },
   standardHeaders: true,
   legacyHeaders: false,
