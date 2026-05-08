@@ -28,6 +28,7 @@ export default function SocialZonePage() {
   const [onlineUsers, setOnlineUsers] = useState<any[]>([]);
   const [inputText, setInputText] = useState("");
   const [isCooldown, setIsCooldown] = useState(false);
+  const [activeTab, setActiveTab] = useState<'chat' | 'online'>('chat');
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const subtitle = "FREQUÊNCIA GLOBAL UNIFICADA. TRANSMISSÃO CRIPTOGRAFADA EM TEMPO REAL.";
@@ -211,11 +212,62 @@ export default function SocialZonePage() {
 
       <main className="max-w-7xl mx-auto relative z-10">
         
+        {/* MOBILE TAB SWITCHER - COMPACT & HIGH VISIBILITY */}
+        <div className="flex md:hidden mb-4 gap-2 px-1">
+          {/* TERMINAL TAB */}
+          <button
+            onClick={() => setActiveTab('chat')}
+            className={`flex-1 relative py-2.5 px-3 font-orbitron font-black uppercase tracking-widest transition-all overflow-hidden ${
+              activeTab === 'chat' ? 'text-white' : 'text-violet-400'
+            }`}
+          >
+            {/* Background & Borders */}
+            <div 
+              className={`absolute inset-0 transition-all duration-300 ${
+                activeTab === 'chat' 
+                ? 'bg-violet-600 border-violet-400 shadow-[0_0_15px_rgba(139,92,246,0.4)]' 
+                : 'bg-black/60 border-white/20 hover:border-white/40'
+              } border`}
+              style={MILITARY_CLIP}
+            />
+
+            {/* Content */}
+            <div className="relative z-10 flex items-center justify-center gap-2">
+              <ChatBubbleLeftRightIcon className={`w-4 h-4 transition-transform ${activeTab === 'chat' ? 'scale-110' : 'scale-100'}`} />
+              <span className="text-[10px]">TERMINAL</span>
+            </div>
+          </button>
+
+          {/* UPLINKS TAB */}
+          <button
+            onClick={() => setActiveTab('online')}
+            className={`flex-1 relative py-2.5 px-3 font-orbitron font-black uppercase tracking-widest transition-all overflow-hidden ${
+              activeTab === 'online' ? 'text-white' : 'text-violet-400'
+            }`}
+          >
+            {/* Background & Borders */}
+            <div 
+              className={`absolute inset-0 transition-all duration-300 ${
+                activeTab === 'online' 
+                ? 'bg-violet-600 border-violet-400 shadow-[0_0_15px_rgba(139,92,246,0.4)]' 
+                : 'bg-black/60 border-white/20 hover:border-white/40'
+              } border`}
+              style={MILITARY_CLIP}
+            />
+
+            {/* Content */}
+            <div className="relative z-10 flex items-center justify-center gap-2">
+              <UserGroupIcon className={`w-4 h-4 transition-transform ${activeTab === 'online' ? 'scale-110' : 'scale-100'}`} />
+              <span className="text-[10px]">UPLINKS</span>
+            </div>
+          </button>
+        </div>
+
         {/* UNIFIED CONTAINER */}
         <div className="flex flex-col md:flex-row h-auto md:h-[650px] min-h-[500px] cyber-card cyber-card-violet bg-black/60 border-white/5 relative overflow-hidden" style={MILITARY_CLIP}>
           
           {/* LEFT: CHAT AREA (3/4 on desktop) */}
-          <div className="flex-[3] flex flex-col min-w-0 border-b md:border-b-0 md:border-r border-white/10 h-[500px] md:h-auto">
+          <div className={`flex-[3] flex flex-col min-w-0 border-b md:border-b-0 md:border-r border-white/10 h-[500px] md:h-auto ${activeTab !== 'chat' ? 'hidden md:flex' : 'flex'}`}>
             {/* CHAT HEADER */}
             <div className="p-4 bg-white/5 border-b border-white/10 flex justify-between items-center">
               <div className="flex items-center gap-2">
@@ -337,7 +389,7 @@ export default function SocialZonePage() {
           </div>
 
           {/* RIGHT: ONLINE USERS (Sidebar) */}
-          <div className="w-full md:w-64 flex flex-col bg-black/20 h-auto md:h-full">
+          <div className={`w-full md:w-64 flex flex-col bg-black/20 h-auto md:h-full ${activeTab !== 'online' ? 'hidden md:flex' : 'flex'}`}>
             <div className="p-4 bg-white/5 border-b border-white/10 flex items-center gap-2">
               <UserGroupIcon className="w-4 h-4 text-violet-400" />
               <span className="text-[10px] font-orbitron font-bold text-white uppercase tracking-widest">Online ({onlineUsers.length})</span>
