@@ -57,6 +57,10 @@ function initializeSocket(server) {
         const user = await authenticateSocket(token);
         if (currentAuthVersion !== socket.authVersion) return;
 
+        // SÊNIOR: Atrela o CID ao objeto socket para que a função enforceSingleSession
+        // consiga diferenciar o mesmo dispositivo (IP novo) de uma aba duplicada.
+        socket.cid = data.cid;
+
         await enforceSingleSession(io, socket, user, data.cid);
 
         const clanId = String(user?.clan_id ?? "").trim();
@@ -131,6 +135,7 @@ function initializeSocket(server) {
         user.faction = playerState ? playerState.faction : 'gangsters';
         user.avatar_url = playerState ? playerState.avatar_url : user.avatar_url;
 
+        socket.cid = data.cid;
         await enforceSingleSession(io, socket, user, data.cid);
 
         socket.user = user;
@@ -199,6 +204,7 @@ function initializeSocket(server) {
         user.faction = playerState ? playerState.faction : 'gangsters';
         user.avatar_url = playerState ? playerState.avatar_url : user.avatar_url;
 
+        socket.cid = data.cid;
         await enforceSingleSession(io, socket, user, data.cid);
 
         socket.user = user;
@@ -266,6 +272,7 @@ function initializeSocket(server) {
         user.faction = playerState ? playerState.faction : 'gangsters';
         user.avatar_url = playerState ? playerState.avatar_url : user.avatar_url;
 
+        socket.cid = data.cid;
         await enforceSingleSession(io, socket, user, data.cid);
 
         socket.user = user;

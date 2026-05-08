@@ -42,7 +42,14 @@ class SocketService {
   public readonly cid: string; // SÊNIOR: Identificador único da aba/instância para o Anti-Multi-Aba
 
   constructor() {
-    this.cid = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    // SÊNIOR: CID Persistente por dispositivo. 
+    // Garante que o celular mantenha o mesmo ID ao trocar de rede (Wi-Fi ↔ 4G).
+    let storedCid = localStorage.getItem("uc_socket_cid");
+    if (!storedCid) {
+      storedCid = `dev-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+      localStorage.setItem("uc_socket_cid", storedCid);
+    }
+    this.cid = storedCid;
   }
 
   /**
