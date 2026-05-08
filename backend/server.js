@@ -203,7 +203,7 @@ async function startServer() {
     });
     initializeSocket(io);
     schedulePersistence();
-const serverInstance = server.listen(PORT, () => {
+    const serverInstance = server.listen(PORT, "0.0.0.0", () => {
       console.log(`🚀 SERVIDOR INICIADO NA PORTA ${PORT} [${isProduction ? 'PROD' : 'DEV'}]`);
       
       // SÊNIOR: Tarefas de background com delay para estabilização
