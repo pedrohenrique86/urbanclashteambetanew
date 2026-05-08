@@ -549,7 +549,7 @@ function IsolationChatView({ user }: { user: any }) {
                 value={inputText}
                 onChange={handleInputChange}
                 onKeyDown={handleKeyDown}
-                placeholder={isCooldown ? "Aguarde..." : "Sussurrar transmissão..."}
+                placeholder={isCooldown ? "Aguarde..." : "Sussurrar transmissão... (@ marca usuário)"}
                 disabled={isCooldown}
                 className="w-full bg-white/5 border border-white/10 px-4 py-2 pr-16 text-xs font-mono focus:outline-none focus:border-white/30 text-white placeholder:text-white/20 disabled:opacity-50"
               />

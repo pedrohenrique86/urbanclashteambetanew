@@ -317,7 +317,7 @@ export default function SocialZonePage() {
                   value={inputText}
                   onChange={handleInputChange}
                   onKeyDown={handleKeyDown}
-                  placeholder={isCooldown ? "Aguarde o cooldown..." : "Digitar transmissão global..."}
+                  placeholder={isCooldown ? "Aguarde o cooldown..." : "Digitar transmissão global... (@ marca usuário)"}
                   disabled={isCooldown}
                   className="w-full bg-white/5 border border-white/10 px-5 py-3 pr-16 text-xs font-mono text-white placeholder:text-slate-700 focus:outline-none focus:border-violet-500/50 transition-all disabled:opacity-50"
                 />
