@@ -18,9 +18,23 @@ export default function RootErrorBoundary() {
      error.message.includes("Importing a module script failed"));
 
   const handleReload = () => {
-    // Limpa caches de navegação e força o reload da raiz para pegar o novo index.html e manifest
-    window.location.href = "/";
+    window.location.reload();
   };
+
+  // SÊNIOR: Tenta recuperar automaticamente do erro de carregamento (comum no 4G)
+  React.useEffect(() => {
+    if (isChunkError) {
+      const lastReload = sessionStorage.getItem('last_chunk_reload');
+      const now = Date.now();
+      
+      // Só tenta o reload automático se não tiver recarregado nos últimos 10 segundos
+      if (!lastReload || (now - parseInt(lastReload)) > 10000) {
+        sessionStorage.setItem('last_chunk_reload', now.toString());
+        console.warn("🔄 Falha de carregamento no 4G. Tentando recuperação automática...");
+        handleReload();
+      }
+    }
+  }, [isChunkError]);
 
   return (
     <div className="min-h-screen w-full bg-[#050505] flex items-center justify-center p-6 font-sans selection:bg-red-500/30">
@@ -51,22 +65,20 @@ export default function RootErrorBoundary() {
             </div>
 
             <h1 className="text-2xl font-orbitron font-black text-white mb-2 uppercase tracking-tight">
-              {isChunkError ? "ATUALIZAÇÃO DE NÚCLEO" : "FALHA CRÍTICA"}
+              FALHA NA INTERFACE
             </h1>
             
             <p className="text-zinc-400 font-medium text-sm leading-relaxed mb-8 uppercase tracking-widest">
-              {isChunkError 
-                ? "Uma nova versão do UrbanClash foi detectada. O protocolo de segurança exige uma sincronização imediata com a central."
-                : "A interface neural sofreu uma ruptura inesperada. Dados de sessão podem estar instáveis."}
+              A conexão com os módulos centrais sofreu uma instabilidade temporária. Recarregue a interface para restabelecer o link.
             </p>
-
+ 
             <button
-              onClick={handleReload}
-              className="w-full group relative flex items-center justify-center gap-3 py-4 bg-red-500 hover:bg-red-400 transition-all text-black font-black font-orbitron text-xs tracking-[0.3em] uppercase overflow-hidden"
+              onClick={() => window.location.reload()}
+              className="w-full group relative flex items-center justify-center gap-3 py-4 bg-zinc-800 hover:bg-zinc-700 transition-all text-white font-black font-orbitron text-xs tracking-[0.3em] uppercase overflow-hidden"
               style={MILITARY_CLIP}
             >
               <RefreshCw className="w-4 h-4 group-hover:rotate-180 transition-transform duration-500" />
-              <span>{isChunkError ? "Sincronizar Agora" : "Reiniciar Interface"}</span>
+              <span>Recarregar Sistema</span>
               
               {/* Button Shine Animation */}
               <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />

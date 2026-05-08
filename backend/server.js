@@ -67,6 +67,12 @@ const rankingCacheService = require("./services/rankingCacheService");
 
 const app = express();
 const server = http.createServer(app);
+
+// SÊNIOR: Aumenta timeouts para aguentar latência de 4G instável
+server.keepAliveTimeout = 65000;
+server.headersTimeout = 66000;
+server.timeout = 30000; // 30 segundos para dar tempo do 4G responder
+
 const PORT = process.env.PORT || 3001;
 
 const allowedOrigins = [
