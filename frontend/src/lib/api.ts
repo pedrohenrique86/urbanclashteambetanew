@@ -9,9 +9,10 @@ const getBaseUrl = () => {
   return envUrl.endsWith('/') ? `${envUrl}api` : `${envUrl}/api`;
 };
 
-// Instância centralizada do Axios
+// Instância centralizada do Axios com Blindagem Mobile
 const api = axios.create({
   baseURL: getBaseUrl(),
+  timeout: 15000, // 15 segundos de timeout para aguentar latência do 4G
   headers: {
     'Content-Type': 'application/json',
   },
@@ -38,18 +39,39 @@ api.interceptors.request.use((config) => {
   if (token && config.headers) {
     config.headers.Authorization = `Bearer ${token}`;
   }
+  // SÊNIOR: Adiciona timestamp para evitar cache agressivo de operadoras mobile
+  config.params = { ...config.params, _t: Date.now() };
   return config;
 });
 
-// Interceptor para tratar 401/403 e evitar loops
+// Interceptor com Lógica de Retry (Recuperação de 4G)
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
-    if (error.response?.status === 401) {
-      tokenStorage.clearToken();
-      window.dispatchEvent(new CustomEvent('auth:401'));
-      // Não redirecionamos aqui para evitar loops; o AuthContext reagirá à perda do user
+  async (error) => {
+    const { config } = error;
+    
+    // Se não houver config ou o retry estiver desabilitado, rejeita
+    if (!config || config._retryCount >= 3) {
+      if (error.response?.status === 401) {
+        tokenStorage.clearToken();
+        window.dispatchEvent(new CustomEvent('auth:401'));
+      }
+      return Promise.reject(error);
     }
+
+    config._retryCount = config._retryCount || 0;
+
+    // SÊNIOR: Retry automático para Erros de Rede ou Erro 502 (Bad Gateway)
+    const shouldRetry = !error.response || error.response.status === 502 || error.response.status === 503 || error.response.status === 504;
+
+    if (shouldRetry) {
+      config._retryCount += 1;
+      console.warn(`🔄 4G instável detectado. Tentativa de recuperação ${config._retryCount}/3...`);
+      // Delay exponencial antes de tentar de novo
+      await new Promise(resolve => setTimeout(resolve, config._retryCount * 1000));
+      return api(config);
+    }
+
     return Promise.reject(error);
   }
 );

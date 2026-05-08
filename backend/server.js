@@ -83,21 +83,11 @@ const allowedOrigins = [
 // CORS dinâmico e robusto
 const corsOptions = {
   origin: (origin, callback) => {
-    // Permite requests sem origin (mobile apps, curl, etc)
-    if (!origin) return callback(null, true);
-    
-    const isAllowed = allowedOrigins.includes(origin) || 
-                     /^https?:\/\/(.*\.)?urbanclashteam\.com\/?$/.test(origin) ||
-                     /^http:\/\/localhost(:\d+)?$/.test(origin) ||
-                     (!isProduction && (
-                       /^http:\/\/192\.168\.\d{1,3}\.\d{1,3}(:\d+)?$/.test(origin) || 
-                       /^http:\/\/10\.\d{1,3}\.\d{1,3}\.\d{1,3}(:\d+)?$/.test(origin)
-                     ));
-
-    if (isAllowed) {
+    // SÊNIOR: CORS permissivo para o domínio principal e local
+    if (!origin || origin.includes("urbanclashteam.com") || origin.includes("localhost") || origin.includes("127.0.0.1")) {
       callback(null, true);
     } else {
-      console.warn(`🛑 CORS bloqueado para origin: ${origin} (Modo: ${isProduction ? 'PROD' : 'DEV'})`);
+      console.warn(`🛑 CORS bloqueado para: ${origin}`);
       callback(null, false);
     }
   },
