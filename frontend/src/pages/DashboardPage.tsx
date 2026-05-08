@@ -25,7 +25,7 @@ const DashboardPanel: React.FC<{
   background?: React.ReactNode;
 }> = ({ title, children, className = "", icon, background }) => (
   <div
-    className={`bg-black/20 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-4 flex flex-col shadow-lg relative overflow-hidden ${className}`}
+    className={`bg-black/20 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-4 flex flex-col shadow-lg relative ${className}`}
     style={{
       boxShadow:
         "inset 0 1px 1px rgba(255, 255, 255, 0.05), 0 0 30px rgba(0, 0, 0, 0.5)",
@@ -33,7 +33,7 @@ const DashboardPanel: React.FC<{
   >
     {/* Background Chart Layer */}
     {background && (
-      <div className="absolute inset-0 z-0 opacity-30 pointer-events-none">
+      <div className="absolute inset-0 z-0 opacity-30 pointer-events-none overflow-hidden rounded-2xl">
         {background}
       </div>
     )}
