@@ -61,8 +61,15 @@ api.interceptors.response.use(
 
     config._retryCount = config._retryCount || 0;
 
-    // SÊNIOR: Retry automático para Erros de Rede ou Erro 502 (Bad Gateway)
+    // SÊNIOR: Diagnóstico de Emergência para 4G
     const shouldRetry = !error.response || error.response.status === 502 || error.response.status === 503 || error.response.status === 504;
+
+    if (!error.response && config._retryCount >= 3) {
+      // Se após 3 tentativas de rede ainda falhar, mostra o erro real pro usuário
+      const msg = `🚨 ERRO DE CONEXÃO (4G/Wi-Fi):\n\nURL: ${config.url}\nERRO: ${error.message}\n\nSe você está no 4G, o Cloudflare ou sua Operadora estão bloqueando o acesso.`;
+      console.error(msg);
+      alert(msg); // Ativado para debug no celular
+    }
 
     if (shouldRetry) {
       config._retryCount += 1;
