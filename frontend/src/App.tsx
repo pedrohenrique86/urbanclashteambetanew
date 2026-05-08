@@ -10,6 +10,7 @@ import { ChatProvider } from "./contexts/ChatContext";
 import { UserProfileProvider } from "./contexts/UserProfileContext";
 import GlobalLayout from "./components/layout/GlobalLayout";
 import ProtectedRoute from "./components/ProtectedRoute";
+import RootErrorBoundary from "./components/RootErrorBoundary";
 
 // --- Lazy Load das Páginas ---
 const HomePage = lazy(() => import("./pages/HomePage"));
@@ -76,6 +77,7 @@ const AppLayout = () => (
 const router = createBrowserRouter([
   {
     element: <RootWrapper />,
+    errorElement: <RootErrorBoundary />,
     children: [
       // --- Rotas Públicas ---
       { path: "/", element: <GlobalLayout><HomePage /></GlobalLayout> },
