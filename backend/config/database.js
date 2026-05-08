@@ -59,9 +59,9 @@ if (databaseUrl) {
 const pool = new Pool({
   ...poolConfig,
   max: 50,
-  idleTimeoutMillis: 15000, // 15 segundos (garante que conexões ociosas caem, permitindo NeonDB Scale-to-Zero)
-  connectionTimeoutMillis: 10000, // Reduzido para 10s para evitar que o backend "pendure" em picos
-  allowExitOnIdle: process.env.NODE_ENV !== "production", // Permite que o processo saia se apenas o pool estiver ativo (útil em dev)
+  idleTimeoutMillis: 15000, 
+  connectionTimeoutMillis: 30000, // Aumentado para 30s para suportar latência de 4G/IPv6
+  allowExitOnIdle: process.env.NODE_ENV !== "production", 
 });
 
 // SÊNIOR: Impede que o Node.js "crashe" devido a quedas de conexões TCP de clientes ociosos (muito comum no auto-suspend do NeonDB)

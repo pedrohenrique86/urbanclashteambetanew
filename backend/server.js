@@ -65,7 +65,10 @@ const { schedulePersistence } = require("./services/playerStateService");
 const { initializeSocket } = require("./socketHandler");
 const rankingCacheService = require("./services/rankingCacheService");
 
+const compression = require("compression");
+
 const app = express();
+app.use(compression()); // SÊNIOR: Compacta respostas para passar em redes 4G/IPv6 instáveis
 const server = http.createServer(app);
 
 // SÊNIOR: Aumenta timeouts para aguentar latência de 4G instável
