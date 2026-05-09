@@ -306,13 +306,13 @@ class ContractService {
     const { rows } = await query(
       `SELECT 
         l.user_id,
-        u.username,
-        u.faction,
+        up.username,
+        up.faction,
         l.action_type as event_type,
-        l.metadata->>\'public_message\' as message,
+        l.metadata->>'public_message' as message,
         l.created_at
        FROM action_logs l
-       JOIN users u ON l.user_id = u.id
+       JOIN user_profiles up ON l.user_id = up.user_id
        WHERE l.is_public = true ${where}
        ORDER BY l.created_at DESC 
        LIMIT 20`

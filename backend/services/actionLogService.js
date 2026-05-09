@@ -16,12 +16,20 @@ const MAX_RECENT_LOGS   = 100;
 const BATCH_INTERVAL_MS = 10000; // 10 segundos
 
 class ActionLogService {
+  static isWorkerRunning = false;
+
   /**
    * Registra uma nova ação.
    * SÊNIOR: Não toca no disco. Apenas memória (Redis).
    */
   async log(userId, actionType, entityType = null, entityId = null, metadata = {}, isPublic = false, ipAddress = null) {
     try {
+      // SÊNIOR: Resiliência — Se o Redis cair ou estiver subindo, aguardamos a prontidão
+      if (!redisClient.client.isReady) {
+        console.warn(`[actionLogService] ⏳ Redis não pronto. Aguardando para registrar log de ${actionType}...`);
+        await redisClient.redisReadyPromise;
+      }
+
       const logEntry = {
         userId,
         actionType,
@@ -33,6 +41,8 @@ class ActionLogService {
         createdAt: new Date().toISOString()
       };
 
+      console.log(`[actionLogService] 📝 Registrando log: ${actionType} para User ${userId} (Público: ${isPublic})`);
+
       // Se for público, emitir para o feed global via Socket.IO
       if (isPublic) {
         const io = getIO();
@@ -42,7 +52,6 @@ class ActionLogService {
             action_type: actionType,
             metadata: metadata,
             created_at: logEntry.createdAt,
-            // Compatibilidade com o formato antigo do feed global se necessário
             message: metadata.public_message || ""
           });
         }
@@ -54,14 +63,14 @@ class ActionLogService {
       const p = redisClient.pipeline();
       p.lPush(userLogsKey, JSON.stringify(logEntry));
       p.lTrim(userLogsKey, 0, MAX_RECENT_LOGS - 1);
-      p.expire(userLogsKey, 60 * 60 * 24); // TTL de 24h para o cache de logs
+      p.expire(userLogsKey, 60 * 60 * 24); 
       
       // 2. Camada Persistência: Enfileira para descarte no Banco em Lote
       p.rPush(LOGS_QUEUE_KEY, JSON.stringify(logEntry));
       
       await p.exec();
     } catch (err) {
-      console.error(`[actionLogService] ⚠️ Erro ao registrar log em memória: ${err.message}`);
+      console.error(`[actionLogService] ❌ Erro fatal ao registrar log: ${err.message}`);
     }
   }
 
@@ -111,12 +120,16 @@ class ActionLogService {
    * Worker: Descarrega a fila de logs no PostgreSQL em lotes.
    */
   async startLogWorker() {
-    console.log(`[actionLogService] 🚀 Worker de Logs Ativo (Lote a cada ${BATCH_INTERVAL_MS/1000}s).`);
+    if (ActionLogService.isWorkerRunning) return;
+    ActionLogService.isWorkerRunning = true;
+
+    console.log(`[actionLogService] 🚀 Worker de Logs Ativo (Capacidade: 500/lote a cada ${BATCH_INTERVAL_MS/1000}s).`);
     
-    // Ciclo de Persistência em Lote
     setInterval(async () => {
       try {
-        const logsRaw = await redisClient.lRangeAsync(LOGS_QUEUE_KEY, 0, 99); // Processa até 100 logs por vez
+        const startTime = Date.now();
+        // Aumentado para 500 por lote para aguentar escala massiva
+        const logsRaw = await redisClient.lRangeAsync(LOGS_QUEUE_KEY, 0, 499); 
         if (!logsRaw || logsRaw.length === 0) return;
 
         const logs = logsRaw.map(r => JSON.parse(r));
@@ -139,7 +152,8 @@ class ActionLogService {
 
         // Remove apenas o que processamos
         await redisClient.lTrimAsync(LOGS_QUEUE_KEY, logs.length, -1);
-        console.log(`[actionLogService] 💾 ${logs.length} logs persistidos no Postgres.`);
+        const duration = Date.now() - startTime;
+        console.log(`[actionLogService] 💾 ${logs.length} logs persistidos no Postgres em ${duration}ms.`);
       } catch (err) {
         console.error(`[actionLogService] ❌ Erro no worker de persistência:`, err.message);
       }
