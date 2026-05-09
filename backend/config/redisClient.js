@@ -204,6 +204,36 @@ const redisWrapper = {
     }
   },
 
+  lPushAsync: async (k, v) => {
+    if (!k || !isReady) return null;
+    try {
+      return await client.lPush(String(k), String(v));
+    } catch (err) {
+      console.error(`[RedisClient] Erro em lPushAsync key=${k}:`, err.message);
+      return null;
+    }
+  },
+
+  lLenAsync: async (k) => {
+    if (!k || !isReady) return 0;
+    try {
+      return await client.lLen(String(k));
+    } catch (err) {
+      console.error(`[RedisClient] Erro em lLenAsync key=${k}:`, err.message);
+      return 0;
+    }
+  },
+
+  rPopAsync: async (k) => {
+    if (!k || !isReady) return null;
+    try {
+      return await client.rPop(String(k));
+    } catch (err) {
+      console.error(`[RedisClient] Erro em rPopAsync key=${k}:`, err.message);
+      return null;
+    }
+  },
+
   lTrimAsync: async (k, start, stop) => {
     if (!k || !isReady) return null;
     try {

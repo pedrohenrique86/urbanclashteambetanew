@@ -17,7 +17,8 @@ import {
   SparklesIcon,
   BriefcaseIcon,
   ScaleIcon,
-  BanknotesIcon
+  BanknotesIcon,
+  InformationCircleIcon
 } from "@heroicons/react/24/outline";
 import { motion, AnimatePresence } from "framer-motion";
 import { formatDistanceToNow } from "date-fns";
@@ -107,15 +108,13 @@ const ActionCard = ({ data, onAction, disabled, userLevel, userEnergy, userPA, t
           <BoltIcon className="w-3 h-3" />
           {data.costPA} PA
         </div>
-        {isRenegade && (
-          <div className={`flex items-center gap-1 text-[10px] font-black uppercase ${userEnergy < data.costEnergy ? 'text-red-500' : 'text-yellow-500'}`}>
-            <BoltIcon className="w-3 h-3" />
-            {data.costEnergy} NRG
-          </div>
-        )}
+        <div className={`flex items-center gap-1 text-[10px] font-black uppercase ${userEnergy < data.costEnergy ? 'text-red-500' : 'text-yellow-500'}`}>
+          <BoltIcon className="w-3 h-3" />
+          {data.costEnergy} NRG
+        </div>
         <div className="flex items-center gap-1 text-[10px] font-black text-emerald-500 uppercase">
           <CurrencyDollarIcon className="w-3 h-3" />
-          EST. ${data.money ? (isRenegade ? data.money[0].toLocaleString() : data.salary[0].toLocaleString()) : '0'}
+          EST. ${isRenegade ? data.money[0].toLocaleString() : data.salary[0].toLocaleString()}
         </div>
       </div>
 
@@ -177,7 +176,12 @@ export default function ContractsPage() {
     setCooldown(3);
     try {
       const res = await api.post("/contracts/heist", { heistId });
-      showToast(res.data.message, "success");
+      let msg = res.data.message;
+      if (res.data.attrGained && res.data.attrGained.length > 0) {
+        const attrMsg = res.data.attrGained.map((a: any) => `+${a.gain} ${a.attr.toUpperCase()}`).join(', ');
+        msg += ` [Evolução: ${attrMsg}]`;
+      }
+      showToast(msg, "success");
       await mutate();
       await refreshProfile();
     } catch (e: any) {
@@ -193,7 +197,12 @@ export default function ContractsPage() {
     setCooldown(3);
     try {
       const res = await api.post("/contracts/guardian-task", { taskId });
-      showToast(res.data.message, "success");
+      let msg = res.data.message;
+      if (res.data.attrGained && res.data.attrGained.length > 0) {
+        const attrMsg = res.data.attrGained.map((a: any) => `+${a.gain} ${a.attr.toUpperCase()}`).join(', ');
+        msg += ` [Evolução: ${attrMsg}]`;
+      }
+      showToast(msg, "success");
       if (res.data.interception) {
         setShowInterception(true);
       }
@@ -359,6 +368,80 @@ export default function ContractsPage() {
                   />
                 ))
               )}
+          </div>
+
+          {/* Mechanics Manual */}
+          <div className="mt-12 p-6 bg-zinc-950 border border-zinc-800 rounded-sm relative overflow-hidden group">
+            <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+              <ScaleIcon className="w-48 h-48 text-cyan-500" />
+            </div>
+            
+            <div className="relative z-10">
+              <h3 className="text-xl font-black text-white uppercase font-orbitron mb-6 flex items-center gap-3">
+                <InformationCircleIcon className="w-6 h-6 text-cyan-500" />
+                Manual de Operações: Confronto de Contratos
+              </h3>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className="space-y-4">
+                  <div className="p-4 bg-blue-500/5 border-l-4 border-blue-500">
+                    <h5 className="text-blue-400 font-black text-xs uppercase mb-2">Protocolo de Captura (Guardião)</h5>
+                    <p className="text-[10px] text-zinc-400 leading-relaxed font-mono">
+                      Ao realizar tarefas, Guardiões rastreiam atividades criminosas recentes. A eficácia da captura depende do seu poder ofensivo e técnico.
+                    </p>
+                    <div className="mt-3 p-2 bg-black/40 font-mono text-[9px] text-blue-300 border border-blue-500/20">
+                      FÓRMULA: (ATAQUE * 0.5) + (FOCO * 0.3) + (SORTE * 0.2)
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <div className="p-4 bg-orange-500/5 border-l-4 border-orange-500">
+                    <h5 className="text-orange-400 font-black text-xs uppercase mb-2">Protocolo de Evasão (Renegado)</h5>
+                    <p className="text-[10px] text-zinc-400 leading-relaxed font-mono">
+                      Renegados deixam um rastro digital após cada roubo. A capacidade de despistar a lei depende da sua infraestrutura defensiva e intuição.
+                    </p>
+                    <div className="mt-3 p-2 bg-black/40 font-mono text-[9px] text-orange-300 border border-orange-500/20">
+                      FÓRMULA: (DEFESA * 0.5) + (SORTE * 0.3) + (FOCO * 0.2)
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-6 pt-6 border-t border-zinc-800">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="flex items-start gap-3">
+                    <MapPinIcon className="w-5 h-5 text-emerald-500 shrink-0" />
+                    <div>
+                      <h5 className="text-[10px] font-black text-emerald-500 uppercase mb-1">Emboscada por Localidade</h5>
+                      <p className="text-[9px] text-zinc-500 leading-tight">
+                        Encontros são mais prováveis quando o contrato do Renegado coincide com a área de patrulha do Guardião (Ex: Assalto ao Banco vs Segurança Bancária). Mesmo no mesmo local, a probabilidade de interceptação é de apenas 15%, garantindo a aleatoriedade.
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <UserGroupIcon className="w-5 h-5 text-amber-500 shrink-0" />
+                    <div>
+                      <h5 className="text-[10px] font-black text-amber-500 uppercase mb-1">Escaramuça Rápida</h5>
+                      <p className="text-[9px] text-zinc-500 leading-tight">
+                        Estes encontros não são duelos 1x1 (Acerto de Contas). São resoluções rápidas de emboscada. O objetivo é o confisco de evidências e proteção do loot, não a eliminação do alvo.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="mt-6 flex flex-wrap gap-4 items-center">
+                  <div className="flex items-center gap-2">
+                    <SparklesIcon className="w-4 h-4 text-yellow-500" />
+                    <span className="text-[9px] font-black text-zinc-500 uppercase italic">Variável de Momento: ±10% de variação aleatória no confronto.</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <FireIcon className="w-4 h-4 text-red-500" />
+                    <span className="text-[9px] font-black text-red-500 uppercase">Golpe de Mestre: Sinal Nível 5 prioritário por 10 minutos.</span>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>

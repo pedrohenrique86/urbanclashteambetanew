@@ -3,6 +3,7 @@ const redisClient = require("../config/redisClient");
 const playerStateService = require("./playerStateService");
 const inventoryService = require("./inventoryService");
 const logService = require("./logService");
+const actionLogService = require("./actionLogService");
 const { HEIST_TYPES, GUARDIAN_TYPES, DAILY_SPECIAL, SPECIAL_ITEMS_POOL, REWARDS } = require("../utils/contractConstants");
 
 /**
@@ -60,15 +61,15 @@ class ContractService {
 
       if (isDaily) updates.last_daily_special_at = new Date().toISOString();
 
-      // Ganho de Atributos
-      const attributes = ['attack', 'defense', 'focus', 'intimidation', 'discipline'];
+      // SÊNIOR: Ganho de Atributos OBRIGATÓRIO (0.25 a 1.25)
       const attrGained = [];
-      attributes.forEach(attr => {
-        const gain = REWARDS.attr(heist.attrChance);
-        if (gain > 0) {
-          updates[attr] = (updates[attr] || 0) + gain;
-          attrGained.push({ attr, gain });
-        }
+      const statsToGrow = ['attack', 'focus', 'luck'];
+      
+      statsToGrow.forEach(attr => {
+        // Ganho decimal garantido para progressão ultra-suave
+        const gain = parseFloat((Math.random() * (1.25 - 0.25) + 0.25).toFixed(2));
+        updates[attr] = (updates[attr] || 0) + gain;
+        attrGained.push({ attr, gain });
       });
 
       const lootGained = [];
@@ -81,15 +82,35 @@ class ContractService {
 
       const newState = await playerStateService.updatePlayerState(userId, updates);
 
-      // Registrar atividade para interceptação
-      await redisClient.setAsync(`heist_activity:${userId}`, JSON.stringify({
+      // Registrar atividade para interceptação (5 minutos)
+      // SÊNIOR: Se for Golpe de Mestre, o sinal é "FORTE" (dura mais e é prioritário)
+      const activityData = {
         username: state.username,
+        heistId: heist.id,
         heistName: heist.name,
-        loot: lootGained
-      }), "EX", 300);
+        loot: lootGained,
+        isMaster: isDaily,
+        renegadeStats: {
+          defense: newState.defense,
+          luck: newState.luck,
+          focus: newState.focus
+        }
+      };
 
-      // SÊNIOR: Log de Alta Performance via LogService (Batch Dirty)
-      const isMajor = moneyGained > 50000 || isDaily; // Exemplo de regra para major
+      await redisClient.setAsync(`heist_activity:${userId}`, JSON.stringify(activityData), "EX", isDaily ? 600 : 300);
+
+      // BROADCAST: Alerta para Guardiões se for Golpe de Mestre
+      if (isDaily) {
+        const sseService = require("./sseService");
+        sseService.broadcast("player:status:alert", {
+          type: "MASTER_HEIST_IN_PROGRESS",
+          message: `ALERTA NÍVEL 5: Golpe de Mestre detectado! Guardião, caça liberada para interceptar ${state.username}.`
+        });
+      }
+
+      const message = `Sucesso! Você completou ${heist.name}. Ganhou $${moneyGained.toLocaleString()} e ${xpGained} XP.`;
+      
+      const isMajor = moneyGained > 50000 || isDaily;
       await logService.addLog({
         user_id: userId,
         username: state.username,
@@ -100,8 +121,17 @@ class ContractService {
         is_major: isMajor
       });
 
+      // Log Individual (Network Logs)
+      await actionLogService.log(userId, 'heist', 'contract', heist.id, {
+        money_gain: moneyGained,
+        xp_gain: xpGained,
+        stats_gained: attrGained.reduce((acc, a) => ({ ...acc, [a.attr]: a.gain }), {}),
+        loot: lootGained,
+        is_master: isDaily
+      });
+
       return {
-        message: `Sucesso! Ganhou $${moneyGained.toLocaleString()} e ${xpGained} XP.`,
+        message,
         moneyGained,
         xpGained,
         attrGained,
@@ -142,25 +172,65 @@ class ContractService {
         merit: meritGained
       };
 
+      // Ganho de Atributos OBRIGATÓRIO (0.25 a 1.25)
+      const attrGained = [];
+      ['defense', 'focus', 'luck'].forEach(attr => {
+        const gain = parseFloat((Math.random() * (1.25 - 0.25) + 0.25).toFixed(2));
+        updates[attr] = (updates[attr] || 0) + gain;
+        attrGained.push({ attr, gain });
+      });
+
       let interception = null;
       if (Math.random() < task.interceptChance) {
         const keys = await redisClient.keysAsync("heist_activity:*");
         const filteredKeys = keys.filter(k => k !== `heist_activity:${userId}`);
         
         if (filteredKeys.length > 0) {
-          const targetKey = filteredKeys[Math.floor(Math.random() * filteredKeys.length)];
-          const activityRaw = await redisClient.getAsync(targetKey);
+          const activities = [];
+          for (const k of filteredKeys) {
+             const raw = await redisClient.getAsync(k);
+             if (raw) {
+               const parsed = JSON.parse(raw);
+               // SÊNIOR: Só intercepta se o roubo for vinculado à tarefa ou for Golpe de Mestre
+               if (task.linkedHeists.includes(parsed.heistId) || parsed.isMaster) {
+                 activities.push({ key: k, ...parsed });
+               }
+             }
+          }
+
+          const target = activities.find(a => a.isMaster) || activities[Math.floor(Math.random() * activities.length)];
           
-          if (activityRaw) {
-            const activity = JSON.parse(activityRaw);
-            interception = {
-              targetId: targetKey.split(":")[1],
-              targetName: activity.username,
-              heistName: activity.heistName,
-              items: [{ code: SPECIAL_ITEMS_POOL[Math.floor(Math.random() * SPECIAL_ITEMS_POOL.length)], quantity: 1 }]
-            };
-            updates.pending_interception = interception;
-            await redisClient.delAsync(targetKey);
+          if (target) {
+            // SÊNIOR: Probabilidade adicional de encontro (15%) para não ser 1x1 garantido
+            // E verificação de "Janela de Simultaneidade" (60 segundos)
+            if (Math.random() < 0.15) {
+              const gScore = (state.attack * 0.5) + (state.focus * 0.3) + (state.luck * 0.2);
+              const rScore = (target.renegadeStats.defense * 0.5) + (target.renegadeStats.luck * 0.3) + (target.renegadeStats.focus * 0.2);
+              
+              const gFinal = gScore * (0.9 + Math.random() * 0.2);
+              const rFinal = rScore * (0.9 + Math.random() * 0.2);
+
+              if (gFinal > rFinal) {
+                interception = {
+                  targetId: target.key.split(":")[1],
+                  targetName: target.username,
+                  heistName: target.heistName,
+                  items: target.loot.length > 0 ? target.loot : [{ code: SPECIAL_ITEMS_POOL[Math.floor(Math.random() * SPECIAL_ITEMS_POOL.length)], quantity: 1 }]
+                };
+                updates.pending_interception = interception;
+                await redisClient.delAsync(target.key);
+              } else {
+                console.log(`[Interception] ${state.username} falhou ao capturar ${target.username} (G:${gFinal.toFixed(1)} vs R:${rFinal.toFixed(1)})`);
+                await logService.addLog({
+                  user_id: userId,
+                  username: state.username,
+                  faction: 'guardas',
+                  event_type: 'interception_fail',
+                  message: `O Guardião ${state.username} detectou o rastro de um crime, mas o suspeito conseguiu escapar da abordagem!`,
+                  territory_name: 'Metrópole'
+                });
+              }
+            }
           }
         }
       }
@@ -178,10 +248,19 @@ class ContractService {
         is_major: true
       });
 
+      // Log Individual (Network Logs)
+      await actionLogService.log(userId, 'guardian_task', 'contract', task.id, {
+        money_gain: moneyGained,
+        xp_gain: meritGained,
+        stats_gained: attrGained.reduce((acc, a) => ({ ...acc, [a.attr]: a.gain }), {}),
+        interception: !!interception
+      });
+
       return {
         message: `Tarefa concluída. Recebido $${moneyGained.toLocaleString()} e ${meritGained} Mérito.`,
         moneyGained,
         meritGained,
+        attrGained,
         interception,
         player: newState
       };

@@ -31,6 +31,10 @@ const LogIcon = ({ type, metadata }: { type: string, metadata: any }) => {
       return metadata.collapsed ? <AlertCircle className="w-4 h-4 text-orange-500" /> : <Cake className="w-4 h-4 text-yellow-400" />;
     case 'poison_clear':
       return <Beaker className="w-4 h-4 text-purple-400" />;
+    case 'heist':
+      return <Flame className="w-4 h-4 text-orange-400" />;
+    case 'guardian_task':
+      return <ShieldCheck className="w-4 h-4 text-blue-400" />;
     default:
       return <ClipboardList className="w-4 h-4 text-slate-400" />;
   }
@@ -40,6 +44,48 @@ const LogContent = ({ log }: { log: NetworkLog }) => {
   const meta = log.metadata || {};
   
   switch (log.action_type) {
+    case 'heist':
+      return (
+        <div className="flex flex-col gap-1">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
+            <span className="text-orange-500 font-black uppercase tracking-tight">OPERAÇÃO DE ROUBO EXECUTADA</span>
+            {meta.is_master && <span className="px-1.5 py-0.5 bg-red-500 text-white text-[8px] font-black animate-pulse">GOLPE_MESTRE</span>}
+          </div>
+          <div className="flex flex-wrap gap-3 text-[10px] items-center">
+            <span className="text-yellow-400/80">+${meta.money_gain?.toLocaleString()}</span>
+            <span className="text-emerald-400/80">+{meta.xp_gain} XP</span>
+            {meta.stats_gained && (
+              <div className="flex items-center gap-2 border-l border-slate-700 pl-3 ml-1">
+                {Object.entries(meta.stats_gained).map(([key, val]) => (
+                  <span key={key} className="text-slate-400 uppercase">{key.substring(0,3)} +{String(val)}</span>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      );
+
+    case 'guardian_task':
+      return (
+        <div className="flex flex-col gap-1">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
+            <span className="text-blue-400 font-black uppercase tracking-tight">PROTOCOLO DE PATRULHA CONCLUÍDO</span>
+            {meta.interception && <span className="px-1.5 py-0.5 bg-blue-500 text-white text-[8px] font-black">INTERCEPTAÇÃO_ATIVA</span>}
+          </div>
+          <div className="flex flex-wrap gap-3 text-[10px] items-center">
+            <span className="text-yellow-400/80">+${meta.money_gain?.toLocaleString()}</span>
+            <span className="text-emerald-400/80">+{meta.xp_gain} MÉRO</span>
+            {meta.stats_gained && (
+              <div className="flex items-center gap-2 border-l border-slate-700 pl-3 ml-1">
+                {Object.entries(meta.stats_gained).map(([key, val]) => (
+                  <span key={key} className="text-slate-400 uppercase">{key.substring(0,3)} +{String(val)}</span>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      );
+
     case 'combat': {
       const outcome = meta.outcome;
       const isWin = outcome === 'win' || outcome?.startsWith('win');
