@@ -6,20 +6,15 @@ const { authenticateToken } = require("../middleware/auth");
 router.use(authenticateToken);
 
 /**
- * Retorna o estado atual dos contratos para o usuário.
+ * Retorna as configurações (tipos de roubos e tarefas).
  */
-router.get("/status", async (req, res) => {
+router.get("/config", async (req, res) => {
   try {
-    const activeContract = await contractService.getActiveContract(req.user.id);
-    const districts = await contractService.getDistricts();
-    const logs = await contractService.getLogs();
-    const activeHeists = await contractService.getActiveHeists();
-    
+    const { HEIST_TYPES, DAILY_SPECIAL, GUARDIAN_TYPES } = require("../utils/contractConstants");
     res.json({
-      activeContract,
-      districts,
-      logs,
-      activeHeists
+      heists: HEIST_TYPES,
+      dailySpecial: DAILY_SPECIAL,
+      guardianTasks: GUARDIAN_TYPES
     });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -27,12 +22,29 @@ router.get("/status", async (req, res) => {
 });
 
 /**
- * Renegado: Realiza tarefa de preparação.
+ * Retorna o estado atual dos contratos para o usuário.
  */
-router.post("/prepare", async (req, res) => {
+router.get("/status", async (req, res) => {
   try {
-    const { taskId, territoryId } = req.body;
-    const result = await contractService.prepareTask(req.user.id, taskId, territoryId);
+    const logs = await contractService.getLogs();
+    const districts = await contractService.getDistricts();
+    
+    res.json({
+      logs,
+      districts
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * Renegado: Realiza um roubo.
+ */
+router.post("/heist", async (req, res) => {
+  try {
+    const { heistId } = req.body;
+    const result = await contractService.performHeist(req.user.id, heistId);
     res.json(result);
   } catch (error) {
     res.status(400).json({ error: error.message });
@@ -40,11 +52,12 @@ router.post("/prepare", async (req, res) => {
 });
 
 /**
- * Renegado: Inicia execução do roubo.
+ * Guardião: Realiza uma tarefa.
  */
-router.post("/execute", async (req, res) => {
+router.post("/guardian-task", async (req, res) => {
   try {
-    const result = await contractService.executeHeist(req.user.id);
+    const { taskId } = req.body;
+    const result = await contractService.performGuardianTask(req.user.id, taskId);
     res.json(result);
   } catch (error) {
     res.status(400).json({ error: error.message });
@@ -52,34 +65,12 @@ router.post("/execute", async (req, res) => {
 });
 
 /**
- * Renegado: Resolve o roubo após o timer.
+ * Guardião: Resolve interceptação pendente.
  */
-router.post("/resolve", async (req, res) => {
+router.post("/resolve-interception", async (req, res) => {
   try {
-    const result = await contractService.resolveHeist(req.user.id);
-    res.json(result);
-  } catch (error) {
-    res.status(400).json({ error: error.message });
-  }
-});
-
-/**
- * Guardião: Realiza ação de ronda/investigação.
- */
-router.post("/guardian-action", async (req, res) => {
-  try {
-    const { actionId } = req.body;
-    const result = await contractService.guardianAction(req.user.id, actionId);
-    res.json(result);
-  } catch (error) {
-    res.status(400).json({ error: error.message });
-  }
-});
-
-router.post("/intercept", async (req, res) => {
-  try {
-    const { contractId } = req.body;
-    const result = await contractService.interceptHeist(req.user.id, contractId);
+    const { action } = req.body;
+    const result = await contractService.resolveInterception(req.user.id, action);
     res.json(result);
   } catch (error) {
     res.status(400).json({ error: error.message });

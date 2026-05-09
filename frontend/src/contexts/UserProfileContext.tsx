@@ -75,6 +75,12 @@ export interface UserProfile {
     xp_boost: number;
     money_shield: number;
   }>;
+  pending_interception?: {
+    targetId: string;
+    targetName: string;
+    heistName: string;
+    items: Array<{ code: string; quantity: number }>;
+  } | null;
 }
 
 export interface IUserProfileContext {
@@ -149,6 +155,7 @@ function mergePlayerStateIntoProfile(
   if (patch.uCrypto !== undefined) next.ucrypto = patch.uCrypto;
   if (patch.merit !== undefined) next.merit = patch.merit;
   if (patch.corruption !== undefined) next.corruption = patch.corruption;
+  if (patch.pendingInterception !== undefined) next.pending_interception = patch.pendingInterception;
   
   return next;
 }
@@ -254,6 +261,7 @@ export const UserProfileProvider = ({ children }: { children: ReactNode }) => {
         ucrypto: Number(profileData.ucrypto) || 0,
         merit: Number(profileData.merit) || 0,
         corruption: Number(profileData.corruption) || 0,
+        pending_interception: profileData.pending_interception || null,
       };
     },
     [],

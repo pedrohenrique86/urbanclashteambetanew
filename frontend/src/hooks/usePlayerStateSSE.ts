@@ -51,6 +51,12 @@ export interface PlayerStatePatch {
   uCrypto?       : number;
   merit?         : number;
   corruption?    : number;
+  pendingInterception?: {
+    targetId: string;
+    targetName: string;
+    heistName: string;
+    items: Array<{ code: string; quantity: number }>;
+  } | null;
 }
 
 /**
