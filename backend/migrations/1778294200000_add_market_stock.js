@@ -2,10 +2,15 @@
  * @param pgm {import('node-pg-migrate').MigrationBuilder}
  */
 exports.up = (pgm) => {
-  // Adicionar coluna de estoque do mercado
-  pgm.addColumn('items', {
-    market_stock: { type: 'integer', default: 0 }
-  });
+  // Adicionar coluna de estoque do mercado (apenas se não existir)
+  pgm.sql(`
+    DO $$ 
+    BEGIN 
+      IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='items' AND column_name='market_stock') THEN
+        ALTER TABLE "items" ADD COLUMN "market_stock" integer DEFAULT 0;
+      END IF;
+    END $$;
+  `);
 
   // Inicializar o estoque dos itens da Bolsa Sombria com 5000
   const codes = [
