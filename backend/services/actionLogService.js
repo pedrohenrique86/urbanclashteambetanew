@@ -1,11 +1,12 @@
 const { query } = require("../config/database");
 const redisClient = require("../config/redisClient");
+const { getIO } = require("../socketHandler");
 
 /**
  * actionLogService.js - ARQUITETURA SÊNIOR (Escala 5000+)
  * 
  * Centraliza o registro de auditoria com um sistema de duas camadas:
- * 1. Redis (L1): Cache ultra-rápido dos últimos 50 logs por usuário (UX).
+ * 1. Redis (L1): Cache ultra-rápido dos últimos 100 logs por usuário (UX).
  * 2. PostgreSQL (L2): Persistência em lote enviada a cada 10s (Auditoria 7 dias).
  */
 
@@ -19,7 +20,7 @@ class ActionLogService {
    * Registra uma nova ação.
    * SÊNIOR: Não toca no disco. Apenas memória (Redis).
    */
-  async log(userId, actionType, entityType = null, entityId = null, metadata = {}, ipAddress = null) {
+  async log(userId, actionType, entityType = null, entityId = null, metadata = {}, isPublic = false, ipAddress = null) {
     try {
       const logEntry = {
         userId,
@@ -27,9 +28,25 @@ class ActionLogService {
         entityType,
         entityId,
         metadata: JSON.stringify(metadata),
+        isPublic,
         ipAddress,
         createdAt: new Date().toISOString()
       };
+
+      // Se for público, emitir para o feed global via Socket.IO
+      if (isPublic) {
+        const io = getIO();
+        if (io) {
+          io.emit("contract:log", {
+            user_id: userId,
+            action_type: actionType,
+            metadata: metadata,
+            created_at: logEntry.createdAt,
+            // Compatibilidade com o formato antigo do feed global se necessário
+            message: metadata.public_message || ""
+          });
+        }
+      }
 
       const userLogsKey = `${LOGS_USER_PREFIX}${userId}`;
 
@@ -106,16 +123,16 @@ class ActionLogService {
         
         // SÊNIOR: Bulk Insert de Alta Performance
         const placeholders = logs.map((_, i) => 
-          `($${i*6 + 1}, $${i*6 + 2}, $${i*6 + 3}, $${i*6 + 4}, $${i*6 + 5}, $${i*6 + 6})`
+          `($${i*7 + 1}, $${i*7 + 2}, $${i*7 + 3}, $${i*7 + 4}, $${i*7 + 5}, $${i*7 + 6}, $${i*7 + 7})`
         ).join(", ");
 
         const values = [];
         logs.forEach(l => {
-          values.push(l.userId, l.actionType, l.entityType, l.entityId, l.metadata, l.ipAddress);
+          values.push(l.userId, l.actionType, l.entityType, l.entityId, l.metadata, l.isPublic || false, l.ipAddress);
         });
 
         await query(
-          `INSERT INTO action_logs (user_id, action_type, entity_type, entity_id, metadata, ip_address)
+          `INSERT INTO action_logs (user_id, action_type, entity_type, entity_id, metadata, is_public, ip_address)
            VALUES ${placeholders}`,
           values
         );

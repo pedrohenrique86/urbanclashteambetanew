@@ -2,7 +2,6 @@ const { query } = require("../config/database");
 const redisClient = require("../config/redisClient");
 const playerStateService = require("./playerStateService");
 const inventoryService = require("./inventoryService");
-const logService = require("./logService");
 const actionLogService = require("./actionLogService");
 const { HEIST_TYPES, GUARDIAN_TYPES, DAILY_SPECIAL, SPECIAL_ITEMS_POOL, REWARDS } = require("../utils/contractConstants");
 
@@ -71,10 +70,12 @@ class ContractService {
         attrGained.push({ attr, gain });
       });
 
-      // SORTE -> INSTINTO (INS): Ganho Micro (0.01 a 0.20)
-      const instinctGain = parseFloat((Math.random() * (0.20 - 0.01) + 0.01).toFixed(2));
-      updates.luck = (updates.luck || 0) + instinctGain;
-      attrGained.push({ attr: 'instinct', gain: instinctGain });
+      // SORTE -> INSTINTO (INS): Chance de 20% (1 em cada 5)
+      if (Math.random() < 0.20) {
+        const instinctGain = parseFloat((Math.random() * (0.06 - 0.01) + 0.01).toFixed(2));
+        updates.luck = (updates.luck || 0) + instinctGain;
+        attrGained.push({ attr: 'instinct', gain: instinctGain });
+      }
 
       const lootGained = [];
       if (Math.random() < heist.lootChance) {
@@ -115,24 +116,16 @@ class ContractService {
       const message = `Sucesso! Você completou ${heist.name}. Ganhou $${moneyGained.toLocaleString()} e ${xpGained} XP.`;
       
       const isMajor = moneyGained > 50000 || isDaily;
-      await logService.addLog({
-        user_id: userId,
-        username: state.username,
-        faction: 'gangsters',
-        event_type: 'heist_success',
-        message: `${state.username} realizou ${heist.name} e levou $${moneyGained.toLocaleString()}!`,
-        territory_name: 'Metrópole',
-        is_major: isMajor
-      });
-
-      // Log Individual (Network Logs)
+      // Log Unificado (Individual + Público)
       await actionLogService.log(userId, 'heist', 'contract', heist.id, {
         money_gain: moneyGained,
         xp_gain: xpGained,
+        corruption_gain: updates.corruption,
         stats_gained: attrGained.reduce((acc, a) => ({ ...acc, [a.attr]: a.gain }), {}),
-        loot: lootGained,
-        is_master: isDaily
-      });
+        items_looted: lootGained.map(l => ({ code: l.code, quantity: l.quantity })),
+        is_master: isDaily,
+        public_message: `${state.username} realizou ${heist.name} e levou $${moneyGained.toLocaleString()}!`
+      }, true);
 
       return {
         message,
@@ -196,10 +189,12 @@ class ContractService {
         attrGained.push({ attr, gain });
       });
 
-      // SORTE -> INSTINTO (INS): Ganho Micro (0.01 a 0.20)
-      const instinctGain = parseFloat((Math.random() * (0.20 - 0.01) + 0.01).toFixed(2));
-      updates.luck = (updates.luck || 0) + instinctGain;
-      attrGained.push({ attr: 'instinct', gain: instinctGain });
+      // SORTE -> INSTINTO (INS): Chance de 20% (1 em cada 5)
+      if (Math.random() < 0.20) {
+        const instinctGain = parseFloat((Math.random() * (0.06 - 0.01) + 0.01).toFixed(2));
+        updates.luck = (updates.luck || 0) + instinctGain;
+        attrGained.push({ attr: 'instinct', gain: instinctGain });
+      }
 
       let interception = null;
       if (Math.random() < task.interceptChance) {
@@ -242,14 +237,10 @@ class ContractService {
                 await redisClient.delAsync(target.key);
               } else {
                 console.log(`[Interception] ${state.username} falhou ao capturar ${target.username} (G:${gFinal.toFixed(1)} vs R:${rFinal.toFixed(1)})`);
-                await logService.addLog({
-                  user_id: userId,
-                  username: state.username,
-                  faction: 'guardas',
-                  event_type: 'interception_fail',
-                  message: `O Guardião ${state.username} detectou o rastro de um crime, mas o suspeito conseguiu escapar da abordagem!`,
-                  territory_name: 'Metrópole'
-                });
+                await actionLogService.log(userId, 'interception_fail', 'contract', task.id, {
+                  public_message: `O Guardião ${state.username} detectou o rastro de um crime, mas o suspeito conseguiu escapar da abordagem!`,
+                  target_name: target.username
+                }, true);
               }
             }
           }
@@ -258,26 +249,16 @@ class ContractService {
 
       const newState = await playerStateService.updatePlayerState(userId, updates);
 
-      // Log de Alta Performance
-      await logService.addLog({
-        user_id: userId,
-        username: state.username,
-        faction: 'guardas',
-        event_type: 'guardian_service',
-        message: `O Guardião ${state.username} completou ${task.name}.`,
-        territory_name: 'Metrópole',
-        is_major: true
-      });
-
-      // Log Individual (Network Logs)
+      // Log Unificado (Individual + Público)
       await actionLogService.log(userId, 'guardian_task', 'contract', task.id, {
         money_gain: moneyGained,
         merit_gain: meritGained,
         xp_gain: xpGained,
         stats_gained: attrGained.reduce((acc, a) => ({ ...acc, [a.attr]: a.gain }), {}),
-        loot: lootGained,
-        interception: !!interception
-      });
+        items_looted: lootGained.map(l => ({ code: l.code, quantity: l.quantity })),
+        interception: !!interception,
+        public_message: `O Guardião ${state.username} completou ${task.name}.`
+      }, true);
 
       return {
         message: `Tarefa concluída. Recebido $${moneyGained.toLocaleString()}, ${meritGained} Mérito e ${xpGained} XP.`,
@@ -320,11 +301,21 @@ class ContractService {
 
 
   async getLogs(onlyMajor = false) {
-    // SÊNIOR: Para os logs recentes, sempre buscamos no banco (onde são persistidos pelo LogService).
-    // O LogService garante que o banco não seja sobrecarregado por escritas.
-    const where = onlyMajor ? 'WHERE is_major = true' : '';
+    // SÊNIOR: Agora buscamos da tabela unificada action_logs filtrando por is_public
+    const where = onlyMajor ? 'AND (metadata->>\'is_master\')::boolean = true' : '';
     const { rows } = await query(
-      `SELECT * FROM contract_logs ${where} ORDER BY created_at DESC LIMIT 20`
+      `SELECT 
+        l.user_id,
+        u.username,
+        u.faction,
+        l.action_type as event_type,
+        l.metadata->>\'public_message\' as message,
+        l.created_at
+       FROM action_logs l
+       JOIN users u ON l.user_id = u.id
+       WHERE l.is_public = true ${where}
+       ORDER BY l.created_at DESC 
+       LIMIT 20`
     );
     return rows;
   }

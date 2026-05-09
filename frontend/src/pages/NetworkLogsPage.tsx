@@ -54,6 +54,16 @@ const LogContent = ({ log }: { log: NetworkLog }) => {
           <div className="flex flex-wrap gap-3 text-[10px] items-center">
             <span className="text-yellow-400/80">+${meta.money_gain?.toLocaleString()}</span>
             <span className="text-emerald-400/80">+{meta.xp_gain} XP</span>
+            {meta.corruption_gain > 0 && <span className="text-orange-500">+{meta.corruption_gain} INFÂMIA</span>}
+            {meta.items_looted && meta.items_looted.length > 0 && (
+              <div className="flex items-center gap-1 text-purple-400 font-bold border-l border-slate-700 pl-3">
+                {meta.items_looted.map((item: any, i: number) => (
+                  <span key={i} className="uppercase">
+                    {item.code.replace(/_/g, ' ')} x{item.quantity}
+                  </span>
+                ))}
+              </div>
+            )}
             {meta.stats_gained && (
               <div className="flex items-center gap-2 border-l border-slate-700 pl-3 ml-1">
                 {Object.entries(meta.stats_gained).map(([key, val]) => (
@@ -76,6 +86,15 @@ const LogContent = ({ log }: { log: NetworkLog }) => {
             <span className="text-yellow-400/80">+${meta.money_gain?.toLocaleString()}</span>
             <span className="text-emerald-400/80">+{meta.xp_gain} XP</span>
             <span className="text-blue-400/80">+{meta.merit_gain || meta.xp_gain} MÉRITO</span>
+            {meta.items_looted && meta.items_looted.length > 0 && (
+              <div className="flex items-center gap-1 text-purple-400 font-bold border-l border-slate-700 pl-3">
+                {meta.items_looted.map((item: any, i: number) => (
+                  <span key={i} className="uppercase">
+                    {item.code.replace(/_/g, ' ')} x{item.quantity}
+                  </span>
+                ))}
+              </div>
+            )}
             {meta.stats_gained && (
               <div className="flex items-center gap-2 border-l border-slate-700 pl-3 ml-1">
                 {Object.entries(meta.stats_gained).map(([key, val]) => (
