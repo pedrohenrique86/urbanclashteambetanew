@@ -46,7 +46,7 @@ export interface UserProfile {
   attack?: number;
   defense?: number;
   focus?: number;
-  luck?: number;
+  instinct?: number;
   intimidation?: number;
   discipline?: number;
   crit_chance_pct?: number;
@@ -132,7 +132,7 @@ function mergePlayerStateIntoProfile(
   if (patch.attack !== undefined) next.attack = patch.attack;
   if (patch.defense !== undefined) next.defense = patch.defense;
   if (patch.focus !== undefined) next.focus = patch.focus;
-  if (patch.luck !== undefined) next.luck = patch.luck;
+  if (patch.instinct !== undefined) next.instinct = patch.instinct;
   if (patch.critChance !== undefined) next.crit_chance_pct = patch.critChance;
   if (patch.critDamage !== undefined) next.crit_damage_mult = patch.critDamage;
   if (patch.cash !== undefined) next.money = patch.cash;
@@ -230,7 +230,7 @@ export const UserProfileProvider = ({ children }: { children: ReactNode }) => {
         attack: profileData.attack !== undefined ? Number(profileData.attack) : 0,
         defense: profileData.defense !== undefined ? Number(profileData.defense) : 0,
         focus: profileData.focus !== undefined ? Number(profileData.focus) : 0,
-        luck: profileData.luck !== undefined ? Number(profileData.luck) : 0,
+        instinct: profileData.luck !== undefined ? Number(profileData.luck) : 0,
         intimidation: profileData.intimidation !== undefined ? Number(profileData.intimidation) : 0,
         discipline: profileData.discipline !== undefined ? Number(profileData.discipline) : 0,
         critical_chance: profileData.critical_chance !== undefined ? Number(profileData.critical_chance) : 0,

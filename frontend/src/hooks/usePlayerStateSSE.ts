@@ -29,7 +29,7 @@ export interface PlayerStatePatch {
   attack?        : number;
   defense?       : number;
   focus?         : number;
-  luck?          : number;
+  instinct?      : number;
   critDamage?    : number;
   critChance?    : number;
   cash?          : number;

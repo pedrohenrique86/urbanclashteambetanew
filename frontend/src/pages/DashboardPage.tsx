@@ -453,7 +453,7 @@ const PowerPanel = React.memo(({ user }: { user: any }) => {
           <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-64 bg-zinc-900/95 backdrop-blur-md border border-zinc-700 text-[11px] text-slate-300 p-3 rounded-lg shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-[100] pointer-events-none">
             <p className="font-bold text-white border-b border-zinc-700 pb-1 mb-2 text-center uppercase tracking-tighter">Fórmula Power Solo</p>
             <p className="text-center leading-relaxed text-[10px]">
-              (ATK + ARMA + DEF + ESCUDO + FOC×0.5)<br/>
+              (ATK + ARMA + DEF + ESCUDO + FOC×0.5 + INS×1.5)<br/>
               + (NVL×2) + (CRIT%×0.2 + CRITx)<br/>
               <span className="text-emerald-400">× BÔNUS DE CHIPS</span>
             </p>

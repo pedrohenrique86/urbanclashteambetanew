@@ -127,7 +127,7 @@ const FIELD_TO_SSE = {
   attack            : "attack",
   defense           : "defense",
   focus             : "focus",
-  luck              : "luck",
+  luck              : "instinct",
   critical_damage   : "critDamage",
   critical_chance   : "critChance",
   money             : "cash",
@@ -210,11 +210,9 @@ function _parseState(raw) {
     if (out[field] !== undefined) {
       let n = Number(out[field]);
       if (!isNaN(n)) {
-        // SÊNIOR: Garantir que ATK, DEF e FOC tenham precisão de 2 casas (xx.xx)
-        if (['attack', 'defense', 'focus'].includes(field)) {
+        // SÊNIOR: Atributos reais (ATK, DEF, FOC, INS) com precisão de 2 casas
+        if (['attack', 'defense', 'focus', 'luck'].includes(field)) {
           n = Math.round(n * 100) / 100;
-        } else if (['luck'].includes(field)) {
-          n = Math.floor(n);
         }
         out[field] = n;
       }
@@ -437,8 +435,8 @@ function _buildPatch(updates, newState) {
     if (val !== undefined) {
       if (NUMERIC_FIELDS.has(redisKey)) {
         let n = Number(val);
-        // SÊNIOR: Arredonda atributos para 2 casas decimais no SSE (xx.xx)
-        if (['attack', 'defense', 'focus'].includes(redisKey)) {
+        // SÊNIOR: Arredonda atributos (incluindo INS) para 2 casas decimais no SSE
+        if (['attack', 'defense', 'focus', 'luck'].includes(redisKey)) {
           n = Math.round(n * 100) / 100;
         }
         patch[sseKey] = n;

@@ -57,7 +57,7 @@ const LogContent = ({ log }: { log: NetworkLog }) => {
             {meta.stats_gained && (
               <div className="flex items-center gap-2 border-l border-slate-700 pl-3 ml-1">
                 {Object.entries(meta.stats_gained).map(([key, val]) => (
-                  <span key={key} className="text-slate-400 uppercase">{key.substring(0,3)} +{String(val)}</span>
+                  <span key={key} className="text-slate-400 uppercase">{key === 'luck' ? 'INS' : key.substring(0,3)} +{String(val)}</span>
                 ))}
               </div>
             )}
@@ -78,7 +78,7 @@ const LogContent = ({ log }: { log: NetworkLog }) => {
             {meta.stats_gained && (
               <div className="flex items-center gap-2 border-l border-slate-700 pl-3 ml-1">
                 {Object.entries(meta.stats_gained).map(([key, val]) => (
-                  <span key={key} className="text-slate-400 uppercase">{key.substring(0,3)} +{String(val)}</span>
+                  <span key={key} className="text-slate-400 uppercase">{key === 'luck' ? 'INS' : key.substring(0,3)} +{String(val)}</span>
                 ))}
               </div>
             )}

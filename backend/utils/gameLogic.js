@@ -156,9 +156,11 @@ function calculateTotalPower(user, chips = []) {
   const critMult = Number(user.crit_damage_mult || 1);
   const specialValue = Number(user.intimidation || user.discipline || 0);
 
+  const instinct = Number(user.instinct || user.luck || 0);
+  
   // Fórmula unificada SSOT
-  // (ATK + DEF + FOC×0.5) + (NVL×2) + (CRIT%×0.2 + CRITx)
-  let powerSolo = (atk + (Number(user.weapon_damage) || 0) + def + (Number(user.shield_protection) || 0) + foc * 0.5) + (level * 2) + (critChance * 0.2 + critMult);
+  // (ATK + DEF + FOC×0.5 + INS×1.5) + (NVL×2) + (CRIT%×0.2 + CRITx)
+  let powerSolo = (atk + (Number(user.weapon_damage) || 0) + def + (Number(user.shield_protection) || 0) + foc * 0.5 + instinct * 1.5) + (level * 2) + (critChance * 0.2 + critMult);
   
   if (chips && chips.length > 0) {
     chips.forEach(chip => {
@@ -214,10 +216,12 @@ function calculateLevelFromXp(totalXp) {
 function calcCritChance(player) {
   const foc      = Math.max(0, Number(player.focus)            || 0);
   const rawCrit  = Math.max(0, Number(player.critical_chance)  || 0);
+  const instinct = Math.max(0, Number(player.instinct || player.luck) || 0);
 
   const chance = COMBAT.CRIT_BASE
     + foc    * COMBAT.CRIT_FOC_FACTOR
-    + rawCrit * COMBAT.CRIT_RAW_FACTOR;
+    + rawCrit * COMBAT.CRIT_RAW_FACTOR
+    + instinct * 0.15; // INS: Cada 1.00 ponto → +0.15% de crit real
 
   return Math.min(COMBAT.CRIT_CAP, Math.round(chance * 100) / 100);
 }
@@ -240,6 +244,7 @@ function calcCritDamageMultiplier(player) {
   // Bônus Dinâmico de Treino: Cada 50 atributos combinados = +1 ponto de porcentagem de dano crítico extra.
   // Garante evolução contínua da Topbar.
   const statsBonus = Math.floor((atk + def + foc) / 50);
+  const instinctBonus = (Number(player.instinct || player.luck) || 0) * 0.5; // INS: +0.5% de dano crítico por ponto
 
   let base;
   if (faction === 'renegados' || faction === 'gangsters') {
@@ -250,7 +255,7 @@ function calcCritDamageMultiplier(player) {
     base = COMBAT.CRIT_DMG_GENERIC_BASE;
   }
 
-  const totalPct = base + (rawDmg * COMBAT.CRIT_DMG_RAW_FACTOR) + statsBonus;
+  const totalPct = base + (rawDmg * COMBAT.CRIT_DMG_RAW_FACTOR) + statsBonus + instinctBonus;
   let multiplier = Math.round((1 + totalPct / 100) * 100) / 100; // ex: 150% → 2.50×
   
   // Hard Cap de Segurança (Teto Máximo) para impedir One-Shots no Late-game extremo
@@ -306,8 +311,8 @@ function resolveCombatHit(attacker, defender, turnMomentum = 1.0) {
   const counterChance = defenderDiscipline > 0 ? (defenderDiscipline * 100) / 2 : 0; // 20% de chance real
   const isCounter = Math.random() * 100 < counterChance;
 
-  // EVASÃO: Diferença de Foco
-  const focalEdge = Math.max(0, defender.focus - attacker.focus);
+  // EVASÃO: Diferença de Foco + Bônus de Instinto
+  const focalEdge = Math.max(0, (defender.focus + (Number(defender.instinct || defender.luck) || 0) * 2) - attacker.focus);
   const evasionChance = Math.max(2, Math.min(18, focalEdge / 35)); 
   const isEvaded = Math.random() * 100 < evasionChance;
 
@@ -537,9 +542,11 @@ function resolveStrategicCombat(attacker, defender, attackerChips = [], playerAc
   const baseDmg = 12 + (pAtk / (pAtk + oDef)) * 25;
   const oppBaseDmg = 12 + (oAtk / (oAtk + pDef)) * 25;
   
-  // Crit/Evasion setup
-  const pCritChance = Math.min(60, 5 + (pFoc * 0.05));
-  const oCritChance = Math.min(60, 5 + (oFoc * 0.05));
+  // Crit/Evasion setup (Integrando Instinto)
+  const pInstinct = Number(attacker.instinct || attacker.luck || 0);
+  const oInstinct = Number(defender.instinct || defender.luck || 0);
+  const pCritChance = Math.min(60, 5 + (pFoc * 0.05) + (pInstinct * 0.1));
+  const oCritChance = Math.min(60, 5 + (oFoc * 0.05) + (oInstinct * 0.1));
 
   for (let i = 0; i < 5; i++) {
     const pAction = playerActions[i] || 'brutal';

@@ -118,7 +118,7 @@ const TopBar: React.FC<TopBarProps> = ({ userProfile }) => {
     { label: "FOC",      value: userProfile?.focus !== undefined ? Number(userProfile.focus).toFixed(2) : "-", className: "text-pink-400", glowColor: "#ec4899", tooltip: "FOCO" },
     { label: "CRIT DMG", value: combat.criticalDamage ? Number(combat.criticalDamage.toFixed(2)) : "-", className: "text-rose-400",    glowColor: "#f43f5e", tooltipId: "topbar-crit-dmg-tooltip", showHint: true },
     { label: "CRIT%",    value: `${combat.criticalChance ? Number(combat.criticalChance.toFixed(2)) : 0}%`, className: "text-yellow-400",  glowColor: "#eab308", tooltipId: "topbar-crit-pct-tooltip", showHint: true },
-    { label: "LUCK",     value: `${Number(userProfile?.luck ?? 0).toFixed(1)}%`,          className: "text-emerald-400", glowColor: "#34d399", tooltip: `Sorte (Bônus de Loot): ${Number(userProfile?.luck || 0).toFixed(2)}%` },
+    { label: "INS",      value: userProfile?.instinct !== undefined ? `${Number(userProfile.instinct).toFixed(2)}%` : "-", className: "text-emerald-400", glowColor: "#34d399", tooltip: "INSTINTO" },
     { 
       label: "Cash", 
       value: `$${formatCurrency(userProfile?.money ?? 0)}`, 
@@ -260,9 +260,16 @@ const TopBar: React.FC<TopBarProps> = ({ userProfile }) => {
                        </span>
                        <span className="font-bold">+{Number(userProfile?.critical_chance ?? 0).toFixed(1)}%</span>
                     </div>
+                    <div className="flex justify-between items-center text-emerald-400">
+                       <span>
+                          Bônus de Instinto
+                          <span className="block text-[8px] opacity-60 mt-0.5">({Number(userProfile?.instinct || 0).toFixed(2)} pts × 0.15%)</span>
+                       </span>
+                       <span className="font-bold">+{Number((userProfile?.instinct || 0) * 0.15).toFixed(2)}%</span>
+                    </div>
                     <div className="border-t border-white/10 pt-2 flex justify-between items-center text-white">
                        <span className="text-[9px] uppercase tracking-wider">Total (cap 60%)</span>
-                       <span className="font-black">{Math.min(60, 5 + (userProfile?.focus || 0) * 0.08 + (userProfile?.critical_chance || 0)).toFixed(2)}%</span>
+                       <span className="font-black">{(combat.criticalChance).toFixed(2)}%</span>
                     </div>
                  </div>
               </div>
@@ -309,9 +316,16 @@ const TopBar: React.FC<TopBarProps> = ({ userProfile }) => {
                           </span>
                           <span className="font-bold">+{Number(userProfile?.critical_damage ?? 0).toFixed(1)}% → +{(Number(userProfile?.critical_damage ?? 0)/100).toFixed(2)}×</span>
                        </div>
+                       <div className="flex justify-between items-center text-emerald-400">
+                          <span>
+                             Bônus de Instinto
+                             <span className="block text-[8px] opacity-60 mt-0.5">({Number(userProfile?.instinct || 0).toFixed(2)} pts × 0.5%)</span>
+                          </span>
+                          <span className="font-bold">+{Number((userProfile?.instinct || 0) * 0.5).toFixed(1)}% → +{(Number((userProfile?.instinct || 0) * 0.5)/100).toFixed(2)}×</span>
+                       </div>
                        <div className="border-t border-white/10 pt-2 flex justify-between items-center text-white">
-                          <span className="text-[9px] uppercase tracking-wider">1 + (base+treino+acum) ÷ 100</span>
-                          <span className="font-black">{Math.min(4.0, Math.round((1 + (baseFaction + statsBonus + Number(userProfile?.critical_damage ?? 0)) / 100) * 100) / 100).toFixed(2)}×</span>
+                          <span className="text-[9px] uppercase tracking-wider">1 + (base+treino+acum+ins) ÷ 100</span>
+                          <span className="font-black">{(combat.criticalDamage).toFixed(2)}×</span>
                        </div>
                     </div>
                  </div>

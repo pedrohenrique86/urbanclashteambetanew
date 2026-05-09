@@ -73,6 +73,7 @@ function getNpcData(targetId, attacker) {
     username: name, level, attack: Math.max(1, Math.round(totalStatPool * atkPct * jitter(hash, 3))),
     defense: Math.max(1, Math.round(totalStatPool * defPct * jitter(hash, 7))),
     focus: Math.max(1, Math.round(totalStatPool * focPct * jitter(hash, 13))),
+    instinct: Math.max(0, Math.round(level * 0.25 * jitter(hash, 17))), // INS do BOT escala com o nível
     crit_chance_pct: Math.min(60, level * 0.4),
     crit_damage_mult: Math.min(4.0, 1.5 + (level * 0.02)),
     faction: botFaction, is_npc: true, is_rare: isRare, money: isRare ? 500 : 0

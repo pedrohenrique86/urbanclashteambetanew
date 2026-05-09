@@ -368,6 +368,7 @@ export default function ContractsPage() {
                   />
                 ))
               )}
+            </div>
           </div>
 
           {/* Mechanics Manual */}
@@ -376,76 +377,77 @@ export default function ContractsPage() {
               <ScaleIcon className="w-48 h-48 text-cyan-500" />
             </div>
             
-            <div className="relative z-10">
-              <h3 className="text-xl font-black text-white uppercase font-orbitron mb-6 flex items-center gap-3">
-                <InformationCircleIcon className="w-6 h-6 text-cyan-500" />
-                Manual de Operações: Confronto de Contratos
-              </h3>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <div className="space-y-4">
-                  <div className="p-4 bg-blue-500/5 border-l-4 border-blue-500">
-                    <h5 className="text-blue-400 font-black text-xs uppercase mb-2">Protocolo de Captura (Guardião)</h5>
-                    <p className="text-[10px] text-zinc-400 leading-relaxed font-mono">
-                      Ao realizar tarefas, Guardiões rastreiam atividades criminosas recentes. A eficácia da captura depende do seu poder ofensivo e técnico.
-                    </p>
-                    <div className="mt-3 p-2 bg-black/40 font-mono text-[9px] text-blue-300 border border-blue-500/20">
-                      FÓRMULA: (ATAQUE * 0.5) + (FOCO * 0.3) + (SORTE * 0.2)
-                    </div>
-                  </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <section className="space-y-6 text-slate-300">
+                <div>
+                  <h4 className="text-orange-500 font-black mb-2 uppercase flex items-center gap-2">
+                    <div className="w-1.5 h-4 bg-orange-500"></div>
+                    Dinâmica de Facções e Recursos
+                  </h4>
+                  <p className="text-[11px] leading-relaxed">
+                    O UrbanClash opera em um sistema de **Equilíbrio Simbiótico**. Cada facção gerencia recursos diferentes para atingir o topo:
+                  </p>
+                  <ul className="mt-2 space-y-2 text-[10px] list-disc list-inside text-slate-400">
+                    <li><span className="text-orange-400 font-bold">Renegados:</span> Focados em <span className="text-white">PA (Planejamento)</span>. Operações exigem tempo e estratégia. São a fonte primária de itens raros.</li>
+                    <li><span className="text-blue-400 font-bold">Guardiões:</span> Focados em <span className="text-white">Energia (Operacional)</span>. Patrulhar é exaustivo e exige suprimentos constantes de estamina.</li>
+                  </ul>
                 </div>
 
-                <div className="space-y-4">
-                  <div className="p-4 bg-orange-500/5 border-l-4 border-orange-500">
-                    <h5 className="text-orange-400 font-black text-xs uppercase mb-2">Protocolo de Evasão (Renegado)</h5>
-                    <p className="text-[10px] text-zinc-400 leading-relaxed font-mono">
-                      Renegados deixam um rastro digital após cada roubo. A capacidade de despistar a lei depende da sua infraestrutura defensiva e intuição.
-                    </p>
-                    <div className="mt-3 p-2 bg-black/40 font-mono text-[9px] text-orange-300 border border-orange-500/20">
-                      FÓRMULA: (DEFESA * 0.5) + (SORTE * 0.3) + (FOCO * 0.2)
+                <div>
+                  <h4 className="text-orange-500 font-black mb-2 uppercase flex items-center gap-2">
+                    <div className="w-1.5 h-4 bg-orange-500"></div>
+                    Economia de Risco vs. Estabilidade
+                  </h4>
+                  <div className="grid grid-cols-1 gap-3 mt-3">
+                    <div className="p-3 bg-black/40 border border-orange-500/10">
+                      <span className="text-[9px] font-black text-orange-500 block mb-1">RENEGADO (ALTO RISCO)</span>
+                      <span className="text-[10px] text-slate-400 italic">Loot alto e frequente, mas sujeito a confisco total por patrulhas se for interceptado.</span>
+                    </div>
+                    <div className="p-3 bg-black/40 border border-blue-500/10">
+                      <span className="text-[9px] font-black text-blue-500 block mb-1">GUARDIÃO (ESTABILIDADE)</span>
+                      <span className="text-[10px] text-slate-400 italic">Salário fixo e loot nativo equilibrado, compensado pelo bônus massivo de interceptação.</span>
                     </div>
                   </div>
                 </div>
-              </div>
+              </section>
 
-              <div className="mt-6 pt-6 border-t border-zinc-800">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="flex items-start gap-3">
-                    <MapPinIcon className="w-5 h-5 text-emerald-500 shrink-0" />
-                    <div>
-                      <h5 className="text-[10px] font-black text-emerald-500 uppercase mb-1">Emboscada por Localidade</h5>
-                      <p className="text-[9px] text-zinc-500 leading-tight">
-                        Encontros são mais prováveis quando o contrato do Renegado coincide com a área de patrulha do Guardião (Ex: Assalto ao Banco vs Segurança Bancária). Mesmo no mesmo local, a probabilidade de interceptação é de apenas 15%, garantindo a aleatoriedade.
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <UserGroupIcon className="w-5 h-5 text-amber-500 shrink-0" />
-                    <div>
-                      <h5 className="text-[10px] font-black text-amber-500 uppercase mb-1">Escaramuça Rápida</h5>
-                      <p className="text-[9px] text-zinc-500 leading-tight">
-                        Estes encontros não são duelos 1x1 (Acerto de Contas). São resoluções rápidas de emboscada. O objetivo é o confisco de evidências e proteção do loot, não a eliminação do alvo.
-                      </p>
-                    </div>
-                  </div>
+              <section className="space-y-6">
+                <div className="p-4 bg-zinc-900/50 border border-zinc-800 rounded-sm">
+                  <h4 className="text-cyan-500 font-black mb-2 uppercase flex items-center gap-2 text-xs">
+                    <MapPinIcon className="w-4 h-4" />
+                    Emboscada por Localidade
+                  </h4>
+                  <p className="text-[10px] text-zinc-400 leading-relaxed">
+                    Encontros ocorrem quando o contrato do Renegado coincide com a área de patrulha do Guardião (Ex: Assalto ao Banco vs Segurança Bancária).
+                    Mesmo no local exato, a chance de detecção é de apenas **15%**, garantindo que as operações não virem um PvP constante.
+                  </p>
                 </div>
-                
-                <div className="mt-6 flex flex-wrap gap-4 items-center">
-                  <div className="flex items-center gap-2">
-                    <SparklesIcon className="w-4 h-4 text-yellow-500" />
-                    <span className="text-[9px] font-black text-zinc-500 uppercase italic">Variável de Momento: ±10% de variação aleatória no confronto.</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <FireIcon className="w-4 h-4 text-red-500" />
-                    <span className="text-[9px] font-black text-red-500 uppercase">Golpe de Mestre: Sinal Nível 5 prioritário por 10 minutos.</span>
-                  </div>
+
+                <div className="p-4 bg-zinc-900/50 border border-zinc-800 rounded-sm">
+                  <h4 className="text-amber-500 font-black mb-2 uppercase flex items-center gap-2 text-xs">
+                    <SparklesIcon className="w-4 h-4" />
+                    Resolução de Confronto
+                  </h4>
+                  <p className="text-[10px] text-zinc-400 leading-relaxed">
+                    O vencedor é decidido pelo poder dos Atributos:
+                    <br />
+                    <span className="text-blue-400 font-bold">Guarda: (ATK * 0.5) + (FOC * 0.3) + (INS * 0.2)</span>
+                    <br />
+                    <span className="text-orange-400 font-bold">Renegado: (DEF * 0.5) + (INS * 0.3) + (FOC * 0.2)</span>
+                    <br />
+                    <span className="text-zinc-500 italic">±10% de variação aleatória de momento.</span>
+                  </p>
                 </div>
-              </div>
+
+                <div className="flex items-center gap-2 px-2">
+                  <FireIcon className="w-4 h-4 text-red-500 animate-pulse" />
+                  <span className="text-[9px] font-black text-red-500 uppercase">Golpe de Mestre: Sinal Nível 5 prioritário por 10 minutos.</span>
+                </div>
+              </section>
             </div>
           </div>
         </div>
       </div>
     </div>
-  </div>
   );
 }

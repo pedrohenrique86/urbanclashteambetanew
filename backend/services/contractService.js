@@ -61,16 +61,20 @@ class ContractService {
 
       if (isDaily) updates.last_daily_special_at = new Date().toISOString();
 
-      // SÊNIOR: Ganho de Atributos OBRIGATÓRIO (0.25 a 1.25)
+      // SÊNIOR: Ganho de Atributos OBRIGATÓRIO
       const attrGained = [];
-      const statsToGrow = ['attack', 'focus', 'luck'];
       
-      statsToGrow.forEach(attr => {
-        // Ganho decimal garantido para progressão ultra-suave
+      // Atributos Base (0.25 a 1.25)
+      ['attack', 'focus'].forEach(attr => {
         const gain = parseFloat((Math.random() * (1.25 - 0.25) + 0.25).toFixed(2));
         updates[attr] = (updates[attr] || 0) + gain;
         attrGained.push({ attr, gain });
       });
+
+      // SORTE -> INSTINTO (INS): Ganho Micro (0.01 a 0.20)
+      const instinctGain = parseFloat((Math.random() * (0.20 - 0.01) + 0.01).toFixed(2));
+      updates.luck = (updates.luck || 0) + instinctGain;
+      attrGained.push({ attr: 'instinct', gain: instinctGain });
 
       const lootGained = [];
       if (Math.random() < heist.lootChance) {
@@ -165,6 +169,14 @@ class ContractService {
       const moneyGained = REWARDS.money(task.salary[0], task.salary[1]);
       const meritGained = REWARDS.xp(task.merit[0], task.merit[1]);
 
+      const lootGained = [];
+      if (Math.random() < task.lootChance) {
+        const randomItem = SPECIAL_ITEMS_POOL[Math.floor(Math.random() * SPECIAL_ITEMS_POOL.length)];
+        const qty = Math.floor(Math.random() * 2) + 1;
+        await inventoryService.addItem(userId, randomItem, qty);
+        lootGained.push({ code: randomItem, quantity: qty });
+      }
+
       const updates = {
         action_points: -task.costPA,
         energy: -task.costEnergy,
@@ -172,13 +184,20 @@ class ContractService {
         merit: meritGained
       };
 
-      // Ganho de Atributos OBRIGATÓRIO (0.25 a 1.25)
+      // Ganho de Atributos OBRIGATÓRIO
       const attrGained = [];
-      ['defense', 'focus', 'luck'].forEach(attr => {
+      
+      // Atributos Base (0.25 a 1.25)
+      ['defense', 'focus'].forEach(attr => {
         const gain = parseFloat((Math.random() * (1.25 - 0.25) + 0.25).toFixed(2));
         updates[attr] = (updates[attr] || 0) + gain;
         attrGained.push({ attr, gain });
       });
+
+      // SORTE -> INSTINTO (INS): Ganho Micro (0.01 a 0.20)
+      const instinctGain = parseFloat((Math.random() * (0.20 - 0.01) + 0.01).toFixed(2));
+      updates.luck = (updates.luck || 0) + instinctGain;
+      attrGained.push({ attr: 'instinct', gain: instinctGain });
 
       let interception = null;
       if (Math.random() < task.interceptChance) {
@@ -253,6 +272,7 @@ class ContractService {
         money_gain: moneyGained,
         xp_gain: meritGained,
         stats_gained: attrGained.reduce((acc, a) => ({ ...acc, [a.attr]: a.gain }), {}),
+        loot: lootGained,
         interception: !!interception
       });
 
@@ -261,6 +281,7 @@ class ContractService {
         moneyGained,
         meritGained,
         attrGained,
+        lootGained,
         interception,
         player: newState
       };

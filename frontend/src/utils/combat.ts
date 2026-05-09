@@ -41,9 +41,10 @@ export const calculateCombatStats = (userProfile: any) => {
   const rawCrit = userProfile.critical_chance || 0;
   const rawDmg = userProfile.critical_damage || 0;
 
+  const instinct = Number(userProfile.instinct || userProfile.luck || 0);
+  
   // Lógica de Chance Crítica — SSOT: backend gameLogic.js calcCritChance()
-  // NOTA: discipline NÃO entra nesta fórmula (apenas CRIT_BASE + FOC + rawCrit)
-  let criticalChance = 5.0 + (focus * 0.08) + rawCrit;
+  let criticalChance = 5.0 + (focus * 0.08) + rawCrit + (instinct * 0.15);
   if (criticalChance > 60.0) criticalChance = 60.0; // Hardcap 60%
 
   // Lógica de Multiplicador de Dano Crítico — SSOT: backend calcCritDamageMultiplier()
@@ -62,10 +63,10 @@ export const calculateCombatStats = (userProfile: any) => {
 
   // Bônus de treino: cada 50 atributos combinados = +1% de dano crítico extra
   const statsBonus = Math.floor((attack + defense + focus) / 50);
+  const instinctBonus = instinct * 0.5;
 
-  // Multiplicador final: 1 + (base + rawDmg + statsBonus) / 100
-  // Ex: base=150, raw=0, stats=0 → 1 + 150/100 = 2.50×
-  const criticalDamage = Math.min(4.0, Math.round((1 + (basePct + rawDmg + statsBonus) / 100) * 100) / 100);
+  // Multiplicador final: 1 + (base + rawDmg + statsBonus + instinctBonus) / 100
+  const criticalDamage = Math.min(4.0, Math.round((1 + (basePct + rawDmg + statsBonus + instinctBonus) / 100) * 100) / 100);
 
   // DEF softcap: redução = DEF / (DEF + 200) — igual ao backend
   const effectiveDefense = defense;
@@ -94,9 +95,11 @@ export const calculateTotalPower = (user: any, chips: any[] = []) => {
   const weaponDmg = Number(user.weapon_damage || 0);
   const shieldProt = Number(user.shield_protection || 0);
 
+  const instinct = Number(user.instinct || user.luck || 0);
+
   // Fórmula unificada SSOT
-  // (ATK + ARMA + DEF + ESCUDO + FOC×0.5) + (NVL×2) + (CRIT%×0.2 + CRITx)
-  let powerSolo = (atk + weaponDmg + def + shieldProt + foc * 0.5) + (level * 2) + (critChance * 0.2 + critMult);
+  // (ATK + ARMA + DEF + ESCUDO + FOC×0.5 + INS×1.5) + (NVL×2) + (CRIT%×0.2 + CRITx)
+  let powerSolo = (atk + weaponDmg + def + shieldProt + foc * 0.5 + instinct * 1.5) + (level * 2) + (critChance * 0.2 + critMult);
   
   if (chips && chips.length > 0) {
     chips.forEach(chip => {
