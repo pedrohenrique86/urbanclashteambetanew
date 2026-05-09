@@ -272,7 +272,8 @@ class ContractService {
       // Log Individual (Network Logs)
       await actionLogService.log(userId, 'guardian_task', 'contract', task.id, {
         money_gain: moneyGained,
-        xp_gain: meritGained,
+        merit_gain: meritGained,
+        xp_gain: xpGained,
         stats_gained: attrGained.reduce((acc, a) => ({ ...acc, [a.attr]: a.gain }), {}),
         loot: lootGained,
         interception: !!interception

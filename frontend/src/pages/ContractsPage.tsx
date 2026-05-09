@@ -488,16 +488,23 @@ export default function ContractsPage() {
                 <div>
                   <h4 className="text-orange-500 font-black mb-2 uppercase flex items-center gap-2">
                     <div className="w-1.5 h-4 bg-orange-500"></div>
-                    Economia de Risco vs. Estabilidade
+                    Economia e Prestígio (Nível)
                   </h4>
-                  <div className="grid grid-cols-1 gap-3 mt-3">
-                    <div className="p-3 bg-black/40 border border-orange-500/10">
-                      <span className="text-[9px] font-black text-orange-500 block mb-1">RENEGADO (ALTO RISCO)</span>
-                      <span className="text-[10px] text-slate-400 italic">Loot alto e frequente, mas sujeito a confisco total por patrulhas se for interceptado.</span>
+                  <p className="text-[11px] leading-relaxed mb-3">
+                    Seu nível é uma medida de **Prestígio**, calculada pela soma da sua Experiência (XP), seus Atributos e sua Riqueza Acumulada:
+                  </p>
+                  <div className="grid grid-cols-1 gap-2">
+                    <div className="p-2 bg-black/40 border border-zinc-800 flex justify-between items-center">
+                      <span className="text-[9px] font-black text-zinc-500 uppercase">Esforço (XP)</span>
+                      <span className="text-[10px] text-white font-bold">Curva Progressiva</span>
                     </div>
-                    <div className="p-3 bg-black/40 border border-blue-500/10">
-                      <span className="text-[9px] font-black text-blue-500 block mb-1">GUARDIÃO (ESTABILIDADE)</span>
-                      <span className="text-[10px] text-slate-400 italic">Salário fixo e loot nativo equilibrado, compensado pelo bônus massivo de interceptação.</span>
+                    <div className="p-2 bg-black/40 border border-zinc-800 flex justify-between items-center">
+                      <span className="text-[9px] font-black text-zinc-500 uppercase">Treinamento (Stats)</span>
+                      <span className="text-[10px] text-white font-bold">25 pts = +1 Nível</span>
+                    </div>
+                    <div className="p-2 bg-black/40 border border-zinc-800 flex justify-between items-center">
+                      <span className="text-[9px] font-black text-zinc-500 uppercase">Capital (Dinheiro)</span>
+                      <span className="text-[10px] text-emerald-500 font-bold">$100k = +1 Nível</span>
                     </div>
                   </div>
                 </div>

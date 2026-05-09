@@ -74,7 +74,8 @@ const LogContent = ({ log }: { log: NetworkLog }) => {
           </div>
           <div className="flex flex-wrap gap-3 text-[10px] items-center">
             <span className="text-yellow-400/80">+${meta.money_gain?.toLocaleString()}</span>
-            <span className="text-emerald-400/80">+{meta.xp_gain} MÉRO</span>
+            <span className="text-emerald-400/80">+{meta.xp_gain} XP</span>
+            <span className="text-blue-400/80">+{meta.merit_gain || meta.xp_gain} MÉRITO</span>
             {meta.stats_gained && (
               <div className="flex items-center gap-2 border-l border-slate-700 pl-3 ml-1">
                 {Object.entries(meta.stats_gained).map(([key, val]) => (
