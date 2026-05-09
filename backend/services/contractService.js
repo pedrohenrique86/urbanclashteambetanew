@@ -105,7 +105,7 @@ class ContractService {
         player: newState
       };
     } finally {
-      await redisClient.delAsync(LOCK_KEY);
+      // Deixamos o lock expirar naturalmente em 3s para garantir o cooldown anti-spam
     }
   }
 
@@ -113,6 +113,11 @@ class ContractService {
    * Guardião: Realiza um serviço.
    */
   async performGuardianTask(userId, taskId) {
+    const LOCK_KEY = `lock:contract:task:${userId}`;
+    const hasLock = await redisClient.setNXAsync(LOCK_KEY, "1", 3000);
+    if (!hasLock) throw new Error("Aguarde o processamento da operação anterior.");
+    try {
+
     const task = GUARDIAN_TYPES.find(t => t.id === taskId);
     if (!task) throw new Error("Tarefa inválida.");
 
@@ -186,13 +191,16 @@ class ContractService {
       territory_name: 'Metrópole'
     });
 
-    return {
-      message: `Tarefa '${task.name}' concluída. Recebido $${moneyGained.toLocaleString()} e ${meritGained} de Mérito.`,
-      moneyGained,
-      meritGained,
-      interception,
-      player: newState
-    };
+      return {
+        message: `Tarefa '${task.name}' concluída. Recebido $${moneyGained.toLocaleString()} e ${meritGained} de Mérito.`,
+        moneyGained,
+        meritGained,
+        interception,
+        player: newState
+      };
+    } finally {
+      // Cooldown de 3s mantido pelo vencimento do Redis
+    }
   }
 
   /**

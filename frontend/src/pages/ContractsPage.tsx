@@ -68,7 +68,7 @@ interface ContractStatus {
 
 // --- Components ---
 
-const ActionCard = ({ data, onAction, disabled, userLevel, type }: any) => {
+const ActionCard = ({ data, onAction, disabled, userLevel, type, cooldown }: any) => {
   const isLocked = userLevel < data.level;
   const isRenegade = type === 'heist';
 
@@ -92,7 +92,12 @@ const ActionCard = ({ data, onAction, disabled, userLevel, type }: any) => {
         {isLocked ? (
           <LockClosedIcon className="w-4 h-4 text-zinc-600" />
         ) : (
-          <div className={`w-2 h-2 rounded-full animate-pulse ${isRenegade ? 'bg-orange-500' : 'bg-blue-500'}`} />
+          <div className="flex items-center gap-2">
+            {cooldown > 0 && (
+              <span className="text-[10px] font-black text-red-500 animate-pulse">{cooldown}S</span>
+            )}
+            <div className={`w-2 h-2 rounded-full animate-pulse ${isRenegade ? 'bg-orange-500' : 'bg-blue-500'}`} />
+          </div>
         )}
       </div>
       
@@ -130,6 +135,14 @@ export default function ContractsPage() {
   const [loadingAction, setLoadingAction] = useState<string | null>(null);
   const [localLogs, setLocalLogs] = useState<ContractLog[]>([]);
   const [showInterception, setShowInterception] = useState(false);
+  const [cooldown, setCooldown] = useState(0);
+
+  useEffect(() => {
+    if (cooldown > 0) {
+      const timer = setTimeout(() => setCooldown(c => c - 1), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [cooldown]);
 
   const rawFaction = userProfile?.faction as any;
   const factionName = typeof rawFaction === 'string' ? rawFaction : (rawFaction?.name || 'gangsters');
@@ -158,7 +171,9 @@ export default function ContractsPage() {
   }, [showToast, refreshProfile]);
 
   const handleHeist = async (heistId: string) => {
+    if (cooldown > 0) return;
     setLoadingAction(heistId);
+    setCooldown(3);
     try {
       const res = await api.post("/contracts/heist", { heistId });
       showToast(res.data.message, "success");
@@ -172,7 +187,9 @@ export default function ContractsPage() {
   };
 
   const handleGuardianTask = async (taskId: string) => {
+    if (cooldown > 0) return;
     setLoadingAction(taskId);
+    setCooldown(3);
     try {
       const res = await api.post("/contracts/guardian-task", { taskId });
       showToast(res.data.message, "success");
@@ -314,7 +331,8 @@ export default function ContractsPage() {
                     data={heist} 
                     type="heist"
                     userLevel={userProfile?.level || 0}
-                    disabled={loadingAction !== null}
+                    disabled={loadingAction !== null || cooldown > 0}
+                    cooldown={cooldown}
                     onAction={handleHeist}
                   />
                 ))
@@ -325,7 +343,8 @@ export default function ContractsPage() {
                     data={task} 
                     type="task"
                     userLevel={userProfile?.level || 0}
-                    disabled={loadingAction !== null}
+                    disabled={loadingAction !== null || cooldown > 0}
+                    cooldown={cooldown}
                     onAction={handleGuardianTask}
                   />
                 ))
