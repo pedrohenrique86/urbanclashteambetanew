@@ -11,6 +11,7 @@ import { UserProfileProvider } from "./contexts/UserProfileContext";
 import GlobalLayout from "./components/layout/GlobalLayout";
 import ProtectedRoute from "./components/ProtectedRoute";
 import RootErrorBoundary from "./components/RootErrorBoundary";
+import { SettingsProvider } from "./contexts/SettingsContext";
 
 // --- Lazy Load das Páginas ---
 const HomePage = lazy(() => import("./pages/HomePage"));
@@ -145,11 +146,13 @@ export default function App() {
         <GameClockProvider>
           <LoadingProvider>
             <HUDProvider>
-              <GlobalLoadingSpinner />
-              <RouterProvider
-                router={router}
-                future={{ v7_startTransition: true }}
-              />
+              <SettingsProvider>
+                <GlobalLoadingSpinner />
+                <RouterProvider
+                  router={router}
+                  future={{ v7_startTransition: true }}
+                />
+              </SettingsProvider>
             </HUDProvider>
           </LoadingProvider>
         </GameClockProvider>

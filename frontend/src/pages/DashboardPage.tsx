@@ -13,6 +13,8 @@ import {
 } from "@heroicons/react/24/outline";
 import { StarIcon as StarSolid } from "@heroicons/react/24/solid";
 import { calculateTotalPower } from "../utils/combat";
+import { useSettings } from "../contexts/SettingsContext";
+import { Cog6ToothIcon } from "@heroicons/react/24/outline";
 
 
 // --- Componente de Painel Genérico ---
@@ -480,6 +482,33 @@ const PowerPanel = React.memo(({ user }: { user: any }) => {
   );
 });
 
+// --- Painel de Configurações ---
+const SettingsPanel = React.memo(() => {
+  const { showLiveFeed, setShowLiveFeed } = useSettings();
+
+  return (
+    <DashboardPanel
+      title="CONFIGURAÇÕES DE INTERFACE"
+      icon={<Cog6ToothIcon className="w-6 h-6 text-slate-400" />}
+    >
+      <div className="h-full flex flex-col justify-center space-y-4">
+        <div className="flex items-center justify-between p-3 bg-white/5 rounded-xl border border-white/10">
+          <div>
+            <p className="text-sm font-bold text-white uppercase font-orbitron tracking-tighter">Live Net Feed</p>
+            <p className="text-[10px] text-slate-500">Exibe notícias em tempo real no rodapé da tela.</p>
+          </div>
+          <button
+            onClick={() => setShowLiveFeed(!showLiveFeed)}
+            className={`w-12 h-6 rounded-full transition-all relative ${showLiveFeed ? 'bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.4)]' : 'bg-zinc-800'}`}
+          >
+            <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-all ${showLiveFeed ? 'left-7' : 'left-1'}`} />
+          </button>
+        </div>
+      </div>
+    </DashboardPanel>
+  );
+});
+
 // --- Página Principal do Dashboard ---
 export default function DashboardPage() {
   const { userProfile } = useUserProfile();
@@ -498,6 +527,7 @@ export default function DashboardPage() {
         <ResourcesPanel user={userProfile} />
         <FactionPanel user={userProfile} />
         <StatisticsPanel user={userProfile} />
+        <SettingsPanel />
       </div>
     </div>
   );

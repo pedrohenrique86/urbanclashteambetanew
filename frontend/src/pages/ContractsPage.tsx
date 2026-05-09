@@ -68,8 +68,9 @@ interface ContractStatus {
 
 // --- Components ---
 
-const ActionCard = ({ data, onAction, disabled, userLevel, type, cooldown }: any) => {
+const ActionCard = ({ data, onAction, disabled, userLevel, userEnergy, userPA, type, cooldown }: any) => {
   const isLocked = userLevel < data.level;
+  const hasResources = (userEnergy >= (data.costEnergy || 0)) && (userPA >= (data.costPA || 0));
   const isRenegade = type === 'heist';
 
   return (
@@ -78,9 +79,9 @@ const ActionCard = ({ data, onAction, disabled, userLevel, type, cooldown }: any
       className={`relative p-4 border rounded-sm transition-all overflow-hidden ${
         isLocked 
           ? "bg-zinc-900/20 border-zinc-800/50 grayscale opacity-40" 
-          : "bg-zinc-900/40 border-zinc-800 hover:border-cyan-500/50 hover:bg-zinc-900/60"
+          : (!hasResources ? "bg-zinc-900/40 border-red-900/50 opacity-60" : "bg-zinc-900/40 border-zinc-800 hover:border-cyan-500/50 hover:bg-zinc-900/60")
       }`}
-      onClick={() => !isLocked && !disabled && onAction(data.id)}
+      onClick={() => !isLocked && !disabled && hasResources && onAction(data.id)}
     >
       <div className="flex justify-between items-start mb-3">
         <div className="flex flex-col">
@@ -102,12 +103,12 @@ const ActionCard = ({ data, onAction, disabled, userLevel, type, cooldown }: any
       </div>
       
       <div className="flex flex-wrap gap-3 mt-4">
-        <div className="flex items-center gap-1 text-[10px] font-black text-cyan-400 uppercase">
+        <div className={`flex items-center gap-1 text-[10px] font-black uppercase ${userPA < data.costPA ? 'text-red-500' : 'text-cyan-400'}`}>
           <BoltIcon className="w-3 h-3" />
           {data.costPA} PA
         </div>
         {isRenegade && (
-          <div className="flex items-center gap-1 text-[10px] font-black text-yellow-500 uppercase">
+          <div className={`flex items-center gap-1 text-[10px] font-black uppercase ${userEnergy < data.costEnergy ? 'text-red-500' : 'text-yellow-500'}`}>
             <BoltIcon className="w-3 h-3" />
             {data.costEnergy} NRG
           </div>
@@ -263,7 +264,12 @@ export default function ContractsPage() {
                   </div>
                   <button 
                     onClick={() => handleHeist(config.dailySpecial.id)}
-                    disabled={loadingAction !== null || (userProfile?.level || 0) < config.dailySpecial.level}
+                    disabled={
+                      loadingAction !== null || 
+                      (userProfile?.level || 0) < config.dailySpecial.level || 
+                      (userProfile?.energy || 0) < config.dailySpecial.costEnergy ||
+                      (userProfile?.action_points || 0) < config.dailySpecial.costPA
+                    }
                     className="w-full md:w-auto px-8 py-3 bg-orange-600 hover:bg-orange-500 disabled:bg-zinc-800 disabled:opacity-50 transition-all font-black text-black uppercase tracking-widest text-sm"
                     style={{ clipPath: "polygon(10% 0, 100% 0, 100% 70%, 90% 100%, 0 100%, 0 30%)" }}
                   >
@@ -331,6 +337,8 @@ export default function ContractsPage() {
                     data={heist} 
                     type="heist"
                     userLevel={userProfile?.level || 0}
+                    userEnergy={userProfile?.energy || 0}
+                    userPA={userProfile?.action_points || 0}
                     disabled={loadingAction !== null || cooldown > 0}
                     cooldown={cooldown}
                     onAction={handleHeist}
@@ -343,6 +351,8 @@ export default function ContractsPage() {
                     data={task} 
                     type="task"
                     userLevel={userProfile?.level || 0}
+                    userEnergy={userProfile?.energy || 0}
+                    userPA={userProfile?.action_points || 0}
                     disabled={loadingAction !== null || cooldown > 0}
                     cooldown={cooldown}
                     onAction={handleGuardianTask}
@@ -353,49 +363,8 @@ export default function ContractsPage() {
           </div>
         </div>
 
-        {/* Sidebar: Live Feed & Districts */}
+        {/* Sidebar: District Monitor */}
         <div className="lg:col-span-4 space-y-6">
-          
-          {/* Network Logs */}
-          <div className="bg-zinc-900/60 border border-zinc-800 rounded-sm flex flex-col h-[500px]">
-             <div className="p-4 border-b border-zinc-800 flex items-center justify-between">
-                <h3 className="text-[10px] font-black text-cyan-400 uppercase tracking-widest flex items-center gap-2">
-                  <div className="w-1.5 h-1.5 bg-cyan-500 animate-pulse rounded-full" />
-                  Live_Net_Feed
-                </h3>
-             </div>
-             <div className="flex-1 overflow-y-auto p-4 space-y-3 scrollbar-hide">
-                <AnimatePresence initial={false}>
-                  {localLogs.map((log) => (
-                    <motion.div 
-                      key={log.id}
-                      initial={{ opacity: 0, x: 20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      className="p-3 bg-black/40 border border-zinc-800/50 rounded-sm relative group"
-                    >
-                      <div className="flex justify-between items-start mb-1">
-                        <span className={`text-[7px] font-black uppercase px-1.5 py-0.5 ${
-                          log.faction === 'gangsters' ? 'bg-orange-500 text-black' : 'bg-blue-500 text-white'
-                        }`}>
-                          {log.faction === 'gangsters' ? 'Renegado' : 'Guardião'}
-                        </span>
-                        <span className="text-[8px] text-zinc-600 font-mono">
-                          {formatDistanceToNow(new Date(log.created_at), { addSuffix: true, locale: ptBR })}
-                        </span>
-                      </div>
-                      <p className="text-[10px] text-zinc-400 leading-tight">
-                        {log.message}
-                      </p>
-                      <div className="mt-2 flex items-center gap-1 opacity-20 group-hover:opacity-100 transition-opacity">
-                        <MapPinIcon className="w-3 h-3" />
-                        <span className="text-[8px] font-bold uppercase">{log.territory_name}</span>
-                      </div>
-                    </motion.div>
-                  ))}
-                </AnimatePresence>
-             </div>
-          </div>
-
           {/* District Monitor */}
           <div className="p-4 bg-zinc-900/40 border border-zinc-800 rounded-sm space-y-4">
              <h4 className="text-[10px] font-black text-zinc-500 uppercase tracking-[0.2em]">Monitoramento de Heat</h4>

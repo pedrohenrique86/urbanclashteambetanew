@@ -10,9 +10,11 @@ class ContractService {
    * Renegado: Realiza um roubo.
    */
   async performHeist(userId, heistId) {
+    if (!redisClient.client.isReady) throw new Error("Sistema de cache indisponível. Tente novamente em instantes.");
+
     const LOCK_KEY = `lock:contract:heist:${userId}`;
     const hasLock = await redisClient.setNXAsync(LOCK_KEY, "1", 3000);
-    if (!hasLock) throw new Error("Aguarde o processamento da operação anterior.");
+    if (!hasLock) throw new Error("Aguarde o processamento da operação anterior (Cooldown).");
 
     try {
       let heist = HEIST_TYPES.find(h => h.id === heistId);
@@ -113,9 +115,12 @@ class ContractService {
    * Guardião: Realiza um serviço.
    */
   async performGuardianTask(userId, taskId) {
+    if (!redisClient.client.isReady) throw new Error("Sistema de cache indisponível. Tente novamente em instantes.");
+
     const LOCK_KEY = `lock:contract:task:${userId}`;
     const hasLock = await redisClient.setNXAsync(LOCK_KEY, "1", 3000);
-    if (!hasLock) throw new Error("Aguarde o processamento da operação anterior.");
+    if (!hasLock) throw new Error("Aguarde o processamento da operação anterior (Cooldown).");
+
     try {
 
     const task = GUARDIAN_TYPES.find(t => t.id === taskId);

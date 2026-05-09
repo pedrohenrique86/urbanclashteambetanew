@@ -15,6 +15,7 @@ import { PAGE_BACKGROUNDS } from "../../constants/backgrounds";
 import StatusBlocker from "../StatusBlocker";
 import { useToast } from "../../contexts/ToastContext";
 import { trainingService } from "../../services/trainingService";
+import LiveNewsTicker from "./LiveNewsTicker";
 
 interface GlobalLayoutProps {
   children: React.ReactNode;
@@ -288,6 +289,7 @@ const GlobalLayout: React.FC<GlobalLayoutProps> = ({ children }) => {
 
       <MobileAppDrawer />
       <ScrollToTopButton scrollableRef={scrollableContainerRef} />
+      <LiveNewsTicker />
     </div>
   );
 };
