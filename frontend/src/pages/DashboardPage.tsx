@@ -495,7 +495,7 @@ const SettingsPanel = React.memo(() => {
         <div className="flex items-center justify-between p-3 bg-white/5 rounded-xl border border-white/10">
           <div>
             <p className="text-sm font-bold text-white uppercase font-orbitron tracking-tighter">Live Net Feed</p>
-            <p className="text-[10px] text-slate-500">Exibe notícias em tempo real no rodapé da tela.</p>
+            <p className="text-[10px] text-slate-500">Ligar ou desativar o feed de notícias.</p>
           </div>
           <button
             onClick={() => setShowLiveFeed(!showLiveFeed)}

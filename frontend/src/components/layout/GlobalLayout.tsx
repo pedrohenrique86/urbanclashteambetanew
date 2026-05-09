@@ -245,13 +245,13 @@ const GlobalLayout: React.FC<GlobalLayoutProps> = ({ children }) => {
         <div className="flex flex-col flex-1 w-0">
           <div
             ref={scrollableContainerRef}
-            className="flex-1 relative overflow-y-auto overflow-x-hidden"
+            className="flex-1 relative overflow-y-auto overflow-x-hidden flex flex-col"
           >
             <TopBar
               userProfile={userProfile as any}
             />
 
-            <main className="focus:outline-none pt-2 md:pt-4 px-4 md:px-6 pb-[60px] md:pb-6 relative w-full">
+            <main className="focus:outline-none pt-2 md:pt-4 px-4 md:px-6 pb-6 md:pb-6 relative w-full">
               <div className="urban-container">
                 {children}
               </div>
@@ -289,7 +289,6 @@ const GlobalLayout: React.FC<GlobalLayoutProps> = ({ children }) => {
 
       <MobileAppDrawer />
       <ScrollToTopButton scrollableRef={scrollableContainerRef} />
-      <LiveNewsTicker />
     </div>
   );
 };

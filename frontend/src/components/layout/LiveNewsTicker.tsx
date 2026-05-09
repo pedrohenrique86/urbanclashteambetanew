@@ -9,6 +9,7 @@ interface NewsItem {
   message: string;
   type: string;
   timestamp: number;
+  is_major?: boolean;
 }
 
 const LiveNewsTicker: React.FC = () => {
@@ -36,19 +37,21 @@ const LiveNewsTicker: React.FC = () => {
         // Melhor usar a API diretamente para o estado inicial
         const api = (await import('../../lib/api')).default;
         const res = await api.get('/contracts/status');
-        if (res.data?.logs) {
-          const initialNews = res.data.logs.slice(0, 5).map((log: any) => ({
-            id: log.id,
-            message: log.message,
-            type: log.event_type,
-            timestamp: new Date(log.created_at).getTime()
-          }));
-          setNews(initialNews);
+          console.log("Feed: Logs recebidos do banco:", res.data?.logs?.length);
+          if (res.data?.logs) {
+            const initialNews = res.data.logs.map((log: any) => ({
+              id: log.id,
+              message: log.message,
+              type: log.event_type,
+              timestamp: new Date(log.created_at).getTime(),
+              is_major: log.is_major
+            }));
+            setNews(initialNews.slice(0, 5));
+          }
+        } catch (err) {
+          console.error("Erro ao buscar logs iniciais:", err);
         }
-      } catch (err) {
-        console.error("Erro ao buscar logs iniciais:", err);
-      }
-    };
+      };
 
     fetchInitialLogs();
 
@@ -57,10 +60,15 @@ const LiveNewsTicker: React.FC = () => {
         id: log.id || Math.random().toString(36).substr(2, 9),
         message: log.message,
         type: log.event_type || 'info',
-        timestamp: Date.now()
+        timestamp: Date.now(),
+        is_major: log.is_major
       };
       
-      setNews(prev => [newItem, ...prev].slice(0, 5));
+      setNews(prev => {
+        // Evita duplicatas (mesma mensagem em curto intervalo)
+        if (prev.some(item => item.message === newItem.message)) return prev;
+        return [newItem, ...prev].slice(0, 5);
+      });
     };
 
     socketService.on("contract:log", handleNewLog);
@@ -74,11 +82,16 @@ const LiveNewsTicker: React.FC = () => {
   if (!showLiveFeed || !currentNews) return null;
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-[100] h-8 bg-black/80 backdrop-blur-md border-t border-red-500/30 flex items-center overflow-hidden font-orbitron">
+    <div 
+      className="mt-1 w-full bg-black/60 backdrop-blur-2xl border border-white/10 rounded-2xl p-1.5 shadow-2xl flex items-center overflow-hidden font-orbitron pointer-events-auto mx-auto h-8"
+      style={{
+        boxShadow: "inset 0 1px 1px rgba(255, 255, 255, 0.05), 0 20px 50px rgba(0, 0, 0, 0.9)",
+      }}
+    >
       {/* "LIVE" Badge */}
-      <div className="flex items-center gap-2 px-4 bg-red-600 h-full text-white text-[10px] font-black italic tracking-tighter shadow-[5px_0_15px_rgba(220,38,38,0.5)] z-10">
-        <SignalIcon className="w-4 h-4 animate-pulse" />
-        LIVE NET FEED
+      <div className="flex items-center gap-2 px-3 bg-red-600 h-full text-white text-[9px] font-black italic tracking-tighter shadow-[5px_0_15px_rgba(220,38,38,0.3)] z-10 rounded-lg">
+        <SignalIcon className="w-3 h-3 animate-pulse" />
+        LIVE
       </div>
 
       {/* Scrolling Container */}

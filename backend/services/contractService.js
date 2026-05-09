@@ -89,13 +89,26 @@ class ContractService {
 
       const message = `Sucesso! Você completou ${heist.name}. Ganhou $${moneyGained.toLocaleString()} e ${xpGained} XP.`;
       
+      // SÊNIOR: Lógica de Maior Roubo do Dia (Feed de Notícias)
+      const today = new Date().toISOString().split('T')[0];
+      const MAX_HEIST_KEY = `max_heist_amount:${today}`;
+      const currentMax = await redisClient.getAsync(MAX_HEIST_KEY);
+      
+      let isMajor = false;
+      // Se for a primeira do dia ou maior que a atual, marca como major
+      if (!currentMax || moneyGained > parseInt(currentMax)) {
+        await redisClient.setAsync(MAX_HEIST_KEY, moneyGained.toString(), "EX", 86400); // 1 dia
+        isMajor = true;
+      }
+
       await this.logEvent({
         user_id: userId,
         username: state.username,
         faction: 'gangsters',
         event_type: 'heist_success',
         message: `${state.username} realizou ${heist.name} e levou $${moneyGained.toLocaleString()}!`,
-        territory_name: 'Metrópole'
+        territory_name: 'Metrópole',
+        is_major: isMajor
       });
 
       return {
@@ -193,7 +206,8 @@ class ContractService {
       faction: 'guardas',
       event_type: 'guardian_service',
       message: `O Guardião ${state.username} completou ${task.name}.`,
-      territory_name: 'Metrópole'
+      territory_name: 'Metrópole',
+      is_major: true // Serviços de guardião sempre aparecem
     });
 
       return {
@@ -249,23 +263,25 @@ class ContractService {
 
   async logEvent(data) {
     await query(
-      `INSERT INTO contract_logs (user_id, username, faction, event_type, message, territory_name)
-       VALUES ($1, $2, $3, $4, $5, $6)`,
-      [data.user_id, data.username, data.faction, data.event_type, data.message, data.territory_name]
+      `INSERT INTO contract_logs (user_id, username, faction, event_type, message, territory_name, is_major)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+      [data.user_id, data.username, data.faction, data.event_type, data.message, data.territory_name, data.is_major || false]
     );
     
     const io = getIO();
     if (io) {
       io.emit("contract:log", {
         ...data,
+        is_major: data.is_major || false,
         created_at: new Date().toISOString()
       });
     }
   }
 
-  async getLogs() {
+  async getLogs(onlyMajor = false) {
+    const where = onlyMajor ? 'WHERE is_major = true' : '';
     const { rows } = await query(
-      `SELECT * FROM contract_logs ORDER BY created_at DESC LIMIT 20`
+      `SELECT * FROM contract_logs ${where} ORDER BY created_at DESC LIMIT 20`
     );
     return rows;
   }
