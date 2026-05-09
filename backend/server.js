@@ -49,6 +49,7 @@ process.on("uncaughtException", (err) => {
 
 const timeRoutes = require("./routes/time");
 const adminRoutes = require("./routes/admin");
+const marketRoutes = require("./routes/market");
 const combatRoutes = require("./routes/combat");
 const authRoutes = require("./routes/auth");
 const { router: userRoutes } = require("./routes/users");
@@ -141,6 +142,7 @@ app.use("/api/admin", adminRoutes);
 app.use("/api/combat", combatRoutes);
 app.use("/api/logs", logsRoutes);
 app.use("/api/contracts", contractsRoutes);
+app.use("/api/market", marketRoutes);
 app.use("/api/daily-cards", require("./routes/dailyCards"));
 app.use("/api/recovery", require("./routes/recovery"));
 app.use("/api/isolation", require("./routes/isolation"));

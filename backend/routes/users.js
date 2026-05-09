@@ -439,6 +439,15 @@ router.get("/profile", authenticateToken, async (req, res) => {
       }
     }
 
+    // BUSCAR INVENTÁRIO (Especial para Bolsa Sombria e Dashboard)
+    try {
+      const inventoryService = require("../services/inventoryService");
+      convertedProfile.inventory = await inventoryService.getInventory(req.user.id);
+    } catch (e) {
+      console.error("Erro ao buscar inventário:", e);
+      convertedProfile.inventory = [];
+    }
+
     const gameState = await getGameState();
     res.json({ ...convertedProfile, gameState });
   } catch (error) {

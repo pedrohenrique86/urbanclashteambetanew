@@ -81,6 +81,7 @@ export interface UserProfile {
     heistName: string;
     items: Array<{ code: string; quantity: number }>;
   } | null;
+  inventory?: any[];
 }
 
 export interface IUserProfileContext {
@@ -88,7 +89,7 @@ export interface IUserProfileContext {
   loading: boolean;
   isError: boolean;
   fetchProfile: () => Promise<UserProfile | null>;
-  refreshProfile: () => Promise<UserProfile | null>;
+  refreshProfile: (force?: boolean) => Promise<UserProfile | null>;
   processProfileData: (
     profileData: any,
     currentUser: any,
@@ -262,6 +263,7 @@ export const UserProfileProvider = ({ children }: { children: ReactNode }) => {
         merit: Number(profileData.merit) || 0,
         corruption: Number(profileData.corruption) || 0,
         pending_interception: profileData.pending_interception || null,
+        inventory: profileData.inventory || [],
       };
     },
     [],
@@ -370,13 +372,13 @@ export const UserProfileProvider = ({ children }: { children: ReactNode }) => {
     fetchProfile();
   }, [user, fetchProfile]);
 
-  const refreshProfile = useCallback(async () => {
+  const refreshProfile = useCallback(async (force = false) => {
     // SÊNIOR: Se o SSE atualizou o estado recentemente (dentro da janela de
     // proteção), o estado React já está correto e mais recente que o banco
     // (debounce de 3s ainda pode estar pendente). Retornar sem fazer fetch
     // evita o rollback de estado observado ao navegar entre páginas.
     const msSinceSSE = Date.now() - lastSSEUpdateRef.current;
-    if (lastSSEUpdateRef.current > 0 && msSinceSSE < SSE_FRESHNESS_WINDOW_MS) {
+    if (!force && lastSSEUpdateRef.current > 0 && msSinceSSE < SSE_FRESHNESS_WINDOW_MS) {
       if (import.meta.env.DEV) {
         console.debug(`[refreshProfile] SSE recente (${msSinceSSE}ms atrás). Fetch ignorado para evitar rollback de estado.`);
       }
@@ -429,6 +431,11 @@ export const UserProfileProvider = ({ children }: { children: ReactNode }) => {
     onStateUpdate: handlePlayerStateUpdate,
     onStatusUpdate: handlePlayerStatusUpdate,
     onDuplicateSession: () => setIsDuplicate(true),
+    onMarketUpdate: (payload) => {
+      // SÊNIOR: Despacha um evento global customizado. 
+      // Isso permite que a página DarkMarketPage ouça as mudanças sem abrir um segundo canal SSE.
+      window.dispatchEvent(new CustomEvent("urbanclash:market_update", { detail: payload }));
+    }
   });
 
   // SÊNIOR: Listener global para Socket.IO para detecção de duplicidade

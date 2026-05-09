@@ -49,16 +49,17 @@ const GUARDIAN_TYPES = [
   { id: 'operacao_especial', name: 'Operação Especial', level: 400, costPA: 6000, costEnergy: 100, salary: [200000, 500000], merit: [20000, 60000], interceptChance: 0.75 },
 ];
 
-const ITEM_LOOT_POOL = [
-  'sucata_placa_video', 'cabos_cobre', 'chips_defeituosos', 'pecas_drone',
-  'fiacao_fibra_otica', 'baterias_litio', 'modulos_memoria', 'processadores_basicos',
-  'biomaterial_bruto', 'neuro_chips', 'drives_ouro'
+const SPECIAL_ITEMS_POOL = [
+  'cabos_cobre', 'placas_mae_queimadas', 'sucata_placa_video', 'chips_defeituosos',
+  'baterias_litio', 'fiacao_fibra_otica', 'pecas_drone', 'modulos_memoria',
+  'motores_passo_precisao', 'processadores_basicos', 'biomaterial_bruto',
+  'sensores_otica_avancada', 'neuro_chips', 'circuitos_integrados_raros', 'drives_ouro'
 ];
 
 module.exports = {
   HEIST_TYPES,
   DAILY_SPECIAL,
   GUARDIAN_TYPES,
-  ITEM_LOOT_POOL,
+  SPECIAL_ITEMS_POOL,
   REWARDS
 };

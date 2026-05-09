@@ -85,11 +85,17 @@ export interface DuplicateSessionPayload {
   message: string;
 }
 
+export interface MarketUpdatePayload {
+  itemCode: string;
+  newStock: number;
+}
+
 interface UsePlayerStateSSEOptions {
   userId          : string | null;
   onStateUpdate   : (payload: PlayerStatePayload) => void;
   onStatusUpdate? : (payload: PlayerStatusPayload) => void;
   onDuplicateSession?: (payload: DuplicateSessionPayload) => void;
+  onMarketUpdate? : (payload: MarketUpdatePayload) => void;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────────
@@ -113,6 +119,7 @@ export function usePlayerStateSSE({
   onStateUpdate,
   onStatusUpdate,
   onDuplicateSession,
+  onMarketUpdate,
 }: UsePlayerStateSSEOptions): void {
   const mountedRef       = useRef(true);
   const esRef            = useRef<EventSource | null>(null);
@@ -122,6 +129,7 @@ export function usePlayerStateSSE({
   const onUpdateRef      = useRef(onStateUpdate);
   const onStatusRef      = useRef(onStatusUpdate);
   const onDuplicateRef    = useRef(onDuplicateSession);
+  const onMarketRef       = useRef(onMarketUpdate);
   const wasKickedRef     = useRef(false);
 
   // Mantém referências atualizadas sem recriar a conexão
@@ -129,6 +137,7 @@ export function usePlayerStateSSE({
     onUpdateRef.current = onStateUpdate;
     onStatusRef.current = onStatusUpdate;
     onDuplicateRef.current = onDuplicateSession;
+    onMarketRef.current = onMarketUpdate;
   });
 
   useEffect(() => {
@@ -204,6 +213,19 @@ export function usePlayerStateSSE({
           }
         } catch (err) {
           console.warn("[playerSSE] Falha ao parsear evento duplicate session:", err);
+        }
+      });
+
+      // ── Mercado: market:update (Real-time Global Stock) ──────────────────────
+      es.addEventListener("market:update", (e: MessageEvent) => {
+        if (!mountedRef.current) return;
+        try {
+          const payload = JSON.parse(e.data) as MarketUpdatePayload;
+          if (onMarketRef.current) {
+            onMarketRef.current(payload);
+          }
+        } catch (err) {
+          console.warn("[playerSSE] Falha ao parsear evento market update:", err);
         }
       });
 

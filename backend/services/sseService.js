@@ -41,7 +41,11 @@ async function initRedisBridge() {
           return;
         }
 
-        _localPublish(topic, event, data);
+        if (topic === "all") {
+          _localPublishAll(event, data);
+        } else {
+          _localPublish(topic, event, data);
+        }
       } catch (err) {
         console.error("[SSE-Bridge] Erro ao processar mensagem Redis:", err.message);
       }
@@ -134,21 +138,29 @@ function publish(topic, event, data) {
 }
 
 function broadcast(event, data) {
+  // SÊNIOR: Se o Redis estiver ativo, envia para a ponte com tópico 'all'
+  // permitindo que todos os processos recebam e enviem para seus clientes locais.
+  if (redisPublisher && redisPublisher.isOpen) {
+    redisPublisher.publish("SSE_BRIDGE", JSON.stringify({ topic: "all", event, data }))
+      .catch(err => console.error("[SSE] Erro ao transmitir broadcast no Redis:", err.message));
+  } else {
+    // Fallback: Apenas local
+    _localPublishAll(event, data);
+  }
+}
+
+/** Envia para TODOS os clientes conectados NESTE processo. */
+function _localPublishAll(event, data) {
   const message = `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`;
-  const allClients = new Set();
   for (const clientSet of topics.values()) {
     for (const client of clientSet) {
-      allClients.add(client);
+      try {
+        client.write(message);
+      } catch (e) {
+        // Falha silenciosa
+      }
     }
   }
-
-  allClients.forEach((client) => {
-    try {
-      client.write(message);
-    } catch (e) {
-      // Falha silenciosa
-    }
-  });
 }
 
 /**

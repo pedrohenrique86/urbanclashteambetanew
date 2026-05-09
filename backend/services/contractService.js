@@ -2,15 +2,20 @@ const { query } = require("../config/database");
 const redisClient = require("../config/redisClient");
 const playerStateService = require("./playerStateService");
 const inventoryService = require("./inventoryService");
-const { getIO } = require("../socketHandler");
-const { HEIST_TYPES, GUARDIAN_TYPES, DAILY_SPECIAL, ITEM_LOOT_POOL, REWARDS } = require("../utils/contractConstants");
+const logService = require("./logService");
+const { HEIST_TYPES, GUARDIAN_TYPES, DAILY_SPECIAL, SPECIAL_ITEMS_POOL, REWARDS } = require("../utils/contractConstants");
 
+/**
+ * contractService.js
+ * 
+ * Sistema de Contratos (Roubos e Tarefas) otimizado para escala massiva.
+ */
 class ContractService {
   /**
    * Renegado: Realiza um roubo.
    */
   async performHeist(userId, heistId) {
-    if (!redisClient.client.isReady) throw new Error("Sistema de cache indisponível. Tente novamente em instantes.");
+    if (!redisClient.client.isReady) throw new Error("Sistema de cache indisponível.");
 
     const LOCK_KEY = `lock:contract:heist:${userId}`;
     const hasLock = await redisClient.setNXAsync(LOCK_KEY, "1", 3000);
@@ -42,7 +47,6 @@ class ContractService {
         }
       }
 
-      // Calcular ganhos
       const moneyGained = REWARDS.money(heist.money[0], heist.money[1]);
       const xpGained = REWARDS.xp(heist.xp[0], heist.xp[1]);
       
@@ -54,9 +58,7 @@ class ContractService {
         corruption: Math.floor(heist.level * 2)
       };
 
-      if (isDaily) {
-        updates.last_daily_special_at = new Date().toISOString();
-      }
+      if (isDaily) updates.last_daily_special_at = new Date().toISOString();
 
       // Ganho de Atributos
       const attributes = ['attack', 'defense', 'focus', 'intimidation', 'discipline'];
@@ -69,10 +71,9 @@ class ContractService {
         }
       });
 
-      // Itens (Farming)
       const lootGained = [];
       if (Math.random() < heist.lootChance) {
-        const randomItem = ITEM_LOOT_POOL[Math.floor(Math.random() * ITEM_LOOT_POOL.length)];
+        const randomItem = SPECIAL_ITEMS_POOL[Math.floor(Math.random() * SPECIAL_ITEMS_POOL.length)];
         const qty = Math.floor(Math.random() * 3) + 1;
         await inventoryService.addItem(userId, randomItem, qty);
         lootGained.push({ code: randomItem, quantity: qty });
@@ -80,28 +81,16 @@ class ContractService {
 
       const newState = await playerStateService.updatePlayerState(userId, updates);
 
-      // Registrar atividade para interceptação (5 minutos)
+      // Registrar atividade para interceptação
       await redisClient.setAsync(`heist_activity:${userId}`, JSON.stringify({
         username: state.username,
         heistName: heist.name,
         loot: lootGained
       }), "EX", 300);
 
-      const message = `Sucesso! Você completou ${heist.name}. Ganhou $${moneyGained.toLocaleString()} e ${xpGained} XP.`;
-      
-      // SÊNIOR: Lógica de Maior Roubo do Dia (Feed de Notícias)
-      const today = new Date().toISOString().split('T')[0];
-      const MAX_HEIST_KEY = `max_heist_amount:${today}`;
-      const currentMax = await redisClient.getAsync(MAX_HEIST_KEY);
-      
-      let isMajor = false;
-      // Se for a primeira do dia ou maior que a atual, marca como major
-      if (!currentMax || moneyGained > parseInt(currentMax)) {
-        await redisClient.setAsync(MAX_HEIST_KEY, moneyGained.toString(), "EX", 86400); // 1 dia
-        isMajor = true;
-      }
-
-      await this.logEvent({
+      // SÊNIOR: Log de Alta Performance via LogService (Batch Dirty)
+      const isMajor = moneyGained > 50000 || isDaily; // Exemplo de regra para major
+      await logService.addLog({
         user_id: userId,
         username: state.username,
         faction: 'gangsters',
@@ -112,7 +101,7 @@ class ContractService {
       });
 
       return {
-        message,
+        message: `Sucesso! Ganhou $${moneyGained.toLocaleString()} e ${xpGained} XP.`,
         moneyGained,
         xpGained,
         attrGained,
@@ -120,111 +109,87 @@ class ContractService {
         player: newState
       };
     } finally {
-      // Deixamos o lock expirar naturalmente em 3s para garantir o cooldown anti-spam
+      // Lock expira naturalmente
     }
   }
 
   /**
-   * Guardião: Realiza um serviço.
+   * Guardião: Realiza uma tarefa.
    */
   async performGuardianTask(userId, taskId) {
-    if (!redisClient.client.isReady) throw new Error("Sistema de cache indisponível. Tente novamente em instantes.");
+    if (!redisClient.client.isReady) throw new Error("Sistema de cache indisponível.");
 
     const LOCK_KEY = `lock:contract:task:${userId}`;
     const hasLock = await redisClient.setNXAsync(LOCK_KEY, "1", 3000);
-    if (!hasLock) throw new Error("Aguarde o processamento da operação anterior (Cooldown).");
+    if (!hasLock) throw new Error("Aguarde o processamento da operação anterior.");
 
     try {
+      const task = GUARDIAN_TYPES.find(t => t.id === taskId);
+      if (!task) throw new Error("Tarefa inválida.");
 
-    const task = GUARDIAN_TYPES.find(t => t.id === taskId);
-    if (!task) throw new Error("Tarefa inválida.");
+      const state = await playerStateService.getPlayerState(userId);
+      if (state.level < task.level) throw new Error(`Nível insuficiente.`);
+      if (state.action_points < task.costPA) throw new Error("PA insuficiente.");
+      if (state.energy < task.costEnergy) throw new Error("Energia insuficiente.");
 
-    const state = await playerStateService.getPlayerState(userId);
-    if (state.level < task.level) throw new Error(`Nível insuficiente. Requer nível ${task.level}.`);
-    if (state.action_points < task.costPA) throw new Error("PA insuficiente.");
-    if (state.energy < task.costEnergy) throw new Error("Energia insuficiente.");
+      const moneyGained = REWARDS.money(task.salary[0], task.salary[1]);
+      const meritGained = REWARDS.xp(task.merit[0], task.merit[1]);
 
-    const moneyGained = REWARDS.money(task.salary[0], task.salary[1]);
-    const meritGained = REWARDS.xp(task.merit[0], task.merit[1]);
+      const updates = {
+        action_points: -task.costPA,
+        energy: -task.costEnergy,
+        money: moneyGained,
+        merit: meritGained
+      };
 
-    const updates = {
-      action_points: -task.costPA,
-      energy: -task.costEnergy,
-      money: moneyGained,
-      merit: meritGained
-    };
-
-    // Chance de Interceptação Automática
-    let interception = null;
-    if (Math.random() < task.interceptChance) {
-      const keys = await redisClient.keysAsync("heist_activity:*");
-      const filteredKeys = keys.filter(k => k !== `heist_activity:${userId}`);
-      
-      if (filteredKeys.length > 0) {
-        const targetKey = filteredKeys[Math.floor(Math.random() * filteredKeys.length)];
-        const targetId = targetKey.split(":")[1];
-        const activityRaw = await redisClient.getAsync(targetKey);
+      let interception = null;
+      if (Math.random() < task.interceptChance) {
+        const keys = await redisClient.keysAsync("heist_activity:*");
+        const filteredKeys = keys.filter(k => k !== `heist_activity:${userId}`);
         
-        if (activityRaw) {
-          const activity = JSON.parse(activityRaw);
+        if (filteredKeys.length > 0) {
+          const targetKey = filteredKeys[Math.floor(Math.random() * filteredKeys.length)];
+          const activityRaw = await redisClient.getAsync(targetKey);
           
-          // Gerar loot interceptado (uma parte do que o renegado pegou ou itens aleatórios)
-          const interceptedItems = [
-            { code: ITEM_LOOT_POOL[Math.floor(Math.random() * ITEM_LOOT_POOL.length)], quantity: Math.floor(Math.random() * 2) + 1 }
-          ];
-
-          interception = {
-            targetId,
-            targetName: activity.username,
-            heistName: activity.heistName,
-            items: interceptedItems
-          };
-
-          // Armazenar na ficha do guardião
-          updates.pending_interception = interception;
-
-          // Notificar renegado
-          const io = getIO();
-          if (io) {
-            io.emit(`player:${targetId}:notification`, {
-              type: 'intercepted',
-              message: `Você foi interceptado pelo Guardião ${state.username} durante ${activity.heistName}!`
-            });
+          if (activityRaw) {
+            const activity = JSON.parse(activityRaw);
+            interception = {
+              targetId: targetKey.split(":")[1],
+              targetName: activity.username,
+              heistName: activity.heistName,
+              items: [{ code: SPECIAL_ITEMS_POOL[Math.floor(Math.random() * SPECIAL_ITEMS_POOL.length)], quantity: 1 }]
+            };
+            updates.pending_interception = interception;
+            await redisClient.delAsync(targetKey);
           }
-
-          // Remover rastro
-          await redisClient.delAsync(targetKey);
         }
       }
-    }
 
-    const newState = await playerStateService.updatePlayerState(userId, updates);
+      const newState = await playerStateService.updatePlayerState(userId, updates);
 
-    await this.logEvent({
-      user_id: userId,
-      username: state.username,
-      faction: 'guardas',
-      event_type: 'guardian_service',
-      message: `O Guardião ${state.username} completou ${task.name}.`,
-      territory_name: 'Metrópole',
-      is_major: true // Serviços de guardião sempre aparecem
-    });
+      // Log de Alta Performance
+      await logService.addLog({
+        user_id: userId,
+        username: state.username,
+        faction: 'guardas',
+        event_type: 'guardian_service',
+        message: `O Guardião ${state.username} completou ${task.name}.`,
+        territory_name: 'Metrópole',
+        is_major: true
+      });
 
       return {
-        message: `Tarefa '${task.name}' concluída. Recebido $${moneyGained.toLocaleString()} e ${meritGained} de Mérito.`,
+        message: `Tarefa concluída. Recebido $${moneyGained.toLocaleString()} e ${meritGained} Mérito.`,
         moneyGained,
         meritGained,
         interception,
         player: newState
       };
     } finally {
-      // Cooldown de 3s mantido pelo vencimento do Redis
+      // Lock
     }
   }
 
-  /**
-   * Guardião: Resolve a interceptação (Vender ou Corregedoria)
-   */
   async resolveInterception(userId, action) {
     const state = await playerStateService.getPlayerState(userId);
     if (!state.pending_interception) throw new Error("Nenhuma interceptação pendente.");
@@ -234,51 +199,38 @@ class ContractService {
     let message = "";
 
     if (action === 'sell') {
-      // Vender: Ganha dinheiro mas aumenta corrupção e perde mérito
-      const value = 5000 * interception.items.length; // Valor fixo por lote por enquanto
+      const value = 5000 * interception.items.length;
       updates.money = value;
       updates.corruption = 50;
       updates.merit = -100;
-      message = `Você vendeu os itens confiscados no mercado negro por $${value.toLocaleString()}. Sua conduta foi reportada internamente.`;
+      message = `Confisco vendido por $${value.toLocaleString()}.`;
     } else {
-      // Corregedoria: Ganha Mérito e XP bônus
       updates.merit = 500;
       updates.total_xp = 2000;
-      message = `Você entregou os itens à Corregedoria. Recebeu 500 de Mérito e 2000 XP de bônus por sua integridade.`;
+      message = `Confisco entregue. Recebeu Mérito e XP bônus.`;
     }
 
     const newState = await playerStateService.updatePlayerState(userId, updates);
     return { message, player: newState };
   }
 
-  async getActiveContract(userId) {
-    // Mantido por compatibilidade, mas o sistema novo é mais baseado em ações instantâneas
-    return null;
-  }
-
+  /**
+   * SÊNIOR: Cache de Territórios (Redis).
+   * Reduz acessos repetitivos ao banco para dados estáticos do mapa.
+   */
   async getDistricts() {
+    const CACHE_KEY = "map:districts";
+    const cached = await redisClient.getAsync(CACHE_KEY);
+    if (cached) return JSON.parse(cached);
+
     const { rows } = await query(`SELECT * FROM map_territories`);
+    await redisClient.setAsync(CACHE_KEY, JSON.stringify(rows), "EX", 3600); // 1 hora
     return rows;
   }
 
-  async logEvent(data) {
-    await query(
-      `INSERT INTO contract_logs (user_id, username, faction, event_type, message, territory_name, is_major)
-       VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-      [data.user_id, data.username, data.faction, data.event_type, data.message, data.territory_name, data.is_major || false]
-    );
-    
-    const io = getIO();
-    if (io) {
-      io.emit("contract:log", {
-        ...data,
-        is_major: data.is_major || false,
-        created_at: new Date().toISOString()
-      });
-    }
-  }
-
   async getLogs(onlyMajor = false) {
+    // SÊNIOR: Para os logs recentes, sempre buscamos no banco (onde são persistidos pelo LogService).
+    // O LogService garante que o banco não seja sobrecarregado por escritas.
     const where = onlyMajor ? 'WHERE is_major = true' : '';
     const { rows } = await query(
       `SELECT * FROM contract_logs ${where} ORDER BY created_at DESC LIMIT 20`
