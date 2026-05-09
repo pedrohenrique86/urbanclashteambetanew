@@ -63,6 +63,16 @@ const redisWrapper = {
     }
   },
 
+  existsAsync: async (k) => {
+    if (!k || !isReady) return 0;
+    try {
+      return await client.exists(String(k));
+    } catch (err) {
+      console.error(`[RedisClient] Erro em existsAsync key=${k}:`, err.message);
+      return 0;
+    }
+  },
+
   incrAsync: async (k) => {
     if (!k || !isReady) return null;
     try {
@@ -120,6 +130,16 @@ const redisWrapper = {
       return await client.hSet(key, field, value);
     } catch (err) {
       console.error(`[RedisClient] Erro em hSetAsync key=${k}:`, err.message);
+      return null;
+    }
+  },
+
+  hIncrByAsync: async (k, f, v) => {
+    if (!k || f === undefined || !isReady) return null;
+    try {
+      return await client.hIncrBy(String(k), String(f), Number(v));
+    } catch (err) {
+      console.error(`[RedisClient] Erro em hIncrByAsync key=${k} field=${f}:`, err.message);
       return null;
     }
   },
@@ -255,6 +275,16 @@ const redisWrapper = {
     } catch (err) {
       console.error(`[RedisClient] Erro em setNXAsync key=${k}:`, err.message);
       return null;
+    }
+  },
+
+  keysAsync: async (pattern) => {
+    if (!pattern || !isReady) return [];
+    try {
+      return await client.keys(pattern);
+    } catch (err) {
+      console.error(`[RedisClient] Erro em keysAsync pattern=${pattern}:`, err.message);
+      return [];
     }
   },
 

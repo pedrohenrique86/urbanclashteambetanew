@@ -7,7 +7,8 @@ const supplyService = require("../services/supplyService");
 router.post("/buy/:itemId", authenticateToken, async (req, res) => {
   try {
     const { itemId } = req.params;
-    const result = await supplyService.buySupply(req.user.id, itemId);
+    const { isFieldBuy } = req.body;
+    const result = await supplyService.buySupply(req.user.id, itemId, isFieldBuy);
     res.json(result);
   } catch (error) {
     console.error("[Supply Error]:", error);

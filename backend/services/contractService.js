@@ -168,6 +168,7 @@ class ContractService {
 
       const moneyGained = REWARDS.money(task.salary[0], task.salary[1]);
       const meritGained = REWARDS.xp(task.merit[0], task.merit[1]);
+      const xpGained = REWARDS.xp(task.xp[0], task.xp[1]);
 
       const lootGained = [];
       if (Math.random() < task.lootChance) {
@@ -181,7 +182,8 @@ class ContractService {
         action_points: -task.costPA,
         energy: -task.costEnergy,
         money: moneyGained,
-        merit: meritGained
+        merit: meritGained,
+        total_xp: xpGained
       };
 
       // Ganho de Atributos OBRIGATÓRIO
@@ -277,7 +279,7 @@ class ContractService {
       });
 
       return {
-        message: `Tarefa concluída. Recebido $${moneyGained.toLocaleString()} e ${meritGained} Mérito.`,
+        message: `Tarefa concluída. Recebido $${moneyGained.toLocaleString()}, ${meritGained} Mérito e ${xpGained} XP.`,
         moneyGained,
         meritGained,
         attrGained,

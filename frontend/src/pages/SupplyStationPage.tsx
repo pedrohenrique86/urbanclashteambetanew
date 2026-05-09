@@ -25,12 +25,12 @@ const SUPPLY_OPTIONS = [
     name: "VOLT-C",
     description: "Para não dormir na vigia.",
     energy: 15,
-    costs: { ap: 150, cash: 40 },
+    costs: { ap: 50, cash: 40 },
     toxicityChance: 20,
     toxicityGain: 2,
     icon: <Coffee className="w-8 h-8 text-cyan-400 group-hover:text-cyan-300 transition-colors" />,
     color: "cyan",
-    cooldownMs: 10000, // 10s
+    cooldownMs: 3000, // 3s
     flavorTexts: [
       "BARISTA DESENHANDO CAVEIRA...",
       "TENTANDO PARAR DE TREMER..."
@@ -41,12 +41,12 @@ const SUPPLY_OPTIONS = [
     name: "RAÇÃO SINTÉTICA",
     description: "Origem duvidosa, calorias garantidas.",
     energy: 40,
-    costs: { ap: 350, cash: 120 },
-    toxicityChance: 70,
+    costs: { ap: 120, cash: 120 },
+    toxicityChance: 40,
     toxicityGain: 5,
     icon: <Sandwich className="w-8 h-8 text-violet-400 group-hover:text-violet-300 transition-colors" />,
     color: "violet",
-    cooldownMs: 20000,
+    cooldownMs: 3000,
     flavorTexts: [
       "TIRANDO MILHO DA CAMISA...",
       "DE QUE BICHO É ESSA CARNE?"
@@ -57,12 +57,12 @@ const SUPPLY_OPTIONS = [
     name: "PACK DE BIO-MASSA",
     description: "Sustância de respeito. Cuidado com o sono.",
     energy: 65,
-    costs: { ap: 600, cash: 280 },
-    toxicityChance: 50,
+    costs: { ap: 250, cash: 280 },
+    toxicityChance: 35,
     toxicityGain: 8,
     icon: <UtensilsCrossed className="w-8 h-8 text-emerald-400 group-hover:text-emerald-300 transition-colors" />,
     color: "emerald",
-    cooldownMs: 45000,
+    cooldownMs: 3000,
     flavorTexts: [
       "MORTE LENTA PÓS-ALMOÇO...",
       "FEIJÃO PRESO NO DENTE..."
@@ -73,12 +73,12 @@ const SUPPLY_OPTIONS = [
     name: "BANQUETE TÁTICO",
     description: "Refeição de alto padrão. Para verdadeiros chefes.",
     energy: 90,
-    costs: { ap: 1000, cash: 500 },
+    costs: { ap: 400, cash: 500 },
     toxicityChance: 10,
     toxicityGain: 10,
     icon: <Sparkles className="w-8 h-8 text-amber-400 group-hover:text-amber-300 transition-colors" />,
     color: "amber",
-    cooldownMs: 60000,
+    cooldownMs: 3000,
     flavorTexts: [
       "CONTA MAIS CARA QUE TIRO...",
       "DIGESTÃO GOURMET EM CURSO..."
@@ -89,12 +89,12 @@ const SUPPLY_OPTIONS = [
     name: "ADRENALINA PURA",
     description: "Injeção instantânea. Recarrega 100%.",
     energy: 100,
-    costs: { ap: 1500, cash: 850 },
-    toxicityChance: 80,
+    costs: { ap: 600, cash: 850 },
+    toxicityChance: 45,
     toxicityGain: 12,
     icon: <Syringe className="w-8 h-8 text-rose-400 group-hover:text-rose-300 transition-colors" />,
     color: "rose",
-    cooldownMs: 30000,
+    cooldownMs: 3000,
     flavorTexts: [
       "CORAÇÃO A 200 BPM!!!",
       "ESTOU ENXERGANDO SONS..."
@@ -462,8 +462,13 @@ export default function SupplyStationPage() {
         {/* MAIN: SUPPLY OPTIONS */}
         <div className="lg:col-span-12 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 relative z-10">
           {SUPPLY_OPTIONS.map((opt, idx) => {
-            const hasEnoughCash = currentCash >= opt.costs.cash;
-            const hasEnoughAP = currentAP >= opt.costs.ap;
+            const userTox = Number(userProfile?.toxicity || 0);
+            const costMultiplier = 1 + (userTox / 250);
+            const dynamicCash = Math.floor(opt.costs.cash * costMultiplier);
+            const staticAP = opt.costs.ap;
+
+            const hasEnoughCash = currentCash >= dynamicCash;
+            const hasEnoughAP = currentAP >= staticAP;
             const isFullEnergy = currentEnergy >= maxEnergy;
             const canAfford = hasEnoughCash && hasEnoughAP && !isFullEnergy;
             
@@ -497,11 +502,11 @@ export default function SupplyStationPage() {
                       <div className="grid grid-cols-3 gap-2">
                         <div className={`bg-red-500/10 border ${hasEnoughAP ? 'border-red-500/20' : 'border-red-500/80 shadow-[0_0_10px_rgba(239,68,68,0.5)]'} p-2 flex flex-col items-center group-hover:bg-red-500/20 transition-colors`}>
                           <BoltIcon className={`w-3 h-3 ${hasEnoughAP ? 'text-red-500' : 'text-red-400'} mb-1`} />
-                          <span className={`text-[10px] font-bold ${hasEnoughAP ? 'text-red-200' : 'text-red-400'}`}>-{opt.costs.ap} PA</span>
+                          <span className={`text-[10px] font-bold ${hasEnoughAP ? 'text-red-200' : 'text-red-400'}`}>-{staticAP} PA</span>
                         </div>
                         <div className={`bg-green-500/10 border ${hasEnoughCash ? 'border-green-500/20' : 'border-green-500/80 shadow-[0_0_10px_rgba(34,197,94,0.5)]'} p-2 flex flex-col items-center group-hover:bg-green-500/20 transition-colors`}>
                           <BanknotesIcon className={`w-3 h-3 ${hasEnoughCash ? 'text-green-500' : 'text-green-400'} mb-1`} />
-                          <span className={`text-[10px] font-bold ${hasEnoughCash ? 'text-green-200' : 'text-green-400'}`}>-${opt.costs.cash.toLocaleString("pt-BR")}</span>
+                          <span className={`text-[10px] font-bold ${hasEnoughCash ? 'text-green-200' : 'text-green-400'}`}>-${dynamicCash.toLocaleString("pt-BR")}</span>
                         </div>
                         <div className="bg-rose-500/10 border border-rose-500/40 p-2 flex flex-col items-center group-hover:bg-rose-500/30 transition-colors shadow-[0_0_8px_rgba(244,63,94,0.2)]">
                           <HeartPulse className="w-3 h-3 text-rose-400 mb-1" />

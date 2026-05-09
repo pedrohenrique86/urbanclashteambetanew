@@ -6,41 +6,53 @@ const SUPPLY_ITEMS = {
     id: "cafe",
     energyGained: 15,
     costCash: 40,
-    costAP: 150,
+    costAP: 50,
     toxicity: 2
   },
   sanduiche: {
     id: "sanduiche",
     energyGained: 40,
     costCash: 120,
-    costAP: 350,
+    costAP: 120,
     toxicity: 5
   },
   marmita: {
     id: "marmita",
     energyGained: 65,
     costCash: 280,
-    costAP: 600,
+    costAP: 250,
     toxicity: 8
   },
   banquete: {
     id: "banquete",
     energyGained: 90,
     costCash: 500,
-    costAP: 1000,
+    costAP: 400,
     toxicity: 10
   },
   adrenalina: {
     id: "adrenalina",
     energyGained: 100,
     costCash: 850,
-    costAP: 1500,
+    costAP: 600,
     toxicity: 12
   }
 };
 
-async function buySupply(userId, itemId) {
-  const item = SUPPLY_ITEMS[itemId];
+async function buySupply(userId, itemId, isFieldBuy = false) {
+  let item = SUPPLY_ITEMS[itemId];
+  
+  // Caso Especial: Recarga Total via Fast Food nos Contratos
+  if (itemId === 'full_refill') {
+    item = {
+      id: "full_refill",
+      energyGained: 100, // Será recalculado dinamicamente
+      costCash: 1600,
+      costAP: 600,
+      toxicity: 15
+    };
+  }
+
   if (!item) {
     throw new Error("Item de suprimento inválido.");
   }
@@ -50,16 +62,26 @@ async function buySupply(userId, itemId) {
     throw new Error("Perfil não encontrado.");
   }
 
+  const currentTox = Number(profile.toxicity || 0);
+  const toxicityMultiplier = 1 + (currentTox / 250);
+  
+  // Multiplicador de Campo (Apenas para itens da loja comprados fora)
+  // O 'full_refill' já tem custo premium embutido
+  const fieldMultiplier = (isFieldBuy && itemId !== 'full_refill') ? 1.5 : 1.0;
+  
+  const dynamicCostCash = Math.floor(item.costCash * toxicityMultiplier * fieldMultiplier);
+  const staticCostAP = item.costAP;
+
   if (profile.status && profile.status !== 'Operacional') {
     throw new Error(`Sua unidade está em ${profile.status}. Consumo restrito.`);
   }
 
-  if (Number(profile.money || 0) < item.costCash) {
-    throw new Error("Dinheiro insuficiente.");
+  if (Number(profile.money || 0) < dynamicCostCash) {
+    throw new Error(`Dinheiro insuficiente. Custo total: $${dynamicCostCash}.`);
   }
 
-  if (Number(profile.action_points || 0) < item.costAP) {
-    throw new Error("PA insuficiente.");
+  if (Number(profile.action_points || 0) < staticCostAP) {
+    throw new Error(`PA insuficiente. Requer ${staticCostAP} PA.`);
   }
 
   const currentEnergy = Number(profile.energy || 0);
@@ -69,33 +91,22 @@ async function buySupply(userId, itemId) {
     throw new Error("Sua energia já está no máximo.");
   }
 
-  // Calculate new energy ensuring it doesn't exceed max
-  const energyToAdd = Math.min(item.energyGained, maxEnergy - currentEnergy);
+  // Recarga Total: Garante que encha tudo
+  const energyToAdd = itemId === 'full_refill' ? (maxEnergy - currentEnergy) : Math.min(item.energyGained, maxEnergy - currentEnergy);
 
-  // Toxicity Random Chance Logic (Roleplay-driven poisoning)
-  let willIntoxicate = false;
-  const roll = Math.random();
-  
-  if (item.id === "cafe") willIntoxicate = roll < 0.20; // 20% chance
-  else if (item.id === "sanduiche") willIntoxicate = roll < 0.70; // 70% chance (street food!)
-  else if (item.id === "marmita") willIntoxicate = roll < 0.50; // 50% chance
-  else if (item.id === "banquete") willIntoxicate = roll < 0.10; // 10% chance (gourmet quality)
-  else if (item.id === "adrenalina") willIntoxicate = roll < 0.80; // 80% chance (chemical strike)
-
-  const currentTox = Number(profile.toxicity || 0);
+  // Toxicity Logic
   let toxToAdd = 0;
   let finalTox = currentTox;
 
-  if (willIntoxicate) {
-    const rawFinalTox = currentTox + item.toxicity;
-    finalTox = Math.min(100, rawFinalTox);
+  // full_refill sempre adiciona toxicidade (taxa de conveniência biológica)
+  if (itemId === 'full_refill' || Math.random() < (item.id === "cafe" ? 0.2 : item.id === "sanduiche" ? 0.4 : item.id === "marmita" ? 0.35 : 0.45)) {
+    finalTox = Math.min(100, currentTox + item.toxicity);
     toxToAdd = finalTox - currentTox;
   }
 
-  // Apply basic updates
   const updates = {
-    money: -item.costCash,
-    action_points: -item.costAP,
+    money: -dynamicCostCash,
+    action_points: -staticCostAP,
     energy: energyToAdd,
     toxicity: toxToAdd
   };

@@ -8,8 +8,8 @@ export interface SupplyItem {
 }
 
 export const supplyService = {
-  buySupply: async (itemId: string): Promise<{ message: string; item: SupplyItem; gainedEnergy: number }> => {
-    const response = await api.post(`/supply/buy/${itemId}`);
+  buySupply: async (itemId: string, isFieldBuy: boolean = false): Promise<{ message: string; item: SupplyItem; gainedEnergy: number }> => {
+    const response = await api.post(`/supply/buy/${itemId}`, { isFieldBuy });
     return response.data;
   },
   buyAntidote: async (): Promise<{ message: string; costCash: number; clearedToxicity: number }> => {

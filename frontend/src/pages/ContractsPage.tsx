@@ -5,6 +5,8 @@ import { FACTION_ALIAS_MAP_FRONTEND } from "../utils/faction";
 import useSWR from "swr";
 import api from "../lib/api";
 import { socketService } from "../services/socketService";
+import { supplyService } from "../services/supplyService";
+import { UtensilsIcon, CoffeeIcon, PizzaIcon } from "lucide-react";
 import { 
   ShieldCheckIcon, 
   BoltIcon, 
@@ -31,8 +33,8 @@ interface Heist {
   level: number;
   costPA: number;
   costEnergy: number;
-  money: [number, number];
   xp: [number, number];
+  money: [number, number];
   attrChance: number;
   lootChance: number;
 }
@@ -42,8 +44,10 @@ interface GuardianTask {
   name: string;
   level: number;
   costPA: number;
+  costEnergy: number;
   salary: [number, number];
   merit: [number, number];
+  xp: [number, number];
   interceptChance: number;
 }
 
@@ -69,22 +73,33 @@ interface ContractStatus {
 
 // --- Components ---
 
-const ActionCard = ({ data, onAction, disabled, userLevel, userEnergy, userPA, type, cooldown }: any) => {
+const ActionCard = ({ data, onAction, disabled, userLevel, userEnergy, userPA, userTox, userMoney, type, cooldown, onSupply }: any) => {
+  const [showFastFood, setShowFastFood] = useState(false);
   const isLocked = userLevel < data.level;
   const hasResources = (userEnergy >= (data.costEnergy || 0)) && (userPA >= (data.costPA || 0));
   const isRenegade = type === 'heist';
 
+  const REFILL_BASE_CASH = 1600;
+  const REFILL_PA = 600;
+
+  const calculateFullRefillCost = () => {
+    const toxicityMultiplier = 1 + (userTox / 250);
+    return Math.floor(REFILL_BASE_CASH * toxicityMultiplier);
+  };
+
+  const refillCost = calculateFullRefillCost();
+  const canAffordRefill = userMoney >= refillCost && userPA >= REFILL_PA;
+
   return (
     <motion.div 
-      whileHover={!isLocked && !disabled ? { scale: 1.02, y: -2 } : {}}
-      className={`relative p-4 border rounded-sm transition-all overflow-hidden ${
+      whileHover={!isLocked && !disabled ? { scale: 1.01, y: -1 } : {}}
+      className={`relative p-4 border rounded-sm transition-all overflow-hidden flex flex-col gap-3 ${
         isLocked 
           ? "bg-zinc-900/20 border-zinc-800/50 grayscale opacity-40" 
-          : (!hasResources ? "bg-zinc-900/40 border-red-900/50 opacity-60" : "bg-zinc-900/40 border-zinc-800 hover:border-cyan-500/50 hover:bg-zinc-900/60")
+          : (!hasResources ? "bg-zinc-900/40 border-red-900/50 opacity-80" : "bg-zinc-900/40 border-zinc-800 hover:border-cyan-500/50 hover:bg-zinc-900/60")
       }`}
-      onClick={() => !isLocked && !disabled && hasResources && onAction(data.id)}
     >
-      <div className="flex justify-between items-start mb-3">
+      <div className="flex justify-between items-start cursor-pointer" onClick={() => !isLocked && !disabled && hasResources && onAction(data.id)}>
         <div className="flex flex-col">
           <h4 className={`text-sm font-black uppercase tracking-tighter ${isLocked ? "text-zinc-500" : "text-white"}`}>
             {data.name}
@@ -103,7 +118,7 @@ const ActionCard = ({ data, onAction, disabled, userLevel, userEnergy, userPA, t
         )}
       </div>
       
-      <div className="flex flex-wrap gap-3 mt-4">
+      <div className="flex flex-wrap gap-3 cursor-pointer" onClick={() => !isLocked && !disabled && hasResources && onAction(data.id)}>
         <div className={`flex items-center gap-1 text-[10px] font-black uppercase ${userPA < data.costPA ? 'text-red-500' : 'text-cyan-400'}`}>
           <BoltIcon className="w-3 h-3" />
           {data.costPA} PA
@@ -116,11 +131,48 @@ const ActionCard = ({ data, onAction, disabled, userLevel, userEnergy, userPA, t
           <CurrencyDollarIcon className="w-3 h-3" />
           EST. ${isRenegade ? data.money[0].toLocaleString() : data.salary[0].toLocaleString()}
         </div>
+        <div className="flex items-center gap-1 text-[10px] font-black text-violet-400 uppercase">
+          <SparklesIcon className="w-3 h-3" />
+          EST. +{data.xp[0].toLocaleString()} XP
+        </div>
       </div>
 
-      {isLocked && (
+      {/* RECARGA RÁPIDA */}
+      {!isLocked && (
+        <div className="mt-2 pt-2 border-t border-zinc-800/50">
+           <button 
+             disabled={!canAffordRefill || userEnergy >= 100}
+             onClick={(e) => { e.stopPropagation(); onSupply('full_refill'); }}
+             className={`w-full p-2 flex items-center justify-between text-[9px] font-black border transition-all ${
+               canAffordRefill && userEnergy < 100
+                 ? "bg-rose-500/10 border-rose-500/30 text-rose-500 hover:bg-rose-500 hover:text-white"
+                 : "bg-zinc-900/50 border-zinc-800 text-zinc-600 grayscale cursor-not-allowed"
+             }`}
+           >
+             <div className="flex items-center gap-2">
+                <UtensilsIcon className="w-3 h-3" />
+                <span>RECARGA TOTAL (100% EN)</span>
+             </div>
+             <div className="flex gap-3">
+                <span className="flex items-center gap-1"><CurrencyDollarIcon className="w-3 h-3" /> ${refillCost}</span>
+                <span className="flex items-center gap-1"><BoltIcon className="w-3 h-3" /> {REFILL_PA} PA</span>
+             </div>
+           </button>
+        </div>
+      )}
+
+      {isLocked ? (
         <div className="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-[1px]">
           <span className="text-[10px] font-black text-zinc-500 uppercase tracking-[0.2em] -rotate-12">Bloqueado</span>
+        </div>
+      ) : (
+        <div className="absolute top-0 right-0 flex flex-col items-end gap-1 p-2 pointer-events-none">
+          {userEnergy < (data.costEnergy || 0) && (
+            <span className="bg-red-600 text-white text-[8px] font-black px-2 py-0.5 shadow-lg border border-red-400/50 animate-pulse">SEM ENERGIA</span>
+          )}
+          {userPA < (data.costPA || 0) && (
+            <span className="bg-orange-600 text-white text-[8px] font-black px-2 py-0.5 shadow-lg border border-orange-400/50">SEM PA</span>
+          )}
         </div>
       )}
     </motion.div>
@@ -229,6 +281,16 @@ export default function ContractsPage() {
     }
   };
 
+  const handleQuickSupply = async (itemId: string) => {
+    try {
+      const res = await supplyService.buySupply(itemId, true); // true = isFieldBuy
+      showToast(`${res.message} [ +${res.gainedEnergy}% EN ]`, "success");
+      await refreshProfile();
+    } catch (err: any) {
+      showToast(err.response?.data?.error || err.message, "error");
+    }
+  };
+
   const pendingInterception = userProfile?.pending_interception;
 
   return (
@@ -261,6 +323,15 @@ export default function ContractsPage() {
                 <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none">
                   <SparklesIcon className="w-32 h-32 text-orange-500" />
                 </div>
+                {/* Badges do Daily Special */}
+                <div className="absolute top-0 right-0 flex flex-col items-end gap-1 p-2 pointer-events-none">
+                  {(userProfile?.energy || 0) < config.dailySpecial.costEnergy && (
+                    <span className="bg-red-600 text-white text-[8px] font-black px-2 py-0.5 shadow-lg border border-red-400/50 animate-pulse">SEM ENERGIA</span>
+                  )}
+                  {(userProfile?.action_points || 0) < config.dailySpecial.costPA && (
+                    <span className="bg-orange-600 text-white text-[8px] font-black px-2 py-0.5 shadow-lg border border-orange-400/50">SEM PA</span>
+                  )}
+                </div>
                 <div className="flex flex-col md:flex-row justify-between items-center gap-6">
                   <div className="space-y-2">
                     <div className="flex items-center gap-2">
@@ -270,20 +341,35 @@ export default function ContractsPage() {
                     <p className="text-sm text-zinc-400 max-w-lg">
                       Uma oportunidade única que surge a cada 24h. O risco é extremo, mas a recompensa pode mudar o rumo da sua carreira no crime.
                     </p>
+                    <div className="flex gap-4 pt-2">
+                      <span className="text-emerald-500 font-black text-xs">EST. ${config.dailySpecial.money[0].toLocaleString()}</span>
+                      <span className="text-violet-400 font-black text-xs">EST. +{config.dailySpecial.xp[0].toLocaleString()} XP</span>
+                    </div>
                   </div>
-                  <button 
-                    onClick={() => handleHeist(config.dailySpecial.id)}
-                    disabled={
-                      loadingAction !== null || 
-                      (userProfile?.level || 0) < config.dailySpecial.level || 
-                      (userProfile?.energy || 0) < config.dailySpecial.costEnergy ||
-                      (userProfile?.action_points || 0) < config.dailySpecial.costPA
-                    }
-                    className="w-full md:w-auto px-8 py-3 bg-orange-600 hover:bg-orange-500 disabled:bg-zinc-800 disabled:opacity-50 transition-all font-black text-black uppercase tracking-widest text-sm"
-                    style={{ clipPath: "polygon(10% 0, 100% 0, 100% 70%, 90% 100%, 0 100%, 0 30%)" }}
-                  >
-                    EXECUTAR GOLPE
-                  </button>
+                  <div className="flex flex-col gap-2 w-full md:w-auto">
+                    <button 
+                      onClick={() => handleHeist(config.dailySpecial.id)}
+                      disabled={
+                        loadingAction !== null || 
+                        (userProfile?.level || 0) < config.dailySpecial.level || 
+                        (userProfile?.energy || 0) < config.dailySpecial.costEnergy ||
+                        (userProfile?.action_points || 0) < config.dailySpecial.costPA
+                      }
+                      className="w-full px-8 py-3 bg-orange-600 hover:bg-orange-500 disabled:bg-zinc-800 disabled:opacity-50 transition-all font-black text-black uppercase tracking-widest text-sm"
+                      style={{ clipPath: "polygon(10% 0, 100% 0, 100% 70%, 90% 100%, 0 100%, 0 30%)" }}
+                    >
+                      EXECUTAR GOLPE
+                    </button>
+                    
+                    {/* Botão de Recarga no Daily Special */}
+                    <button
+                      disabled={(userProfile?.money || 0) < Math.floor(1600 * (1 + (userProfile?.toxicity || 0) / 250)) || (userProfile?.energy || 0) >= 100 || (userProfile?.action_points || 0) < 600}
+                      onClick={() => handleQuickSupply('full_refill')}
+                      className="w-full p-2 bg-rose-500/10 border border-rose-500/30 text-rose-500 hover:bg-rose-500 hover:text-white disabled:opacity-30 disabled:grayscale transition-all text-[10px] font-black uppercase flex items-center justify-center gap-2"
+                    >
+                      <UtensilsIcon className="w-4 h-4" /> RECARGA 100% EN
+                    </button>
+                  </div>
                 </div>
              </div>
           )}
@@ -348,9 +434,12 @@ export default function ContractsPage() {
                     userLevel={userProfile?.level || 0}
                     userEnergy={userProfile?.energy || 0}
                     userPA={userProfile?.action_points || 0}
+                    userTox={userProfile?.toxicity || 0}
+                    userMoney={userProfile?.money || 0}
                     disabled={loadingAction !== null || cooldown > 0}
                     cooldown={cooldown}
                     onAction={handleHeist}
+                    onSupply={handleQuickSupply}
                   />
                 ))
               ) : (
@@ -362,9 +451,12 @@ export default function ContractsPage() {
                     userLevel={userProfile?.level || 0}
                     userEnergy={userProfile?.energy || 0}
                     userPA={userProfile?.action_points || 0}
+                    userTox={userProfile?.toxicity || 0}
+                    userMoney={userProfile?.money || 0}
                     disabled={loadingAction !== null || cooldown > 0}
                     cooldown={cooldown}
                     onAction={handleGuardianTask}
+                    onSupply={handleQuickSupply}
                   />
                 ))
               )}
