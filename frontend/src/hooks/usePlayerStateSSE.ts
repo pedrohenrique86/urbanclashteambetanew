@@ -49,6 +49,8 @@ export interface PlayerStatePatch {
   bio?           : string;
   avatar_url?    : string;
   uCrypto?       : number;
+  merit?         : number;
+  corruption?    : number;
 }
 
 /**

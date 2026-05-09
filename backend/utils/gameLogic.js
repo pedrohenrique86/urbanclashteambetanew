@@ -78,7 +78,7 @@ function calculateDynamicLevel(user) {
   // Usamos o total_xp para garantir que o nível base reflita o progresso histórico.
   let xpLevel = 1;
   let remainingXp = Number(user.total_xp || user.xp) || 0;
-  while (true) {
+  while (xpLevel < 5000) {
     let req = 100 + (Math.floor(xpLevel / 5) * 10);
     if (remainingXp >= req) {
       remainingXp -= req;
@@ -190,7 +190,7 @@ function calculateLevelFromXp(totalXp) {
   let level = 1;
   let remainingXp = Math.max(0, Number(totalXp) || 0);
   
-  while (true) {
+  while (level < 5000) {
     const required = getXpRequiredForNextLevel(level);
     if (remainingXp >= required) {
       remainingXp -= required;

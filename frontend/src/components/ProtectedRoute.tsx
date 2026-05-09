@@ -11,14 +11,40 @@ interface ProtectedRouteProps {
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, requiresFaction = false }) => {
   const { user, isHydrating: isAuthHydrating } = useAuth();
-  const { userProfile, loading: isProfileLoading, isError } = useUserProfileContext();
+  const { userProfile, loading: isProfileLoading } = useUserProfileContext();
   const location = useLocation();
+  const [timedOut, setTimedOut] = React.useState(false);
 
-  // ESTADO DE CARREGAMENTO UNIFICADO
-  if (isAuthHydrating || (user && isProfileLoading)) {
+  // SÊNIOR: Mecanismo de Safe-Exit para evitar loops infinitos de loading
+  // Se o estado demorar mais de 8s para sincronizar, permitimos o render para evitar o "travamento"
+  React.useEffect(() => {
+    if (isAuthHydrating || (user && isProfileLoading)) {
+      const timer = setTimeout(() => {
+        console.warn("[ProtectedRoute] ⚠️ Sincronização de estado demorou demais. Forçando renderização de segurança.");
+        setTimedOut(true);
+      }, 8000);
+      return () => clearTimeout(timer);
+    } else {
+      setTimedOut(false);
+    }
+  }, [isAuthHydrating, isProfileLoading, user]);
+
+  // ESTADO DE CARREGAMENTO UNIFICADO (Com Blindagem Anti-Loop)
+  if (!timedOut && (isAuthHydrating || (user && isProfileLoading))) {
     return (
-      <div className="flex h-screen items-center justify-center bg-gray-900/50 backdrop-blur-sm">
-        <LoadingSpinner size="lg" />
+      <div className="flex h-screen items-center justify-center bg-[#050505] relative overflow-hidden">
+        {/* Background Ambient Glow */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-orange-500/5 blur-[120px] rounded-full pointer-events-none" />
+        
+        <div className="relative flex flex-col items-center gap-6">
+          <LoadingSpinner size="lg" />
+          <div className="flex flex-col items-center">
+            <span className="text-[10px] font-black font-orbitron text-orange-500 tracking-[0.4em] uppercase animate-pulse">
+              Sincronizando Identidade
+            </span>
+            <div className="w-32 h-[1px] bg-gradient-to-r from-transparent via-orange-500/30 to-transparent mt-2" />
+          </div>
+        </div>
       </div>
     );
   }

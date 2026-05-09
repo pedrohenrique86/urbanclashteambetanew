@@ -67,6 +67,8 @@ export interface UserProfile {
   toxicity?: number;
   avatar_url?: string;
   bio?: string;
+  merit?: number;
+  corruption?: number;
   active_chips?: Array<{
     name: string;
     power_boost: number;
@@ -145,6 +147,8 @@ function mergePlayerStateIntoProfile(
   if (patch.bio !== undefined) next.bio = patch.bio;
   if (patch.avatar_url !== undefined) next.avatar_url = patch.avatar_url;
   if (patch.uCrypto !== undefined) next.ucrypto = patch.uCrypto;
+  if (patch.merit !== undefined) next.merit = patch.merit;
+  if (patch.corruption !== undefined) next.corruption = patch.corruption;
   
   return next;
 }
@@ -248,32 +252,37 @@ export const UserProfileProvider = ({ children }: { children: ReactNode }) => {
         avatar_url: profileData.avatar_url,
         active_chips: profileData.active_chips || [],
         ucrypto: Number(profileData.ucrypto) || 0,
+        merit: Number(profileData.merit) || 0,
+        corruption: Number(profileData.corruption) || 0,
       };
     },
     [],
   );
 
   const fetchProfile = useCallback(async (): Promise<UserProfile | null> => {
+    if (import.meta.env.DEV) {
+      console.debug("[UserProfileContext] 🔄 fetchProfile iniciado para:", user?.id);
+    }
     if (!user) {
       setUserProfile(null);
       fetchedForUser.current = null;
+      setLoading(false);
       return null;
     }
 
     if (isFetching.current) {
       if (import.meta.env.DEV) {
-        console.debug("Busca de perfil já em andamento. Nova chamada ignorada.");
+        console.debug("[UserProfileContext] Fetch já em andamento.");
       }
       return userProfile;
     }
 
-    if (Date.now() < cooldownUntil.current) {
-      const remaining = Math.ceil((cooldownUntil.current - Date.now()) / 1000);
-      console.warn(`API em cooldown. Tente novamente em ${remaining}s.`);
-      return userProfile;
-    }
-
-    if (fetchedForUser.current === user.id) {
+    // Se já temos o perfil carregado para ESTE usuário exato, não precisamos de loading full-screen
+    if (user?.id && fetchedForUser.current === user.id) {
+      if (import.meta.env.DEV) {
+        console.debug("[UserProfileContext] Perfil já carregado para este ID.");
+      }
+      setLoading(false);
       return userProfile;
     }
 
@@ -285,14 +294,20 @@ export const UserProfileProvider = ({ children }: { children: ReactNode }) => {
         const response = await api.get(`/users/profile?_t=${Date.now()}`);
         const profileData = response.data;
 
+        // SÊNIOR: Sempre marcamos como buscado para este ID para evitar loading infinito,
+        // mesmo que o retorno seja null (caso comum de novo usuário sem facção).
+        fetchedForUser.current = user.id;
+
         if (profileData) {
           const processed = processProfileData(profileData, user);
           setUserProfile(processed);
           writeProfileCache(processed);
-          fetchedForUser.current = user.id;
           setIsError(false);
           return processed;
         }
+
+        // Se retornou null, garantimos que o estado local reflita isso
+        setUserProfile(null);
         return null;
       } catch (error: any) {
         if (retryCount < 2 && (!error.response || error.response.status >= 500)) {
@@ -334,6 +349,9 @@ export const UserProfileProvider = ({ children }: { children: ReactNode }) => {
 
       return userProfile; // Retorna o que sobrou (cache) em vez de forçar null
     } finally {
+      if (import.meta.env.DEV) {
+        console.debug("[UserProfileContext] ✅ fetchProfile finalizado.");
+      }
       isFetching.current = false;
       setLoading(false);
     }
@@ -452,8 +470,20 @@ export const UserProfileProvider = ({ children }: { children: ReactNode }) => {
     );
   };
   // ───────────────────────────────────────────────────────────────────
-  const isProfileLoading =
-    loading || (user !== null && fetchedForUser.current !== user.id);
+  // SÊNIOR: isProfileLoading só deve ser TRUE se não tivermos NADA (nem cache) 
+  // e o usuário estiver logado esperando dados. Se tivermos cache (userProfile), 
+  // o loading de atualização acontece em background sem travar o app.
+  const isProfileLoading = useMemo(() => {
+    if (!user) return false;
+    
+    // Se está explicitamente carregando e não temos NADA ainda
+    if (loading && !userProfile) return true;
+    
+    // Se o usuário mudou (ID diferente do que buscamos) e não temos o perfil dele ainda
+    if (user.id && fetchedForUser.current !== user.id && !userProfile) return true;
+    
+    return false;
+  }, [loading, user, userProfile]);
 
   // SÊNIOR: Lógica para injetar status Aprimoramento se houver treino ativo
   const effectiveProfile = useMemo(() => {

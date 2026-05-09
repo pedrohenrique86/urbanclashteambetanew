@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import useSWR from "swr";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { combatService, RadarTarget, PreCombatInfo, CombatResult } from "../services/combatService";
 import { useUserProfile } from "../hooks/useUserProfile";
 import { useToast } from "../contexts/ToastContext";
@@ -321,6 +321,10 @@ const RefreshTimer = ({ targets, isPaused }: { targets: any, isPaused: boolean }
 };
 
 export default function ReckoningPage() {
+  const [searchParams] = useSearchParams();
+  const interceptId = searchParams.get("targetId");
+  const interceptName = searchParams.get("targetName");
+
   const { userProfile, refreshProfile } = useUserProfile();
   const { showToast } = useToast();
   const navigate = useNavigate();
@@ -555,6 +559,42 @@ export default function ReckoningPage() {
                  </p>
                </div>
              </div>
+          </motion.div>
+        )}
+
+        {interceptId && (
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="mb-8 p-6 bg-red-600/10 border-2 border-red-500 shadow-[0_0_30px_rgba(239,68,68,0.3)] relative overflow-hidden group"
+            style={MILITARY_CLIP}
+          >
+            <div className="absolute top-0 right-0 p-2 bg-red-500 text-black font-black text-[10px] uppercase tracking-widest animate-pulse">
+              INTERCEPTAÇÃO_ATIVA
+            </div>
+            <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+              <div className="flex items-center gap-6">
+                <div className="w-16 h-16 bg-red-500/20 border border-red-500 flex items-center justify-center">
+                  <ShieldExclamationIcon className="w-10 h-10 text-red-500 animate-bounce" />
+                </div>
+                <div>
+                  <h2 className="text-2xl font-black text-white uppercase tracking-widest font-orbitron">
+                    ALVO INTERCEPTADO: {interceptName || "DESCONHECIDO"}
+                  </h2>
+                  <p className="text-xs font-mono text-red-400 uppercase tracking-widest">
+                    O suspeito foi localizado em flagrante. Protocolo de neutralização autorizado.
+                  </p>
+                </div>
+              </div>
+              <button 
+                onClick={() => handleInstantAttack(interceptId)}
+                disabled={isCurrentlyProcessing}
+                className="px-10 py-4 bg-red-600 hover:bg-red-500 text-black font-black uppercase tracking-[0.3em] font-orbitron transition-all hover:scale-105 active:scale-95 disabled:opacity-50"
+                style={MILITARY_CLIP}
+              >
+                {isCurrentlyProcessing ? "SINCRONIZANDO..." : "NEUTRALIZAR AGORA"}
+              </button>
+            </div>
           </motion.div>
         )}
 

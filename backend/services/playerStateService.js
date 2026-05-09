@@ -102,7 +102,8 @@ const DB_PERSIST_FIELDS = new Set([
   "recovery_ends_at", "shield_ends_at",
   "training_ends_at", "daily_training_count", "last_training_reset", "active_training_type",
   "energy", "action_points", "last_ap_reset",
-  "energy_updated_at", "toxicity", "premium_coins", "login_streak"
+  "energy_updated_at", "toxicity", "premium_coins", "login_streak",
+  "merit", "corruption"
 ]);
 
 // ─── Dirty TIPO 2: campos voláteis (NÃO persistem no safety-net, só via debounce
@@ -149,7 +150,9 @@ const FIELD_TO_SSE = {
   recon_phrase      : "reconPhrase",
   recon_loss_credits: "reconLossCredits",
   recon_loss_xp     : "reconLossXp",
-  recon_power_result: "reconPowerResult"
+  recon_power_result: "reconPowerResult",
+  merit             : "merit",
+  corruption        : "corruption"
 };
 
 // ─── Campos numéricos no Redis Hash ──────────────────────────────────────────────
@@ -158,7 +161,7 @@ const NUMERIC_FIELDS = new Set([
   "attack", "defense", "focus", "luck", "critical_damage", "critical_chance",
   "money", "intimidation", "discipline", "victories", "defeats", 
   "winning_streak", "daily_training_count", "toxicity",
-  "recon_loss_credits", "recon_loss_xp"
+  "recon_loss_credits", "recon_loss_xp", "merit", "corruption"
 ]);
 
 // ─── Estado interno ───────────────────────────────────────────────────────────────
@@ -590,14 +593,14 @@ async function getPlayerState(userId, { suppressRegenSSE = false, skipStatusChec
   if (raw && Object.keys(raw).length > 0 && raw.username) {
     const state = _parseState(raw);
     
-    // SÊNIOR: Executa Lazy Resets em background
+    // SÊNIOR: Executa Lazy Resets em background (NON-BLOCKING para máxima performance)
     if (!skipStatusCheck) {
       _checkAndResetAP(userId, redisKey, state).catch(e => console.error("[apReset] Falha:", e.message));
       _checkAndResetTrainingCount(userId, redisKey, state).catch(e => console.error("[trainingReset] Falha:", e.message));
       
       // SÊNIOR: Regeneração de Energia.
       if (state) {
-        await _checkAndRegenEnergy(userId, redisKey, state, suppressRegenSSE).catch(e => console.error("[energyRegen] Falha:", e.message));
+        _checkAndRegenEnergy(userId, redisKey, state, suppressRegenSSE).catch(e => console.error("[energyRegen] Falha:", e.message));
       }
 
       // Relê do Redis caso a regeneração ou resets tenham alterado valores
@@ -923,7 +926,7 @@ async function persistPlayerState(userId) {
         "victories", "defeats", "winning_streak", "daily_training_count",
         "attack", "defense", "focus", "luck", "intimidation", "discipline",
         "critical_chance", "critical_damage", "toxicity",
-        "faction_id", "premium_coins", "login_streak"
+        "faction_id", "premium_coins", "login_streak", "merit", "corruption"
       ].includes(k);
 
       if (isNumeric) return `${col} = $${i + 1}::numeric`;
@@ -1054,7 +1057,7 @@ async function _bulkPersistChunk(userIds) {
         "victories", "defeats", "winning_streak", "daily_training_count",
         "attack", "defense", "focus", "luck", "intimidation", "discipline",
         "critical_chance", "critical_damage", "toxicity",
-        "faction_id", "premium_coins", "login_streak"
+        "faction_id", "premium_coins", "login_streak", "merit", "corruption"
       ].includes(f);
 
       if (isNumeric) return `"${f}" = v."${f}"::numeric`;
