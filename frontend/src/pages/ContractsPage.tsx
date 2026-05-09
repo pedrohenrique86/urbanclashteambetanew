@@ -244,7 +244,7 @@ export default function ContractsPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Main Interface */}
-        <div className="lg:col-span-8 space-y-6">
+        <div className="lg:col-span-12 space-y-6">
           
           {/* Daily Special */}
           {faction === 'gangsters' && config?.dailySpecial && (
@@ -359,33 +359,10 @@ export default function ContractsPage() {
                   />
                 ))
               )}
-            </div>
           </div>
-        </div>
-
-        {/* Sidebar: District Monitor */}
-        <div className="lg:col-span-4 space-y-6">
-          {/* District Monitor */}
-          <div className="p-4 bg-zinc-900/40 border border-zinc-800 rounded-sm space-y-4">
-             <h4 className="text-[10px] font-black text-zinc-500 uppercase tracking-[0.2em]">Monitoramento de Heat</h4>
-             <div className="space-y-3">
-                {/* Simulated or fetched district heat */}
-                {['Centro', 'Subúrbio', 'Porto', 'Industrial'].map((d, i) => (
-                  <div key={i} className="space-y-1">
-                    <div className="flex justify-between text-[8px] font-black uppercase">
-                      <span className="text-zinc-400">{d}</span>
-                      <span className={i === 0 ? 'text-red-500' : 'text-zinc-600'}>{i === 0 ? '84%' : '22%'}</span>
-                    </div>
-                    <div className="h-1 bg-zinc-800 rounded-full overflow-hidden">
-                      <div className={`h-full ${i === 0 ? 'bg-red-500' : 'bg-zinc-700'}`} style={{ width: i === 0 ? '84%' : '22%' }} />
-                    </div>
-                  </div>
-                ))}
-             </div>
-          </div>
-
         </div>
       </div>
     </div>
+  </div>
   );
 }

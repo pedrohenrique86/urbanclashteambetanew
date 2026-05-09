@@ -24,14 +24,12 @@ router.get("/config", async (req, res) => {
 /**
  * Retorna o estado atual dos contratos para o usuário.
  */
-router.get("/status", async (req, res) => {
+  router.get("/status", async (req, res) => {
   try {
     const logs = await contractService.getLogs();
-    const districts = await contractService.getDistricts();
     
     res.json({
-      logs,
-      districts
+      logs
     });
   } catch (error) {
     res.status(500).json({ error: error.message });

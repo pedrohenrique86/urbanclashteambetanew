@@ -214,19 +214,7 @@ class ContractService {
     return { message, player: newState };
   }
 
-  /**
-   * SÊNIOR: Cache de Territórios (Redis).
-   * Reduz acessos repetitivos ao banco para dados estáticos do mapa.
-   */
-  async getDistricts() {
-    const CACHE_KEY = "map:districts";
-    const cached = await redisClient.getAsync(CACHE_KEY);
-    if (cached) return JSON.parse(cached);
 
-    const { rows } = await query(`SELECT * FROM map_territories`);
-    await redisClient.setAsync(CACHE_KEY, JSON.stringify(rows), "EX", 3600); // 1 hora
-    return rows;
-  }
 
   async getLogs(onlyMajor = false) {
     // SÊNIOR: Para os logs recentes, sempre buscamos no banco (onde são persistidos pelo LogService).
