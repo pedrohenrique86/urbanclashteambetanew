@@ -372,13 +372,20 @@ async function ensureFreshRanking(type, faction) {
   const cacheKey = type === "users" ? getUsersCacheKey(faction || "all") : getClansCacheKey();
   const cached   = await getCachedData(cacheKey);
 
-  const STALE_THRESHOLD = 600; // 10 minutos
+  const STALE_THRESHOLD = 600; // 10 minutos (SÊNIOR: Menos queries no banco para permitir auto-suspend do Neon)
 
   if (cached && cached.timestamp) {
     const ageSeconds = (Date.now() - cached.timestamp) / 1000;
 
-    // Reduzido para 2 minutos para evitar "teimosia" do cache durante o ciclo de 10 min
-    if (ageSeconds < 120) return cached;
+    // SÊNIOR: Só consideramos 'stale' se passar do threshold de 10 min
+    if (ageSeconds < STALE_THRESHOLD) return cached;
+
+    // SÊNIOR: Se o cache está "stale" (velho), mas o servidor está vazio (0 online), 
+    // NÃO disparamos o refresh para permitir que o banco Neon durma.
+    const onlineCount = await redisClient.sCardAsync("online_players_set").catch(() => 0);
+    if (!onlineCount || onlineCount === 0) {
+       return cached; // Serve o cache "vencido" mas evita acordar o Postgres
+    }
 
     // Stale — serve o cache e dispara refresh em background
     if (type === "users") {

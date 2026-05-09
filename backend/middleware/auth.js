@@ -1,33 +1,18 @@
-const jwt = require("jsonwebtoken");
-const { query } = require("../config/database");
+const { authenticateSocket } = require("../services/authService");
 
 // Middleware para verificar token JWT
 const authenticateToken = async (req, res, next) => {
   try {
     const authHeader = req.headers["authorization"];
-    // Suporta token via header (padrão) OU via query param (necessário para SSE)
     const token = (authHeader && authHeader.split(" ")[1]) || req.query.token;
 
     if (!token) {
       return res.status(401).json({ error: "Token de acesso requerido" });
     }
 
-    // Verificar se o token é válido
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    // SÊNIOR: Delegamos a autenticação para o serviço central que possui cache no Redis
+    const user = await authenticateSocket(token);
 
-    // Buscar dados do usuário
-    const userResult = await query(
-      "SELECT id, email, username, is_email_confirmed, is_admin FROM users WHERE id = $1",
-      [decoded.userId],
-    );
-
-    if (userResult.rows.length === 0) {
-      return res.status(401).json({ error: "Usuário não encontrado" });
-    }
-
-    const user = userResult.rows[0];
-
-    // Verificar se o email foi confirmado
     if (!user.is_email_confirmed) {
       return res.status(403).json({
         error: "Email não confirmado",
@@ -35,16 +20,11 @@ const authenticateToken = async (req, res, next) => {
       });
     }
 
-    // Adicionar dados do usuário à requisição
     req.user = user;
     next();
   } catch (error) {
-    if (error.name === "JsonWebTokenError") {
-      return res.status(401).json({ error: "Token inválido" });
-    }
-    if (error.name === "TokenExpiredError") {
-      return res.status(401).json({ error: "Token expirado" });
-    }
+    if (error.name === "JsonWebTokenError") return res.status(401).json({ error: "Token inválido" });
+    if (error.name === "TokenExpiredError") return res.status(401).json({ error: "Token expirado" });
 
     console.error("❌ Erro na autenticação:", error.message);
     return res.status(500).json({ error: "Erro interno do servidor" });

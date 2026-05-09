@@ -1088,7 +1088,17 @@ async function _bulkPersistChunk(userIds) {
         try {
           await persistPlayerState(item.uid);
         } catch (singleErr) {
-          console.error(`[playerState] ❌ Falha persistência individual (ID: ${item.uid}):`, singleErr.message);
+          const failKey = `persist_fail_count:${item.uid}`;
+          const currentFails = await redisClient.incrAsync(failKey);
+          await redisClient.expireAsync(failKey, 3600); // Expira em 1h
+
+          if (currentFails > 5) {
+            console.error(`[playerState] 🔥 CRÍTICO: Removendo ${item.uid} da fila de persistência após ${currentFails} falhas consecutivas. Verifique integridade dos dados.`);
+            await redisClient.sRem(DIRTY_PLAYERS_SET, String(item.uid));
+            await redisClient.delAsync(failKey);
+          } else {
+            console.error(`[playerState] ❌ Falha persistência individual (ID: ${item.uid}) [Tentativa ${currentFails}/5]:`, singleErr.message);
+          }
         }
       }
       return; 

@@ -58,15 +58,19 @@ if (databaseUrl) {
 
 const pool = new Pool({
   ...poolConfig,
-  max: 50,
-  idleTimeoutMillis: 15000, 
-  connectionTimeoutMillis: 30000, // Aumentado para 30s para suportar latência de 4G/IPv6
-  allowExitOnIdle: process.env.NODE_ENV !== "production", 
+  max: 20, // Reduzido de 50 para 20 (SÊNIOR: Menos conexões simultâneas mas mais rotatividade = melhor para Neon)
+  min: 0,  // GARANTE que não haverá conexões abertas sem necessidade
+  idleTimeoutMillis: 10000, // Fecha conexões ociosas após 10 segundos (Neon dorme após 5min)
+  connectionTimeoutMillis: 15000, 
+  allowExitOnIdle: true, // Permite que o processo Node feche se o pool estiver ocioso
 });
 
 // SÊNIOR: Impede que o Node.js "crashe" devido a quedas de conexões TCP de clientes ociosos (muito comum no auto-suspend do NeonDB)
 pool.on("error", (err, client) => {
-  console.error("⚠️ [Database] Desconexão de cliente ocioso do Pool:", err.message);
+  if (err.message.includes("terminating connection due to idle timeout")) {
+    return; // Ignora logs de fechamento normal do Neon
+  }
+  console.error("⚠️ [Database] Erro no Pool:", err.message);
 });
 
 // Função para conectar ao banco
