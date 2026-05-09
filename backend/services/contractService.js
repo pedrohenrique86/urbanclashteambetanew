@@ -119,12 +119,14 @@ class ContractService {
     const state = await playerStateService.getPlayerState(userId);
     if (state.level < task.level) throw new Error(`Nível insuficiente. Requer nível ${task.level}.`);
     if (state.action_points < task.costPA) throw new Error("PA insuficiente.");
+    if (state.energy < task.costEnergy) throw new Error("Energia insuficiente.");
 
     const moneyGained = REWARDS.money(task.salary[0], task.salary[1]);
     const meritGained = REWARDS.xp(task.merit[0], task.merit[1]);
 
     const updates = {
       action_points: -task.costPA,
+      energy: -task.costEnergy,
       money: moneyGained,
       merit: meritGained
     };

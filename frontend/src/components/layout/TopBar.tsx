@@ -52,7 +52,7 @@ const TopBar: React.FC<TopBarProps> = ({ userProfile }) => {
 
     const totalStats = atk + def + foc;
     const statsBonus = Math.floor(totalStats / 25);
-    const moneyBonus = Math.floor(money / 100_000);
+    const moneyBonus = Math.floor(money / 10_000);
 
     return { xpLvl, statsBonus, moneyBonus, totalStats, money };
   }, [userProfile]);
@@ -386,7 +386,7 @@ const TopBar: React.FC<TopBarProps> = ({ userProfile }) => {
                   <span className="text-white/90 font-medium">
                     Bônus de Riqueza
                     <span className="text-white/40 ml-1.5 text-[9px] font-mono">
-                      (${(levelBreakdown.money).toLocaleString("pt-BR")} / 100k)
+                      (${(levelBreakdown.money).toLocaleString("pt-BR")} / 10k)
                     </span>
                   </span>
                 </div>

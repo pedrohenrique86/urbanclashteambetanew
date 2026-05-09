@@ -273,7 +273,7 @@ export default function ContractsPage() {
                   <div className="flex-1 space-y-1">
                     <h3 className="text-xl font-black text-white uppercase font-orbitron">Interceptação Bem Sucedida!</h3>
                     <p className="text-sm text-zinc-400">
-                      Você interceptou <span className="text-red-500 font-bold">{pendingInterception?.targetName}</span> durante o roubo "{pendingInterception?.heistName}".
+                      Você interceptou <span className="text-red-500 font-bold">{pendingInterception?.targetName}</span> durante o roubo &quot;{pendingInterception?.heistName}&quot;.
                       Os itens confiscados estão sob sua custódia. O que deseja fazer?
                     </p>
                   </div>
