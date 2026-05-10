@@ -60,7 +60,7 @@ const pool = new Pool({
   ...poolConfig,
   max: 20, // Reduzido de 50 para 20 (SÊNIOR: Menos conexões simultâneas mas mais rotatividade = melhor para Neon)
   min: 0,  // GARANTE que não haverá conexões abertas sem necessidade
-  idleTimeoutMillis: 10000, // Fecha conexões ociosas após 10 segundos (Neon dorme após 5min)
+  idleTimeoutMillis: 5000, // Reduzido para 5s (Neon dorme após 5min de inatividade)
   connectionTimeoutMillis: 15000, 
   allowExitOnIdle: true, // Permite que o processo Node feche se o pool estiver ocioso
 });
@@ -117,6 +117,10 @@ async function query(text, params) {
         duration: `${duration}ms`, 
         rows: res.rowCount 
       });
+      // SÊNIOR: Watchdog para identificar quem está acordando o banco
+      if (process.env.NODE_ENV !== "production") {
+        console.trace("📊 [Query Trace]");
+      }
     }
     return res;
   } catch (error) {
@@ -188,9 +192,10 @@ async function runMaintenanceOperations() {
   console.log("✅ Operações de manutenção concluídas.");
 }
 
-// Executa limpeza imediata APENAS após conexão bem sucedida no connectDB
 // Mas mantém o agendamento horário
-setInterval(runMaintenanceOperations, 60 * 60 * 1000);
+// SÊNIOR: Removido o setInterval solto para evitar acordar o Neon fora do ciclo controlado.
+// Esta função agora é exportada e chamada pelo rankingCacheService.js
+// que já possui travas de segurança baseadas em jogadores online.
 
 // Graceful shutdown function (to be called from server.js)
 async function closePool() {

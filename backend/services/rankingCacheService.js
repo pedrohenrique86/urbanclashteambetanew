@@ -434,10 +434,15 @@ async function warmupRankings() {
     return;
   }
 
-  // 1 & 2: Persiste estados sujos antes de gerar o ranking
+  // 1 & 2: Persiste estados sujos e executa manutenção periódica
   await Promise.allSettled([
     playerStateService.persistDirtyStates(),
     clanStateService.persistDirtyClanStates(),
+    (async () => {
+      // SÊNIOR: Limpeza de chat a cada 10 min (apenas se houver gente online)
+      const { cleanExpiredChatMessages } = require("../config/database");
+      await cleanExpiredChatMessages();
+    })()
   ]);
 
   // 3: Atualiza snapshots (fonte: ZSET para users, banco para clãs)
