@@ -66,56 +66,30 @@ const pool = new Pool({
 });
 
 // SÊNIOR: Monitoramento de conexões para caçar vazamentos que impedem o sono do Neon
-pool.on("connect", () => {
-  if (process.env.NODE_ENV !== "production") {
-    console.log("🔌 [Database] Nova conexão física estabelecida com o Neon.");
-  }
-});
-
-pool.on("acquire", () => {
-  // console.log("📥 [Database] Conexão adquirida do pool.");
-});
-
-pool.on("remove", () => {
-  if (process.env.NODE_ENV !== "production") {
-    console.log("🗑️ [Database] Conexão fechada e removida do pool (Idle).");
-  }
-});
-
+// SÊNIOR: Impede que o Node.js "crashe" devido a quedas de conexões TCP ociosas
 pool.on("error", (err, client) => {
-  if (err.message.includes("terminating connection due to idle timeout")) {
-    return;
-  }
+  if (err.message.includes("terminating connection due to idle timeout")) return;
   console.error("⚠️ [Database] Erro no Pool:", err.message);
 });
 
 // Função para conectar ao banco
 async function connectDB() {
-  console.log(
-    "🏁 Iniciando processo de conexão e seeding do banco de dados...",
-  );
+  console.log("🏁 Conectando ao PostgreSQL...");
 
   let client;
   try {
     client = await pool.connect();
-    console.log("🔗 Testando conexão com PostgreSQL...");
-
     await client.query("SELECT NOW()");
     
     // Executa migrações críticas em modo silencioso
     await runPlayerStatusMigrations(true);
-    
-    // SÊNIOR: NÃO iniciamos a manutenção pesada aqui. 
-    // Ela será iniciada apenas pelo agendador de intervalo para evitar picos no Neon durante restarts.
     
     return true;
   } catch (error) {
     console.error("❌ Erro ao conectar com PostgreSQL:", error.message);
     throw error;
   } finally {
-    if (client) {
-      client.release();
-    }
+    if (client) client.release();
   }
 }
 
@@ -125,25 +99,14 @@ async function query(text, params) {
   try {
     const res = await pool.query(text, params);
     
-    // SÊNIOR: Logging apenas em desenvolvimento ou para queries lentas em produção
+    // Log apenas para queries lentas em produção (>1s)
     const duration = Date.now() - start;
-    if (process.env.NODE_ENV !== "production" || duration > 1000) {
-      console.log("📊 Query executada:", { 
-        text: text.substring(0, 100) + (text.length > 100 ? "..." : ""), 
-        duration: `${duration}ms`, 
-        rows: res.rowCount 
-      });
-      // SÊNIOR: Watchdog para identificar quem está acordando o banco
-      if (process.env.NODE_ENV !== "production") {
-        console.trace("📊 [Query Trace]");
-      }
+    if (duration > 1000) {
+      console.warn("⚠️ Query Lenta:", { text: text.substring(0, 100), duration: `${duration}ms` });
     }
     return res;
   } catch (error) {
-    console.error("❌ Erro na query:", { 
-      text: text.substring(0, 200), 
-      error: error.message 
-    });
+    console.error("❌ Erro na query:", { text: text.substring(0, 200), error: error.message });
     throw error;
   }
 }
