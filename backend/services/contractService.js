@@ -23,6 +23,9 @@ class ContractService {
     
     return {
       ...DAILY_SPECIAL,
+      level: bestHeist.level, // SÊNIOR: Nível dinâmico baseado no melhor roubo
+      costPA: Math.floor(bestHeist.costPA * 1.5), // SÊNIOR: Custo 50% maior que o melhor roubo atual
+      costEnergy: Math.floor(bestHeist.costEnergy * 1.5),
       money: [bestHeist.money[0] * multiplier, bestHeist.money[1] * multiplier],
       xp: [bestHeist.xp[0] * multiplier, bestHeist.xp[1] * multiplier]
     };

@@ -245,107 +245,154 @@ const ContractManualModal = ({ isOpen, onClose, faction }: { isOpen: boolean, on
 };
 
 const ActionCard = ({ data, onAction, disabled, userLevel, userEnergy, userPA, userTox, userMoney, type, cooldown, onSupply }: any) => {
-  const [showFastFood, setShowFastFood] = useState(false);
   const isLocked = userLevel < data.level;
   const hasResources = (userEnergy >= (data.costEnergy || 0)) && (userPA >= (data.costPA || 0));
   const isRenegade = type === 'heist';
 
+  // SÊNIOR: Cálculo de custos de recarga
   const REFILL_BASE_CASH = 1600;
   const REFILL_PA = 600;
-
   const calculateFullRefillCost = () => {
     const toxicityMultiplier = 1 + (userTox / 250);
     return Math.floor(REFILL_BASE_CASH * toxicityMultiplier);
   };
-
   const refillCost = calculateFullRefillCost();
   const canAffordRefill = userMoney >= refillCost && userPA >= REFILL_PA;
 
+  // SÊNIOR: Atribuição dinâmica de ícones e sub-roles baseada no nível do contrato
+  const getRoleInfo = () => {
+    if (isRenegade) {
+      if (data.level <= 5) return { role: "PEQUENO GOLPE", icon: <BriefcaseIcon className="w-8 h-8 text-orange-400" /> };
+      if (data.level <= 15) return { role: "OPERAÇÃO URBANA", icon: <MapPinIcon className="w-8 h-8 text-orange-500" /> };
+      return { role: "CRIME ORGANIZADO", icon: <FireIcon className="w-8 h-8 text-red-500" /> };
+    } else {
+      if (data.level <= 5) return { role: "PATRULHA DE ROTINA", icon: <ShieldCheckIcon className="w-8 h-8 text-blue-400" /> };
+      if (data.level <= 15) return { role: "SEGURANÇA TÁTICA", icon: <ShieldCheckIcon className="w-8 h-8 text-blue-500" /> };
+      return { role: "COMANDO ELITE", icon: <ScaleIcon className="w-8 h-8 text-cyan-500" /> };
+    }
+  };
+
+  const { role, icon } = getRoleInfo();
+
   return (
-    <motion.div 
-      whileHover={!isLocked && !disabled ? { scale: 1.01, y: -1 } : {}}
-      className={`relative p-4 border rounded-sm transition-all overflow-hidden flex flex-col gap-3 ${
-        isLocked 
-          ? "bg-zinc-900/20 border-zinc-800/50 grayscale opacity-40" 
-          : (!hasResources ? "bg-zinc-900/40 border-red-900/50 opacity-80" : "bg-zinc-900/40 border-zinc-800 hover:border-cyan-500/50 hover:bg-zinc-900/60")
-      }`}
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className={`group relative cyber-card cyber-card-copper transition-all duration-300 hover:bg-white/5 
+        ${isLocked ? 'opacity-40 grayscale pointer-events-none' : ''}`}
+      style={MILITARY_CLIP}
     >
-      <div className="flex justify-between items-start cursor-pointer" onClick={() => !isLocked && !disabled && hasResources && onAction(data.id)}>
-        <div className="flex flex-col">
-          <h4 className={`text-sm font-black uppercase tracking-tighter ${isLocked ? "text-zinc-500" : "text-white"}`}>
-            {data.name}
-          </h4>
-          <span className="text-[9px] font-bold text-zinc-500 uppercase">Nível {data.level}</span>
-        </div>
-        {isLocked ? (
-          <LockClosedIcon className="w-4 h-4 text-zinc-600" />
-        ) : (
-          <div className="flex items-center gap-2">
-            {cooldown > 0 && (
-              <span className="text-[10px] font-black text-red-500 animate-pulse">{cooldown}S</span>
+      <div className="p-6 flex flex-col gap-5">
+        {/* HEADER: ICON & ROLE */}
+        <div className="flex items-center gap-4 border-b border-white/5 pb-4">
+          <div className="p-3 bg-white/5 border border-white/10 relative">
+            {icon}
+            {isLocked && (
+               <div className="absolute inset-0 flex items-center justify-center bg-black/60">
+                 <LockClosedIcon className="w-5 h-5 text-white/40" />
+               </div>
             )}
-            <div className={`w-2 h-2 rounded-full animate-pulse ${isRenegade ? 'bg-orange-500' : 'bg-blue-500'}`} />
           </div>
+          <div>
+            <h3 className="text-lg font-orbitron font-black text-white tracking-widest uppercase leading-none">{data.name}</h3>
+            <span className="text-[10px] font-black text-orange-500/80 tracking-[0.2em] uppercase mt-1 block">
+              {isLocked ? "SISTEMA BLOQUEADO" : role}
+            </span>
+          </div>
+          {!isLocked && cooldown > 0 && (
+            <div className="ml-auto bg-red-500/10 border border-red-500/30 px-2 py-1">
+              <span className="text-xs font-black text-red-500 animate-pulse">{cooldown}S</span>
+            </div>
+          )}
+        </div>
+
+        {/* INFO: LEVEL & REQUIREMENTS */}
+        <div className="flex justify-between items-center bg-black/40 p-2 border border-white/5">
+           <div className="flex items-center gap-2">
+              <div className="w-1.5 h-1.5 bg-orange-500"></div>
+              <span className="text-[10px] font-mono text-slate-400">REQ_LEVEL:</span>
+              <span className="text-sm font-black text-white font-orbitron">{data.level}</span>
+           </div>
+           {isLocked && (
+             <span className="text-[9px] font-black text-red-500/80 uppercase tracking-widest">Nível Insuficiente</span>
+           )}
+        </div>
+
+        {/* COSTS GRID (3 Columns) */}
+        <div className="grid grid-cols-3 gap-2">
+          <div className={`p-2 border flex flex-col items-center ${userPA < data.costPA ? 'bg-red-500/10 border-red-500/30' : 'bg-cyan-500/10 border-cyan-500/20'}`}>
+            <BoltIcon className={`w-3 h-3 mb-1 ${userPA < data.costPA ? 'text-red-500' : 'text-cyan-400'}`} />
+            <span className={`text-[10px] font-bold ${userPA < data.costPA ? 'text-red-200' : 'text-cyan-200'}`}>{data.costPA} PA</span>
+          </div>
+          <div className="bg-yellow-500/10 border border-yellow-500/20 p-2 flex flex-col items-center">
+            <FireIcon className="w-3 h-3 text-yellow-500 mb-1" />
+            <span className="text-[10px] font-bold text-yellow-200">{data.costEnergy} NRG</span>
+          </div>
+          <div className="bg-emerald-500/10 border border-emerald-500/20 p-2 flex flex-col items-center">
+            <CurrencyDollarIcon className="w-3 h-3 text-emerald-500 mb-1" />
+            <span className="text-[10px] font-bold text-emerald-200">
+               {isRenegade ? 'LUCRO' : 'SALÁRIO'}
+            </span>
+          </div>
+        </div>
+
+        {/* GAINS BADGES */}
+        <div className="flex flex-wrap gap-2 justify-center py-2 border-y border-white/5">
+          <div className="bg-emerald-500/5 border border-emerald-500/20 px-3 py-1 text-[10px] font-bold">
+            <span className="text-emerald-400">${isRenegade ? data.money[0].toLocaleString() : data.salary[0].toLocaleString()}</span> CASH
+          </div>
+          <div className="bg-violet-500/5 border border-violet-500/20 px-3 py-1 text-[10px] font-bold">
+            <span className="text-violet-400">+{data.xp[0].toLocaleString()}</span> XP
+          </div>
+          {isRenegade ? (
+            <div className="bg-orange-500/5 border border-orange-500/20 px-3 py-1 text-[10px] font-bold">
+               <span className="text-orange-400">+{data.lootChance}%</span> LOOT
+            </div>
+          ) : (
+            <div className="bg-blue-500/5 border border-blue-500/20 px-3 py-1 text-[10px] font-bold">
+               <span className="text-blue-400">+{data.merit?.[0] || 0}</span> MÉRITO
+            </div>
+          )}
+        </div>
+
+        {/* RECARGA RÁPIDA (Dentro do Card) */}
+        {!isLocked && userEnergy < (data.costEnergy || 0) && (
+          <motion.button 
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            disabled={!canAffordRefill || userEnergy >= 100}
+            onClick={(e) => { e.stopPropagation(); onSupply('full_refill'); }}
+            className={`w-full py-2 flex items-center justify-center gap-2 text-[10px] font-black border transition-all military-clip ${
+              canAffordRefill && userEnergy < 100
+                ? "bg-black/80 hover:bg-rose-900/40 border-rose-500/40 text-rose-500 hover:text-white"
+                : "bg-zinc-950 border-zinc-900 text-zinc-700 grayscale cursor-not-allowed"
+            }`}
+          >
+            <UtensilsIcon className="w-3 h-3" />
+            <span>RECARGA DE CAMPO (Custo: ${refillCost})</span>
+          </motion.button>
         )}
-      </div>
-      
-      <div className="flex flex-wrap gap-3 cursor-pointer" onClick={() => !isLocked && !disabled && hasResources && onAction(data.id)}>
-        <div className={`flex items-center gap-1 text-[10px] font-black uppercase ${userPA < data.costPA ? 'text-red-500' : 'text-cyan-400'}`}>
-          <BoltIcon className="w-3 h-3" />
-          {data.costPA} PA
-        </div>
-        <div className={`flex items-center gap-1 text-[10px] font-black uppercase ${userEnergy < data.costEnergy ? 'text-red-500' : 'text-yellow-500'}`}>
-          <BoltIcon className="w-3 h-3" />
-          {data.costEnergy} NRG
-        </div>
-        <div className="flex items-center gap-1 text-[10px] font-black text-emerald-500 uppercase">
-          <CurrencyDollarIcon className="w-3 h-3" />
-          EST. ${isRenegade ? data.money[0].toLocaleString() : data.salary[0].toLocaleString()}
-        </div>
-        <div className="flex items-center gap-1 text-[10px] font-black text-violet-400 uppercase">
-          <SparklesIcon className="w-3 h-3" />
-          EST. +{data.xp[0].toLocaleString()} XP
-        </div>
+
+        {/* ACTION BUTTON */}
+        <button
+          onClick={() => onAction(data.id)}
+          disabled={isLocked || disabled || !hasResources}
+          className={`w-full py-4 cyber-button-copper military-clip
+            ${isLocked || !hasResources ? 'opacity-50 grayscale' : ''}`}
+        >
+          <span className="relative z-10 flex items-center justify-center gap-2">
+             {!hasResources ? (
+               userEnergy < (data.costEnergy || 0) ? 'ENERGIA INSUFICIENTE' : 'PA INSUFICIENTE'
+             ) : (
+               isRenegade ? 'EXECUTAR OPERAÇÃO' : 'ASSUMIR TAREFA'
+             )}
+          </span>
+        </button>
       </div>
 
-      {/* RECARGA RÁPIDA */}
-      {!isLocked && (
-        <div className="mt-2 pt-2 border-t border-zinc-800/50">
-           <button 
-             disabled={!canAffordRefill || userEnergy >= 100}
-             onClick={(e) => { e.stopPropagation(); onSupply('full_refill'); }}
-             className={`w-full p-2 flex items-center justify-between text-[9px] font-black border transition-all ${
-               canAffordRefill && userEnergy < 100
-                 ? "bg-rose-500/10 border-rose-500/30 text-rose-500 hover:bg-rose-500 hover:text-white"
-                 : "bg-zinc-900/50 border-zinc-800 text-zinc-600 grayscale cursor-not-allowed"
-             }`}
-           >
-             <div className="flex items-center gap-2">
-                <UtensilsIcon className="w-3 h-3" />
-                <span>RECARGA TOTAL (100% EN)</span>
-             </div>
-             <div className="flex gap-3">
-                <span className="flex items-center gap-1"><CurrencyDollarIcon className="w-3 h-3" /> ${refillCost}</span>
-                <span className="flex items-center gap-1"><BoltIcon className="w-3 h-3" /> {REFILL_PA} PA</span>
-             </div>
-           </button>
-        </div>
-      )}
-
-      {isLocked ? (
-        <div className="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-[1px]">
-          <span className="text-[10px] font-black text-zinc-500 uppercase tracking-[0.2em] -rotate-12">Bloqueado</span>
-        </div>
-      ) : (
-        <div className="absolute top-0 right-0 flex flex-col items-end gap-1 p-2 pointer-events-none">
-          {userEnergy < (data.costEnergy || 0) && (
-            <span className="bg-red-600 text-white text-[8px] font-black px-2 py-0.5 shadow-lg border border-red-400/50 animate-pulse">SEM ENERGIA</span>
-          )}
-          {userPA < (data.costPA || 0) && (
-            <span className="bg-orange-600 text-white text-[8px] font-black px-2 py-0.5 shadow-lg border border-orange-400/50">SEM PA</span>
-          )}
-        </div>
-      )}
+      {/* Decorative side bar for the card (Copper/Bronze) */}
+      <div className={`absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-[#B87333] via-[#CD7F32] to-[#8B4513] shadow-[0_0_10px_rgba(184,115,51,0.5)]`}>
+      </div>
     </motion.div>
   );
 };
@@ -549,20 +596,60 @@ export default function ContractsPage() {
   const pendingInterception = userProfile?.pending_interception;
 
   return (
-    <div className="min-h-screen bg-black text-zinc-300 font-sans p-4 md:p-6 space-y-6 max-w-7xl mx-auto">
+    <div className="min-h-screen bg-transparent text-zinc-300 font-sans p-4 md:p-6 space-y-8 max-w-7xl mx-auto relative">
+      {/* BACKGROUND DECORATION */}
+      <div className="fixed inset-0 pointer-events-none opacity-20 z-0">
+        <div className="absolute top-0 left-0 w-full h-full bg-tactical-grid opacity-10"></div>
+        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-[#B87333] rounded-full blur-[150px] opacity-10"></div>
+        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-orange-600 rounded-full blur-[150px] opacity-10"></div>
+      </div>
+
+      {/* HEADER: Title & Subtitle (Aesthetics matched with TrainingPage) */}
+      <header className="max-w-7xl mx-auto mb-12 relative z-10">
+        <div className="absolute -left-4 top-1/2 -translate-y-1/2 w-1 h-12 bg-[#B87333] shadow-[0_0_15px_rgba(184,115,51,0.8)]"></div>
+        <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}>
+          <h1 className="text-4xl md:text-6xl font-orbitron font-black tracking-widest text-white uppercase" style={{ textShadow: "2px 0px 0px rgba(184,115,51,0.7), -2px 0px 0px rgba(139,92,246,0.7)" }}>
+            Contratos <span className="text-[#CD7F32]">Operacionais</span>
+          </h1>
+          <div className="flex flex-col gap-3 mt-4">
+            <div className="flex items-center gap-4">
+              {/* Badge SEC LEVEL Estilizado */}
+              <div className="flex items-center overflow-hidden border border-[#B87333]/40 bg-black/60" style={MILITARY_CLIP}>
+                <div className="bg-[#B87333] px-2 py-0.5">
+                   <span className="text-[9px] font-black text-black uppercase">AUTH_LEVEL</span>
+                </div>
+                <div className="px-3 py-0.5">
+                   <span className="text-[10px] font-mono text-[#CD7F32] font-bold tracking-widest">07_OPS_COMMAND</span>
+                </div>
+              </div>
+
+              <div className="h-4 w-px bg-slate-800"></div>
+
+              <span className="text-[10px] font-mono text-[#CD7F32]/80 animate-pulse tracking-widest font-bold uppercase">● Ops_Network_Active</span>
+            </div>
+            
+            <p className="text-slate-300 text-[10px] font-mono tracking-[0.2em] uppercase bg-white/5 py-1 px-3 border-l-2 border-[#B87333]/50 w-fit backdrop-blur-sm">
+              CENTRAL DE OPERAÇÕES TÁTICAS // PROTOCOLO {faction === 'gangsters' ? 'RENEGADO' : 'GUARDIÃO'}
+            </p>
+          </div>
+        </motion.div>
+      </header>
+
       {/* Stats Bar */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 relative z-10">
         {[
-          { label: "Capital", val: `$${userProfile?.money?.toLocaleString()}`, color: "text-emerald-400", icon: BanknotesIcon },
-          { label: "Foco (PA)", val: userProfile?.action_points?.toLocaleString(), color: "text-cyan-400", icon: BoltIcon },
-          { label: faction === 'gangsters' ? "Infâmia" : "Mérito", val: faction === 'gangsters' ? userProfile?.corruption : userProfile?.merit, color: faction === 'gangsters' ? "text-orange-500" : "text-blue-500", icon: faction === 'gangsters' ? FireIcon : ShieldCheckIcon },
-          { label: "Energia", val: `${userProfile?.energy}%`, color: "text-yellow-500", icon: BoltIcon }
+          { label: "Capital Líquido", val: `$${userProfile?.money?.toLocaleString()}`, color: "text-emerald-400", icon: BanknotesIcon, border: "border-emerald-500/20" },
+          { label: "Foco (PA)", val: userProfile?.action_points?.toLocaleString(), color: "text-cyan-400", icon: BoltIcon, border: "border-cyan-500/20" },
+          { label: faction === 'gangsters' ? "Infâmia Urbana" : "Mérito Policial", val: faction === 'gangsters' ? userProfile?.corruption : userProfile?.merit, color: faction === 'gangsters' ? "text-[#CD7F32]" : "text-blue-500", icon: faction === 'gangsters' ? FireIcon : ShieldCheckIcon, border: faction === 'gangsters' ? "border-[#B87333]/20" : "border-blue-500/20" },
+          { label: "Reserva de Energia", val: `${userProfile?.energy}%`, color: "text-yellow-500", icon: BoltIcon, border: "border-yellow-500/20" }
         ].map((stat, i) => (
-          <div key={i} className="p-3 bg-zinc-900/40 border border-zinc-800 rounded-sm">
-            <p className="text-[8px] font-black text-zinc-500 uppercase tracking-widest">{stat.label}</p>
-            <div className="flex items-center justify-between mt-1">
-              <span className={`text-lg font-black font-orbitron ${stat.color}`}>{stat.val}</span>
-              <stat.icon className={`w-4 h-4 ${stat.color} opacity-40`} />
+          <div key={i} className={`p-4 bg-black/60 backdrop-blur-md border ${stat.border} relative overflow-hidden group`} style={MILITARY_CLIP}>
+            <div className="absolute top-0 right-0 p-1 opacity-5 group-hover:opacity-10 transition-opacity">
+              <stat.icon className="w-12 h-12 text-white" />
+            </div>
+            <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest mb-1">{stat.label}</p>
+            <div className="flex items-center justify-between">
+              <span className={`text-xl font-black font-orbitron ${stat.color}`}>{stat.val}</span>
             </div>
           </div>
         ))}
@@ -570,16 +657,16 @@ export default function ContractsPage() {
         {/* Manual Trigger */}
         <button 
           onClick={() => setIsManualOpen(true)}
-          className="col-span-2 md:col-span-4 p-3 bg-orange-500/10 border border-orange-500/30 hover:bg-orange-500/20 hover:border-orange-500 transition-all flex items-center justify-between group"
-          style={MILITARY_CLIP}
+          className="col-span-2 md:col-span-4 p-4 cyber-button-copper military-clip group flex items-center justify-between relative overflow-hidden"
         >
-          <div className="flex items-center gap-3">
-            <QuestionMarkCircleIcon className="w-6 h-6 text-orange-500 group-hover:scale-110 transition-transform" />
-            <span className="text-[10px] font-black text-orange-500 uppercase tracking-[0.2em]">Manual de Operações & Dinâmicas</span>
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
+          <div className="flex items-center gap-4 relative z-10">
+            <InformationCircleIcon className="w-6 h-6 text-[#CD7F32] group-hover:scale-110 transition-transform" />
+            <span className="text-[10px] font-black uppercase tracking-[0.3em]">MANUAL TÁTICO DE OPERAÇÕES</span>
           </div>
-          <div className="flex items-center gap-2">
-            <span className="text-[8px] font-mono text-orange-500/60 uppercase animate-pulse">Sistemas_Ativos</span>
-            <div className="w-2 h-2 bg-orange-500 rounded-full animate-ping" />
+          <div className="flex items-center gap-2 relative z-10">
+            <span className="text-[8px] font-mono text-[#B87333] uppercase opacity-60">Consultar Protocolos</span>
+            <div className="w-2 h-2 bg-[#CD7F32] rounded-full animate-pulse shadow-[0_0_8px_#CD7F32]" />
           </div>
         </button>
       </div>
@@ -600,34 +687,57 @@ export default function ContractsPage() {
           
           {/* Daily Special */}
           {faction === 'gangsters' && config?.dailySpecial && (
-             <div className="relative group overflow-hidden p-6 border border-orange-500/30 bg-orange-500/5 rounded-sm">
-                <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none">
-                  <SparklesIcon className="w-32 h-32 text-orange-500" />
+             <div className="relative group overflow-hidden p-8 border border-[#B87333]/40 bg-black/60 backdrop-blur-xl rounded-sm" style={MILITARY_CLIP}>
+                {/* Premium Glow */}
+                <div className="absolute -top-24 -right-24 w-64 h-64 bg-[#B87333] rounded-full blur-[100px] opacity-20 group-hover:opacity-30 transition-opacity animate-pulse"></div>
+                
+                <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none group-hover:rotate-12 transition-transform duration-700">
+                  <SparklesIcon className="w-48 h-48 text-[#CD7F32]" />
                 </div>
+
                 {/* Badges do Daily Special */}
-                <div className="absolute top-0 right-0 flex flex-col items-end gap-1 p-2 pointer-events-none">
+                <div className="absolute top-4 right-4 flex flex-col items-end gap-2 pointer-events-none z-20">
                   {(userProfile?.energy || 0) < config.dailySpecial.costEnergy && (
-                    <span className="bg-red-600 text-white text-[8px] font-black px-2 py-0.5 shadow-lg border border-red-400/50 animate-pulse">SEM ENERGIA</span>
+                    <span className="bg-red-600/90 text-white text-[9px] font-black px-3 py-1 shadow-[0_0_15px_rgba(220,38,38,0.5)] border border-red-400/50 animate-pulse uppercase tracking-widest">ENERGIA_CRÍTICA</span>
                   )}
                   {(userProfile?.action_points || 0) < config.dailySpecial.costPA && (
-                    <span className="bg-orange-600 text-white text-[8px] font-black px-2 py-0.5 shadow-lg border border-orange-400/50">SEM PA</span>
+                    <span className="bg-orange-600/90 text-white text-[9px] font-black px-3 py-1 shadow-[0_0_15px_rgba(234,88,12,0.5)] border border-orange-400/50 uppercase tracking-widest">SINAL_DE_FOCO_BAIXO</span>
                   )}
                 </div>
-                <div className="flex flex-col md:flex-row justify-between items-center gap-6">
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2">
-                      <span className="px-2 py-0.5 bg-orange-500 text-black text-[10px] font-black uppercase">Especial do Dia</span>
-                      <h2 className="text-2xl font-black text-white uppercase font-orbitron italic">{config.dailySpecial.name}</h2>
+
+                <div className="flex flex-col lg:flex-row justify-between items-center gap-10 relative z-10">
+                  <div className="space-y-4 flex-1">
+                    <div className="flex flex-col gap-2">
+                      <div className="flex items-center gap-3">
+                        <div className="h-4 w-1 bg-[#B87333]"></div>
+                        <span className="text-[10px] font-black text-[#CD7F32] uppercase tracking-[0.4em]">PROTOCOLO_GOLPE_DE_MESTRE</span>
+                      </div>
+                      <h2 className="text-3xl md:text-5xl font-black text-white uppercase font-orbitron tracking-tighter leading-none italic">
+                        {config.dailySpecial.name}
+                      </h2>
                     </div>
-                    <p className="text-sm text-zinc-400 max-w-lg">
-                      Uma oportunidade única que surge a cada 24h. O risco é extremo, mas a recompensa pode mudar o rumo da sua carreira no crime.
+                    
+                    <p className="text-sm text-slate-400 leading-relaxed max-w-2xl font-medium border-l border-white/10 pl-6 italic">
+                      &quot;A oportunidade de ouro. Uma falha na segurança central foi detectada. O risco é letal, a visibilidade é total, mas o pagamento é lendário.&quot;
                     </p>
-                    <div className="flex gap-4 pt-2">
-                      <span className="text-emerald-500 font-black text-xs">EST. ${config.dailySpecial.money[0].toLocaleString()}</span>
-                      <span className="text-violet-400 font-black text-xs">EST. +{config.dailySpecial.xp[0].toLocaleString()} XP</span>
+
+                    <div className="flex flex-wrap gap-6 pt-4">
+                      <div className="flex flex-col">
+                        <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Pagamento Estimado</span>
+                        <span className="text-2xl font-black text-emerald-400 font-orbitron">${config.dailySpecial.money[0].toLocaleString()}</span>
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Evolução de Perfil</span>
+                        <span className="text-2xl font-black text-violet-400 font-orbitron">+{config.dailySpecial.xp[0].toLocaleString()} XP</span>
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Nível Mínimo</span>
+                        <span className="text-2xl font-black text-white font-orbitron">Lvl {config.dailySpecial.level}</span>
+                      </div>
                     </div>
                   </div>
-                  <div className="flex flex-col gap-2 w-full md:w-auto">
+
+                  <div className="flex flex-col gap-4 w-full lg:w-80">
                     <button 
                       onClick={() => handleHeist(config.dailySpecial.id)}
                       disabled={
@@ -637,24 +747,25 @@ export default function ContractsPage() {
                         (userProfile?.action_points || 0) < config.dailySpecial.costPA ||
                         dailyCountdown !== null
                       }
-                      className={`w-full px-8 py-3 transition-all font-black uppercase tracking-widest text-sm relative group/btn ${
-                        dailyCountdown 
-                          ? "bg-zinc-900 border border-orange-500/50 text-orange-500 shadow-[0_0_15px_rgba(249,115,22,0.1)]" 
-                          : "bg-orange-600 hover:bg-orange-500 text-black disabled:bg-zinc-800 disabled:opacity-50"
-                      }`}
-                      style={{ clipPath: "polygon(10% 0, 100% 0, 100% 70%, 90% 100%, 0 100%, 0 30%)" }}
+                      className={`w-full px-8 py-5 transition-all font-black uppercase tracking-[0.2em] text-sm relative group/btn overflow-hidden military-clip
+                        ${dailyCountdown 
+                          ? "bg-black/40 border border-[#B87333]/30 text-[#CD7F32]" 
+                          : "cyber-button-copper text-white hover:scale-[1.02]"
+                        }`}
                     >
                       {dailyCountdown ? (
                         <div className="flex flex-col items-center leading-none">
-                          <span className="text-[10px] opacity-70">RECARREGANDO GOLPE</span>
-                          <span className="text-lg font-orbitron">{dailyCountdown}</span>
+                          <span className="text-[9px] opacity-60 mb-2">RECARREGANDO SISTEMAS</span>
+                          <span className="text-2xl font-orbitron tracking-widest">{dailyCountdown}</span>
                         </div>
                       ) : (
-                        "EXECUTAR GOLPE"
+                        <div className="flex items-center justify-center gap-3">
+                          <FireIcon className="w-6 h-6 animate-pulse" />
+                          <span>EXECUTAR OPERAÇÃO</span>
+                        </div>
                       )}
                     </button>
                     
-                    {/* Botão de Recarga no Daily Special */}
                     <button
                       disabled={
                         (userProfile?.money || 0) < Math.floor(1600 * (1 + (userProfile?.toxicity || 0) / 250)) || 
@@ -663,13 +774,13 @@ export default function ContractsPage() {
                         dailyCountdown !== null
                       }
                       onClick={() => handleQuickSupply('full_refill')}
-                      className={`w-full p-2 border transition-all text-[10px] font-black uppercase flex items-center justify-center gap-2 ${
-                        dailyCountdown 
-                          ? "bg-zinc-950 border-rose-500/20 text-rose-500/50" 
-                          : "bg-rose-500/10 border-rose-500/30 text-rose-500 hover:bg-rose-500 hover:text-white disabled:opacity-30 disabled:grayscale"
-                      }`}
+                      className={`w-full py-3 border transition-all text-[10px] font-black uppercase flex items-center justify-center gap-3 military-clip
+                        ${dailyCountdown 
+                          ? "bg-black/40 border-rose-500/10 text-rose-500/30" 
+                          : "bg-black/80 border-rose-500/40 text-rose-500 hover:bg-rose-500 hover:text-white disabled:opacity-30"
+                        }`}
                     >
-                      <UtensilsIcon className="w-4 h-4" /> RECARGA 100% EN
+                      <UtensilsIcon className="w-4 h-4" /> RECARGA TÁTICA COMPLETA
                     </button>
                   </div>
                 </div>

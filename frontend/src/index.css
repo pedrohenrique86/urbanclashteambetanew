@@ -144,6 +144,11 @@ iframe {
   box-shadow: 0 0 40px rgba(217, 70, 239, 0.1), inset 0 1px rgba(255, 255, 255, 0.1);
 }
 
+.cyber-card-copper {
+  border-color: rgba(184, 115, 51, 0.5);
+  box-shadow: 0 0 40px rgba(184, 115, 51, 0.1), inset 0 1px rgba(255, 255, 255, 0.1);
+}
+
 .cyber-button {
   background: rgba(34, 211, 238, 0.1);
   border: 1px solid rgba(34, 211, 238, 0.5);
@@ -153,6 +158,29 @@ iframe {
   text-transform: uppercase;
   letter-spacing: 0.3em;
   transition: all 150ms ease-in-out;
+}
+
+.cyber-button-copper {
+  background: rgba(0, 0, 0, 0.8);
+  border: 1px solid rgba(184, 115, 51, 0.6);
+  color: #cd7f32; /* bronze/copper-light */
+  font-family: 'Orbitron', sans-serif;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.3em;
+  transition: all 150ms ease-in-out;
+  backdrop-filter: blur(4px);
+}
+
+.cyber-button-copper:hover:not(:disabled) {
+  background: rgba(184, 115, 51, 0.2);
+  border-color: #b87333;
+  box-shadow: 0 0 20px rgba(184, 115, 51, 0.3);
+}
+
+.cyber-button-copper:active:not(:disabled) {
+  transform: translateY(1px);
+  box-shadow: 0 0 10px rgba(184, 115, 51, 0.2);
 }
 
 .cyber-button:hover:not(:disabled) {
