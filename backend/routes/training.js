@@ -3,11 +3,13 @@ const router = express.Router();
 const { authenticateToken } = require("../middleware/auth.js");
 const trainingService = require("../services/trainingService.js");
 
+const { lockPlayerAction } = require("../middleware/lockMiddleware.js");
+
 /**
  * @route POST /api/training/start
  * @desc Inicia uma sessão de treinamento
  */
-router.post("/start", authenticateToken, async (req, res) => {
+router.post("/start", authenticateToken, lockPlayerAction(800), async (req, res) => {
   try {
     const { type } = req.body;
     const result = await trainingService.startTraining(req.user.id, type);
@@ -21,7 +23,7 @@ router.post("/start", authenticateToken, async (req, res) => {
  * @route POST /api/training/complete
  * @desc Finaliza o treino e recebe recompensas
  */
-router.post("/complete", authenticateToken, async (req, res) => {
+router.post("/complete", authenticateToken, lockPlayerAction(800), async (req, res) => {
   try {
     const result = await trainingService.completeTraining(req.user.id);
     res.json(result);

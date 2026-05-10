@@ -3,6 +3,8 @@ const router = express.Router();
 const { authenticateToken, requireMinLevel } = require("../middleware/auth");
 const combatService = require("../services/combatService");
 
+const { lockPlayerAction } = require("../middleware/lockMiddleware");
+
 /**
  * @route GET /api/combat/radar
  * @desc Get nearby targets for PvP
@@ -41,7 +43,7 @@ router.get("/precalc/:targetId", authenticateToken, requireMinLevel(10), async (
  * @route POST /api/combat/attack/:targetId
  * @desc Execute the old strategic attack (Legacy)
  */
-router.post("/attack/:targetId", authenticateToken, requireMinLevel(10), async (req, res) => {
+router.post("/attack/:targetId", authenticateToken, requireMinLevel(10), lockPlayerAction(1000), async (req, res) => {
   try {
     const { tactic } = req.body;
     const result = await combatService.executeAttack(req.user.id, req.params.targetId, tactic);
@@ -55,7 +57,7 @@ router.post("/attack/:targetId", authenticateToken, requireMinLevel(10), async (
  * @route POST /api/combat/instant-attack/:targetId
  * @desc Executa o ataque no estilo The Crims (Instantâneo)
  */
-router.post("/instant-attack/:targetId", authenticateToken, requireMinLevel(10), async (req, res) => {
+router.post("/instant-attack/:targetId", authenticateToken, requireMinLevel(10), lockPlayerAction(1000), async (req, res) => {
   try {
     const result = await combatService.executeInstantAttack(req.user.id, req.params.targetId);
     res.json(result);
@@ -68,7 +70,7 @@ router.post("/instant-attack/:targetId", authenticateToken, requireMinLevel(10),
  * @route POST /api/combat/active-start/:targetId
  * @desc Start Active Turn-based Combat
  */
-router.post("/active-start/:targetId", authenticateToken, requireMinLevel(10), async (req, res) => {
+router.post("/active-start/:targetId", authenticateToken, requireMinLevel(10), lockPlayerAction(1000), async (req, res) => {
   try {
     const state = await combatService.startActiveCombat(req.user.id, req.params.targetId);
     res.json(state);
@@ -81,7 +83,7 @@ router.post("/active-start/:targetId", authenticateToken, requireMinLevel(10), a
  * @route POST /api/combat/active-turn
  * @desc Process a single turn
  */
-router.post("/active-turn", authenticateToken, async (req, res) => {
+router.post("/active-turn", authenticateToken, lockPlayerAction(500), async (req, res) => {
   try {
     const { action } = req.body;
     const result = await combatService.processActiveTurn(req.user.id, action);

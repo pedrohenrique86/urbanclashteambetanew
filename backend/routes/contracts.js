@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const contractService = require("../services/contractService");
 const { authenticateToken } = require("../middleware/auth");
+const { lockPlayerAction } = require("../middleware/lockMiddleware");
 
 router.use(authenticateToken);
 
@@ -43,8 +44,9 @@ router.get("/config", async (req, res) => {
 
 /**
  * Renegado: Realiza um roubo.
+ * SÊNIOR: lockPlayerAction(500) impede cliques duplos ultra-rápidos.
  */
-router.post("/heist", async (req, res) => {
+router.post("/heist", lockPlayerAction(500), async (req, res) => {
   try {
     const { heistId } = req.body;
     const result = await contractService.performHeist(req.user.id, heistId);
@@ -57,7 +59,7 @@ router.post("/heist", async (req, res) => {
 /**
  * Guardião: Realiza uma tarefa.
  */
-router.post("/guardian-task", async (req, res) => {
+router.post("/guardian-task", lockPlayerAction(500), async (req, res) => {
   try {
     const { taskId } = req.body;
     const result = await contractService.performGuardianTask(req.user.id, taskId);
@@ -70,7 +72,7 @@ router.post("/guardian-task", async (req, res) => {
 /**
  * Guardião: Resolve interceptação pendente.
  */
-router.post("/resolve-interception", async (req, res) => {
+router.post("/resolve-interception", lockPlayerAction(800), async (req, res) => {
   try {
     const { action } = req.body;
     const result = await contractService.resolveInterception(req.user.id, action);

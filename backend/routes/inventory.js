@@ -2,13 +2,14 @@ const express = require("express");
 const router = express.Router();
 const { authenticateToken, requireOperational } = require("../middleware/auth");
 const inventoryService = require("../services/inventoryService");
+const { lockPlayerAction } = require("../middleware/lockMiddleware");
 
 /**
  * POST /api/inventory/equip
  * Equipar ou desequipar um item em um slot específico.
  * SÊNIOR: Validação de slot e atualização de bônus automática.
  */
-router.post("/equip", authenticateToken, requireOperational, async (req, res) => {
+router.post("/equip", authenticateToken, requireOperational, lockPlayerAction(500), async (req, res) => {
   try {
     const { itemCode, slot } = req.body;
     

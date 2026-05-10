@@ -3,6 +3,8 @@ const router = express.Router();
 const { authenticateToken } = require("../middleware/auth");
 const marketService = require("../services/marketService");
 
+const { lockPlayerAction } = require("../middleware/lockMiddleware");
+
 // Obter itens da Bolsa Sombria
 router.get("/items", authenticateToken, async (req, res) => {
   try {
@@ -14,7 +16,7 @@ router.get("/items", authenticateToken, async (req, res) => {
 });
 
 // Comprar item
-router.post("/buy", authenticateToken, async (req, res) => {
+router.post("/buy", authenticateToken, lockPlayerAction(1000), async (req, res) => {
   try {
     const { itemCode, quantity } = req.body;
     const result = await marketService.buyItem(req.user.id, itemCode, quantity);
@@ -25,7 +27,7 @@ router.post("/buy", authenticateToken, async (req, res) => {
 });
 
 // Vender item
-router.post("/sell", authenticateToken, async (req, res) => {
+router.post("/sell", authenticateToken, lockPlayerAction(1000), async (req, res) => {
   try {
     const { itemCode, quantity } = req.body;
     const result = await marketService.sellItem(req.user.id, itemCode, quantity);

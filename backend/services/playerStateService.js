@@ -345,6 +345,52 @@ class PlayerStateService {
 
     console.log(`[PlayerState] 🛡️ Bônus de equipamentos atualizados para ${userId}`);
   }
+
+  /**
+   * SÊNIOR: Busca múltiplos estados de jogadores em uma única operação (Batching).
+   * Fundamental para renderizar listas de membros, amigos ou rankings.
+   */
+  async getManyPlayerStates(userIds) {
+    if (!userIds || userIds.length === 0) return [];
+    if (!redisClient.client.isReady) {
+      const { rows } = await query(
+        `SELECT * FROM user_profiles WHERE user_id IN (${userIds.map((_, i) => `$${i+1}`).join(',')})`,
+        userIds
+      );
+      return rows;
+    }
+
+    // SÊNIOR: Pipeline para buscar todos os hashes em uma única viagem ao Redis
+    const pipeline = redisClient.pipeline();
+    userIds.forEach(id => pipeline.hGetAll(`${PLAYER_STATE_PREFIX}${id}`));
+    const results = await pipeline.exec();
+
+    const hydrated = [];
+    const missingIds = [];
+
+    results.forEach((raw, i) => {
+      if (raw && Object.keys(raw).length > 0) {
+        hydrated.push(this._parseState(raw));
+      } else {
+        missingIds.push(userIds[i]);
+      }
+    });
+
+    // Se algum jogador não estiver no cache, buscamos no DB (Hydration cirúrgica)
+    if (missingIds.length > 0) {
+      const dbRes = await query(
+        `SELECT * FROM user_profiles WHERE user_id IN (${missingIds.map((_, i) => `$${i+1}`).join(',')})`,
+        missingIds
+      );
+      
+      for (const row of dbRes.rows) {
+        await this._hydrateRedis(row.user_id, row);
+        hydrated.push(row);
+      }
+    }
+
+    return hydrated;
+  }
 }
 
 module.exports = new PlayerStateService();
