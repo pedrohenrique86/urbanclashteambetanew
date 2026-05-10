@@ -104,7 +104,8 @@ const DB_PERSIST_FIELDS = new Set([
   "energy", "action_points", "last_ap_reset",
   "energy_updated_at", "toxicity", "premium_coins", "login_streak",
   "merit", "corruption", "equipped_chips",
-  "weapon_damage", "shield_protection", "equipment_bonus_foc", "equipment_bonus_ins"
+  "weapon_damage", "shield_protection", "equipment_bonus_foc", "equipment_bonus_ins",
+  "last_daily_special_at"
 ]);
 
 // ─── Dirty TIPO 2: campos voláteis (NÃO persistem no safety-net, só via debounce
@@ -153,7 +154,8 @@ const FIELD_TO_SSE = {
   recon_loss_xp     : "reconLossXp",
   recon_power_result: "reconPowerResult",
   merit             : "merit",
-  corruption        : "corruption"
+  corruption        : "corruption",
+  last_daily_special_at: "lastDailySpecialAt"
 };
 
 // ─── Campos numéricos no Redis Hash ──────────────────────────────────────────────
@@ -223,7 +225,7 @@ function _parseState(raw) {
 
   // SÊNIOR: Normaliza campos nullable — Redis armazena "" como string,
   // mas o frontend precisa de null para falsy checks funcionarem corretamente.
-  const NULLABLE_STRING_FIELDS = ['training_ends_at', 'active_training_type', 'status_ends_at'];
+  const NULLABLE_STRING_FIELDS = ['training_ends_at', 'active_training_type', 'status_ends_at', 'last_daily_special_at'];
   for (const field of NULLABLE_STRING_FIELDS) {
     if (out[field] === '' || out[field] === 'null' || out[field] === 'undefined') {
       out[field] = null;

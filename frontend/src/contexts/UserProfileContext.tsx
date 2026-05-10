@@ -81,6 +81,7 @@ export interface UserProfile {
     heistName: string;
     items: Array<{ code: string; quantity: number }>;
   } | null;
+  last_daily_special_at?: string | null;
   inventory?: any[];
 }
 
@@ -157,6 +158,7 @@ function mergePlayerStateIntoProfile(
   if (patch.merit !== undefined) next.merit = patch.merit;
   if (patch.corruption !== undefined) next.corruption = patch.corruption;
   if (patch.pendingInterception !== undefined) next.pending_interception = patch.pendingInterception;
+  if (patch.lastDailySpecialAt !== undefined) next.last_daily_special_at = patch.lastDailySpecialAt;
   
   return next;
 }
@@ -264,6 +266,7 @@ export const UserProfileProvider = ({ children }: { children: ReactNode }) => {
         corruption: Number(profileData.corruption) || 0,
         pending_interception: profileData.pending_interception || null,
         inventory: profileData.inventory || [],
+        last_daily_special_at: profileData.last_daily_special_at || null,
       };
     },
     [],

@@ -57,6 +57,7 @@ export interface PlayerStatePatch {
     heistName: string;
     items: Array<{ code: string; quantity: number }>;
   } | null;
+  lastDailySpecialAt?: string | null;
 }
 
 /**

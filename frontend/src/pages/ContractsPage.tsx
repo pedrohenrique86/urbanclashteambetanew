@@ -361,6 +361,34 @@ export default function ContractsPage() {
   const [cooldown, setCooldown] = useState(0);
   const [isManualOpen, setIsManualOpen] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
+  const [dailyCountdown, setDailyCountdown] = useState<string | null>(null);
+
+  // Countdown para Golpe de Mestre (24h)
+  useEffect(() => {
+    if (!userProfile?.last_daily_special_at) {
+      setDailyCountdown(null);
+      return;
+    }
+
+    const interval = setInterval(() => {
+      const lastDaily = new Date(userProfile.last_daily_special_at!).getTime();
+      const now = Date.now();
+      const diff = now - lastDaily;
+      const hours24 = 24 * 60 * 60 * 1000;
+
+      if (diff < hours24) {
+        const remaining = hours24 - diff;
+        const h = Math.floor(remaining / (1000 * 60 * 60));
+        const m = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60));
+        const s = Math.floor((remaining % (1000 * 60)) / 1000);
+        setDailyCountdown(`${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`);
+      } else {
+        setDailyCountdown(null);
+      }
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [userProfile?.last_daily_special_at]);
 
   useEffect(() => {
     if (cooldown > 0) {
@@ -573,19 +601,40 @@ export default function ContractsPage() {
                         loadingAction !== null || 
                         (userProfile?.level || 0) < config.dailySpecial.level || 
                         (userProfile?.energy || 0) < config.dailySpecial.costEnergy ||
-                        (userProfile?.action_points || 0) < config.dailySpecial.costPA
+                        (userProfile?.action_points || 0) < config.dailySpecial.costPA ||
+                        dailyCountdown !== null
                       }
-                      className="w-full px-8 py-3 bg-orange-600 hover:bg-orange-500 disabled:bg-zinc-800 disabled:opacity-50 transition-all font-black text-black uppercase tracking-widest text-sm"
+                      className={`w-full px-8 py-3 transition-all font-black uppercase tracking-widest text-sm relative group/btn ${
+                        dailyCountdown 
+                          ? "bg-zinc-900 border border-orange-500/50 text-orange-500 shadow-[0_0_15px_rgba(249,115,22,0.1)]" 
+                          : "bg-orange-600 hover:bg-orange-500 text-black disabled:bg-zinc-800 disabled:opacity-50"
+                      }`}
                       style={{ clipPath: "polygon(10% 0, 100% 0, 100% 70%, 90% 100%, 0 100%, 0 30%)" }}
                     >
-                      EXECUTAR GOLPE
+                      {dailyCountdown ? (
+                        <div className="flex flex-col items-center leading-none">
+                          <span className="text-[10px] opacity-70">RECARREGANDO GOLPE</span>
+                          <span className="text-lg font-orbitron">{dailyCountdown}</span>
+                        </div>
+                      ) : (
+                        "EXECUTAR GOLPE"
+                      )}
                     </button>
                     
                     {/* Botão de Recarga no Daily Special */}
                     <button
-                      disabled={(userProfile?.money || 0) < Math.floor(1600 * (1 + (userProfile?.toxicity || 0) / 250)) || (userProfile?.energy || 0) >= 100 || (userProfile?.action_points || 0) < 600}
+                      disabled={
+                        (userProfile?.money || 0) < Math.floor(1600 * (1 + (userProfile?.toxicity || 0) / 250)) || 
+                        (userProfile?.energy || 0) >= 100 || 
+                        (userProfile?.action_points || 0) < 600 ||
+                        dailyCountdown !== null
+                      }
                       onClick={() => handleQuickSupply('full_refill')}
-                      className="w-full p-2 bg-rose-500/10 border border-rose-500/30 text-rose-500 hover:bg-rose-500 hover:text-white disabled:opacity-30 disabled:grayscale transition-all text-[10px] font-black uppercase flex items-center justify-center gap-2"
+                      className={`w-full p-2 border transition-all text-[10px] font-black uppercase flex items-center justify-center gap-2 ${
+                        dailyCountdown 
+                          ? "bg-zinc-950 border-rose-500/20 text-rose-500/50" 
+                          : "bg-rose-500/10 border-rose-500/30 text-rose-500 hover:bg-rose-500 hover:text-white disabled:opacity-30 disabled:grayscale"
+                      }`}
                     >
                       <UtensilsIcon className="w-4 h-4" /> RECARGA 100% EN
                     </button>

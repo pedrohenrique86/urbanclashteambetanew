@@ -42,8 +42,15 @@ class ContractService {
       if (isDaily) {
         const lastDaily = state.last_daily_special_at ? new Date(state.last_daily_special_at) : null;
         const now = new Date();
-        if (lastDaily && lastDaily.toDateString() === now.toDateString()) {
-          throw new Error("Você já realizou o Golpe de Mestre hoje.");
+        if (lastDaily) {
+          const diffMs = now.getTime() - lastDaily.getTime();
+          const hours24 = 24 * 60 * 60 * 1000;
+          if (diffMs < hours24) {
+            const remainingMs = hours24 - diffMs;
+            const remainingHours = Math.floor(remainingMs / (1000 * 60 * 60));
+            const remainingMinutes = Math.floor((remainingMs % (1000 * 60 * 60)) / (1000 * 60));
+            throw new Error(`O Golpe de Mestre estará disponível em ${remainingHours}h ${remainingMinutes}m.`);
+          }
         }
       }
 
