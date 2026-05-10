@@ -186,15 +186,23 @@ async function refreshUsersRanking() {
     console.log(`[ranking] 🔍 Processando ${entries.length} membros globais do ZSET.`);
 
     // 3. Validação de Existência (Ghost Cleanup) - Batch
+    // SÊNIOR: Só valida fantasmas uma vez por dia para evitar I/O no banco a cada 10 min.
+    const GHOST_VALIDATION_KEY = "ranking:ghost_validation:last_run";
+    const lastValidation = await redisClient.getAsync(GHOST_VALIDATION_KEY);
+    
     const candidateIds = entries.map((e) => e.userId);
     let validEntries = entries;
-    if (candidateIds.length > 0) {
+
+    if (!lastValidation && candidateIds.length > 0) {
       try {
+        console.log(`[ranking] 👻 Executando validação de fantasmas para ${candidateIds.length} candidatos...`);
         const { rows } = await query(`SELECT id FROM users WHERE id IN (${candidateIds.map((_,i) => `$${i+1}`).join(',')})`, candidateIds);
         const existingIds = new Set(rows.map((r) => r.id));
         if (existingIds.size < entries.length) {
           validEntries = entries.filter((e) => existingIds.has(e.userId));
         }
+        // Marca que validamos e expira em 24h
+        await redisClient.setAsync(GHOST_VALIDATION_KEY, "1", "EX", 86400);
       } catch (dbErr) {
         console.error("[ranking] ❌ Falha na validação de usuários fantasma:", dbErr.message);
       }
@@ -435,20 +443,45 @@ async function warmupRankings() {
   }
 
   // 1 & 2: Persiste estados sujos e executa manutenção periódica
+  const dirtyClans = await redisClient.sCardAsync("dirty:clans:set").catch(() => 0);
+  
   await Promise.allSettled([
     playerStateService.persistDirtyStates(),
     clanStateService.persistDirtyClanStates(),
     (async () => {
-      // SÊNIOR: Limpeza de chat a cada 10 min (apenas se houver gente online)
-      const { cleanExpiredChatMessages } = require("../config/database");
-      await cleanExpiredChatMessages();
+      // SÊNIOR: Limpeza de chat apenas se passar de um tempo maior ou aleatório
+      // para evitar que o Neon acorde todo ciclo de 10 min.
+      // Agora só limpa se for o ciclo da hora cheia (ex: 17:00, 18:00)
+      const now = new Date();
+      if (now.getMinutes() < 10) {
+        const { cleanExpiredChatMessages } = require("../config/database");
+        await cleanExpiredChatMessages();
+      }
     })()
   ]);
 
   // 3: Atualiza snapshots (fonte: ZSET para users, banco para clãs)
+  const dirtyRankingPlayers = await playerStateService.getDirtyRankingPlayers();
+  const hasDirtyRanking = Array.isArray(dirtyRankingPlayers) && dirtyRankingPlayers.length > 0;
+
   await Promise.allSettled([
-    refreshUsersRanking(),
-    refreshClansRanking(),
+    // SÊNIOR: Só regenera o snapshot de ranking de usuários se alguém mudou de score
+    (async () => {
+      const cacheKey = "ranking:users:gangsters"; // Checa um dos caches principais
+      const cached = await redisClient.getAsync(cacheKey);
+      if (!cached || hasDirtyRanking) {
+        await refreshUsersRanking();
+      }
+    })(),
+    // SÊNIOR: Só atualiza ranking de clãs no banco se algum clã mudou
+    // ou se o cache de clãs sumiu. Isso economiza 1 query a cada 10 min.
+    (async () => {
+      const cacheKey = getClansCacheKey();
+      const cached = await redisClient.getAsync(cacheKey);
+      if (!cached || dirtyClans > 0) {
+        await refreshClansRanking();
+      }
+    })()
   ]);
 
   // 4: Limpa dirty tracking de ranking
