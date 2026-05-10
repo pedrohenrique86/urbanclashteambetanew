@@ -58,17 +58,33 @@ if (databaseUrl) {
 
 const pool = new Pool({
   ...poolConfig,
-  max: 20, // Reduzido de 50 para 20 (SÊNIOR: Menos conexões simultâneas mas mais rotatividade = melhor para Neon)
-  min: 0,  // GARANTE que não haverá conexões abertas sem necessidade
-  idleTimeoutMillis: 5000, // Reduzido para 5s (Neon dorme após 5min de inatividade)
+  max: 20, 
+  min: 0,
+  idleTimeoutMillis: 5000, 
   connectionTimeoutMillis: 15000, 
-  allowExitOnIdle: true, // Permite que o processo Node feche se o pool estiver ocioso
+  allowExitOnIdle: true, 
 });
 
-// SÊNIOR: Impede que o Node.js "crashe" devido a quedas de conexões TCP de clientes ociosos (muito comum no auto-suspend do NeonDB)
+// SÊNIOR: Monitoramento de conexões para caçar vazamentos que impedem o sono do Neon
+pool.on("connect", () => {
+  if (process.env.NODE_ENV !== "production") {
+    console.log("🔌 [Database] Nova conexão física estabelecida com o Neon.");
+  }
+});
+
+pool.on("acquire", () => {
+  // console.log("📥 [Database] Conexão adquirida do pool.");
+});
+
+pool.on("remove", () => {
+  if (process.env.NODE_ENV !== "production") {
+    console.log("🗑️ [Database] Conexão fechada e removida do pool (Idle).");
+  }
+});
+
 pool.on("error", (err, client) => {
   if (err.message.includes("terminating connection due to idle timeout")) {
-    return; // Ignora logs de fechamento normal do Neon
+    return;
   }
   console.error("⚠️ [Database] Erro no Pool:", err.message);
 });
