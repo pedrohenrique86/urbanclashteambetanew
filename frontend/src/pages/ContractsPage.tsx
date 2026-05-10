@@ -20,13 +20,17 @@ import {
   BriefcaseIcon,
   ScaleIcon,
   BanknotesIcon,
-  InformationCircleIcon
+  InformationCircleIcon,
+  QuestionMarkCircleIcon,
+  XMarkIcon
 } from "@heroicons/react/24/outline";
 import { motion, AnimatePresence } from "framer-motion";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
 // --- Types ---
+const MILITARY_CLIP = { clipPath: "polygon(8px 0%, 100% 0%, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0% 100%, 0% 8px)" };
+
 interface Heist {
   id: string;
   name: string;
@@ -72,6 +76,173 @@ interface ContractStatus {
 }
 
 // --- Components ---
+
+const ContractManualModal = ({ isOpen, onClose, faction }: { isOpen: boolean, onClose: () => void, faction: string }) => {
+  return (
+    <AnimatePresence>
+      {isOpen && (
+        <motion.div 
+          initial={{ opacity: 0 }} 
+          animate={{ opacity: 1 }} 
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 z-[9000] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm cursor-pointer"
+          onClick={onClose}
+        >
+          <motion.div 
+            initial={{ scale: 0.8, opacity: 0, y: 40 }}
+            animate={{ scale: 1, opacity: 1, y: 0 }}
+            exit={{ scale: 0.8, opacity: 0, y: 40 }}
+            transition={{ type: "spring", damping: 20, stiffness: 200 }}
+            className="bg-zinc-950/95 border-2 border-orange-500/50 p-4 sm:p-8 max-w-4xl w-full relative shadow-[0_0_100px_rgba(249,115,22,0.2)] cursor-default overflow-y-auto max-h-[90vh] custom-scrollbar"
+            style={MILITARY_CLIP}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-orange-500 to-transparent animate-pulse" />
+            
+            <button 
+              onClick={onClose}
+              className="absolute top-4 right-4 text-slate-500 hover:text-orange-400 transition-colors group"
+            >
+              <XMarkIcon className="w-8 h-8 group-hover:rotate-90 transition-transform duration-300" />
+            </button>
+            
+            <div className="mb-10">
+              <h3 className="text-3xl font-orbitron font-black text-white uppercase tracking-[0.4em] flex items-center gap-4">
+                <div className="p-2 bg-orange-500/10 border border-orange-500/30">
+                  <BriefcaseIcon className="w-8 h-8 text-orange-400" />
+                </div>
+                GUIA DE CONTRATOS
+              </h3>
+              <div className="h-px w-full bg-gradient-to-r from-orange-500/50 via-orange-500/10 to-transparent mt-4" />
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+              <div className="space-y-8">
+                <section>
+                  <h4 className="text-orange-400 font-orbitron font-black text-sm mb-6 tracking-widest uppercase italic flex items-center gap-2">
+                    <span className="w-2 h-2 bg-orange-400" />
+                    Dinâmica de Facções
+                  </h4>
+                  <ul className="space-y-6 text-[11px] font-mono text-slate-400 uppercase leading-relaxed">
+                    <li className="flex items-start gap-4 p-3 bg-white/5 border-l-2 border-orange-500/30">
+                      <span className="text-orange-500 font-black">01</span>
+                      <span><strong className="text-white text-sm">Renegados:</strong> Focados em <strong className="text-orange-400">PA (Planejamento)</strong>. Operações exigem tempo e estratégia. São a fonte primária de itens raros.</span>
+                    </li>
+                    <li className="flex items-start gap-4 p-3 bg-white/5 border-l-2 border-blue-500/30">
+                      <span className="text-blue-500 font-black">02</span>
+                      <span><strong className="text-white text-sm">Guardiões:</strong> Focados em <strong className="text-blue-400">Energia (Operacional)</strong>. Patrulhar exige suprimentos constantes de estamina.</span>
+                    </li>
+                    <li className="flex items-start gap-4 p-3 bg-white/5 border-l-2 border-yellow-500/30">
+                      <span className="text-yellow-500 font-black">03</span>
+                      <span><strong className="text-white text-sm">Sincronia:</strong> O equilíbrio simbiótico garante que cada facção dependa e influencie o mercado da outra.</span>
+                    </li>
+                  </ul>
+                </section>
+
+                <section>
+                  <h4 className="text-emerald-400 font-orbitron font-black text-sm mb-6 tracking-widest uppercase italic flex items-center gap-2">
+                    <span className="w-2 h-2 bg-emerald-400" />
+                    Economia e Prestígio
+                  </h4>
+                  <div className="bg-black/60 p-6 border border-emerald-500/20 font-mono text-[11px] text-slate-400 leading-relaxed uppercase relative overflow-hidden">
+                    <div className="absolute top-0 right-0 p-2 opacity-10">
+                      <BanknotesIcon className="w-20 h-20 text-emerald-500" />
+                    </div>
+                    <p className="text-white font-black mb-4 italic border-b border-white/10 pb-2">Cálculo de Nível:</p>
+                    <div className="space-y-2 text-emerald-300 text-xs mb-6 bg-emerald-500/5 p-4 border border-emerald-500/10">
+                      <p>Soma de XP + Atributos + Capital</p>
+                    </div>
+                    <ul className="space-y-2 text-[10px]">
+                      <li className="flex justify-between border-b border-white/5 pb-1">
+                        <span>Experiência (XP)</span>
+                        <span className="text-white">Curva Progressiva</span>
+                      </li>
+                      <li className="flex justify-between border-b border-white/5 pb-1">
+                        <span>Stats (Treino)</span>
+                        <span className="text-white">25 pts = +1 Nível</span>
+                      </li>
+                      <li className="flex justify-between border-b border-white/5 pb-1">
+                        <span>Capital (Cash)</span>
+                        <span className="text-emerald-400 font-bold">$100k = +1 Nível</span>
+                      </li>
+                    </ul>
+                  </div>
+                </section>
+              </div>
+
+              <div className="space-y-8">
+                <section>
+                  <h4 className="text-cyan-400 font-orbitron font-black text-sm mb-6 tracking-widest uppercase italic flex items-center gap-2">
+                    <span className="w-2 h-2 bg-cyan-400" />
+                    Confronto e Localidade
+                  </h4>
+                  <div className="grid grid-cols-1 gap-4">
+                    <div className="bg-white/5 p-4 border border-cyan-500/20 group hover:border-cyan-500/40 transition-colors">
+                      <div className="text-cyan-500 font-black mb-2 flex items-center gap-2">
+                        <MapPinIcon className="w-4 h-4" /> EMBOSCADA
+                      </div>
+                      <p className="text-[10px] text-slate-400 leading-relaxed uppercase">
+                        Encontros ocorrem quando o contrato coincide com a área de patrulha. Chance de detecção: <strong className="text-white">15%</strong>.
+                      </p>
+                    </div>
+                    <div className="bg-white/5 p-4 border border-amber-500/20 group hover:border-amber-500/40 transition-colors">
+                      <div className="text-amber-500 font-black mb-2 flex items-center gap-2">
+                        <SparklesIcon className="w-4 h-4" /> RESOLUÇÃO
+                      </div>
+                      <div className="text-[9px] text-slate-400 leading-relaxed uppercase space-y-1">
+                        <p><span className="text-blue-400 font-bold">Guardião:</span> (DEF*0.5) + (FOC*0.3) + (INS*0.2)</p>
+                        <p><span className="text-orange-400 font-bold">Renegado:</span> (ATK*0.5) + (INS*0.3) + (FOC*0.2)</p>
+                        <p className="text-[8px] italic opacity-60">±10% variação aleatória de momento</p>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+
+                <section>
+                  <h4 className="text-red-500 font-orbitron font-black text-sm mb-6 tracking-widest uppercase italic flex items-center gap-2">
+                    <span className="w-2 h-2 bg-red-500" />
+                    Protocolos Especiais
+                  </h4>
+                  <div className="bg-red-950/20 border border-red-500/20 p-4 relative overflow-hidden">
+                    <div className="absolute top-0 right-0 p-2 opacity-20">
+                      <FireIcon className="w-12 h-12 text-red-500" />
+                    </div>
+                    <p className="text-[10px] text-red-400 font-black mb-2 tracking-widest">● GOLPE DE MESTRE</p>
+                    <p className="text-[10px] font-mono text-slate-400 uppercase leading-relaxed">
+                      Sinais de Nível 5 ganham prioridade de processamento por 10 minutos. Risco elevado, mas recompensa garantida.
+                    </p>
+                  </div>
+                  
+                  <div className="mt-4 p-4 bg-orange-950/20 border border-orange-500/20">
+                    <p className="text-[10px] text-orange-400 font-black mb-2 tracking-widest">● MERCADO NEGRO</p>
+                    <p className="text-[10px] font-mono text-slate-400 uppercase leading-relaxed">
+                      Itens confiscados por Guardiões podem ser vendidos ilegalmente, aumentando a Corrupção mas gerando lucro imediato.
+                    </p>
+                  </div>
+                </section>
+              </div>
+            </div>
+
+            <div className="mt-12 p-6 bg-orange-950/20 border border-orange-500/30 relative overflow-hidden group">
+               <div className="absolute inset-y-0 left-0 w-1 bg-orange-500 group-hover:h-full transition-all duration-500 h-1/2 top-1/4" />
+               <p className="text-xs font-mono text-orange-400/80 leading-relaxed uppercase text-center italic tracking-widest">
+                  &quot;No UrbanClash, o crime não apenas compensa, ele sustenta toda a infraestrutura da cidade.&quot;
+               </p>
+            </div>
+
+            <button 
+              onClick={onClose}
+              className="mt-10 w-full py-4 bg-orange-600 hover:bg-orange-500 text-white font-black font-orbitron uppercase tracking-[0.5em] transition-all text-sm shadow-[0_0_20px_rgba(249,115,22,0.3)] hover:shadow-[0_0_30px_rgba(249,115,22,0.5)]"
+              style={MILITARY_CLIP}
+            >
+              FECHAR MANUAL DE OPERAÇÕES
+            </button>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+};
 
 const ActionCard = ({ data, onAction, disabled, userLevel, userEnergy, userPA, userTox, userMoney, type, cooldown, onSupply }: any) => {
   const [showFastFood, setShowFastFood] = useState(false);
@@ -188,6 +359,7 @@ export default function ContractsPage() {
   const [localLogs, setLocalLogs] = useState<ContractLog[]>([]);
   const [showInterception, setShowInterception] = useState(false);
   const [cooldown, setCooldown] = useState(0);
+  const [isManualOpen, setIsManualOpen] = useState(false);
 
   useEffect(() => {
     if (cooldown > 0) {
@@ -311,7 +483,25 @@ export default function ContractsPage() {
             </div>
           </div>
         ))}
+
+        {/* Manual Trigger */}
+        <button 
+          onClick={() => setIsManualOpen(true)}
+          className="col-span-2 md:col-span-4 p-3 bg-orange-500/10 border border-orange-500/30 hover:bg-orange-500/20 hover:border-orange-500 transition-all flex items-center justify-between group"
+          style={MILITARY_CLIP}
+        >
+          <div className="flex items-center gap-3">
+            <QuestionMarkCircleIcon className="w-6 h-6 text-orange-500 group-hover:scale-110 transition-transform" />
+            <span className="text-[10px] font-black text-orange-500 uppercase tracking-[0.2em]">Manual de Operações & Dinâmicas</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-[8px] font-mono text-orange-500/60 uppercase animate-pulse">Sistemas_Ativos</span>
+            <div className="w-2 h-2 bg-orange-500 rounded-full animate-ping" />
+          </div>
+        </button>
       </div>
+
+      <ContractManualModal isOpen={isManualOpen} onClose={() => setIsManualOpen(false)} faction={faction} />
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Main Interface */}
@@ -460,89 +650,6 @@ export default function ContractsPage() {
                   />
                 ))
               )}
-            </div>
-          </div>
-
-          {/* Mechanics Manual */}
-          <div className="mt-12 p-6 bg-zinc-950 border border-zinc-800 rounded-sm relative overflow-hidden group">
-            <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
-              <ScaleIcon className="w-48 h-48 text-cyan-500" />
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              <section className="space-y-6 text-slate-300">
-                <div>
-                  <h4 className="text-orange-500 font-black mb-2 uppercase flex items-center gap-2">
-                    <div className="w-1.5 h-4 bg-orange-500"></div>
-                    Dinâmica de Facções e Recursos
-                  </h4>
-                  <p className="text-[11px] leading-relaxed">
-                    O UrbanClash opera em um sistema de **Equilíbrio Simbiótico**. Cada facção gerencia recursos diferentes para atingir o topo:
-                  </p>
-                  <ul className="mt-2 space-y-2 text-[10px] list-disc list-inside text-slate-400">
-                    <li><span className="text-orange-400 font-bold">Renegados:</span> Focados em <span className="text-white">PA (Planejamento)</span>. Operações exigem tempo e estratégia. São a fonte primária de itens raros.</li>
-                    <li><span className="text-blue-400 font-bold">Guardiões:</span> Focados em <span className="text-white">Energia (Operacional)</span>. Patrulhar é exaustivo e exige suprimentos constantes de estamina.</li>
-                  </ul>
-                </div>
-
-                <div>
-                  <h4 className="text-orange-500 font-black mb-2 uppercase flex items-center gap-2">
-                    <div className="w-1.5 h-4 bg-orange-500"></div>
-                    Economia e Prestígio (Nível)
-                  </h4>
-                  <p className="text-[11px] leading-relaxed mb-3">
-                    Seu nível é uma medida de **Prestígio**, calculada pela soma da sua Experiência (XP), seus Atributos e sua Riqueza Acumulada:
-                  </p>
-                  <div className="grid grid-cols-1 gap-2">
-                    <div className="p-2 bg-black/40 border border-zinc-800 flex justify-between items-center">
-                      <span className="text-[9px] font-black text-zinc-500 uppercase">Esforço (XP)</span>
-                      <span className="text-[10px] text-white font-bold">Curva Progressiva</span>
-                    </div>
-                    <div className="p-2 bg-black/40 border border-zinc-800 flex justify-between items-center">
-                      <span className="text-[9px] font-black text-zinc-500 uppercase">Treinamento (Stats)</span>
-                      <span className="text-[10px] text-white font-bold">25 pts = +1 Nível</span>
-                    </div>
-                    <div className="p-2 bg-black/40 border border-zinc-800 flex justify-between items-center">
-                      <span className="text-[9px] font-black text-zinc-500 uppercase">Capital (Dinheiro)</span>
-                      <span className="text-[10px] text-emerald-500 font-bold">$100k = +1 Nível</span>
-                    </div>
-                  </div>
-                </div>
-              </section>
-
-              <section className="space-y-6">
-                <div className="p-4 bg-zinc-900/50 border border-zinc-800 rounded-sm">
-                  <h4 className="text-cyan-500 font-black mb-2 uppercase flex items-center gap-2 text-xs">
-                    <MapPinIcon className="w-4 h-4" />
-                    Emboscada por Localidade
-                  </h4>
-                  <p className="text-[10px] text-zinc-400 leading-relaxed">
-                    Encontros ocorrem quando o contrato do Renegado coincide com a área de patrulha do Guardião (Ex: Assalto ao Banco vs Segurança Bancária).
-                    Mesmo no local exato, a chance de detecção é de apenas **15%**, garantindo que as operações não virem um PvP constante.
-                  </p>
-                </div>
-
-                <div className="p-4 bg-zinc-900/50 border border-zinc-800 rounded-sm">
-                  <h4 className="text-amber-500 font-black mb-2 uppercase flex items-center gap-2 text-xs">
-                    <SparklesIcon className="w-4 h-4" />
-                    Resolução de Confronto
-                  </h4>
-                  <p className="text-[10px] text-zinc-400 leading-relaxed">
-                    O vencedor é decidido pelo poder dos Atributos:
-                    <br />
-                    <span className="text-blue-400 font-bold">Guardião: (DEF * 0.5) + (FOC * 0.3) + (INS * 0.2)</span>
-                    <br />
-                    <span className="text-orange-400 font-bold">Renegado: (ATK * 0.5) + (INS * 0.3) + (FOC * 0.2)</span>
-                    <br />
-                    <span className="text-zinc-500 italic">±10% de variação aleatória de momento.</span>
-                  </p>
-                </div>
-
-                <div className="flex items-center gap-2 px-2">
-                  <FireIcon className="w-4 h-4 text-red-500 animate-pulse" />
-                  <span className="text-[9px] font-black text-red-500 uppercase">Golpe de Mestre: Sinal Nível 5 prioritário por 10 minutos.</span>
-                </div>
-              </section>
             </div>
           </div>
         </div>
