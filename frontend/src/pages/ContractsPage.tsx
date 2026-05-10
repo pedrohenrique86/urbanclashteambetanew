@@ -355,6 +355,7 @@ export default function ContractsPage() {
   const { userProfile, refreshProfile } = useUserProfileContext();
   const { data: config, mutate: mutateConfig } = useSWR<ContractConfig>("/contracts/config", (url: string) => api.get(url).then(r => r.data));
   const { data: status, mutate } = useSWR<ContractStatus>("/contracts/status", (url: string) => api.get(url).then(r => r.data));
+  
   const [loadingAction, setLoadingAction] = useState<string | null>(null);
   const [localLogs, setLocalLogs] = useState<ContractLog[]>([]);
   const [showInterception, setShowInterception] = useState(false);
@@ -362,6 +363,36 @@ export default function ContractsPage() {
   const [isManualOpen, setIsManualOpen] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [dailyCountdown, setDailyCountdown] = useState<string | null>(null);
+  const [masterHeistAlert, setMasterHeistAlert] = useState<{ username: string, expiresAt: number } | null>(null);
+
+  const rawFaction = userProfile?.faction as any;
+  const factionName = typeof rawFaction === 'string' ? rawFaction : (rawFaction?.name || 'gangsters');
+  const faction = (FACTION_ALIAS_MAP_FRONTEND[factionName.toLowerCase().trim()] || 'gangsters') as 'gangsters' | 'guardas';
+
+  // Listen for Master Heist Alert (Guardians)
+  useEffect(() => {
+    const handleAlert = (data: { username: string, expiresAt: number }) => {
+      if (faction === 'guardas') {
+        setMasterHeistAlert(data);
+        showToast(`ALERTA NÍVEL 5: ${data.username} executando Golpe de Mestre!`, 'warning');
+      }
+    };
+
+    socketService.on('contract:master_heist_alert', handleAlert);
+    
+    const interval = setInterval(() => {
+      setMasterHeistAlert(prev => {
+        if (!prev) return null;
+        if (Date.now() > prev.expiresAt) return null;
+        return prev;
+      });
+    }, 1000);
+
+    return () => {
+      socketService.off('contract:master_heist_alert', handleAlert);
+      clearInterval(interval);
+    };
+  }, [userProfile?.faction, showToast]);
 
   // Atualiza config (Ganhos dinâmicos) quando sobe de nível
   useEffect(() => {
@@ -402,9 +433,6 @@ export default function ContractsPage() {
     }
   }, [cooldown]);
 
-  const rawFaction = userProfile?.faction as any;
-  const factionName = typeof rawFaction === 'string' ? rawFaction : (rawFaction?.name || 'gangsters');
-  const faction = (FACTION_ALIAS_MAP_FRONTEND[factionName.toLowerCase().trim()] || 'gangsters') as 'gangsters' | 'guardas';
 
   useEffect(() => {
     if (status?.logs) setLocalLogs(status.logs);
@@ -724,57 +752,105 @@ export default function ContractsPage() {
                     <p className="text-zinc-600 font-black uppercase text-xs tracking-widest">Nenhuma operação detectada no radar</p>
                   </div>
                 )}
+              </div> {/* Final do grid (731) */}
+            </div> {/* Final do space-y-6 (729) */}
+          </div> {/* Final do space-y-4 (720) */}
+
+          {/* Interface do Guardião (Polícia/Segurança) - Alerta de Intervenção */}
+          {faction === 'guardas' && masterHeistAlert && (
+            <div className="pt-4">
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="relative p-6 border-2 border-red-500 bg-red-500/10 rounded-sm overflow-hidden"
+              >
+                <div className="absolute top-0 left-0 w-full h-1 bg-red-500">
+                  <motion.div 
+                    initial={{ width: "100%" }}
+                    animate={{ width: "0%" }}
+                    transition={{ duration: (masterHeistAlert.expiresAt - Date.now()) / 1000, ease: "linear" }}
+                    className="h-full bg-white"
+                  />
+                </div>
+                <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+                  <div className="flex items-center gap-4">
+                    <div className="p-3 bg-red-600 text-white rounded-full animate-ping shadow-[0_0_20px_rgba(220,38,38,0.5)]">
+                      <ShieldCheckIcon className="w-8 h-8" />
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-black text-red-500 uppercase italic">Intervenção Prioritária</h3>
+                      <p className="text-sm text-white/80">
+                        {masterHeistAlert.username} detectado em operação crítica. Chance de interceptação: <span className="text-white font-bold">50%</span>
+                      </p>
+                    </div>
+                  </div>
+                  <button 
+                    onClick={() => {
+                      const bestTask = [...(config?.guardianTasks || [])].reverse().find(t => (userProfile?.level || 0) >= t.level);
+                      if (bestTask) {
+                        handleGuardianTask(bestTask.id);
+                      } else {
+                        showToast("Nenhuma tarefa de interceptação disponível para seu nível.", "error");
+                      }
+                    }}
+                    disabled={loadingAction !== null}
+                    className="px-10 py-4 bg-red-600 hover:bg-red-500 text-white font-black uppercase tracking-widest shadow-[0_0_30px_rgba(220,38,38,0.4)] transition-all hover:scale-105 active:scale-95 disabled:opacity-50"
+                    style={{ clipPath: "polygon(10% 0, 100% 0, 100% 70%, 90% 100%, 0 100%, 0 30%)" }}
+                  >
+                    RESPONDER AO CHAMADO
+                  </button>
+                </div>
+              </motion.div>
+            </div>
+          )}
+
+          {/* Toggle Histórico (Página 2) */}
+          {historyTasks.length > 0 && (
+            <div className="space-y-4">
+              <div className="flex justify-center pt-4">
+                <button 
+                  onClick={() => setShowHistory(!showHistory)}
+                  className="px-6 py-2 border border-zinc-800 bg-zinc-900/50 hover:bg-zinc-800 text-zinc-500 hover:text-zinc-300 transition-all text-[10px] font-black uppercase tracking-widest flex items-center gap-3"
+                  style={MILITARY_CLIP}
+                >
+                  <LockClosedIcon className={`w-3 h-3 transition-transform ${showHistory ? 'rotate-180' : ''}`} />
+                  {showHistory ? "Ocultar Histórico de Operações" : `Ver Contratos Concluídos (${historyTasks.length})`}
+                </button>
               </div>
 
-              {/* Toggle Histórico (Página 2) */}
-              {historyTasks.length > 0 && (
-                <div className="space-y-4">
-                  <div className="flex justify-center pt-4">
-                    <button 
-                      onClick={() => setShowHistory(!showHistory)}
-                      className="px-6 py-2 border border-zinc-800 bg-zinc-900/50 hover:bg-zinc-800 text-zinc-500 hover:text-zinc-300 transition-all text-[10px] font-black uppercase tracking-widest flex items-center gap-3"
-                      style={MILITARY_CLIP}
-                    >
-                      <LockClosedIcon className={`w-3 h-3 transition-transform ${showHistory ? 'rotate-180' : ''}`} />
-                      {showHistory ? "Ocultar Histórico de Operações" : `Ver Contratos Concluídos (${historyTasks.length})`}
-                    </button>
-                  </div>
-
-                  <AnimatePresence>
-                    {showHistory && (
-                      <motion.div 
-                        initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: 'auto' }}
-                        exit={{ opacity: 0, height: 0 }}
-                        className="grid grid-cols-1 md:grid-cols-2 gap-4 overflow-hidden border-t border-zinc-900 pt-4"
-                      >
-                        {historyTasks.map(task => (
-                          <div key={task.id} className="opacity-40 grayscale hover:opacity-60 transition-opacity">
-                            <ActionCard 
-                              data={task} 
-                              type={faction === 'gangsters' ? "heist" : "task"}
-                              userLevel={userProfile?.level || 0}
-                              userEnergy={userProfile?.energy || 0}
-                              userPA={userProfile?.action_points || 0}
-                              userTox={userProfile?.toxicity || 0}
-                              userMoney={userProfile?.money || 0}
-                              disabled={true}
-                              cooldown={cooldown}
-                              onAction={() => {}}
-                              onSupply={() => {}}
-                            />
-                          </div>
-                        ))}
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </div>
-              )}
+              <AnimatePresence>
+                {showHistory && (
+                  <motion.div 
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="grid grid-cols-1 md:grid-cols-2 gap-4 overflow-hidden border-t border-zinc-900 pt-4"
+                  >
+                    {historyTasks.map(task => (
+                      <div key={task.id} className="opacity-40 grayscale hover:opacity-60 transition-opacity">
+                        <ActionCard 
+                          data={task} 
+                          type={faction === 'gangsters' ? "heist" : "task"}
+                          userLevel={userProfile?.level || 0}
+                          userEnergy={userProfile?.energy || 0}
+                          userPA={userProfile?.action_points || 0}
+                          userTox={userProfile?.toxicity || 0}
+                          userMoney={userProfile?.money || 0}
+                          disabled={true}
+                          cooldown={cooldown}
+                          onAction={() => {}}
+                          onSupply={() => {}}
+                        />
+                      </div>
+                    ))}
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
-          </div>
-          </div>
+          )}
         </div>
-      )}
-    </div>
+      </div>
+    )}
+  </div>
   );
-}
+}

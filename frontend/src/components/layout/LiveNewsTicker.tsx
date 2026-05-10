@@ -83,9 +83,15 @@ const LiveNewsTicker: React.FC = () => {
 
   return (
     <div 
-      className="mt-1 w-full bg-black/60 backdrop-blur-2xl border border-white/10 rounded-2xl p-1.5 shadow-2xl flex items-center overflow-hidden font-orbitron pointer-events-auto mx-auto h-8"
+      className={`mt-1 w-full backdrop-blur-2xl border rounded-2xl p-1.5 shadow-2xl flex items-center overflow-hidden font-orbitron pointer-events-auto mx-auto h-8 transition-colors duration-500 ${
+        currentNews.is_major 
+          ? "bg-red-600/40 border-red-500 animate-pulse" 
+          : "bg-black/60 border-white/10"
+      }`}
       style={{
-        boxShadow: "inset 0 1px 1px rgba(255, 255, 255, 0.05), 0 20px 50px rgba(0, 0, 0, 0.9)",
+        boxShadow: currentNews.is_major 
+          ? "inset 0 1px 1px rgba(255, 255, 255, 0.2), 0 0 20px rgba(220, 38, 38, 0.4)"
+          : "inset 0 1px 1px rgba(255, 255, 255, 0.05), 0 20px 50px rgba(0, 0, 0, 0.9)",
       }}
     >
       {/* "LIVE" Badge */}

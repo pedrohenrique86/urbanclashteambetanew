@@ -109,37 +109,42 @@ class ContractService {
         lootGained.push({ code: randomItem, quantity: qty });
       }
 
+      const now = Date.now();
+      const ACTIVITY_KEY = "global:heist_activity";
       const newState = await playerStateService.updatePlayerState(userId, updates);
 
-      // Registrar atividade para interceptação (5 minutos)
-      // SÊNIOR: Se for Golpe de Mestre, o sinal é "FORTE" (dura mais e é prioritário)
-      const activityData = {
+      const message = isDaily
+        ? `🚨 PLANTÃO URGENTE: O Renegado ${state.username} executou um GOLPE DE MESTRE! Todas as unidades em alerta máximo!`
+        : `O Renegado ${state.username} realizou o roubo: ${heist.name}`;
+
+      const log = await query(
+        "INSERT INTO contract_logs (user_id, event_type, message, is_major) VALUES ($1, $2, $3, $4) RETURNING *",
+        [userId, 'HEIST_SUCCESS', message, isDaily]
+      );
+
+      // Adiciona ao feed de atividades (Redis) para interceptação (janela de 3min)
+      const activity = {
+        userId,
         username: state.username,
         heistId: heist.id,
         heistName: heist.name,
-        loot: lootGained,
-        isMaster: isDaily,
-        level: heist.level,
-        renegadeStats: {
-          attack: newState.attack,
-          luck: newState.luck,
-          focus: newState.focus
-        }
+        timestamp: now,
+        isMaster: isDaily
       };
+      await redisClient.zAddAsync(ACTIVITY_KEY, now, JSON.stringify(activity));
 
-      await redisClient.setAsync(`heist_activity:${userId}`, JSON.stringify(activityData), "EX", isDaily ? 600 : 300);
+      const io = require('../config/socket').getIO();
+      // Envia o log para o feed global (LiveNewsTicker)
+      io.emit('contract:log', log.rows[0]);
 
-      // BROADCAST: Alerta para Guardiões se for Golpe de Mestre
+      // Se for Golpe de Mestre, envia alerta prioritário para os Guardiões
       if (isDaily) {
-        const sseService = require("./sseService");
-        sseService.broadcast("player:status:alert", {
-          type: "MASTER_HEIST_IN_PROGRESS",
-          message: `ALERTA NÍVEL 5: Golpe de Mestre detectado! Guardião, caça liberada para interceptar ${state.username}.`
+        io.emit('contract:master_heist_alert', {
+          username: state.username,
+          expiresAt: now + (180 * 1000) // 3 minutos de janela
         });
       }
 
-      const message = `Sucesso! Você completou ${heist.name}. Ganhou $${moneyGained.toLocaleString()} e ${xpGained} XP.`;
-      
       const isMajor = moneyGained > 50000 || isDaily;
       // Log Unificado (Individual + Público)
       await actionLogService.log(userId, 'heist', 'contract', heist.id, {
