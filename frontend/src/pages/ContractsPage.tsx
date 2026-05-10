@@ -530,9 +530,9 @@ export default function ContractsPage() {
                   <p className="text-[10px] text-zinc-400 leading-relaxed">
                     O vencedor é decidido pelo poder dos Atributos:
                     <br />
-                    <span className="text-blue-400 font-bold">Guarda: (ATK * 0.5) + (FOC * 0.3) + (INS * 0.2)</span>
+                    <span className="text-blue-400 font-bold">Guarda: (DEF * 0.5) + (FOC * 0.3) + (INS * 0.2)</span>
                     <br />
-                    <span className="text-orange-400 font-bold">Renegado: (DEF * 0.5) + (INS * 0.3) + (FOC * 0.2)</span>
+                    <span className="text-orange-400 font-bold">Renegado: (ATK * 0.5) + (INS * 0.3) + (FOC * 0.2)</span>
                     <br />
                     <span className="text-zinc-500 italic">±10% de variação aleatória de momento.</span>
                   </p>

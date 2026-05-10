@@ -207,6 +207,8 @@ async function startServer() {
       setTimeout(async () => {
         try {
           console.log("🌌 Iniciando subsistemas de background...");
+          const { seedInitialGameState } = require("./services/gameStateService");
+          await seedInitialGameState();
           await checkAutoStart();
           await rankingCacheService.initializeRankingZSet();
           await rankingCacheService.warmupRankings();

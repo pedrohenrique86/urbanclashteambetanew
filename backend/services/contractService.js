@@ -96,7 +96,7 @@ class ContractService {
         loot: lootGained,
         isMaster: isDaily,
         renegadeStats: {
-          defense: newState.defense,
+          attack: newState.attack,
           luck: newState.luck,
           focus: newState.focus
         }
@@ -220,8 +220,8 @@ class ContractService {
             // SÊNIOR: Probabilidade adicional de encontro (15%) para não ser 1x1 garantido
             // E verificação de "Janela de Simultaneidade" (60 segundos)
             if (Math.random() < 0.15) {
-              const gScore = (state.attack * 0.5) + (state.focus * 0.3) + (state.luck * 0.2);
-              const rScore = (target.renegadeStats.defense * 0.5) + (target.renegadeStats.luck * 0.3) + (target.renegadeStats.focus * 0.2);
+              const gScore = (state.defense * 0.5) + (state.focus * 0.3) + (state.luck * 0.2);
+              const rScore = (target.renegadeStats.attack * 0.5) + (target.renegadeStats.luck * 0.3) + (target.renegadeStats.focus * 0.2);
               
               const gFinal = gScore * (0.9 + Math.random() * 0.2);
               const rFinal = rScore * (0.9 + Math.random() * 0.2);

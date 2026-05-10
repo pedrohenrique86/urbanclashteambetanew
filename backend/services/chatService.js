@@ -48,7 +48,6 @@ async function addMessageToHistory(clanId, message) {
 async function getChatHistory(clanId) {
   const clanIdNorm = String(clanId ?? "").trim();
   if (!clanIdNorm || clanIdNorm === "null" || clanIdNorm === "undefined") {
-    console.error("[ChatService] Tentativa de ler histórico sem clanId válido");
     return [];
   }
   
@@ -59,11 +58,13 @@ async function getChatHistory(clanId) {
     const historyJson = await redisClient.lRangeAsync(historyKey, 0, -1);
     
     if (Array.isArray(historyJson) && historyJson.length > 0) {
+      // SÊNIOR: Se o primeiro item for o marcador de vazio, retorna vazio imediatamente
+      if (historyJson[0] === "EMPTY_MARKER") return [];
+
       const cutoff = Date.now() - EXPIRY_MS;
       const history = historyJson
         .map((msg) => {
           if (!msg) return null;
-          if (typeof msg === "object") return msg;
           try { return JSON.parse(msg); } catch { return null; }
         })
         .filter((msg) => msg && msg.timestamp && new Date(msg.timestamp).getTime() >= cutoff)
@@ -73,7 +74,7 @@ async function getChatHistory(clanId) {
     }
 
     // 2. Fallback no Banco (Se Redis estiver vazio ou falhar)
-    console.log(`[ChatService] Redis vazio para clã ${clanIdNorm}. Buscando no Banco (últimas 24h)...`);
+    console.log(`[ChatService] 📦 Cache MISS para clã ${clanIdNorm}. Buscando no Banco (últimas 24h)...`);
     const { rows } = await db.query(
       `SELECT m.id, m.user_id as "userId", u.username, m.text, m.created_at as "timestamp"
        FROM chat_messages m
@@ -85,16 +86,25 @@ async function getChatHistory(clanId) {
       [clanIdNorm, HISTORY_MAX_LENGTH]
     );
 
+    if (rows.length === 0) {
+      // SÊNIOR: Se não há mensagens no banco, salvamos o marcador de vazio por 5 minutos
+      await redisClient.lPushAsync(historyKey, "EMPTY_MARKER");
+      await redisClient.expireAsync(historyKey, 300); 
+      return [];
+    }
+
     // Formatar e converter timestamps para ISO para consistência
     const dbHistory = rows.reverse().map(row => ({
       ...row,
       timestamp: new Date(row.timestamp).toISOString()
     }));
 
+    // SÊNIOR: Opcionalmente, repopula o Redis com o que veio do banco
+    // para que a próxima chamada não dê MISS.
     return dbHistory;
 
   } catch (err) {
-    console.error(`[ChatService] Erro ao buscar histórico do clã ${clanId}:`, err.message);
+    console.error(`[ChatService] ❌ Erro ao buscar histórico:`, err.message);
     return [];
   }
 }

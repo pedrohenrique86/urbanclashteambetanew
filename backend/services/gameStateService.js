@@ -81,9 +81,6 @@ async function seedInitialGameState() {
 
 async function getGameStateFromDB() {
   try {
-    // Garante que a configuração inicial exista antes de tentar ler
-    await seedInitialGameState();
-
     const result = await query("SELECT key, value FROM game_config");
     const config = result.rows.reduce((acc, row) => {
       if (row.value === "true") {
@@ -427,6 +424,7 @@ async function checkAutoStart() {
 }
 
 module.exports = {
+  seedInitialGameState,
   GameStatus,
   getGameState,
   getGameStatus,
@@ -441,4 +439,5 @@ module.exports = {
   getGameStateFromDB,
   calculateGameState,
   sseGameStateEmitter,
+  seedInitialGameState,
 };
