@@ -59,19 +59,22 @@ class ActionLogService {
 
       const userLogsKey = `${LOGS_USER_PREFIX}${userId}`;
 
-      // 1. Camada UX: Salva no Redis para acesso instantâneo (100 últimos)
+      // 1. Camada UX: Salva no Redis para acesso instantâneo (100 últimos por usuário)
       const p = redisClient.pipeline();
       p.lPush(userLogsKey, JSON.stringify(logEntry));
       p.lTrim(userLogsKey, 0, MAX_RECENT_LOGS - 1);
-      p.expire(userLogsKey, 60 * 60 * 24); 
+      p.expire(userLogsKey, 86400); 
       
       // 2. Camada Persistência: Enfileira para descarte no Banco em Lote
       p.rPush(LOGS_QUEUE_KEY, JSON.stringify(logEntry));
 
-      // 3. Invalida o cache global de logs públicos se este log for público
+      // SÊNIOR: Global Public Stream (Para Live Ticker e Contratos)
+      // Mantém os últimos 50 logs públicos em memória para acesso instantâneo de 5k players
       if (isPublic) {
-        p.del("cache:contract_logs:public");
-        p.del("cache:contract_logs:major");
+        const publicLogsKey = "cache:public_logs_stream";
+        p.lPush(publicLogsKey, JSON.stringify(logEntry));
+        p.lTrim(publicLogsKey, 0, 49); // Mantém os 50 mais recentes
+        p.expire(publicLogsKey, 3600);
       }
       
       await p.exec();

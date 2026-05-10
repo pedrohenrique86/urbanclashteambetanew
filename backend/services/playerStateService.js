@@ -103,7 +103,7 @@ const DB_PERSIST_FIELDS = new Set([
   "training_ends_at", "daily_training_count", "last_training_reset", "active_training_type",
   "energy", "action_points", "last_ap_reset",
   "energy_updated_at", "toxicity", "premium_coins", "login_streak",
-  "merit", "corruption"
+  "merit", "corruption", "equipped_chips"
 ]);
 
 // ─── Dirty TIPO 2: campos voláteis (NÃO persistem no safety-net, só via debounce
@@ -544,6 +544,20 @@ async function loadPlayerState(userId) {
       }
       return acc;
     }, {});
+
+    // SÊNIOR: Busca chips equipados e guarda como JSON no Redis
+    try {
+      const chipRes = await query(
+        `SELECT i.name, i.base_attack_bonus as power_boost, i.base_focus_bonus as xp_boost, i.base_defense_bonus as money_shield
+         FROM items i
+         JOIN player_inventory pi ON i.id = pi.item_id
+         WHERE pi.user_id = $1 AND pi.is_equipped = TRUE AND i.type = 'chip'`,
+        [userId]
+      );
+      stateForRedis.equipped_chips = JSON.stringify(chipRes.rows);
+    } catch (e) {
+      stateForRedis.equipped_chips = "[]";
+    }
 
     stateForRedis.is_dirty       = "0";
     stateForRedis.is_dirty_at    = ""; 

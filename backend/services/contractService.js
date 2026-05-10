@@ -301,12 +301,19 @@ class ContractService {
 
 
   async getLogs(onlyMajor = false) {
-    const cacheKey = onlyMajor ? "cache:contract_logs:major" : "cache:contract_logs:public";
+    const cacheKey = onlyMajor ? "cache:contract_logs:major" : "cache:public_logs_stream";
     
     try {
-      // 1. Tenta buscar do Redis
-      const cached = await redisClient.getAsync(cacheKey);
-      if (cached) return JSON.parse(cached);
+      // 1. Tenta buscar do Redis (Stream Mode para 5k players)
+      if (onlyMajor) {
+        const cached = await redisClient.getAsync(cacheKey);
+        if (cached) return JSON.parse(cached);
+      } else {
+        const cachedList = await redisClient.lRangeAsync(cacheKey, 0, 49);
+        if (cachedList && cachedList.length > 0) {
+          return cachedList.map(l => JSON.parse(l));
+        }
+      }
 
       // 2. Busca do PostgreSQL apenas se não houver no cache
       const where = onlyMajor ? 'AND (metadata->>\'is_master\')::boolean = true' : '';
@@ -325,10 +332,20 @@ class ContractService {
          LIMIT 20`
       );
 
-      // 3. Cacheia por 5 minutos para evitar consultas repetitivas (SWR/Ticker)
-      // Se estiver vazio, cacheia por 1 minuto apenas.
-      const ttl = rows.length > 0 ? 300 : 60;
-      await redisClient.setAsync(cacheKey, JSON.stringify(rows), "EX", ttl);
+      // 3. Salva no Redis
+      if (rows.length > 0) {
+        if (onlyMajor) {
+          await redisClient.setAsync(cacheKey, JSON.stringify(rows), "EX", 300);
+        } else {
+          // Repopula a stream circular
+          const p = redisClient.pipeline();
+          p.del(cacheKey);
+          // Inverte para dar o push na ordem certa (o mais novo primeiro)
+          [...rows].reverse().forEach(row => p.lPush(cacheKey, JSON.stringify(row)));
+          p.expire(cacheKey, 3600);
+          await p.exec();
+        }
+      }
 
       return rows;
     } catch (err) {

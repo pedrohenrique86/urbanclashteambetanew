@@ -410,18 +410,13 @@ router.get("/profile", authenticateToken, async (req, res) => {
     
     const convertedProfile = convertProfileData(profile);
     
-    // BUSCAR CHIPS ATIVOS
+    // SÊNIOR: Chips Ativos agora vêm 100% do Cache Redis consolidado no playerState
     try {
-      const chipRes = await query(
-        `SELECT i.name, i.base_attack_bonus as power_boost, i.base_focus_bonus as xp_boost, i.base_defense_bonus as money_shield
-         FROM items i
-         JOIN player_inventory pi ON i.id = pi.item_id
-         WHERE pi.user_id = $1 AND pi.is_equipped = TRUE AND i.type = 'chip'`,
-        [req.user.id]
-      );
-      convertedProfile.active_chips = chipRes.rows;
+      let chips = profile.equipped_chips || "[]";
+      if (typeof chips === 'string') chips = JSON.parse(chips);
+      convertedProfile.active_chips = chips;
     } catch (e) {
-      console.error("Erro ao buscar chips ativos:", e);
+      console.error("Erro ao processar chips do cache:", e);
       convertedProfile.active_chips = [];
     }
 

@@ -94,31 +94,45 @@ class InventoryService {
   }
 
   /**
-   * Retorna o inventário completo (Redis).
+   * Retorna o inventário completo do Redis.
+   * SÊNIOR: Zero queries ao PostgreSQL no caminho feliz.
    */
   async getInventory(userId) {
     await this.ensureLoaded(userId);
     const redisKey = `${INV_PREFIX}${userId}`;
     
     const raw = await redisClient.hGetAllAsync(redisKey);
-    if (!raw) return [];
+    if (!raw || Object.keys(raw).length === 0 || raw._empty) return [];
 
-    // Buscamos os detalhes dos itens (nomes, raridades) do cache global ou DB
-    // Para simplificar e manter performance, fazemos um JOIN rápido com a tabela items
-    // Mas os valores de QUANTIDADE vêm do REDIS (Fonte da Verdade)
-    const { rows: itemDetails } = await query(
-      "SELECT name, code, type, rarity FROM items WHERE code IN (SELECT unnest($1::text[]))",
-      [Object.keys(raw)]
-    );
+    // Tentar pegar o catálogo de itens do Redis (cache global de 1 hora)
+    let catalog = await redisClient.getAsync("catalog:items");
+    if (!catalog) {
+      console.log("[Inventory] 📦 Cache MISS no catálogo. Carregando itens...");
+      const { rows } = await query("SELECT id, name, code, type, rarity, base_attack_bonus, base_defense_bonus, base_focus_bonus FROM items");
+      catalog = JSON.stringify(rows);
+      await redisClient.setAsync("catalog:items", catalog, "EX", 3600);
+    }
+    
+    const items = JSON.parse(catalog);
+    const inventory = [];
 
-    return itemDetails.map(item => ({
-      ...item,
-      quantity: parseInt(raw[item.code] || "0")
-    })).filter(i => i.quantity > 0);
+    for (const [code, qtyStr] of Object.entries(raw)) {
+      if (code === "_empty") continue;
+      const item = items.find(i => i.code === code);
+      if (item) {
+        inventory.push({
+          ...item,
+          quantity: parseInt(qtyStr)
+        });
+      }
+    }
+
+    return inventory.filter(i => i.quantity > 0);
   }
 
   /**
    * Sincroniza inventários alterados com o PostgreSQL.
+   * SÊNIOR: Otimizado para não travar o banco em escala.
    */
   async flushDirtyInventories() {
     if (this.isFlushing) return;
@@ -131,40 +145,43 @@ class InventoryService {
         return;
       }
 
-      console.log(`[Inventory] 💾 Sincronizando inventários de ${dirtyUserIds.length} usuários...`);
+      // SÊNIOR: Limpa o set antes para não perder alterações que ocorram durante o processamento
       await redisClient.delAsync(INV_DIRTY_SET);
 
-      for (const userId of dirtyUserIds) {
-        const redisKey = `${INV_PREFIX}${userId}`;
-        const raw = await redisClient.hGetAllAsync(redisKey);
+      console.log(`[Inventory] 💾 Sincronizando ${dirtyUserIds.length} inventários...`);
+      
+      // Para 5k players, processamos em lotes de 50 usuários para não estourar a memória/conexão
+      const batchSize = 50;
+      for (let i = 0; i < dirtyUserIds.length; i += batchSize) {
+        const batch = dirtyUserIds.slice(i, i + batchSize);
         
-        if (!raw) continue;
+        await Promise.all(batch.map(async (userId) => {
+          const redisKey = `${INV_PREFIX}${userId}`;
+          const raw = await redisClient.hGetAllAsync(redisKey);
+          if (!raw) return;
 
-        // Para cada usuário, fazemos uma sincronização atômica:
-        // 1. Deletar inventário antigo (opcional, mas mais limpo se fizermos re-insert)
-        // SÊNIOR: Usar ON CONFLICT é melhor para performance.
-        
-        for (const [code, qtyStr] of Object.entries(raw)) {
-          if (code === "_empty") continue;
-          const quantity = parseInt(qtyStr);
+          // Sincronização por usuário (Transaction rápida)
+          // Em um sistema real de 50k, usaríamos UNNEST para bulk total, 
+          // mas para 5k, 1 query por user é 1000x melhor que 1 por item.
+          const entries = Object.entries(raw).filter(([k]) => k !== "_empty");
           
-          if (quantity <= 0) {
-            await query(
-              "DELETE FROM player_inventory WHERE user_id = $1 AND item_id = (SELECT id FROM items WHERE code = $2)",
-              [userId, code]
-            );
-          } else {
-            await query(
-              `INSERT INTO player_inventory (user_id, item_id, quantity)
-               VALUES ($1, (SELECT id FROM items WHERE code = $2), $3)
-               ON CONFLICT (user_id, item_id) DO UPDATE SET quantity = $3`,
-              [userId, code, quantity]
-            );
-          }
-        }
+          if (entries.length === 0) return;
+
+          const values = [];
+          const placeholders = entries.map(([code, qty], idx) => {
+            values.push(userId, code, parseInt(qty));
+            return `($${idx * 3 + 1}, (SELECT id FROM items WHERE code = $${idx * 3 + 2}), $${idx * 3 + 3})`;
+          }).join(", ");
+
+          await query(`
+            INSERT INTO player_inventory (user_id, item_id, quantity)
+            VALUES ${placeholders}
+            ON CONFLICT (user_id, item_id) DO UPDATE SET quantity = EXCLUDED.quantity
+          `, values);
+        }));
       }
 
-      console.log("[Inventory] ✅ Sincronização concluída.");
+      console.log("[Inventory] ✅ Sync concluído.");
     } catch (err) {
       console.error("[Inventory] ❌ Erro na sincronização:", err.message);
     } finally {

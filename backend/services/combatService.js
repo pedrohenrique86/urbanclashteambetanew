@@ -81,19 +81,29 @@ function getNpcData(targetId, attacker) {
 }
 
 class CombatService {
-  async _getEquippedChips(userId) {
-    const res = await query(
-      `SELECT i.* FROM items i
-       JOIN player_inventory pi ON i.id = pi.item_id
-       WHERE pi.user_id = $1 AND pi.is_equipped = TRUE AND i.type = 'chip'`,
-      [userId]
-    );
-    return res.rows.map(chip => {
-      let effect_type = 'power_boost', effect_value = Number(chip.base_attack_bonus) || 10;
-      if (chip.base_focus_bonus > 0) { effect_type = 'xp_boost'; effect_value = Number(chip.base_focus_bonus); }
-      else if (chip.base_defense_bonus > 0) { effect_type = 'money_shield'; effect_value = Number(chip.base_defense_bonus); }
-      return { id: chip.id, name: chip.name, effect_type, effect_value };
-    });
+  _getEquippedChips(playerState) {
+    if (!playerState || !playerState.equipped_chips) return [];
+    
+    try {
+      let chips = playerState.equipped_chips;
+      if (typeof chips === 'string') chips = JSON.parse(chips);
+      
+      return chips.map(chip => {
+        // Mapeia os campos do cache para o formato esperado pelo motor de combate
+        let effect_type = 'power_boost', effect_value = Number(chip.power_boost) || 10;
+        if (Number(chip.xp_boost) > 0) { 
+          effect_type = 'xp_boost'; 
+          effect_value = Number(chip.xp_boost); 
+        } else if (Number(chip.money_shield) > 0) { 
+          effect_type = 'money_shield'; 
+          effect_value = Number(chip.money_shield); 
+        }
+        return { id: chip.id, name: chip.name, effect_type, effect_value };
+      });
+    } catch (e) {
+      console.error("[CombatService] Erro ao parsear chips equipados:", e);
+      return [];
+    }
   }
 
   async getRadarTargets(userId) {
@@ -240,8 +250,8 @@ class CombatService {
       if (attacker.action_points < 250) throw new Error("Pontos de Ação insuficientes (Requer 250).");
       if (attacker.status !== 'Operacional' && attacker.status !== 'Ruptura') throw new Error(`Sistema em modo ${attacker.status}. Combate bloqueado.`);
 
-      const pChips = await this._getEquippedChips(userId);
-      const dChips = isNpc ? [] : await this._getEquippedChips(targetId);
+      const pChips = this._getEquippedChips(attacker);
+      const dChips = isNpc ? [] : this._getEquippedChips(defender);
 
       // SÊNIOR: Pegamos as chances reais de crit e multiplicadores baseados nos atributos e treinos
       const pCritChance = gameLogic.calcCritChance(attacker);
@@ -492,7 +502,7 @@ class CombatService {
         throw new Error(`Sistema em modo ${attacker.status}. Protocolo de ataque bloqueado.`);
       }
 
-      const chips = await this._getEquippedChips(userId);
+      const chips = this._getEquippedChips(attacker);
       const result = gameLogic.resolveWinOutcome(attacker, defender, chips, tactic);
       const { isAttackerWin, isDraw, isKO, willBleed, rounds, xpBonus, moneyProtection } = result;
 
@@ -624,7 +634,7 @@ class CombatService {
 
     await playerStateService.updatePlayerState(userId, { energy: -10, action_points: -300 });
 
-    const chips = await this._getEquippedChips(userId);
+    const chips = this._getEquippedChips(attacker);
     const state = {
       targetId,
       isNpc: targetId.startsWith("npc_"),
