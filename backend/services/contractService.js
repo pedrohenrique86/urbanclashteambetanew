@@ -116,15 +116,38 @@ class ContractService {
       const ACTIVITY_KEY = "global:heist_activity";
       const newState = await playerStateService.updatePlayerState(userId, updates);
 
-      const message = isDaily
-        ? `🚨 PLANTÃO URGENTE: O Renegado ${state.username} executou um GOLPE DE MESTRE! Todas as unidades em alerta máximo!`
-        : `O Renegado ${state.username} realizou o roubo: ${heist.name}`;
+      const isMajor = moneyGained > 50000 || isDaily;
+      
+      const renegadoPhrases = [
+        "{name} FEZ UM ASSALTO A {target} E ESCAPOU COM {money} NINGUEM SEGURA ESSE JOGADOR",
+        "{name} PASSOU PELO CERCO DA POLICIA EM {target} E LEVOU {money} PARA O ESCONDERIJO",
+        "{name} DEIXOU OS GUARDAS NO CHAO EM {target} E SAIU COM OS BOLSOS CHEIOS DE {money}",
+        "{name} FINALIZOU O SERVIÇO EM {target} E DESAPARECEU COM {money} DA REDE",
+        "{name} EXECUTOU O PLANO PERFEITO EM {target} E AGORA TEM {money} A MAIS NA CONTA",
+        "{name} MOSTROU QUEM MANDA EM {target} E LEVOU {money} SEM DEIXAR RASTROS",
+        "{name} DESAFIOU A SEGURANÇA DE {target} E SAIU VITORIOSO COM {money}",
+        "{name} INVADIU O SETOR {target} E FOI EMBORA COM {money} NO BOLSO"
+      ];
+      
+      const randomPhrase = renegadoPhrases[Math.floor(Math.random() * renegadoPhrases.length)];
+      const message = randomPhrase
+        .replace("{name}", state.username)
+        .replace("{target}", heist.name.toUpperCase())
+        .replace("{money}", `$${moneyGained.toLocaleString()}`);
 
       // SÊNIOR: Registra via ActionLog (Redis-Only) com flag de visibilidade pública
+      // Apenas um log público para evitar duplicidade no feed
       await actionLogService.log(userId, 'HEIST_SUCCESS', 'contract', heist.id, {
         public_message: message,
         is_master: isDaily,
-        heist_name: heist.name
+        is_major: isMajor,
+        faction: 'gangsters',
+        heist_name: heist.name,
+        money_gain: moneyGained,
+        xp_gain: xpGained,
+        corruption_gain: updates.corruption,
+        stats_gained: attrGained.reduce((acc, a) => ({ ...acc, [a.attr]: a.gain }), {}),
+        items_looted: lootGained.map(l => ({ code: l.code, quantity: l.quantity })),
       }, true);
 
       // Adiciona ao feed de atividades (Redis) para interceptação (janela de 3min)
@@ -146,18 +169,6 @@ class ContractService {
           expiresAt: now + (180 * 1000) // 3 minutos de janela
         });
       }
-
-      const isMajor = moneyGained > 50000 || isDaily;
-      // Log Unificado (Individual + Público)
-      await actionLogService.log(userId, 'heist', 'contract', heist.id, {
-        money_gain: moneyGained,
-        xp_gain: xpGained,
-        corruption_gain: updates.corruption,
-        stats_gained: attrGained.reduce((acc, a) => ({ ...acc, [a.attr]: a.gain }), {}),
-        items_looted: lootGained.map(l => ({ code: l.code, quantity: l.quantity })),
-        is_master: isDaily,
-        public_message: `${state.username} realizou ${heist.name} e levou $${moneyGained.toLocaleString()}!`
-      }, true);
 
       return {
         message,
@@ -300,7 +311,25 @@ class ContractService {
         stats_gained: attrGained.reduce((acc, a) => ({ ...acc, [a.attr]: a.gain }), {}),
         items_looted: lootGained.map(l => ({ code: l.code, quantity: l.quantity })),
         interception: !!interception,
-        public_message: `O Guardião ${state.username} completou ${task.name}.`
+        is_major: meritGained > 500 || !!interception,
+        faction: 'guardas',
+        public_message: (() => {
+          const guardPhrases = [
+            "{name} INTERCEPTOU O CRIME EM {target} E RECEBEU {money} PELA HONRA DA CIDADE",
+            "{name} COMPLETOU A OPERAÇÃO EM {target} E FOI RECOMPENSADO COM {money} PELO MERITO",
+            "{name} GARANTIU A SEGURANÇA EM {target} E AS AUTORIDADES PAGARAM {money} PELO SERVIÇO",
+            "{name} MOSTROU O PODER DA LEI EM {target} E FATUROU {money} PELA ORDEM RESTABELECIDA",
+            "{name} FEZ O TRABALHO DE ELITE EM {target} E A RECOMPENSA DE {money} FOI DEPOSITADA",
+            "{name} PROTEGEU O SETOR {target} COM SUCESSO E RECEBEU {money} PELO DESEMPENHO",
+            "{name} FINALIZOU A PATRULHA EM {target} E RECEBEU {money} DE GRATIFICAÇÃO",
+            "{name} RESTAUROU A PAZ EM {target} E FOI BONIFICADO COM {money}"
+          ];
+          const phrase = guardPhrases[Math.floor(Math.random() * guardPhrases.length)];
+          return phrase
+            .replace("{name}", state.username)
+            .replace("{target}", task.name.toUpperCase())
+            .replace("{money}", `$${moneyGained.toLocaleString()}`);
+        })()
       }, true);
 
       return {
@@ -350,11 +379,60 @@ class ContractService {
       if (onlyMajor) {
         const cached = await redisClient.getAsync(cacheKey);
         if (cached) return JSON.parse(cached);
-        return []; // Se não houver no Redis, não bate no banco.
+        return [];
       } else {
         const cachedList = await redisClient.lRangeAsync(cacheKey, 0, 99);
         if (cachedList && cachedList.length > 0) {
-          return cachedList.map(l => JSON.parse(l));
+          return cachedList.map(l => {
+            const log = JSON.parse(l);
+            const metadata = typeof log.metadata === 'string' ? JSON.parse(log.metadata) : log.metadata;
+            
+            // SÊNIOR: Filtra logs que não possuem valor (SÓ DEIXE ONDE MOSTRA O VALOR QUE GANHOU)
+            if (!metadata.money_gain && !metadata.public_message?.includes('$')) return null;
+
+            let faction = metadata.faction || null;
+            let displayMessage = metadata.public_message || "";
+
+            // Reformatar com frases sérias para logs legados
+            if (log.actionType === 'HEIST_SUCCESS' || log.actionType === 'heist') {
+              faction = 'gangsters';
+              const money = metadata.money_gain ? `$${metadata.money_gain.toLocaleString()}` : (displayMessage.includes('$') ? '$' + displayMessage.split('$')[1] : "");
+              const name = metadata.public_message?.split(' ')[0] || "Agente";
+              // Tenta pegar o nome da heist do metadado ou extrair do texto antigo (ex: "roubo: Nome")
+              let target = metadata.heist_name || (displayMessage.includes(': ') ? displayMessage.split(': ')[1] : (displayMessage.includes('realizou ') ? displayMessage.split('realizou ')[1].split(' e')[0] : "OPERACAO"));
+              
+              const phrases = [
+                "{name} FEZ UM ASSALTO A {target} E ESCAPOU COM {money}",
+                "{name} EXECUTOU O PLANO EM {target} COM {money} DE LUCRO",
+                "{name} PASSOU PELO CERCO EM {target} E SAIU COM {money}"
+              ];
+              const p = phrases[Math.abs(log.createdAt.length % phrases.length)];
+              displayMessage = p.replace("{name}", name).replace("{target}", target.toUpperCase()).replace("{money}", money);
+            } else if (log.actionType === 'guardian_task') {
+              faction = 'guardas';
+              const money = metadata.money_gain ? `$${metadata.money_gain.toLocaleString()}` : (displayMessage.includes('$') ? '$' + displayMessage.split('$')[1] : "");
+              const name = metadata.public_message?.split(' ')[0] || "Guardião";
+              // Extrai o nome da tarefa (ex: "completou Patrulha")
+              let target = displayMessage.includes('completou ') ? displayMessage.split('completou ')[1].replace('.', '') : "PATRULHA";
+              
+              const phrases = [
+                "{name} GARANTIU A ORDEM EM {target} E RECEBEU {money}",
+                "{name} COMPLETOU A MISSÃO EM {target} PELO MERITO DE {money}",
+                "{name} INTERCEPTOU O CRIME EM {target} E FOI RECOMPENSADO COM {money}"
+              ];
+              const p = phrases[Math.abs(log.createdAt.length % phrases.length)];
+              displayMessage = p.replace("{name}", name).replace("{target}", target.toUpperCase()).replace("{money}", money);
+            }
+
+            return {
+              id: log.createdAt + "-" + log.userId,
+              message: displayMessage,
+              event_type: log.actionType,
+              created_at: log.createdAt,
+              is_major: metadata.is_major || metadata.is_master || false,
+              faction: faction
+            };
+          }).filter(Boolean);
         }
         return [];
       }

@@ -351,14 +351,21 @@ const redisWrapper = {
     }
   },
 
+  zRevRangeAsync: async (key, start, stop) => {
+    if (!key || !isReady) return [];
+    try {
+      return await client.zRange(String(key), start, stop, { REV: true });
+    } catch (err) {
+      console.error(`[RedisClient] Erro em zRevRangeAsync key=${key}:`, err.message);
+      return [];
+    }
+  },
+
   zRangeWithScoresAsync: async (key, start, stop) => {
     if (!key || !isReady) return [];
     try {
-      const k = String(key);
-      const s = String(start || 0);
-      const e = String(stop || -1);
-      
-      return await client.sendCommand(['ZREVRANGE', k, s, e, 'WITHSCORES']);
+      // SÊNIOR: No v4, usamos o formato de objeto para WITHSCORES
+      return await client.zRangeWithScores(String(key), start, stop, { REV: true });
     } catch (err) {
       console.error(`[RedisClient] Erro em zRangeWithScoresAsync key=${key}:`, err.message);
       return [];
@@ -417,7 +424,10 @@ const redisWrapper = {
     try {
       const k = String(key);
       if (count) {
-        return await client.sRandMember(k, count);
+        const res = await client.sRandMember(k, count);
+        // SÊNIOR: Garante que o retorno seja array se count foi solicitado
+        if (!res) return [];
+        return Array.isArray(res) ? res : [res];
       }
       return await client.sRandMember(k);
     } catch (err) {
@@ -456,6 +466,16 @@ const redisWrapper = {
     }
   },
 
+  sIsMemberAsync: async (key, member) => {
+    if (!key || !isReady) return false;
+    try {
+      return await client.sIsMember(String(key), String(member));
+    } catch (err) {
+      console.error(`[RedisClient] Erro em sIsMemberAsync key=${key}:`, err.message);
+      return false;
+    }
+  },
+
   /**
    * SÊNIOR: Executa um script Lua de forma atômica.
    * Fundamental para garantir consistência em ambientes de alta concorrência
@@ -471,6 +491,22 @@ const redisWrapper = {
     } catch (err) {
       console.error("[RedisClient] Erro ao executar script Lua:", err.message);
       throw err;
+    }
+  },
+
+  /**
+   * SÊNIOR: Utilitário de Bloqueio Distribuído (Atomic Lock).
+   * Garante que uma operação crítica seja executada por apenas uma instância por vez.
+   */
+  withLock: async (resource, ttlMs, fn) => {
+    if (!isReady) return await fn();
+    const lockKey = `lock:${resource}`;
+    const acquired = await redisWrapper.setNXAsync(lockKey, "1", ttlMs);
+    if (!acquired) throw new Error("Recurso em uso. Aguarde a sincronização.");
+    try {
+      return await fn();
+    } finally {
+      await redisWrapper.delAsync(lockKey);
     }
   },
 

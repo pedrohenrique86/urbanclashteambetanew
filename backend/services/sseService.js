@@ -85,6 +85,31 @@ function subscribe(client, topic, cid = null) {
   if (topic.startsWith("player:")) {
     const userId = topic.replace("player:", "");
     _localKick(userId, cid);
+    
+    // SÊNIOR: Entrega imediata de notificações acumuladas enquanto offline
+    _flushOfflineToasts(userId, client);
+  }
+}
+
+/** 
+ * SÊNIOR: Recupera notificações acumuladas no Redis para o jogador e as envia.
+ */
+async function _flushOfflineToasts(userId, client) {
+  const key = `offline_toasts:${userId}`;
+  try {
+    const toasts = await redisClient.lRangeAsync(key, 0, -1);
+    if (toasts && toasts.length > 0) {
+      // Inverte para mandar na ordem correta (FIFO) já que usamos LPUSH
+      toasts.reverse().forEach(tStr => {
+        const { event, data } = JSON.parse(tStr);
+        const msg = `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`;
+        client.write(msg);
+      });
+      await redisClient.delAsync(key);
+      console.log(`[SSE] 📬 Entregues ${toasts.length} notificações offline para ${userId}.`);
+    }
+  } catch (err) {
+    console.error(`[SSE] Erro ao flush toasts para ${userId}:`, err.message);
   }
 }
 
@@ -128,7 +153,23 @@ function _localPublish(topic, event, data) {
  * Se o Redis estiver ativo, envia para a ponte (alcança todos os processos).
  * Se não, tenta enviar apenas localmente.
  */
-function publish(topic, event, data) {
+async function publish(topic, event, data) {
+  // SÊNIOR: Se o tópico for de jogador e não houver ninguém ouvindo em nenhum processo
+  // (verificado via Redis Pub/Sub indireto ou via checks locais de fallback)
+  // Armazenamos para entrega futura se for um evento do tipo 'toast' ou 'update' crítico.
+  if (topic.startsWith("player:") && (event === "player:update" || event === "player:toast")) {
+    const userId = topic.replace("player:", "");
+    const online = await redisClient.sIsMemberAsync(ONLINE_SET_KEY, userId).catch(() => false);
+    
+    if (!online) {
+      const key = `offline_toasts:${userId}`;
+      await redisClient.lPushAsync(key, JSON.stringify({ event, data }));
+      await redisClient.lTrimAsync(key, 0, 19); // Mantém apenas os últimos 20
+      await redisClient.expireAsync(key, 86400 * 2); // Expira em 48h
+      return;
+    }
+  }
+
   if (redisPublisher && redisPublisher.isOpen) {
     redisPublisher.publish("SSE_BRIDGE", JSON.stringify({ topic, event, data }))
       .catch(err => console.error("[SSE] Erro ao publicar no Redis:", err.message));
@@ -211,4 +252,6 @@ module.exports = {
   broadcast,
   /** Retorna true se houver ao menos um cliente SSE conectado ao tópico */
   hasSubscribers: (topic) => topics.has(topic) && topics.get(topic).size > 0,
+  /** SÊNIOR: Atalho para publicar eventos diretamente para um jogador */
+  broadcastToUser: (userId, event, data) => publish(`player:${userId}`, event, data)
 };

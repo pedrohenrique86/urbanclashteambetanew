@@ -249,12 +249,7 @@ export default function NetworkLogsPage() {
         <div className="absolute -left-6 top-1/2 -translate-y-1/2 w-1.5 h-16 bg-orange-500 shadow-[0_0_15px_rgba(249,115,22,1)] hidden lg:block"></div>
         <div className="flex flex-wrap gap-4 items-center justify-between">
           <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}>
-            <h1 
-              className="text-4xl md:text-6xl font-orbitron font-black tracking-widest text-white uppercase flex items-center gap-4"
-              style={{ textShadow: theme.textShadow }}
-            >
-              Network <span className={theme.primary}>Logs</span>
-            </h1>
+
             <div className="flex items-center gap-4 mt-3">
               {/* Badge SEC LEVEL Estilizado */}
               <div className="flex items-center overflow-hidden border border-orange-500/40 bg-black/60" style={MILITARY_CLIP}>

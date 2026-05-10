@@ -10,13 +10,13 @@ interface NewsItem {
   type: string;
   timestamp: number;
   is_major?: boolean;
+  faction?: string;
 }
 
 const LiveNewsTicker: React.FC = () => {
   const { showLiveFeed } = useSettings();
   const [news, setNews] = useState<NewsItem[]>([]);
   const [activeIndex, setActiveIndex] = useState(0);
-  const tickerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (news.length <= 1) return;
@@ -34,17 +34,16 @@ const LiveNewsTicker: React.FC = () => {
     // Fetch initial logs
     const fetchInitialLogs = async () => {
       try {
-        // Melhor usar a API diretamente para o estado inicial
         const api = (await import('../../lib/api')).default;
         const res = await api.get('/contracts/status');
-          console.log("Feed: Logs recebidos do banco:", res.data?.logs?.length);
           if (res.data?.logs) {
             const initialNews = res.data.logs.map((log: any) => ({
               id: log.id,
               message: log.message,
               type: log.event_type,
               timestamp: new Date(log.created_at).getTime(),
-              is_major: log.is_major
+              is_major: log.is_major,
+              faction: log.faction
             }));
             setNews(initialNews.slice(0, 5));
           }
@@ -61,11 +60,11 @@ const LiveNewsTicker: React.FC = () => {
         message: log.message,
         type: log.event_type || 'info',
         timestamp: Date.now(),
-        is_major: log.is_major
+        is_major: log.is_major,
+        faction: log.faction
       };
       
       setNews(prev => {
-        // Evita duplicatas (mesma mensagem em curto intervalo)
         if (prev.some(item => item.message === newItem.message)) return prev;
         return [newItem, ...prev].slice(0, 5);
       });
@@ -80,6 +79,25 @@ const LiveNewsTicker: React.FC = () => {
 
   const currentNews = news[activeIndex] || news[0];
   if (!showLiveFeed || !currentNews) return null;
+
+  const getFactionBadge = () => {
+    if (!currentNews.faction) return null;
+    if (currentNews.faction === 'gangsters') {
+      return (
+        <span className="text-orange-400 font-bold mr-1">
+          [RENEGADO]
+        </span>
+      );
+    }
+    if (currentNews.faction === 'guardas') {
+      return (
+        <span className="text-blue-800 font-bold mr-1">
+          [GUARDIÃO]
+        </span>
+      );
+    }
+    return null;
+  };
 
   return (
     <div 
@@ -112,9 +130,10 @@ const LiveNewsTicker: React.FC = () => {
             className="px-6 flex items-center gap-3 w-full"
           >
             <NewspaperIcon className="w-3 h-3 text-red-500 flex-shrink-0" />
-            <span className="text-[11px] text-white/90 uppercase tracking-wider truncate">
-              {currentNews.message}
-            </span>
+            <div className="text-[11px] text-white/90 uppercase tracking-wider truncate flex items-center">
+              {getFactionBadge()}
+              <span>{currentNews.message}</span>
+            </div>
             <span className="text-[8px] text-white/30 font-mono ml-auto">
               {new Date(currentNews.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
             </span>

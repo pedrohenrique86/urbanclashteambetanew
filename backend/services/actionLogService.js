@@ -38,12 +38,17 @@ class ActionLogService {
       if (isPublic) {
         const io = getIO();
         if (io) {
+          const parsedMetadata = typeof metadata === 'string' ? JSON.parse(metadata) : metadata;
           io.emit("contract:log", {
-            user_id: userId,
-            action_type: actionType,
-            metadata: typeof metadata === 'string' ? JSON.parse(metadata) : metadata,
+            id: `${logEntry.createdAt}-${userId}`,
+            message: parsedMetadata.public_message || "Ação detectada na rede",
+            event_type: actionType,
             created_at: logEntry.createdAt,
-            message: metadata.public_message || ""
+            is_major: !!(parsedMetadata.is_major || parsedMetadata.is_master),
+            faction: parsedMetadata.faction || null,
+            // Compatibilidade
+            user_id: userId,
+            metadata: parsedMetadata
           });
         }
       }

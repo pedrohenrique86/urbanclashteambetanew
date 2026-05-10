@@ -13,6 +13,9 @@ const persistenceService = require("./playerPersistenceService");
 const { 
   PLAYER_STATE_PREFIX, 
   DIRTY_PLAYERS_SET, 
+  RANKING_ALL,
+  RANKING_RENEGADOS,
+  RANKING_GUARDIOES,
   PERSISTENCE_INTERVAL,
   VOLATILE_FIELDS,
   FIELD_TO_SSE,
@@ -55,7 +58,48 @@ class PlayerStateService {
       await this._hydrateRedis(userId, state);
     }
 
-    return this._parseState(state);
+    // SÊNIOR: Lazy Evaluation da Energia
+    // Se o jogador ficou offline, recuperamos a energia baseada no tempo decorrido
+    return this.regenEnergyForPlayer(userId, this._parseState(state));
+  }
+
+  /**
+   * Calcula e aplica a regeneração de energia baseada no tempo.
+   * Pode ser chamado pelo Heartbeat (Online) ou via Lazy Eval (Request).
+   */
+  async regenEnergyForPlayer(userId, currentState = null) {
+    const state = currentState || await this.getPlayerState(userId);
+    if (!state) return null;
+
+    const energy = Number(state.energy || 0);
+    const maxEnergy = Number(state.max_energy || 100);
+    
+    if (energy >= maxEnergy) return state;
+
+    const now = Date.now();
+    const lastUpdate = Number(state.last_energy_update || now);
+    const gameLogic = require("../utils/gameLogic");
+    const regenRateMinutes = (gameLogic.ENERGY && gameLogic.ENERGY.REGEN_RATE_MINUTES) ? gameLogic.ENERGY.REGEN_RATE_MINUTES : 3;
+    const msPerPoint = regenRateMinutes * 60 * 1000;
+
+    const elapsed = now - lastUpdate;
+    const pointsToRegen = Math.floor(elapsed / msPerPoint);
+
+    if (pointsToRegen > 0) {
+      const newEnergy = Math.min(maxEnergy, energy + pointsToRegen);
+      const leftoverMs = elapsed % msPerPoint;
+      const newLastUpdate = now - leftoverMs;
+
+      await this.updatePlayerState(userId, {
+        energy: newEnergy - energy, // Usamos o incremento relativo para ser atômico
+        last_energy_update: newLastUpdate.toString()
+      });
+
+      // Retorna o estado atualizado
+      return { ...state, energy: newEnergy, last_energy_update: newLastUpdate };
+    }
+
+    return state;
   }
 
   /**
@@ -113,17 +157,26 @@ class PlayerStateService {
   async _updateRankingScore(userId, state) {
     if (!state || !redisClient.client.isReady) return;
 
-    // Fórmula de Score: Nível como peso principal (x100M) + XP total
-    const score = Number(state.level || 1) * 100000000 + Number(state.total_xp || 0);
+    // SÊNIOR: Validação rigorosa para evitar erro de 'undefined' no Redis v4
+    const levelVal = Number(state.level || 0);
+    const xpVal = Number(state.total_xp || 0);
+    const score = (levelVal * 100000000) + xpVal;
+
+    if (isNaN(score) || !userId) {
+      console.warn(`[RankingUpdate] ⚠️ Dados inválidos para ranking: uid=${userId}, score=${score}`);
+      return;
+    }
+
     const p = redisClient.pipeline();
+    const member = { score, value: String(userId) };
 
-    p.zAdd(RANKING_ALL, score, String(userId));
-
+    p.zAdd(RANKING_ALL, [member]);
+    
     if (state.faction === "renegados") {
-      p.zAdd(RANKING_RENEGADOS, score, String(userId));
+      p.zAdd(RANKING_RENEGADOS, [member]);
       p.zRem(RANKING_GUARDIOES, String(userId));
     } else if (state.faction === "guardioes") {
-      p.zAdd(RANKING_GUARDIOES, score, String(userId));
+      p.zAdd(RANKING_GUARDIOES, [member]);
       p.zRem(RANKING_RENEGADOS, String(userId));
     }
 
@@ -137,12 +190,14 @@ class PlayerStateService {
     const out = { ...state };
     for (const field in out) {
       if (NUMERIC_FIELDS.has(field)) {
-        let n = Number(out[field]);
+        let n = Number(out[field] || 0); // SÊNIOR: Default 0 evita crash no toLocaleString() do frontend
         if (!isNaN(n)) {
           if (['attack', 'defense', 'focus', 'instinct'].includes(field)) {
             n = Math.round(n * 100) / 100;
           }
           out[field] = n;
+        } else {
+          out[field] = 0;
         }
       }
     }
@@ -179,6 +234,62 @@ class PlayerStateService {
    */
   async forcePersist(userId) {
     return persistenceService.persistPlayerState(userId);
+  }
+
+  /**
+   * SÊNIOR: Gera um "Instantâneo de Combate" com todos os bônus aplicados.
+   * Evita recálculos caros durante os turnos da luta.
+   */
+  async getCombatSnapshot(userId) {
+    const state = await this.getPlayerState(userId);
+    if (!state) return null;
+
+    const gameLogic = require("../utils/gameLogic");
+    const inventoryService = require("./inventoryService");
+
+    // SÊNIOR: Busca bônus de chips equipados (via inventário/redis)
+    const chips = await inventoryService.getEquippedItems(userId);
+    const powerData = gameLogic.calculateTotalPower(state, chips);
+
+    return {
+      userId,
+      username: state.display_name || state.username,
+      level: state.level,
+      faction: state.faction,
+      hp: 100, // Vida base para início de combate
+      maxHp: 100,
+      stagger: 100,
+      // Atributos Finais (Já com bônus)
+      attack: powerData.finalAtk,
+      defense: powerData.finalDef,
+      focus: powerData.finalFoc,
+      instinct: powerData.finalIns,
+      powerSolo: powerData.powerSolo,
+      // Probabilidades
+      critChance: gameLogic.calcCritChance(state),
+      critMult: gameLogic.calcCritDamageMultiplier(state),
+      money: state.money,
+      status: state.status
+    };
+  }
+
+  /**
+   * SÊNIOR: Recalcula os bônus de equipamento e atualiza o estado do jogador.
+   * Chamado pelo inventoryService após equipar/desequipar.
+   */
+  async refreshEquipmentBonuses(userId) {
+    const snapshot = await this.getCombatSnapshot(userId);
+    if (!snapshot) return;
+
+    // SÊNIOR: Atualiza o poder solo e bônus no Redis para que outros serviços vejam
+    await this.updatePlayerState(userId, {
+        attack: snapshot.attack,
+        defense: snapshot.defense,
+        focus: snapshot.focus,
+        instinct: snapshot.instinct
+    });
+
+    console.log(`[PlayerState] 🛡️ Bônus de equipamentos atualizados para ${userId}`);
   }
 }
 

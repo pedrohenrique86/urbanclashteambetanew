@@ -88,9 +88,7 @@ export default function RecoveryBasePage() {
       <header className="max-w-6xl mx-auto mb-12 relative z-10">
         <div className="absolute -left-4 top-1/2 -translate-y-1/2 w-1 h-12 bg-red-500 shadow-[0_0_15px_rgba(239,68,68,0.8)]"></div>
         <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}>
-          <h1 className="text-4xl md:text-6xl font-orbitron font-black tracking-widest text-white uppercase" style={{ textShadow: "2px 0px 0px rgba(239,68,68,0.7), -2px 0px 0px rgba(34,211,238,0.7)" }}>
-            Recovery <span className="text-red-500">Base</span> HUB
-          </h1>
+
           <div className="flex flex-col gap-3 mt-4">
             <div className="flex items-center gap-4">
               <div className="flex items-center overflow-hidden border border-red-500/40 bg-black/60" style={MILITARY_CLIP}>
@@ -136,7 +134,11 @@ export default function RecoveryBasePage() {
                   </span>
                 </div>
                 <span className="text-[8px] font-mono text-slate-500 uppercase tracking-widest mt-1">
-                  Sincronização Final: {userProfile.status_ends_at ? format(new Date(userProfile.status_ends_at), "HH:mm:ss") : "--:--:--"}
+                  Sincronização Final: {(() => {
+                    if (!userProfile.status_ends_at) return "--:--:--";
+                    const d = new Date(userProfile.status_ends_at);
+                    return isNaN(d.getTime()) ? "--:--:--" : format(d, "HH:mm:ss");
+                  })()}
                 </span>
               </div>
             )}
@@ -585,7 +587,13 @@ function ReconditioningView({ user, timeLeft, formatTime }: { user: any, timeLef
                       >
                         {msg.username}
                       </span>
-                      <span className="text-[8px] font-mono text-slate-400">[{format(new Date(msg.timestamp), "dd/MM/yyyy HH:mm")}]</span>
+                      <span className="text-[8px] font-mono text-slate-400">
+                        [{(() => {
+                          if (!msg.timestamp) return "--/--/---- --:--";
+                          const d = new Date(msg.timestamp);
+                          return isNaN(d.getTime()) ? "--/--/---- --:--" : format(d, "dd/MM/yyyy HH:mm");
+                        })()}]
+                      </span>
                     </div>
                     <div className="bg-white/5 p-3 text-xs text-slate-300 border-l-2 border-red-500/30 break-words" style={{ clipPath: "polygon(0 0, 100% 0, 100% 100%, 4px 100%, 0 calc(100% - 4px))" }}>
                       {renderMessageText(msg.text)}

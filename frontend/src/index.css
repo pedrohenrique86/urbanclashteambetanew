@@ -86,6 +86,10 @@ button {
   font-family: 'Exo 2', sans-serif !important;
 }
 
+.font-impact {
+  font-family: Impact, Haettenschweiler, 'Arial Narrow Bold', sans-serif !important;
+}
+
 /* SÊNIOR: ESTRUTURA UNIVERSAL RESPONSIVA */
 .urban-container {
   width: 100%;

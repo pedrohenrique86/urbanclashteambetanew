@@ -52,6 +52,18 @@ class InventoryService {
     }
   }
 
+  /**
+   * SÊNIOR: Retorna os itens equipados do Redis de forma instantânea.
+   */
+  async getEquippedItems(userId) {
+    await this.ensureLoaded(userId);
+    const equipKey = `${EQUIP_PREFIX}${userId}`;
+    const equipped = await redisClient.hGetAllAsync(equipKey);
+    
+    // Se não houver nada equipado, retorna objeto vazio em vez de null
+    return equipped || {};
+  }
+
   async toggleEquip(userId, itemCode, slot) {
     await this.ensureLoaded(userId);
     const invKey = `${INV_PREFIX}${userId}`;

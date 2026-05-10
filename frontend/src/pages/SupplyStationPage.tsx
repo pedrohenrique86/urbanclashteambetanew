@@ -258,9 +258,7 @@ export default function SupplyStationPage() {
       <header className="max-w-6xl mx-auto mb-12 relative z-10">
         <div className="absolute -left-4 top-1/2 -translate-y-1/2 w-1 h-12 bg-rose-500 shadow-[0_0_15px_rgba(244,63,94,0.8)]"></div>
         <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}>
-          <h1 className="text-4xl md:text-6xl font-orbitron font-black tracking-widest text-white uppercase" style={{ textShadow: "2px 0px 0px rgba(244,63,94,0.7), -2px 0px 0px rgba(34,211,238,0.7)" }}>
-            Supply <span className="text-rose-500">Station</span>
-          </h1>
+
           <div className="flex flex-col gap-3 mt-4">
             <div className="flex items-center gap-4">
               {/* Badge SEC LEVEL Estilizado */}

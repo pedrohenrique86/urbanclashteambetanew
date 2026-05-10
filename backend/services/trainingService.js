@@ -15,11 +15,7 @@ class TrainingService {
    * Inicia um novo treinamento.
    */
   async startTraining(userId, type) {
-    const LOCK_KEY = `lock:training:${userId}`;
-    const hasLock = await redisClient.setNXAsync(LOCK_KEY, "1", 3000);
-    if (!hasLock) throw new Error("Operação de treinamento já em processamento.");
-
-    try {
+    return redisClient.withLock(`training:${userId}`, 3000, async () => {
       const training = TRAINING_TYPES[type];
       if (!training) throw new Error("Tipo de treinamento inválido.");
 
@@ -68,17 +64,11 @@ class TrainingService {
         training: { type, endsAt: endsAt.toISOString(), durationMinutes: training.durationMinutes },
         player: newState,
       };
-    } finally {
-      await redisClient.delAsync(LOCK_KEY);
-    }
+    });
   }
 
   async completeTraining(userId) {
-    const LOCK_KEY = `lock:training:${userId}`;
-    const hasLock = await redisClient.setNXAsync(LOCK_KEY, "1", 3000);
-    if (!hasLock) throw new Error("Aguarde o processamento do treinamento anterior.");
-
-    try {
+    return redisClient.withLock(`training:${userId}`, 3000, async () => {
       const state = await playerStateService.getPlayerState(userId);
       if (!state) throw new Error("Jogador não encontrado.");
 
@@ -132,9 +122,7 @@ class TrainingService {
         player: newState,
         ...(isUnlock ? { unlock_acerto_de_contas: true } : {})
       };
-    } finally {
-      await redisClient.delAsync(LOCK_KEY);
-    }
+    });
   }
 }
 

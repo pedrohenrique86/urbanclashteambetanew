@@ -21,13 +21,10 @@ const DB_PERSIST_FIELDS = new Set([
   "critical_chance", "critical_damage",
   "intimidation", "discipline",
   "money", "display_name", "bio", "avatar_url", "faction", "faction_id",
-  "energy", "max_energy", "action_points",
+  "energy", "action_points",
   "victories", "defeats", "winning_streak",
-  "status", "status_ends_at", "recon_reason", "recon_phrase",
-  "recon_loss_credits", "recon_loss_xp", "recon_power_result",
-  "last_daily_special_at", "last_training_reset", "last_ap_reset",
-  "daily_training_count", "toxicity", "premium_coins",
-  "login_streak", "merit", "corruption", "equipped_chips"
+  "status", "status_ends_at",
+  "last_daily_special_at", "last_training_reset", "last_ap_reset"
 ]);
 
 /**
@@ -45,7 +42,21 @@ const VOLATILE_FIELDS = new Set([
   "training_ends_at",
   "pending_interception",
   "weapon_damage",
-  "shield_protection"
+  "shield_protection",
+  "last_energy_update",
+  "max_energy",
+  "recon_reason",
+  "recon_phrase",
+  "recon_loss_credits",
+  "recon_loss_xp",
+  "recon_power_result",
+  "merit",
+  "corruption",
+  "toxicity",
+  "daily_training_count",
+  "premium_coins",
+  "login_streak",
+  "equipped_chips"
 ]);
 
 /**
@@ -91,7 +102,7 @@ const NUMERIC_FIELDS = new Set([
   "money", "intimidation", "discipline", "victories", "defeats", 
   "winning_streak", "daily_training_count", "toxicity",
   "recon_loss_credits", "recon_loss_xp", "merit", "corruption",
-  "faction_id", "premium_coins", "login_streak"
+  "faction_id", "premium_coins", "login_streak", "last_energy_update"
 ]);
 
 module.exports = {

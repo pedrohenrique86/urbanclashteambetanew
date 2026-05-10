@@ -109,7 +109,7 @@ export default function Toast({
             <div className="absolute inset-0 bg-gradient-to-tr from-white/[0.03] to-transparent pointer-events-none"></div>
             
             {/* Header Label */}
-            <div className={`text-[9px] font-orbitron font-black tracking-[0.3em] px-4 py-1.5 ${headerBg} border-b border-white/5 ${headerText} flex justify-between items-center`}>
+            <div className={`text-[10px] font-exo font-bold tracking-wider px-4 py-1.5 ${headerBg} border-b border-white/5 ${headerText} flex justify-between items-center`}>
               <span className="flex items-center gap-2">
                 <div className={`w-1 h-1 rounded-full ${bar} animate-pulse`}></div>
                 {label}
@@ -132,22 +132,18 @@ export default function Toast({
                     const trimmedLine = line.trim();
                     if (!trimmedLine) return null;
 
-                    if (idx === 0) {
-                      return (
-                        <p key={idx} className="text-[10px] font-black text-white leading-tight break-words font-orbitron uppercase tracking-widest mb-1.5 border-b border-white/5 pb-1">
-                          {trimmedLine}
-                        </p>
-                      );
-                    }
+                    // Filtro para ignorar nomes de facções e padrões comuns de nomes de usuários em toasts
+                    const upperLine = trimmedLine.toUpperCase();
+                    const isFaction = ["RENEGADOS", "GUARDIOES", "GANGSTERS", "GUARDAS", "CITIZEN", "BOT"].some(f => upperLine.includes(f));
                     
-                    const isQuote = trimmedLine.startsWith('"');
-                    const isData = /^[💸📉📊]/u.test(trimmedLine) || trimmedLine.includes(':');
+                    // Se for uma linha de facção ou parecer um cabeçalho de nome curto, ignoramos para simplificar
+                    if (isFaction || (idx === 0 && trimmedLine.length < 15 && !trimmedLine.includes(' '))) {
+                       return null;
+                    }
 
                     return (
-                      <p key={idx} className={`leading-snug break-words mb-0.5 ${
-                        isQuote ? 'text-[8.5px] italic text-slate-500 mt-1.5 font-sans' : 
-                        isData ? 'text-[9.5px] font-bold text-slate-200 font-mono' :
-                        'text-[9px] font-medium text-slate-400 font-sans'
+                      <p key={idx} className={`leading-tight break-words font-exo font-bold uppercase tracking-normal ${
+                        idx === 0 || !message.includes('\n') ? 'text-[13px] text-white mb-1' : 'text-[11px] text-slate-300'
                       }`}>
                         {trimmedLine}
                       </p>

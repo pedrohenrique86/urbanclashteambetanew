@@ -420,9 +420,6 @@ export default function ReckoningPage() {
         <div className="absolute -left-4 top-1/2 -translate-y-1/2 w-1 h-12 bg-yellow-500 shadow-[0_0_15px_rgba(234,179,8,0.8)]"></div>
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
           <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}>
-            <h1 className="text-4xl md:text-5xl font-orbitron font-black tracking-widest text-white uppercase" style={{ textShadow: "2px 0px 0px rgba(234,179,8,0.7), -2px 0px 0px rgba(139,92,246,0.7)" }}>
-              Spectro <span className="text-yellow-500">Reckoning</span>
-            </h1>
             <div className="flex items-center gap-4 mt-3">
               <div className="flex items-center overflow-hidden border border-yellow-500/40 bg-black/60" style={MILITARY_CLIP}>
                 <div className="bg-yellow-500 px-2 py-0.5">
@@ -435,7 +432,6 @@ export default function ReckoningPage() {
               <span className="text-[10px] font-mono text-yellow-500/80 animate-pulse tracking-widest font-bold uppercase">● Combat_Matrix_Active</span>
             </div>
           </motion.div>
-
           <div className="flex flex-wrap items-center gap-3">
              <div className="bg-black/40 backdrop-blur-md border border-orange-500/30 px-4 py-2 flex items-center gap-3" style={MILITARY_CLIP}>
                 <FireIcon className="w-5 h-5 text-orange-500" />
@@ -778,11 +774,11 @@ export default function ReckoningPage() {
                                 <div className="bg-black/60 p-2.5 border border-white/10 mb-2">
                                   <div className="flex justify-between items-center text-[9px] font-mono mb-1">
                                     <span className="text-slate-400 uppercase">Sua Força:</span>
-                                    <span className="text-white font-black text-xs">{battleResults[tgt.id].battleReport.pPower.toLocaleString()}</span>
+                                    <span className="text-white font-black text-xs">{(battleResults[tgt.id].battleReport.pPower || 0).toLocaleString()}</span>
                                   </div>
                                   <div className="flex justify-between items-center text-[9px] font-mono">
                                     <span className="text-slate-400 uppercase">Alvo Força:</span>
-                                    <span className="text-white font-black text-xs">{battleResults[tgt.id].battleReport.oPower.toLocaleString()}</span>
+                                    <span className="text-white font-black text-xs">{(battleResults[tgt.id].battleReport.oPower || 0).toLocaleString()}</span>
                                   </div>
                                 </div>
                               )}

@@ -137,10 +137,7 @@ export default function DarkMarketPage() {
       <header className="max-w-6xl mx-auto mb-12 relative z-10">
         <div className="absolute -left-4 top-1/2 -translate-y-1/2 w-1 h-12 bg-fuchsia-500 shadow-[0_0_15px_rgba(192,38,211,0.8)]"></div>
         <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}>
-          <h1 className="text-4xl md:text-6xl font-orbitron font-black tracking-widest text-white uppercase" 
-              style={{ textShadow: "2px 0px 0px rgba(192,38,211,0.7), -2px 0px 0px rgba(139,92,246,0.7)" }}>
-            SHADOW <span className="text-fuchsia-400">MARKET</span>
-          </h1>
+
           <div className="flex flex-col gap-3 mt-4">
             <div className="flex items-center gap-4">
               <div className="flex items-center overflow-hidden border border-fuchsia-500/40 bg-black/60" style={MILITARY_CLIP}>
