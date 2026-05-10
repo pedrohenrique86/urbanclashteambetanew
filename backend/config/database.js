@@ -57,12 +57,14 @@ if (databaseUrl) {
 }
 
 const pool = new Pool({
-  ...poolConfig,
-  max: 20, 
-  min: 0,
-  idleTimeoutMillis: 5000, 
-  connectionTimeoutMillis: 15000, 
-  allowExitOnIdle: true, 
+  connectionString: process.env.DATABASE_URL,
+  ssl: {
+    rejectUnauthorized: false,
+  },
+  max: isProduction ? 20 : 5, // Limita conexões em DEV
+  idleTimeoutMillis: 1000,     // Fecha conexões ociosas em 1 segundo
+  connectionTimeoutMillis: 10000,
+  allowExitOnIdle: true,
 });
 
 // SÊNIOR: Monitoramento de conexões para caçar vazamentos que impedem o sono do Neon

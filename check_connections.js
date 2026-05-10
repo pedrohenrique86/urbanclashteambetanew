@@ -7,10 +7,9 @@ async function checkConnectionHistory() {
       SELECT 
         pid, 
         state, 
-        now() - state_change AS idle_duration,
-        query,
         application_name,
-        client_addr
+        now() - state_change AS idle_duration,
+        query
       FROM pg_stat_activity
       WHERE pid <> pg_backend_pid()
       ORDER BY state_change DESC;
@@ -21,7 +20,7 @@ async function checkConnectionHistory() {
     } else {
       console.log(`🔌 Encontradas ${rows.length} conexões:`);
       rows.forEach(r => {
-        console.log(`- PID: ${r.pid} | State: ${r.state} | Idle: ${r.idle_duration} | Last Query: ${r.query.substring(0, 50)}...`);
+        console.log(`- PID: ${r.pid} | App: ${r.application_name || 'Desconhecido'} | State: ${r.state} | Idle: ${r.idle_duration} | Last Query: ${r.query.substring(0, 50)}...`);
       });
     }
 
