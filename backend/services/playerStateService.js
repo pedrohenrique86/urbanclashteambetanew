@@ -278,20 +278,26 @@ class PlayerStateService {
 
   /**
    * SÊNIOR: Gera um "Instantâneo de Combate" com todos os bônus aplicados.
-   * Evita recálculos caros durante os turnos da luta.
+   * Evita recálculos caros durante os turnos da luta usando cache no Redis (5 min).
    */
   async getCombatSnapshot(userId) {
+    const cacheKey = `combat:snapshot:${userId}`;
+    
+    // Tenta pegar do cache (O(1))
+    const cached = await redisClient.getAsync(cacheKey);
+    if (cached) return JSON.parse(cached);
+
     const state = await this.getPlayerState(userId);
     if (!state) return null;
 
     const gameLogic = require("../utils/gameLogic");
     const inventoryService = require("./inventoryService");
 
-    // SÊNIOR: Busca bônus de chips equipados (via inventário/redis)
+    // Busca bônus de chips equipados
     const chips = await inventoryService.getEquippedItems(userId);
     const powerData = gameLogic.calculateTotalPower(state, chips);
 
-    return {
+    const snapshot = {
       userId,
       username: state.display_name || state.username,
       level: state.level,
@@ -311,6 +317,11 @@ class PlayerStateService {
       money: state.money,
       status: state.status
     };
+
+    // Salva no cache por 5 minutos
+    await redisClient.setAsync(cacheKey, JSON.stringify(snapshot), "EX", 300);
+
+    return snapshot;
   }
 
   /**
@@ -318,10 +329,13 @@ class PlayerStateService {
    * Chamado pelo inventoryService após equipar/desequipar.
    */
   async refreshEquipmentBonuses(userId) {
+    // SÊNIOR: Invalida o snapshot de combate antigo para forçar novo cálculo
+    await redisClient.delAsync(`combat:snapshot:${userId}`);
+
     const snapshot = await this.getCombatSnapshot(userId);
     if (!snapshot) return;
 
-    // SÊNIOR: Atualiza o poder solo e bônus no Redis para que outros serviços vejam
+    // Atualiza bônus no Redis principal
     await this.updatePlayerState(userId, {
         attack: snapshot.attack,
         defense: snapshot.defense,

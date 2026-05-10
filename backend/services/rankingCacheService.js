@@ -20,15 +20,25 @@ const gameLogic = require("../utils/gameLogic");
 
 class RankingCacheService {
   /**
-   * Obtém o ranking atualizado em tempo real.
-   * @param {string} type - 'users' ou 'clans'
-   * @param {string} faction - 'all', 'renegados', 'guardioes'
+   * SÊNIOR: Ponto de entrada unificado para o Ranking.
    */
   async ensureFreshRanking(type, faction) {
     if (type === "clans") {
       return this._getClansRanking();
     }
     return this._getUsersRanking(faction || "all");
+  }
+
+  /**
+   * SÊNIOR: Obtém a posição exata de um usuário no ranking de forma instantânea (O(1)).
+   */
+  async getUserRank(userId, faction = "all") {
+    let zkey = RANKING_ALL;
+    if (faction === "renegados") zkey = RANKING_RENEGADOS;
+    if (faction === "guardioes") zkey = RANKING_GUARDIOES;
+    
+    const rank = await redisClient.client.zRevRank(zkey, String(userId));
+    return rank !== null ? rank + 1 : null;
   }
 
   /**
@@ -39,14 +49,14 @@ class RankingCacheService {
     if (faction === "renegados") zkey = RANKING_RENEGADOS;
     if (faction === "guardioes") zkey = RANKING_GUARDIOES;
 
-    // Pega os Top 200 do ZSET (Score desc)
-    const topIds = await redisClient.zRevRangeAsync(zkey, 0, 199);
+    // Pega os Top 100 (mais que suficiente para 99% das visualizações)
+    const topIds = await redisClient.client.zRevRange(zkey, 0, 99);
     
     if (!topIds || topIds.length === 0) {
       return { data: [], etag: "empty", timestamp: Date.now() };
     }
 
-    // Hydration em lote (MGET/Pipeline)
+    // Hydration em lote (Pipeline) - Muito mais rápido que queries individuais
     const pipeline = redisClient.pipeline();
     topIds.forEach(id => pipeline.hGetAll(`${PLAYER_STATE_PREFIX}${id}`));
     const results = await pipeline.exec();
@@ -55,6 +65,7 @@ class RankingCacheService {
     const missingIds = [];
 
     results.forEach((raw, i) => {
+      // SÊNIOR: Verifica se o objeto está preenchido (hGetAll retorna {} para chaves inexistentes)
       if (raw && Object.keys(raw).length > 0) {
         const state = playerStateService._parseState(raw);
         hydrated.push(this._formatPlayer(state, i + 1));
@@ -63,22 +74,21 @@ class RankingCacheService {
       }
     });
 
-    // Fallback para o Banco se algum jogador não estiver no Redis
+    // Fallback cirúrgico para o Banco se algum jogador expirou do Redis
     if (missingIds.length > 0) {
       const dbPlayers = await this._fetchPlayersFromDB(missingIds);
-      dbPlayers.forEach((p, i) => {
-        hydrated.push({ ...p, rank: hydrated.length + 1 });
+      dbPlayers.forEach((p) => {
+        hydrated.push(p);
       });
     }
 
-    // Ordenação final por segurança
+    // Ordenação final e atribuição de Rank real
     hydrated.sort((a, b) => b.level - a.level || b.total_xp - a.total_xp);
-    
-    const finalData = hydrated.map((p, i) => ({ ...p, rank: i + 1 }));
+    const finalData = hydrated.slice(0, 100).map((p, i) => ({ ...p, rank: i + 1 }));
 
     return {
       data: finalData,
-      etag: `W/"${Date.now()}"`, // ETag dinâmica
+      etag: `W/"${Date.now()}"`,
       timestamp: Date.now()
     };
   }
@@ -89,8 +99,9 @@ class RankingCacheService {
   _formatPlayer(state, rank) {
     const total_xp = Number(state.total_xp || 0);
     const level = Number(state.level || 1);
-    const xpLevelPure = gameLogic.calculateLevelFromXp(total_xp);
-    const xpStatus = gameLogic.deriveXpStatus(total_xp, xpLevelPure);
+    
+    // SÊNIOR: Usa o gameLogic para consistência total com o perfil do jogador
+    const xpStatus = gameLogic.deriveXpStatus ? gameLogic.deriveXpStatus(total_xp, level) : { currentXp: 0, xpRequired: 100 };
 
     return {
       id: state.user_id,
@@ -117,13 +128,13 @@ class RankingCacheService {
       );
       return rows.map(r => this._formatPlayer(r, 0));
     } catch (e) {
-      console.error("[ranking] Erro no fallback DB:", e.message);
+      console.error("[ranking] ❌ Erro no fallback DB:", e.message);
       return [];
     }
   }
 
   /**
-   * Ranking de Clãs (Ainda via DB, clãs mudam pouco)
+   * Ranking de Clãs (Cache Permanente de 10 min)
    */
   async _getClansRanking() {
     const cacheKey = "ranking:clans:all";
@@ -149,7 +160,7 @@ class RankingCacheService {
 
     console.log("[ranking] 🔄 Populando ZSETs de ranking pela primeira vez...");
     const { rows } = await query(
-      `SELECT user_id, level, total_xp, faction FROM user_profiles ORDER BY level DESC, total_xp DESC LIMIT 1000`
+      `SELECT user_id, level, total_xp, faction FROM user_profiles ORDER BY level DESC, total_xp DESC LIMIT 2000`
     );
 
     for (const row of rows) {
@@ -161,12 +172,10 @@ class RankingCacheService {
   // Compatibilidade com ciclos legados
   async warmupRankings() {
     await this.initializeRankingZSet();
-    // Clãs podem ser atualizados aqui se necessário
   }
 
   startPeriodicRefresh() {
-    // No modelo real-time, não precisamos de refresh periódico para usuários!
-    // Apenas para manutenção de clãs a cada 30 min.
+    // Manutenção de clãs a cada 30 min.
     setInterval(() => this._getClansRanking(), 1800000);
   }
 }
