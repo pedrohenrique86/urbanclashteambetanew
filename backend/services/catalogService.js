@@ -11,31 +11,55 @@ class CatalogService {
   constructor() {
     this.CACHE_KEY_ITEMS = "catalog:items";
     this.TTL = 3600; // 1 hora
+    this.itemsMap = {};
   }
 
   /**
    * Obtém todos os itens do catálogo, com cache no Redis.
    */
   async getItems() {
+    if (this.items && this.items.length > 0) return this.items;
+
     if (!redisClient.client.isReady) {
       const { rows } = await query("SELECT * FROM items ORDER BY base_price ASC");
       return rows;
     }
 
     const cached = await redisClient.getAsync(this.CACHE_KEY_ITEMS);
-    if (cached) return JSON.parse(cached);
+    let rows;
+    if (cached) {
+      rows = JSON.parse(cached);
+    } else {
+      console.log("[Catalog] 📦 Cache MISS para itens. Carregando do Banco...");
+      const dbRes = await query(`
+        SELECT 
+          id, code, name, description, type, rarity, base_price,
+          base_attack_bonus, base_defense_bonus, base_focus_bonus
+        FROM items 
+        ORDER BY base_price ASC
+      `);
+      rows = dbRes.rows;
+      await redisClient.setAsync(this.CACHE_KEY_ITEMS, JSON.stringify(rows), "EX", this.TTL);
+    }
 
-    console.log("[Catalog] 📦 Cache MISS para itens. Carregando do Banco...");
-    const { rows } = await query(`
-      SELECT 
-        id, code, name, description, type, rarity, base_price,
-        base_attack_bonus, base_defense_bonus, base_focus_bonus
-      FROM items 
-      ORDER BY base_price ASC
-    `);
+    this.items = rows;
+    // SÊNIOR: Reconstrói o mapa de busca rápida O(1)
+    this.itemsMap = {};
+    rows.forEach(item => {
+      this.itemsMap[item.code] = item;
+    });
 
-    await redisClient.setAsync(this.CACHE_KEY_ITEMS, JSON.stringify(rows), "EX", this.TTL);
     return rows;
+  }
+
+  /**
+   * SÊNIOR: Retorna um Mapa (Dicionário) de itens para busca instantânea.
+   */
+  async getItemsMap() {
+    if (!this.items || Object.keys(this.itemsMap).length === 0) {
+      await this.getItems();
+    }
+    return this.itemsMap;
   }
 
   /**
