@@ -11,9 +11,14 @@ router.use(authenticateToken);
 router.get("/config", async (req, res) => {
   try {
     const { HEIST_TYPES, DAILY_SPECIAL, GUARDIAN_TYPES } = require("../utils/contractConstants");
+    const playerStateService = require("../services/playerStateService");
+    
+    const state = await playerStateService.getPlayerState(req.user.id);
+    const dynamicDaily = state ? contractService.getDynamicDailySpecial(state.level) : DAILY_SPECIAL;
+
     res.json({
       heists: HEIST_TYPES,
-      dailySpecial: DAILY_SPECIAL,
+      dailySpecial: dynamicDaily,
       guardianTasks: GUARDIAN_TYPES
     });
   } catch (error) {

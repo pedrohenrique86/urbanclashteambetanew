@@ -353,7 +353,7 @@ const ActionCard = ({ data, onAction, disabled, userLevel, userEnergy, userPA, u
 export default function ContractsPage() {
   const { showToast } = useToast();
   const { userProfile, refreshProfile } = useUserProfileContext();
-  const { data: config } = useSWR<ContractConfig>("/contracts/config", (url: string) => api.get(url).then(r => r.data));
+  const { data: config, mutate: mutateConfig } = useSWR<ContractConfig>("/contracts/config", (url: string) => api.get(url).then(r => r.data));
   const { data: status, mutate } = useSWR<ContractStatus>("/contracts/status", (url: string) => api.get(url).then(r => r.data));
   const [loadingAction, setLoadingAction] = useState<string | null>(null);
   const [localLogs, setLocalLogs] = useState<ContractLog[]>([]);
@@ -362,6 +362,11 @@ export default function ContractsPage() {
   const [isManualOpen, setIsManualOpen] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [dailyCountdown, setDailyCountdown] = useState<string | null>(null);
+
+  // Atualiza config (Ganhos dinâmicos) quando sobe de nível
+  useEffect(() => {
+    mutateConfig();
+  }, [userProfile?.level, mutateConfig]);
 
   // Countdown para Golpe de Mestre (24h)
   useEffect(() => {

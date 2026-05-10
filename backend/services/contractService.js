@@ -12,6 +12,23 @@ const { HEIST_TYPES, GUARDIAN_TYPES, DAILY_SPECIAL, SPECIAL_ITEMS_POOL, REWARDS 
  */
 class ContractService {
   /**
+   * Calcula o Golpe de Mestre dinâmico baseado no nível do usuário.
+   * Multiplica os ganhos do melhor roubo disponível por 4x.
+   */
+  getDynamicDailySpecial(userLevel) {
+    const unlockedHeists = HEIST_TYPES.filter(h => h.level <= userLevel);
+    const bestHeist = unlockedHeists[unlockedHeists.length - 1] || HEIST_TYPES[0];
+    
+    const multiplier = 4;
+    
+    return {
+      ...DAILY_SPECIAL,
+      money: [bestHeist.money[0] * multiplier, bestHeist.money[1] * multiplier],
+      xp: [bestHeist.xp[0] * multiplier, bestHeist.xp[1] * multiplier]
+    };
+  }
+
+  /**
    * Renegado: Realiza um roubo.
    */
   async performHeist(userId, heistId) {
@@ -22,18 +39,18 @@ class ContractService {
     if (!hasLock) throw new Error("Aguarde o processamento da operação anterior (Cooldown).");
 
     try {
+      const state = await playerStateService.getPlayerState(userId);
+      if (!state) throw new Error("Jogador não encontrado.");
+
       let heist = HEIST_TYPES.find(h => h.id === heistId);
       let isDaily = false;
 
       if (heistId === DAILY_SPECIAL.id) {
-        heist = DAILY_SPECIAL;
+        heist = this.getDynamicDailySpecial(state.level);
         isDaily = true;
       }
 
       if (!heist) throw new Error("Roubo inválido.");
-
-      const state = await playerStateService.getPlayerState(userId);
-      if (!state) throw new Error("Jogador não encontrado.");
 
       if (state.level < heist.level) throw new Error(`Nível insuficiente. Requer nível ${heist.level}.`);
       if (state.action_points < heist.costPA) throw new Error("PA insuficiente.");
