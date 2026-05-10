@@ -2,6 +2,7 @@ const { query } = require("../config/database");
 const redisClient = require("../config/redisClient");
 const playerStateService = require("./playerStateService");
 const actionLogService = require("./actionLogService");
+const combatLogService = require("./combatLogService");
 const gameLogic = require("../utils/gameLogic");
 const spectroEngine = require("../utils/spectroEngine");
 
@@ -461,7 +462,7 @@ class CombatService {
 
       await redisClient.setAsync(COOLDOWN, "1", "EX", 10);
 
-      return { 
+      const battleReport = { 
         outcome, 
         message: msg, 
         loot,
@@ -472,6 +473,11 @@ class CombatService {
           oIsCrit
         }
       };
+
+      // SÊNIOR: Salva o log detalhado no Redis (Redis-Only)
+      await combatLogService.saveReport(userId, battleReport);
+
+      return battleReport;
     } finally {
       await redisClient.delAsync(LOCK);
     }
@@ -612,13 +618,18 @@ class CombatService {
       else if (isKO) finalOutcome = isAttackerWin ? "win_ko" : "loss_ko";
       else if (willBleed) finalOutcome = "win_bleeding";
 
-      return {
+      const finalReport = {
         outcome: finalOutcome, 
         winner: isAttackerWin,
         details: { turns },
         loot, 
         spectroComment: spectroEngine.generateSpectroTalk(isAttackerWin ? "victory" : "detection")
       };
+
+      // SÊNIOR: Salva o log detalhado no Redis (Redis-Only)
+      await combatLogService.saveReport(userId, finalReport);
+
+      return finalReport;
     } catch (err) {
       await redisClient.delAsync(LOCK);
       throw err;

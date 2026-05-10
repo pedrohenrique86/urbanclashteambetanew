@@ -93,7 +93,7 @@ const RANKING_FIELDS = new Set(["total_xp", "level", "attack", "defense", "focus
 // Subconjunto de DB_PERSIST_FIELDS — apenas dados de progressão permanente
 const DB_PERSIST_FIELDS = new Set([
   "total_xp", "level",
-  "attack", "defense", "focus", "luck",
+  "attack", "defense", "focus", "instinct",
   "critical_chance", "critical_damage",
   "intimidation", "discipline",
   "money", "display_name", "bio", "avatar_url", "faction", "faction_id",
@@ -113,7 +113,7 @@ const VOLATILE_FIELDS = new Set([
   "recon_reason", "recon_phrase", "recon_loss_credits", "recon_loss_xp", "recon_power_result",
   "equipped_chips",
   "weapon_damage", "shield_protection", "equipment_bonus_foc", "equipment_bonus_ins",
-  "last_daily_special_at"
+  "last_daily_special_at", "is_admin"
 ]);
 
 // ─── Todos os campos que disparam SSE ao frontend ────────────────────────────────
@@ -130,7 +130,7 @@ const FIELD_TO_SSE = {
   attack            : "attack",
   defense           : "defense",
   focus             : "focus",
-  luck              : "instinct",
+  instinct          : "instinct",
   critical_damage   : "critDamage",
   critical_chance   : "critChance",
   money             : "cash",
@@ -156,13 +156,14 @@ const FIELD_TO_SSE = {
   recon_power_result: "reconPowerResult",
   merit             : "merit",
   corruption        : "corruption",
-  last_daily_special_at: "lastDailySpecialAt"
+  last_daily_special_at: "lastDailySpecialAt",
+  is_admin          : "isAdmin"
 };
 
 // ─── Campos numéricos no Redis Hash ──────────────────────────────────────────────
 const NUMERIC_FIELDS = new Set([
   "level", "total_xp", "energy", "max_energy", "action_points",
-  "attack", "defense", "focus", "luck", "critical_damage", "critical_chance",
+  "attack", "defense", "focus", "instinct", "critical_damage", "critical_chance",
   "money", "intimidation", "discipline", "victories", "defeats", 
   "winning_streak", "daily_training_count", "toxicity",
   "recon_loss_credits", "recon_loss_xp", "merit", "corruption",
@@ -216,7 +217,7 @@ function _parseState(raw) {
       let n = Number(out[field]);
       if (!isNaN(n)) {
         // SÊNIOR: Atributos reais (ATK, DEF, FOC, INS) com precisão de 2 casas
-        if (['attack', 'defense', 'focus', 'luck'].includes(field)) {
+        if (['attack', 'defense', 'focus', 'instinct'].includes(field)) {
           n = Math.round(n * 100) / 100;
         }
         out[field] = n;
@@ -257,6 +258,8 @@ function _parseState(raw) {
       out._status_expired = true;
     }
   }
+
+  out.is_admin = out.is_admin === "1";
 
   return out;
 }
@@ -441,7 +444,7 @@ function _buildPatch(updates, newState) {
       if (NUMERIC_FIELDS.has(redisKey)) {
         let n = Number(val);
         // SÊNIOR: Arredonda atributos (incluindo INS) para 2 casas decimais no SSE
-        if (['attack', 'defense', 'focus', 'luck'].includes(redisKey)) {
+        if (['attack', 'defense', 'focus', 'instinct'].includes(redisKey)) {
           n = Math.round(n * 100) / 100;
         }
         patch[sseKey] = n;
@@ -515,7 +518,7 @@ async function loadPlayerState(userId) {
   try {
     const result = await query(
       `SELECT p.*,
-              u.username, u.country, u.created_at AS account_created_at, u.birth_date,
+              u.username, u.country, u.created_at AS account_created_at, u.birth_date, u.is_admin,
               c.name AS clan_name
        FROM user_profiles p
        JOIN users u ON p.user_id = u.id
@@ -544,6 +547,8 @@ async function loadPlayerState(userId) {
       } else if (k === "birth_date" && v) {
         const d = new Date(v);
         acc[k] = !isNaN(d.getTime()) ? d.toISOString().split("T")[0] : "";
+      } else if (k === "is_admin") {
+        acc[k] = v ? "1" : "0";
       } else {
         acc[k] = String(v ?? "");
       }
@@ -978,7 +983,7 @@ async function persistPlayerState(userId) {
       const isNumeric = [
         "level", "total_xp", "money", "energy", "action_points", 
         "victories", "defeats", "winning_streak", "daily_training_count",
-        "attack", "defense", "focus", "luck", "intimidation", "discipline",
+        "attack", "defense", "focus", "instinct", "intimidation", "discipline",
         "critical_chance", "critical_damage", "toxicity",
         "faction_id", "premium_coins", "login_streak", "merit", "corruption"
       ].includes(k);
@@ -990,7 +995,7 @@ async function persistPlayerState(userId) {
     const values     = safeFields.map(([k, v]) => {
       if (v === "" || v === "null" || v === null) return null;
       // SÊNIOR: Arredonda atributos para 2 casas decimais na persistência PostgreSQL
-      if (['attack', 'defense', 'focus'].includes(k)) {
+      if (['attack', 'defense', 'focus', 'instinct'].includes(k)) {
         return Math.round(Number(v) * 100) / 100;
       }
       return v;
@@ -1091,7 +1096,7 @@ async function _bulkPersistChunk(userIds) {
         let val = item.state[f];
         if (val === "" || val === "null" || val === null || val === undefined) {
           val = null;
-        } else if (['attack', 'defense', 'focus'].includes(f)) {
+        } else if (['attack', 'defense', 'focus', 'instinct'].includes(f)) {
           val = Math.round(Number(val) * 100) / 100;
         }
         flatValues.push(val);
@@ -1109,7 +1114,7 @@ async function _bulkPersistChunk(userIds) {
       const isNumeric = [
         "level", "total_xp", "money", "energy", "action_points", 
         "victories", "defeats", "winning_streak", "daily_training_count",
-        "attack", "defense", "focus", "luck", "intimidation", "discipline",
+        "attack", "defense", "focus", "instinct", "intimidation", "discipline",
         "critical_chance", "critical_damage", "toxicity",
         "faction_id", "premium_coins", "login_streak", "merit", "corruption"
       ].includes(f);
@@ -1397,21 +1402,9 @@ async function setPlayerStatus(userId, newStatus, durationSeconds = null) {
     status_ends_at: status_ends_at
   });
 
-  // 3. Histórico no PostgreSQL (Execução Imediata)
-  try {
-    await query(`
-      UPDATE player_status_logs 
-      SET ended_at = NOW() 
-      WHERE user_id = $1 AND ended_at IS NULL
-    `, [userId]);
-
-    await query(`
-      INSERT INTO player_status_logs (user_id, status, started_at) 
-      VALUES ($1, $2, NOW())
-    `, [userId, newStatus]);
-  } catch (err) {
-    console.error("[status] ❌ Erro ao salvar histórico:", err.message);
-  }
+  // 3. Histórico no Redis (Redis-Only)
+  const statusLogService = require("./statusLogService");
+  await statusLogService.logStatusChange(userId, newStatus);
 
   // 4. Persistência no banco (Via Debounce 3s)
   _scheduleDebounce(userId);
@@ -1521,22 +1514,8 @@ async function refreshEquipmentBonuses(userId) {
 }
 
 async function _recordStatusLog(userId, newStatus) {
-  try {
-    // Usamos uma única query atômica para encerrar e abrir logs
-    const sql = `
-      WITH closed_rows AS (
-        UPDATE player_status_logs 
-        SET ended_at = NOW() 
-        WHERE user_id = $1 AND ended_at IS NULL
-        RETURNING id
-      )
-      INSERT INTO player_status_logs (user_id, status, started_at) 
-      VALUES ($1, $2, NOW());
-    `;
-    await query(sql, [userId, newStatus]);
-  } catch (err) {
-    console.error("[statusLog] ❌ Erro atômico ao salvar histórico:", err.message);
-  }
+  const statusLogService = require("./statusLogService");
+  await statusLogService.logStatusChange(userId, newStatus);
 }
 
 module.exports = {

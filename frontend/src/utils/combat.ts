@@ -41,7 +41,7 @@ export const calculateCombatStats = (userProfile: any) => {
   const rawCrit = userProfile.critical_chance || 0;
   const rawDmg = userProfile.critical_damage || 0;
 
-  const instinct = Number(userProfile.instinct || userProfile.luck || 0);
+  const instinct = Number(userProfile.instinct || 0);
   
   // Lógica de Chance Crítica — SSOT: backend gameLogic.js calcCritChance()
   let criticalChance = 5.0 + (focus * 0.08) + rawCrit + (instinct * 0.15);
@@ -95,7 +95,7 @@ export const calculateTotalPower = (user: any, chips: any[] = []) => {
   const weaponDmg = Number(user.weapon_damage || 0);
   const shieldProt = Number(user.shield_protection || 0);
 
-  const instinct = Number(user.instinct || user.luck || 0);
+  const instinct = Number(user.instinct || 0);
 
   // Fórmula unificada SSOT
   // (ATK + ARMA + DEF + ESCUDO + FOC×0.5 + INS×1.5) + (NVL×2) + (CRIT%×0.2 + CRITx)

@@ -69,13 +69,7 @@ const requireAdmin = async (req, res, next) => {
       return res.status(401).json({ error: "Autenticação requerida" });
     }
 
-    // Verificar se o usuário tem privilégios de admin
-    const adminResult = await query(
-      "SELECT is_admin FROM users WHERE id = $1",
-      [req.user.id],
-    );
-
-    if (adminResult.rows.length === 0 || !adminResult.rows[0].is_admin) {
+    if (!req.user.is_admin) {
       return res.status(403).json({
         error: "Acesso negado - privilégios de administrador requeridos",
       });
@@ -100,13 +94,7 @@ const requireOwnership = (resourceIdParam = "id") => {
         return next();
       }
 
-      // Verificar se é admin
-      const adminResult = await query(
-        "SELECT is_admin FROM users WHERE id = $1",
-        [userId],
-      );
-
-      if (adminResult.rows.length > 0 && adminResult.rows[0].is_admin) {
+      if (req.user.is_admin) {
         return next();
       }
 

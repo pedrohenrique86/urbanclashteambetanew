@@ -1,5 +1,6 @@
 const { query } = require("../config/database");
 const redisClient = require("../config/redisClient");
+const catalogService = require("./catalogService");
 
 /**
  * inventoryService.js
@@ -165,14 +166,7 @@ class InventoryService {
 
     if (!rawInv || Object.keys(rawInv).length === 0 || rawInv._empty) return [];
 
-    let catalog = await redisClient.getAsync("catalog:items");
-    if (!catalog) {
-      const { rows } = await query("SELECT id, name, code, type, rarity, base_attack_bonus, base_defense_bonus, base_focus_bonus FROM items");
-      catalog = JSON.stringify(rows);
-      await redisClient.setAsync("catalog:items", catalog, "EX", 3600);
-    }
-    
-    const items = JSON.parse(catalog);
+    const items = await catalogService.getItems();
     const inventory = [];
     const equippedCodes = Object.values(rawEquip || {});
 

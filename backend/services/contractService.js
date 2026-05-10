@@ -100,7 +100,7 @@ class ContractService {
       // SORTE -> INSTINTO (INS): Chance de 20% (1 em cada 5)
       if (Math.random() < 0.20) {
         const instinctGain = parseFloat((Math.random() * (0.06 - 0.01) + 0.01).toFixed(2));
-        updates.luck = (updates.luck || 0) + instinctGain;
+        updates.instinct = (updates.instinct || 0) + instinctGain;
         attrGained.push({ attr: 'instinct', gain: instinctGain });
       }
 
@@ -224,7 +224,7 @@ class ContractService {
       // SORTE -> INSTINTO (INS): Chance de 20% (1 em cada 5)
       if (Math.random() < 0.20) {
         const instinctGain = parseFloat((Math.random() * (0.06 - 0.01) + 0.01).toFixed(2));
-        updates.luck = (updates.luck || 0) + instinctGain;
+        updates.instinct = (updates.instinct || 0) + instinctGain;
         attrGained.push({ attr: 'instinct', gain: instinctGain });
       }
 
@@ -264,8 +264,8 @@ class ContractService {
             }
 
             if (Math.random() < totalChance) {
-              const gScore = (state.defense * 0.5) + (state.focus * 0.3) + (state.luck * 0.2);
-              const rScore = (target.renegadeStats.attack * 0.5) + (target.renegadeStats.luck * 0.3) + (target.renegadeStats.focus * 0.2);
+              const gScore = (state.defense * 0.5) + (state.focus * 0.3) + (state.instinct * 0.2);
+              const rScore = (target.renegadeStats.attack * 0.5) + (target.renegadeStats.instinct * 0.3) + (target.renegadeStats.focus * 0.2);
               
               const gFinal = gScore * (0.9 + Math.random() * 0.2);
               const rFinal = rScore * (0.9 + Math.random() * 0.2);

@@ -156,7 +156,7 @@ function calculateTotalPower(user, chips = []) {
   const critMult = Number(user.crit_damage_mult || 1);
   const specialValue = Number(user.intimidation || user.discipline || 0);
 
-  const instinct = Number(user.instinct || user.luck || 0);
+  const instinct = Number(user.instinct || 0);
   
   // Fórmula unificada SSOT
   // (ATK + DEF + FOC×0.5 + INS×1.5) + (NVL×2) + (CRIT%×0.2 + CRITx)
@@ -216,7 +216,7 @@ function calculateLevelFromXp(totalXp) {
 function calcCritChance(player) {
   const foc      = Math.max(0, Number(player.focus)            || 0);
   const rawCrit  = Math.max(0, Number(player.critical_chance)  || 0);
-  const instinct = Math.max(0, Number(player.instinct || player.luck) || 0);
+  const instinct = Math.max(0, Number(player.instinct) || 0);
 
   const chance = COMBAT.CRIT_BASE
     + foc    * COMBAT.CRIT_FOC_FACTOR
@@ -244,7 +244,7 @@ function calcCritDamageMultiplier(player) {
   // Bônus Dinâmico de Treino: Cada 50 atributos combinados = +1 ponto de porcentagem de dano crítico extra.
   // Garante evolução contínua da Topbar.
   const statsBonus = Math.floor((atk + def + foc) / 50);
-  const instinctBonus = (Number(player.instinct || player.luck) || 0) * 0.5; // INS: +0.5% de dano crítico por ponto
+  const instinctBonus = (Number(player.instinct) || 0) * 0.5; // INS: +0.5% de dano crítico por ponto
 
   let base;
   if (faction === 'renegados' || faction === 'gangsters') {
@@ -312,7 +312,7 @@ function resolveCombatHit(attacker, defender, turnMomentum = 1.0) {
   const isCounter = Math.random() * 100 < counterChance;
 
   // EVASÃO: Diferença de Foco + Bônus de Instinto
-  const focalEdge = Math.max(0, (defender.focus + (Number(defender.instinct || defender.luck) || 0) * 2) - attacker.focus);
+  const focalEdge = Math.max(0, (defender.focus + (Number(defender.instinct) || 0) * 2) - attacker.focus);
   const evasionChance = Math.max(2, Math.min(18, focalEdge / 35)); 
   const isEvaded = Math.random() * 100 < evasionChance;
 
@@ -543,8 +543,8 @@ function resolveStrategicCombat(attacker, defender, attackerChips = [], playerAc
   const oppBaseDmg = 12 + (oAtk / (oAtk + pDef)) * 25;
   
   // Crit/Evasion setup (Integrando Instinto)
-  const pInstinct = Number(attacker.instinct || attacker.luck || 0);
-  const oInstinct = Number(defender.instinct || defender.luck || 0);
+  const pInstinct = Number(attacker.instinct || 0);
+  const oInstinct = Number(defender.instinct || 0);
   const pCritChance = Math.min(60, 5 + (pFoc * 0.05) + (pInstinct * 0.1));
   const oCritChance = Math.min(60, 5 + (oFoc * 0.05) + (oInstinct * 0.1));
 

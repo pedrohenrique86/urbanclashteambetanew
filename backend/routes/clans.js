@@ -65,6 +65,7 @@ router.get("/:id/events", authenticateToken, (req, res) => {
 
 const rankingCacheService = require("../services/rankingCacheService");
 const clanStateService = require("../services/clanStateService");
+const clanMemberService = require("../services/clanMemberService");
 const gameLogic = require("../utils/gameLogic");
 
 // =========================
@@ -404,34 +405,55 @@ router.get("/:id", async (req, res) => {
 // =========================
 router.get("/:id/members", async (req, res) => {
   try {
-    const { id } = req.params;
-    const membersResult = await query(
-      `
-      SELECT 
-        cm.role,
-        cm.joined_at,
-        u.id as user_id,
-        u.username,
-        u.country,
-        COALESCE(p.display_name, p.username, u.username) as display_name,
-        p.avatar_url,
-        p.level,
-        p.total_xp as experience_points
-      FROM clan_members cm
-      INNER JOIN users u ON cm.user_id = u.id
-      LEFT JOIN user_profiles p ON u.id = p.user_id
-      WHERE cm.clan_id = $1
-      ORDER BY 
-        CASE cm.role 
-          WHEN 'leader' THEN 1 
-          WHEN 'officer' THEN 2 
-          ELSE 3 
-        END,
-        cm.joined_at ASC
-      `,
-      [id],
-    );
-    res.json({ members: membersResult.rows.map(parseMember) });
+    const { id: clanId } = req.params;
+    
+    // SÊNIOR: Redis-First Hydration
+    const memberIds = await clanMemberService.getMemberIds(clanId);
+    const playerStateService = require("../services/playerStateService");
+    
+    const members = [];
+    const missingIds = [];
+
+    // Tenta carregar do Redis em lote
+    const pipeline = redisClient.pipeline();
+    memberIds.forEach(userId => pipeline.hGetAll(`${playerStateService.PLAYER_STATE_PREFIX}${userId}`));
+    const results = await pipeline.exec();
+
+    memberIds.forEach((userId, idx) => {
+      const raw = results[idx];
+      if (raw && Object.keys(raw).length > 0) {
+        const state = playerStateService._parseState(raw);
+        members.push({
+          user_id: userId,
+          username: state.username,
+          display_name: state.display_name || state.username,
+          avatar_url: state.avatar_url,
+          level: state.level,
+          experience_points: state.total_xp,
+          role: 'member' // TODO: Armazenar roles no Redis Set se necessário
+        });
+      } else {
+        missingIds.push(userId);
+      }
+    });
+
+    // Fallback para o Banco se houver misses
+    if (missingIds.length > 0) {
+      const { rows } = await query(
+        `SELECT 
+          cm.role, cm.joined_at, u.id as user_id, u.username, u.country,
+          COALESCE(p.display_name, p.username, u.username) as display_name,
+          p.avatar_url, p.level, p.total_xp as experience_points
+        FROM clan_members cm
+        INNER JOIN users u ON cm.user_id = u.id
+        LEFT JOIN user_profiles p ON u.id = p.user_id
+        WHERE cm.user_id IN (${missingIds.map((_, i) => `$${i+1}`).join(',')}) AND cm.clan_id = $${missingIds.length + 1}`,
+        [...missingIds, clanId]
+      );
+      members.push(...rows.map(parseMember));
+    }
+
+    res.json({ members });
   } catch (error) {
     console.error("❌ Erro ao buscar membros do clã:", error.message);
     res.status(500).json({ error: "Erro interno do servidor" });
@@ -531,6 +553,7 @@ router.post("/", authenticateToken, createClanValidation, async (req, res) => {
     });
 
     await redisClient.delAsync(`playerState:${userId}`);
+    await clanMemberService.addMember(clanId, userId);
 
     res.status(201).json({
       message: "Clã criado com sucesso",
@@ -707,6 +730,7 @@ router.post("/:id/join", authenticateToken, async (req, res) => {
 
     await redisClient.delAsync(`playerState:${userId}`);
     await redisClient.delAsync(`clan_profile:${clanId}`); // Invalida cache de clã
+    await clanMemberService.addMember(clanId, userId);
 
     // Atualiza contagem no Cache (Redis) - Sincroniza em lote a cada 10 min
     await clanStateService.updateClanState(clanId, { member_count: 1 });
@@ -790,6 +814,7 @@ router.post("/:id/leave", authenticateToken, async (req, res) => {
 
     await redisClient.delAsync(`playerState:${userId}`);
     await redisClient.delAsync(`clan_profile:${clanId}`); // Invalida cache
+    await clanMemberService.removeMember(clanId, userId);
 
     // Atualiza contagem no Cache (Redis)
     await clanStateService.updateClanState(clanId, { member_count: -1 });
@@ -895,6 +920,8 @@ router.post("/:id/vote-kick/:targetUserId", authenticateToken, async (req, res) 
     if (result.status === 200 && result.body.message.includes("expulso")) {
       await redisClient.delAsync(`playerState:${targetUserId}`);
       await redisClient.delAsync(`clan_profile:${clanId}`);
+      await clanMemberService.removeMember(clanId, targetUserId);
+      await clanStateService.updateClanState(clanId, { member_count: -1 });
     }
 
     return res.status(result.status).json(result.body);
@@ -966,6 +993,7 @@ router.post("/:id/kick/:userId", authenticateToken, async (req, res) => {
 
     await redisClient.delAsync(`playerState:${targetUserId}`);
     await redisClient.delAsync(`clan_profile:${id}`);
+    await clanMemberService.removeMember(id, targetUserId);
     await clanStateService.updateClanState(id, { member_count: -1 });
 
     res.json({ message: "Membro expulso com sucesso." });

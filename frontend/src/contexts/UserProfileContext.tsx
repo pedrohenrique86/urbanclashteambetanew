@@ -232,7 +232,7 @@ export const UserProfileProvider = ({ children }: { children: ReactNode }) => {
         attack: profileData.attack !== undefined ? Number(profileData.attack) : 0,
         defense: profileData.defense !== undefined ? Number(profileData.defense) : 0,
         focus: profileData.focus !== undefined ? Number(profileData.focus) : 0,
-        instinct: profileData.luck !== undefined ? Number(profileData.luck) : 0,
+        instinct: profileData.instinct !== undefined ? Number(profileData.instinct) : 0,
         intimidation: profileData.intimidation !== undefined ? Number(profileData.intimidation) : 0,
         discipline: profileData.discipline !== undefined ? Number(profileData.discipline) : 0,
         critical_chance: profileData.critical_chance !== undefined ? Number(profileData.critical_chance) : 0,

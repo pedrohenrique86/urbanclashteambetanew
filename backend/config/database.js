@@ -463,24 +463,6 @@ async function runPlayerStatusMigrations(silent = false) {
       END $$;
     `);
 
-    // 2. Tabela player_status_logs
-    await query(`
-      CREATE TABLE IF NOT EXISTS player_status_logs (
-        id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-        user_id UUID REFERENCES users(id) ON DELETE CASCADE,
-        status VARCHAR(20) NOT NULL,
-        started_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        ended_at TIMESTAMPTZ NULL,
-        created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
-      );
-    `);
-
-    // 3. Índices (idempotentes via IF NOT EXISTS)
-    await query(`CREATE INDEX IF NOT EXISTS idx_status_logs_user_id ON player_status_logs(user_id);`);
-    await query(`CREATE INDEX IF NOT EXISTS idx_status_logs_status ON player_status_logs(status);`);
-    await query(`CREATE INDEX IF NOT EXISTS idx_status_logs_composite ON player_status_logs(user_id, ended_at);`);
-    await query(`CREATE INDEX IF NOT EXISTS idx_status_logs_started_at ON player_status_logs(started_at);`);
-
     if (!silent) console.log("✅ Verificação básica de tabelas de Status concluída.");
   } catch (error) {
     console.error("❌ Erro na verificação de Status:", error.message);
