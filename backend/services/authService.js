@@ -26,8 +26,15 @@ async function authenticateSocket(token) {
     if (redisClient.client.isReady) {
       const cached = await redisClient.getAsync(cacheKey);
       if (cached) {
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`\x1b[36m[Redis:Auth]\x1b[0m ⚡ Cache HIT para ${userId}`);
+        }
         return JSON.parse(cached);
       }
+    }
+
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`[AuthService] 🗄️ Cache MISS para ${userId}. Buscando no DB...`);
     }
 
     // 2. Fallback ao Banco de Dados (Slow Path)
@@ -39,9 +46,9 @@ async function authenticateSocket(token) {
         u.country,
         u.is_email_confirmed,
         u.is_admin,
-        cm.clan_id
+        up.clan_id
       FROM users u
-      LEFT JOIN clan_members cm ON u.id = cm.user_id
+      LEFT JOIN user_profiles up ON u.id = up.user_id
       WHERE u.id = $1;
     `;
 
@@ -52,6 +59,9 @@ async function authenticateSocket(token) {
     }
 
     const user = result.rows[0];
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`[AuthService] ✅ DB Result para ${userId}: clan_id=${user.clan_id}`);
+    }
 
     // 3. Salva no Redis para próximas requisições
     if (redisClient.client.isReady) {
@@ -66,7 +76,28 @@ async function authenticateSocket(token) {
   }
 }
 
+/**
+ * SÊNIOR: Invalida o cache de autenticação de um usuário.
+ * Chamado quando há mudanças críticas (ex: troca de clã) para garantir 
+ * que o socketHandler e outros serviços vejam os dados novos.
+ */
+async function clearAuthCache(userId) {
+  if (!userId) return;
+  const cacheKey = `${AUTH_CACHE_PREFIX}${userId}`;
+  try {
+    if (redisClient.client.isReady) {
+      await redisClient.delAsync(cacheKey);
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`\x1b[35m[Redis:Auth]\x1b[0m 🗑️ Cache invalidado para ${userId}`);
+      }
+    }
+  } catch (err) {
+    console.error(`[AuthService] Erro ao invalidar cache para ${userId}:`, err.message);
+  }
+}
+
 module.exports = {
   authenticateSocket,
+  clearAuthCache,
   AUTH_CACHE_PREFIX
 };

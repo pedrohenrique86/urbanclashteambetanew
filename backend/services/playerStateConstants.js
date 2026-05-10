@@ -90,7 +90,8 @@ const FIELD_TO_SSE = {
   display_name      : "username",
   pending_training_toast: "trainingToast",
   current_training_id: "trainingId",
-  training_ends_at  : "trainingEndsAt"
+  training_ends_at  : "trainingEndsAt",
+  clan_id           : "clan_id"
 };
 
 /**

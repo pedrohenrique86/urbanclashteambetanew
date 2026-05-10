@@ -20,9 +20,9 @@ async function configurePersistence() {
     await client.configSet("appendfsync", "everysec");
     await client.configSet("auto-aof-rewrite-percentage", "100");
     await client.configSet("auto-aof-rewrite-min-size", "64mb");
-    console.log("🛡️ [Redis] Persistência AOF Configurada: PROTEÇÃO MÁXIMA & PERFORMANCE ATIVADA");
+    console.log("\x1b[36m[Redis]\x1b[0m Persistência AOF Configurada: PROTEÇÃO MÁXIMA & PERFORMANCE ATIVADA");
   } catch (err) {
-    console.warn("⚠️ [Redis] Não foi possível configurar persistência via CONFIG SET:", err.message);
+    console.warn("\x1b[33m⚠️ [Redis]\x1b[0m Não foi possível configurar persistência via CONFIG SET:", err.message);
     console.warn("   -> Certifique-se de que 'appendonly yes' está no seu redis.conf para persistência garantida.");
   }
 }
@@ -39,19 +39,19 @@ async function initRedis() {
     });
 
     localClient.on("ready", () => {
-      console.log("✅ Redis (Local) Pronto");
+      console.log("\x1b[36m[Redis]\x1b[0m ✅ Pronto (Local)");
       isReady = true;
     });
 
     localClient.on("reconnecting", () => {
-      console.log("[RedisClient] Reconectando ao Redis...");
+      console.log("\x1b[33m[Redis]\x1b[0m 🔄 Reconectando...");
       isReady = false;
     });
 
     await localClient.connect();
     client = localClient;
     isReady = true; 
-    console.log("✅ Redis (Local) OK");
+    console.log("\x1b[36m[Redis]\x1b[0m ✅ Conexão Estabelecida");
 
     // Aplica configurações de persistência solicitadas
     await configurePersistence();

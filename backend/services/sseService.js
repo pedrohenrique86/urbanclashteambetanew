@@ -51,10 +51,10 @@ async function initRedisBridge() {
       }
     });
 
-    console.log("✅ SSE-Bridge (Redis Pub/Sub) Ativado.");
+    console.log("\x1b[36m[Redis]\x1b[0m ✅ SSE-Bridge (Pub/Sub) Ativado");
   } catch (err) {
-    console.error("⚠️ Falha ao iniciar SSE-Bridge (Redis indisponível):", err.message);
-    console.log("🔄 Tentando reconectar SSE-Bridge em 5 segundos...");
+    console.error("\x1b[31m[Redis]\x1b[0m ⚠️ Falha ao iniciar SSE-Bridge:", err.message);
+    console.log("\x1b[33m[Redis]\x1b[0m 🔄 Tentando reconectar SSE-Bridge em 5 segundos...");
     setTimeout(initRedisBridge, 5000);
   }
 }
@@ -144,18 +144,20 @@ function _localPublish(topic, event, data) {
   }
 
   // 2. SÊNIOR: Envio via Socket.io (Alta Performance / Mobile Ready)
-  // Se for um tópico de jogador, enviamos para a sala específica dele no Socket.io
-  if (topic.startsWith("player:")) {
-    const userId = topic.replace("player:", "");
-    try {
-      const { getIO } = require("../socketHandler");
-      const io = getIO();
-      if (io) {
+  try {
+    const { getIO } = require("../socketHandler");
+    const io = getIO();
+    if (io) {
+      if (topic.startsWith("player:")) {
+        const userId = topic.replace("player:", "");
         io.to(`user:${userId}`).emit(event, data);
+      } else if (topic.startsWith("clan:")) {
+        const clanId = topic.replace("clan:", "");
+        io.to(`clan:${clanId}`).emit(event, data);
       }
-    } catch (err) {
-      // socketHandler pode não estar inicializado em scripts CLI
     }
+  } catch (err) {
+    // socketHandler pode não estar inicializado em scripts CLI
   }
 }
 
@@ -264,5 +266,9 @@ module.exports = {
   /** Retorna true se houver ao menos um cliente SSE conectado ao tópico */
   hasSubscribers: (topic) => topics.has(topic) && topics.get(topic).size > 0,
   /** SÊNIOR: Atalho para publicar eventos diretamente para um jogador */
-  broadcastToUser: (userId, event, data) => publish(`player:${userId}`, event, data)
+  publishToPlayer: (userId, event, data) => publish(`player:${userId}`, event, data),
+  /** Legado: Alias para publishToPlayer */
+  broadcastToUser: (userId, event, data) => publish(`player:${userId}`, event, data),
+  /** SÊNIOR: Envia mensagem para todos os membros de um clã */
+  publishToClan: (clanId, event, data) => publish(`clan:${clanId}`, event, data)
 };

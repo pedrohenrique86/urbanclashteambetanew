@@ -59,8 +59,16 @@ async function handleNewMessage(io, socket, text) {
   const { user } = socket;
   if (!user) return;
   
-  const clanId = String(user?.clan_id ?? "").trim();
-  if (!clanId || clanId === "null" || clanId === "undefined") return;
+  const rawClanId = user?.clan_id;
+  const clanId = (rawClanId && rawClanId !== "null" && rawClanId !== "undefined") ? String(rawClanId).trim() : "";
+  if (!clanId) {
+    console.warn(`[ChatService] 🛡️ Mensagem rejeitada: Usuário ${user.id} sem clan_id válido. raw=${rawClanId}`);
+    return;
+  }
+
+  if (process.env.NODE_ENV === 'development') {
+    console.log(`[ChatService] 📨 Processando mensagem para o clã ${clanId}`);
+  }
 
   const trimmedText = typeof text === "string" ? text.trim() : "";
   if (!trimmedText || trimmedText.length > 200) return;

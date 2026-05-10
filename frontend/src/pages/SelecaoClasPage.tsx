@@ -71,9 +71,11 @@ const SelecaoClasPage: React.FC = () => {
     try {
       await apiClient.joinClan(String(clanId));
       setUserProfile({ ...userProfile, clan_id: String(clanId) });
-    } catch (err) {
+    } catch (err: any) {
       console.error("Erro ao entrar na divisão:", err);
-      setJoinError("FALHA NA CONEXÃO COM A REDE DA DIVISÃO.");
+      // Se for um erro conhecido do backend, mostramos a mensagem real
+      const errorMsg = err.message || "FALHA NA CONEXÃO COM A REDE DA DIVISÃO.";
+      setJoinError(errorMsg.toUpperCase());
       setJoiningClanId(null);
     }
   };

@@ -118,6 +118,10 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({
       return;
     }
 
+    // SÊNIOR: Sempre reseta conexão ao trocar de clã para evitar enviar msg para a sala errada
+    setIsConnected(false);
+    setMessages([]);
+
     const token = apiClient.getToken();
     if (!token) {
       if (import.meta.env.DEV) {
@@ -135,7 +139,12 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({
     };
 
     const handleAuthFailed = (error: { message: string }) => {
-      if (error.message.includes("Usuário inválido ou sem clã")) {
+      const isExpectedError = 
+        error.message.includes("Usuário inválido ou sem clã") || 
+        error.message.includes("Você não pertence a uma divisão") ||
+        error.message.includes("Acesso negado: Você não pertence a este clã");
+
+      if (isExpectedError) {
         if (import.meta.env.DEV) console.debug("[ChatContext] Auth abortada (usuário ainda sem clã).");
       } else {
         console.error("[ChatContext] Falha real na autenticação do chat:", error.message);
@@ -168,10 +177,13 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({
     socketService.onChatHistoryError(handleHistoryError);
     socketService.onMessageReceived(handleNewMessage);
 
-    socketService.authenticateChat(token);
+    const authTimeout = setTimeout(() => {
+      socketService.authenticateChat(token);
+    }, 500);
 
     // Limpeza de listeners para evitar duplicatas e vazamentos de memória
     return () => {
+      clearTimeout(authTimeout);
       if (historyRetryTimeoutRef.current) {
         clearTimeout(historyRetryTimeoutRef.current);
         historyRetryTimeoutRef.current = null;

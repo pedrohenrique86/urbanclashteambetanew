@@ -140,7 +140,7 @@ export const ClanChat: React.FC<ClanChatProps> = ({ members = [] }) => {
       setNewMessage("");
       setShowMentions(false);
       setIsSending(true);
-      setTimeout(() => setIsSending(false), 5000);
+      setTimeout(() => setIsSending(false), 1000);
     }
   };
 

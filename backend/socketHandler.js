@@ -2,6 +2,7 @@ const gameStateService = require("./services/gameStateService");
 const { authenticateSocket } = require("./services/authService");
 const chatService = require("./services/chatService");
 const redisClient = require("./config/redisClient");
+const clanMemberService = require("./services/clanMemberService");
 
 async function enforceSingleSession(io, socket, user, cid) {
   const userId = String(user.id);
@@ -72,15 +73,26 @@ function initializeSocket(server) {
         const user = await authenticateSocket(token);
         if (currentAuthVersion !== socket.authVersion) return;
 
-        const clanId = String(user?.clan_id ?? "").trim();
-        if (!clanId || clanId === "null" || clanId === "undefined") {
-          socket.emit("chat:auth_failed", { message: "Usuário sem clã válido." });
+        const rawClanId = user?.clan_id;
+        const clanId = (rawClanId && rawClanId !== "null" && rawClanId !== "undefined") ? String(rawClanId).trim() : "";
+
+        if (!clanId) {
+          socket.emit("chat:auth_failed", { message: "Você não pertence a uma divisão (clã) no momento." });
+          return;
+        }
+
+        // SÊNIOR: Verificação dupla contra o DB para evitar spoofing/stale state
+        const isMember = await clanMemberService.isMember(clanId, user.id);
+        
+        if (!isMember) {
+          console.warn(`[Socket:ChatAuth] 🛡️ Acesso negado: user=${user.id} não pertence ao clã ${clanId}`);
+          socket.emit("chat:auth_failed", { message: "Acesso negado: Você não pertence a este clã." });
           return;
         }
 
         const clanRoom = `clan:${clanId}`;
         
-        // Limpeza rigorosa de salas de clã anteriores para garantir isolamento (F5/Refresh)
+        // Limpeza rigorosa de salas de clã anteriores para garantir isolamento
         for (const room of [...socket.rooms]) {
           if (room.startsWith("clan:") && room !== clanRoom) {
             socket.leave(room);
@@ -97,39 +109,41 @@ function initializeSocket(server) {
 
         socket.emit("chat:auth_success");
         socket.emit("chat:history", history || []);
-
-        // Listeners persistentes (registrados apenas uma vez por socket)
-        if (!socket.hasChatListener) {
-          socket.hasChatListener = true;
-
-          // Envio de nova mensagem
-          socket.on("chat:sendMessage", async (messageData) => {
-            if (!socket.user || !socket.user.clan_id) return;
-            
-            const now = Date.now();
-            if (now - socket.lastMessageTimestamp < MESSAGE_COOLDOWN_MS) return;
-            
-            const messageText = typeof messageData.text === "string" ? messageData.text.trim() : "";
-            if (messageText.length === 0) return;
-
-            socket.lastMessageTimestamp = now;
-            await chatService.handleNewMessage(io, socket, messageText);
-          });
-
-          // Pedido manual de histórico (Repescagem/Fallback)
-          socket.on("chat:request_history", async () => {
-            if (!socket.user || !socket.user.clan_id) return;
-            try {
-              const hist = await chatService.getChatHistory(socket.user.clan_id);
-              socket.emit("chat:history", hist || []);
-            } catch (err) {
-              socket.emit("chat:history_error");
-            }
-          });
-        }
       } catch (err) {
-        socket.emit("chat:auth_failed", { message: err.message });
+        console.error(`[Socket:ChatAuth] ❌ Erro: ${err.message}`);
+        socket.emit("chat:auth_failed", { message: "Falha na autenticação do chat." });
       }
+    });
+
+    // SÊNIOR: Envio de mensagem unificado
+    socket.on("chat:sendMessage", async (messageData) => {
+      const user = socket.user;
+      if (!user) return;
+      
+      const rawClanId = user.clan_id;
+      const clanId = (rawClanId && rawClanId !== "null" && rawClanId !== "undefined") ? String(rawClanId).trim() : "";
+      if (!clanId) return;
+
+      const now = Date.now();
+      if (now - (socket.lastMessageTimestamp || 0) < MESSAGE_COOLDOWN_MS) return;
+
+      const messageText = String(messageData?.text || messageData?.content || "").trim();
+      if (!messageText) return;
+
+      socket.lastMessageTimestamp = now;
+      try {
+        await chatService.handleNewMessage(io, socket, messageText);
+      } catch (err) {
+        console.error(`[Socket:Chat] Erro ao enviar:`, err.message);
+      }
+    });
+
+    // Pedido manual de histórico
+    socket.on("chat:request_history", async () => {
+      const user = socket.user;
+      if (!user || !user.clan_id) return;
+      const history = await chatService.getChatHistory(user.clan_id);
+      socket.emit("chat:history", history || []);
     });
 
     // ─── CHAT DO SETOR DE ISOLAMENTO ──────────────────────────────────────────
