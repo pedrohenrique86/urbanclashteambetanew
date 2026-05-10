@@ -103,16 +103,17 @@ const DB_PERSIST_FIELDS = new Set([
   "training_ends_at", "daily_training_count", "last_training_reset", "active_training_type",
   "energy", "action_points", "last_ap_reset",
   "energy_updated_at", "toxicity", "premium_coins", "login_streak",
-  "merit", "corruption", "equipped_chips",
-  "weapon_damage", "shield_protection", "equipment_bonus_foc", "equipment_bonus_ins",
-  "last_daily_special_at"
+  "merit", "corruption"
 ]);
 
 // ─── Dirty TIPO 2: campos voláteis (NÃO persistem no safety-net, só via debounce
 //                   quando absolutamente necessário — energia regenera sozinha)
 const VOLATILE_FIELDS = new Set([
   "max_energy",
-  "recon_reason", "recon_phrase", "recon_loss_credits", "recon_loss_xp", "recon_power_result"
+  "recon_reason", "recon_phrase", "recon_loss_credits", "recon_loss_xp", "recon_power_result",
+  "equipped_chips",
+  "weapon_damage", "shield_protection", "equipment_bonus_foc", "equipment_bonus_ins",
+  "last_daily_special_at"
 ]);
 
 // ─── Todos os campos que disparam SSE ao frontend ────────────────────────────────
