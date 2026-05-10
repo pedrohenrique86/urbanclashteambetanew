@@ -301,23 +301,40 @@ class ContractService {
 
 
   async getLogs(onlyMajor = false) {
-    // SÊNIOR: Agora buscamos da tabela unificada action_logs filtrando por is_public
-    const where = onlyMajor ? 'AND (metadata->>\'is_master\')::boolean = true' : '';
-    const { rows } = await query(
-      `SELECT 
-        l.user_id,
-        up.username,
-        up.faction,
-        l.action_type as event_type,
-        l.metadata->>'public_message' as message,
-        l.created_at
-       FROM action_logs l
-       JOIN user_profiles up ON l.user_id = up.user_id
-       WHERE l.is_public = true ${where}
-       ORDER BY l.created_at DESC 
-       LIMIT 20`
-    );
-    return rows;
+    const cacheKey = onlyMajor ? "cache:contract_logs:major" : "cache:contract_logs:public";
+    
+    try {
+      // 1. Tenta buscar do Redis
+      const cached = await redisClient.getAsync(cacheKey);
+      if (cached) return JSON.parse(cached);
+
+      // 2. Busca do PostgreSQL apenas se não houver no cache
+      const where = onlyMajor ? 'AND (metadata->>\'is_master\')::boolean = true' : '';
+      const { rows } = await query(
+        `SELECT 
+          l.user_id,
+          up.username,
+          up.faction,
+          l.action_type as event_type,
+          l.metadata->>'public_message' as message,
+          l.created_at
+         FROM action_logs l
+         JOIN user_profiles up ON l.user_id = up.user_id
+         WHERE l.is_public = true ${where}
+         ORDER BY l.created_at DESC 
+         LIMIT 20`
+      );
+
+      // 3. Cacheia por 5 minutos para evitar consultas repetitivas (SWR/Ticker)
+      // Se estiver vazio, cacheia por 1 minuto apenas.
+      const ttl = rows.length > 0 ? 300 : 60;
+      await redisClient.setAsync(cacheKey, JSON.stringify(rows), "EX", ttl);
+
+      return rows;
+    } catch (err) {
+      console.error("[contractService] Erro ao buscar logs:", err.message);
+      return [];
+    }
   }
 }
 

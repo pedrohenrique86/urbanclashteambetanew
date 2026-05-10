@@ -67,6 +67,12 @@ class ActionLogService {
       
       // 2. Camada Persistência: Enfileira para descarte no Banco em Lote
       p.rPush(LOGS_QUEUE_KEY, JSON.stringify(logEntry));
+
+      // 3. Invalida o cache global de logs públicos se este log for público
+      if (isPublic) {
+        p.del("cache:contract_logs:public");
+        p.del("cache:contract_logs:major");
+      }
       
       await p.exec();
     } catch (err) {
