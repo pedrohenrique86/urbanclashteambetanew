@@ -103,7 +103,8 @@ const DB_PERSIST_FIELDS = new Set([
   "training_ends_at", "daily_training_count", "last_training_reset", "active_training_type",
   "energy", "action_points", "last_ap_reset",
   "energy_updated_at", "toxicity", "premium_coins", "login_streak",
-  "merit", "corruption", "equipped_chips"
+  "merit", "corruption", "equipped_chips",
+  "weapon_damage", "shield_protection", "equipment_bonus_foc", "equipment_bonus_ins"
 ]);
 
 // ─── Dirty TIPO 2: campos voláteis (NÃO persistem no safety-net, só via debounce
@@ -161,7 +162,8 @@ const NUMERIC_FIELDS = new Set([
   "attack", "defense", "focus", "luck", "critical_damage", "critical_chance",
   "money", "intimidation", "discipline", "victories", "defeats", 
   "winning_streak", "daily_training_count", "toxicity",
-  "recon_loss_credits", "recon_loss_xp", "merit", "corruption"
+  "recon_loss_credits", "recon_loss_xp", "merit", "corruption",
+  "weapon_damage", "shield_protection", "equipment_bonus_foc", "equipment_bonus_ins"
 ]);
 
 // ─── Estado interno ───────────────────────────────────────────────────────────────
@@ -545,18 +547,55 @@ async function loadPlayerState(userId) {
       return acc;
     }, {});
 
-    // SÊNIOR: Busca chips equipados e guarda como JSON no Redis
+    // SÊNIOR: Arsenal Tático e Deck Paralelo (Equipamentos e Chips)
+    // Busca bônus agregados e lista de chips em uma única passagem
     try {
-      const chipRes = await query(
-        `SELECT i.name, i.base_attack_bonus as power_boost, i.base_focus_bonus as xp_boost, i.base_defense_bonus as money_shield
-         FROM items i
-         JOIN player_inventory pi ON i.id = pi.item_id
-         WHERE pi.user_id = $1 AND pi.is_equipped = TRUE AND i.type = 'chip'`,
+      const equipRes = await query(
+        `SELECT 
+          i.type,
+          i.name,
+          i.base_attack_bonus,
+          i.base_defense_bonus,
+          i.base_focus_bonus,
+          i.base_energy_bonus as instinct_bonus
+         FROM player_inventory pi
+         JOIN items i ON pi.item_id = i.id
+         WHERE pi.user_id = $1 AND pi.is_equipped = TRUE`,
         [userId]
       );
-      stateForRedis.equipped_chips = JSON.stringify(chipRes.rows);
+
+      let weaponDmg = 0;
+      let shieldDef = 0;
+      let equipFoc = 0;
+      let equipIns = 0;
+      const chips = [];
+
+      equipRes.rows.forEach(item => {
+        if (item.type === 'chip') {
+          chips.push({
+            name: item.name,
+            power_boost: Number(item.base_attack_bonus),
+            xp_boost: Number(item.base_focus_bonus),
+            money_shield: Number(item.base_defense_bonus)
+          });
+        } else {
+          weaponDmg += Number(item.base_attack_bonus || 0);
+          shieldDef += Number(item.base_defense_bonus || 0);
+          equipFoc += Number(item.base_focus_bonus || 0);
+          equipIns += Number(item.instinct_bonus || 0);
+        }
+      });
+
+      stateForRedis.equipped_chips = JSON.stringify(chips);
+      stateForRedis.weapon_damage = String(weaponDmg);
+      stateForRedis.shield_protection = String(shieldDef);
+      stateForRedis.equipment_bonus_foc = String(equipFoc);
+      stateForRedis.equipment_bonus_ins = String(equipIns);
     } catch (e) {
+      console.error("[playerState] Erro ao carregar Arsenal:", e.message);
       stateForRedis.equipped_chips = "[]";
+      stateForRedis.weapon_damage = "0";
+      stateForRedis.shield_protection = "0";
     }
 
     stateForRedis.is_dirty       = "0";
@@ -1408,6 +1447,76 @@ async function regenEnergyForPlayer(userId) {
  * Resolve um Race Condition onde múltiplas chamadas rápidas poderiam 
  * deixar vários logs com 'ended_at IS NULL'.
  */
+async function refreshEquipmentBonuses(userId) {
+  const STATE_PREFIX = "playerState:";
+  const redisKey = `${STATE_PREFIX}${userId}`;
+  const equipKey = `player:equipment:${userId}`;
+  
+  try {
+    const equipped = await redisClient.hGetAllAsync(equipKey);
+    // Se não há nada equipado, zeramos os bônus no Redis
+    if (!equipped || Object.keys(equipped).length === 0) {
+      await redisClient.hSetAsync(redisKey, {
+        equipped_chips: "[]",
+        weapon_damage: "0",
+        shield_protection: "0",
+        equipment_bonus_foc: "0",
+        equipment_bonus_ins: "0"
+      });
+      return;
+    }
+
+    let catalog = await redisClient.getAsync("catalog:items");
+    if (!catalog) {
+      const { rows } = await query("SELECT id, name, code, type, rarity, base_attack_bonus, base_defense_bonus, base_focus_bonus, base_energy_bonus as instinct_bonus FROM items");
+      catalog = JSON.stringify(rows);
+      await redisClient.setAsync("catalog:items", catalog, "EX", 3600);
+    }
+    const items = JSON.parse(catalog);
+
+    let weaponDmg = 0;
+    let shieldDef = 0;
+    let equipFoc = 0;
+    let equipIns = 0;
+    const chips = [];
+
+    for (const [slot, code] of Object.entries(equipped)) {
+      const item = items.find(i => i.code === code);
+      if (!item) continue;
+
+      if (item.type === 'chip') {
+        chips.push({
+          name: item.name,
+          power_boost: Number(item.base_attack_bonus),
+          xp_boost: Number(item.base_focus_bonus),
+          money_shield: Number(item.base_defense_bonus)
+        });
+      } else {
+        weaponDmg += Number(item.base_attack_bonus || 0);
+        shieldDef += Number(item.base_defense_bonus || 0);
+        equipFoc += Number(item.base_focus_bonus || 0);
+        equipIns += Number(item.base_energy_bonus || 0);
+      }
+    }
+
+    const updates = {
+      equipped_chips: JSON.stringify(chips),
+      weapon_damage: String(weaponDmg),
+      shield_protection: String(shieldDef),
+      equipment_bonus_foc: String(equipFoc),
+      equipment_bonus_ins: String(equipIns)
+    };
+
+    await redisClient.hSetAsync(redisKey, updates);
+    
+    // Notifica o frontend via SSE que os atributos mudaram (Power Solo / Stats)
+    sseService.publish(`player:${userId}`, "player:state_update", updates);
+
+  } catch (err) {
+    console.error("[playerState] Erro ao dar refresh no Arsenal:", err.message);
+  }
+}
+
 async function _recordStatusLog(userId, newStatus) {
   try {
     // Usamos uma única query atômica para encerrar e abrir logs
@@ -1439,6 +1548,7 @@ module.exports = {
   regenEnergyForPlayer,
   scheduleTraining,
   cancelScheduledTraining,
+  refreshEquipmentBonuses,
   // Para rankingCacheService
   getDirtyRankingPlayers,
   _clearRankingDirty,

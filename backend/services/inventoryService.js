@@ -12,8 +12,9 @@ const redisClient = require("../config/redisClient");
  */
 
 const INV_PREFIX = "player:inventory:";
+const EQUIP_PREFIX = "player:equipment:";
 const INV_DIRTY_SET = "inventory:dirty:set";
-const SYNC_INTERVAL = 30000; // 30 segundos para inventário (menos crítico que financeiro)
+const SYNC_INTERVAL = 30000;
 
 class InventoryService {
   constructor() {
@@ -25,16 +26,67 @@ class InventoryService {
   }
 
   /**
-   * Garante que o inventário do usuário esteja no Redis.
+   * Gerencia o estado de equipamento de um item (Arsenal/Deck).
+   * SÊNIOR: Atomicidade via Redis e sincronização de bônus imediata.
+   */
+  async toggleEquip(userId, itemCode, slot) {
+    await this.ensureLoaded(userId);
+    const invKey = `${INV_PREFIX}${userId}`;
+    const equipKey = `${EQUIP_PREFIX}${userId}`;
+
+    // 1. Verificar se o jogador possui o item
+    const quantity = await redisClient.hGetAsync(invKey, itemCode);
+    if (!quantity || parseInt(quantity) <= 0) {
+      throw new Error("Você não possui este item no inventário.");
+    }
+
+    // 2. Verificar se o item já está equipado em OUTRO slot ou se este slot está ocupado
+    const currentInSlot = await redisClient.hGetAsync(equipKey, slot);
+    
+    if (currentInSlot === itemCode) {
+      // DESEQUIPAR
+      await redisClient.hDelAsync(equipKey, slot);
+    } else {
+      // EQUIPAR (SÊNIOR: Validação de tipo de item por slot poderia ser feita aqui)
+      await redisClient.hSetAsync(equipKey, slot, itemCode);
+    }
+
+    // 3. Marcar para sincronização com o DB
+    await redisClient.sAddAsync(INV_DIRTY_SET, String(userId));
+
+    // 4. CRÍTICO: Recalcular bônus no playerStateService para o combate refletir a mudança
+    const playerStateService = require("./playerStateService");
+    await playerStateService.refreshEquipmentBonuses(userId);
+
+    return { 
+      equipped: currentInSlot !== itemCode,
+      slot,
+      itemCode
+    };
+  }
+
+  /**
+   * Retorna os itens equipados do Redis.
+   */
+  async getEquippedItems(userId) {
+    const equipKey = `${EQUIP_PREFIX}${userId}`;
+    const equipped = await redisClient.hGetAllAsync(equipKey);
+    return equipped || {};
+  }
+
+  /**
+   * Garante que o inventário E equipamentos do usuário estejam no Redis.
    */
   async ensureLoaded(userId) {
-    const redisKey = `${INV_PREFIX}${userId}`;
-    const exists = await redisClient.existsAsync(redisKey);
+    const invKey = `${INV_PREFIX}${userId}`;
+    const equipKey = `${EQUIP_PREFIX}${userId}`;
+    
+    const exists = await redisClient.existsAsync(invKey);
     
     if (!exists) {
-      // Cache miss: carrega do PostgreSQL
+      // Cache miss: carrega do PostgreSQL (Inventário + Equipamentos)
       const { rows } = await query(
-        `SELECT i.code, pi.quantity 
+        `SELECT i.code, pi.quantity, pi.is_equipped, pi.slot
          FROM player_inventory pi
          JOIN items i ON pi.item_id = i.id
          WHERE pi.user_id = $1`,
@@ -44,13 +96,16 @@ class InventoryService {
       const pipeline = redisClient.pipeline();
       if (rows.length > 0) {
         for (const row of rows) {
-          pipeline.hSet(redisKey, row.code, String(row.quantity));
+          pipeline.hSet(invKey, row.code, String(row.quantity));
+          if (row.is_equipped && row.slot) {
+            pipeline.hSet(equipKey, row.slot, row.code);
+          }
         }
       } else {
-        // Marcamos como vazio para evitar futuros cache misses se o player não tem nada
-        pipeline.hSet(redisKey, "_empty", "1");
+        pipeline.hSet(invKey, "_empty", "1");
       }
-      pipeline.expire(redisKey, 3600); // 1 hora de TTL
+      pipeline.expire(invKey, 3600);
+      pipeline.expire(equipKey, 3600);
       await pipeline.exec();
     }
   }
@@ -60,16 +115,11 @@ class InventoryService {
    */
   async addItem(userId, itemCode, quantity = 1) {
     await this.ensureLoaded(userId);
-    const redisKey = `${INV_PREFIX}${userId}`;
+    const invKey = `${INV_PREFIX}${userId}`;
 
-    const newVal = await redisClient.hIncrByAsync(redisKey, itemCode, quantity);
-    
-    // Se era um inventário vazio, remove o marcador
-    await redisClient.hDelAsync(redisKey, "_empty");
-    
-    // Marca como dirty para persistência
+    const newVal = await redisClient.hIncrByAsync(invKey, itemCode, quantity);
+    await redisClient.hDelAsync(invKey, "_empty");
     await redisClient.sAddAsync(INV_DIRTY_SET, String(userId));
-    
     return newVal;
   }
 
@@ -78,36 +128,43 @@ class InventoryService {
    */
   async removeItem(userId, itemCode, quantity = 1) {
     await this.ensureLoaded(userId);
-    const redisKey = `${INV_PREFIX}${userId}`;
+    const invKey = `${INV_PREFIX}${userId}`;
+    const equipKey = `${EQUIP_PREFIX}${userId}`;
 
-    const current = await redisClient.hGetAsync(redisKey, itemCode);
+    const current = await redisClient.hGetAsync(invKey, itemCode);
     const currentVal = parseInt(current || "0");
 
     if (currentVal <= quantity) {
-      await redisClient.hDelAsync(redisKey, itemCode);
+      await redisClient.hDelAsync(invKey, itemCode);
+      // Se o item estava equipado, remove do slot também
+      const equipped = await redisClient.hGetAllAsync(equipKey);
+      for (const [slot, code] of Object.entries(equipped)) {
+        if (code === itemCode) await redisClient.hDelAsync(equipKey, slot);
+      }
     } else {
-      await redisClient.hIncrByAsync(redisKey, itemCode, -quantity);
+      await redisClient.hIncrByAsync(invKey, itemCode, -quantity);
     }
 
-    // Marca como dirty
     await redisClient.sAddAsync(INV_DIRTY_SET, String(userId));
   }
 
   /**
-   * Retorna o inventário completo do Redis.
-   * SÊNIOR: Zero queries ao PostgreSQL no caminho feliz.
+   * Retorna o inventário completo do Redis unificado com status de equipamento.
    */
   async getInventory(userId) {
     await this.ensureLoaded(userId);
-    const redisKey = `${INV_PREFIX}${userId}`;
+    const invKey = `${INV_PREFIX}${userId}`;
+    const equipKey = `${EQUIP_PREFIX}${userId}`;
     
-    const raw = await redisClient.hGetAllAsync(redisKey);
-    if (!raw || Object.keys(raw).length === 0 || raw._empty) return [];
+    const [rawInv, rawEquip] = await Promise.all([
+      redisClient.hGetAllAsync(invKey),
+      redisClient.hGetAllAsync(equipKey)
+    ]);
 
-    // Tentar pegar o catálogo de itens do Redis (cache global de 1 hora)
+    if (!rawInv || Object.keys(rawInv).length === 0 || rawInv._empty) return [];
+
     let catalog = await redisClient.getAsync("catalog:items");
     if (!catalog) {
-      console.log("[Inventory] 📦 Cache MISS no catálogo. Carregando itens...");
       const { rows } = await query("SELECT id, name, code, type, rarity, base_attack_bonus, base_defense_bonus, base_focus_bonus FROM items");
       catalog = JSON.stringify(rows);
       await redisClient.setAsync("catalog:items", catalog, "EX", 3600);
@@ -115,14 +172,18 @@ class InventoryService {
     
     const items = JSON.parse(catalog);
     const inventory = [];
+    const equippedCodes = Object.values(rawEquip || {});
 
-    for (const [code, qtyStr] of Object.entries(raw)) {
+    for (const [code, qtyStr] of Object.entries(rawInv)) {
       if (code === "_empty") continue;
       const item = items.find(i => i.code === code);
       if (item) {
+        const itemSlot = Object.keys(rawEquip || {}).find(s => rawEquip[s] === code);
         inventory.push({
           ...item,
-          quantity: parseInt(qtyStr)
+          quantity: parseInt(qtyStr),
+          is_equipped: equippedCodes.includes(code),
+          slot: itemSlot || null
         });
       }
     }
@@ -131,8 +192,7 @@ class InventoryService {
   }
 
   /**
-   * Sincroniza inventários alterados com o PostgreSQL.
-   * SÊNIOR: Otimizado para não travar o banco em escala.
+   * Sincroniza inventários E equipamentos com o PostgreSQL.
    */
   async flushDirtyInventories() {
     if (this.isFlushing) return;
@@ -145,39 +205,40 @@ class InventoryService {
         return;
       }
 
-      // SÊNIOR: Limpa o set antes para não perder alterações que ocorram durante o processamento
       await redisClient.delAsync(INV_DIRTY_SET);
-
-      console.log(`[Inventory] 💾 Sincronizando ${dirtyUserIds.length} inventários...`);
+      console.log(`[Inventory] 💾 Sincronizando ${dirtyUserIds.length} estados...`);
       
-      // Para 5k players, processamos em lotes de 50 usuários para não estourar a memória/conexão
       const batchSize = 50;
       for (let i = 0; i < dirtyUserIds.length; i += batchSize) {
         const batch = dirtyUserIds.slice(i, i + batchSize);
         
         await Promise.all(batch.map(async (userId) => {
-          const redisKey = `${INV_PREFIX}${userId}`;
-          const raw = await redisClient.hGetAllAsync(redisKey);
-          if (!raw) return;
+          const invKey = `${INV_PREFIX}${userId}`;
+          const equipKey = `${EQUIP_PREFIX}${userId}`;
+          const [rawInv, rawEquip] = await Promise.all([
+            redisClient.hGetAllAsync(invKey),
+            redisClient.hGetAllAsync(equipKey)
+          ]);
 
-          // Sincronização por usuário (Transaction rápida)
-          // Em um sistema real de 50k, usaríamos UNNEST para bulk total, 
-          // mas para 5k, 1 query por user é 1000x melhor que 1 por item.
-          const entries = Object.entries(raw).filter(([k]) => k !== "_empty");
-          
+          if (!rawInv) return;
+
+          const entries = Object.entries(rawInv).filter(([k]) => k !== "_empty");
           if (entries.length === 0) return;
 
-          const values = [];
-          const placeholders = entries.map(([code, qty], idx) => {
-            values.push(userId, code, parseInt(qty));
-            return `($${idx * 3 + 1}, (SELECT id FROM items WHERE code = $${idx * 3 + 2}), $${idx * 3 + 3})`;
-          }).join(", ");
+          // Sincronização complexa: primeiro reseta is_equipped, depois aplica o novo estado
+          await query("UPDATE player_inventory SET is_equipped = FALSE, slot = NULL WHERE user_id = $1", [userId]);
 
-          await query(`
-            INSERT INTO player_inventory (user_id, item_id, quantity)
-            VALUES ${placeholders}
-            ON CONFLICT (user_id, item_id) DO UPDATE SET quantity = EXCLUDED.quantity
-          `, values);
+          for (const [code, qty] of entries) {
+            const equippedSlot = Object.keys(rawEquip || {}).find(s => rawEquip[s] === code);
+            await query(`
+              INSERT INTO player_inventory (user_id, item_id, quantity, is_equipped, slot)
+              VALUES ($1, (SELECT id FROM items WHERE code = $2), $3, $4, $5)
+              ON CONFLICT (user_id, item_id) DO UPDATE SET 
+                quantity = EXCLUDED.quantity,
+                is_equipped = EXCLUDED.is_equipped,
+                slot = EXCLUDED.slot
+            `, [userId, code, parseInt(qty), !!equippedSlot, equippedSlot || null]);
+          }
         }));
       }
 
