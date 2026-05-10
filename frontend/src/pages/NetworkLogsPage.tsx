@@ -207,7 +207,7 @@ export default function NetworkLogsPage() {
   const [page, setPage] = React.useState(1);
 
   const { data: logs, error, mutate, isValidating } = useSWR(`/logs/me?page=${page}`, () => logService.getMyLogs(page), {
-    refreshInterval: 30000, 
+    refreshInterval: 60000, 
     revalidateOnFocus: true
   });
 

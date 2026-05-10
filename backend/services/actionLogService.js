@@ -86,6 +86,9 @@ class ActionLogService {
       const cached = await redisClient.lRangeAsync(userLogsKey, start, end);
 
       if (cached && cached.length > 0) {
+        // SÊNIOR: Se o primeiro item for o marcador de vazio, retorna vazio sem bater no DB
+        if (cached[0] === "EMPTY_MARKER") return [];
+
         return cached.map((raw, index) => {
           const parsed = JSON.parse(raw);
           return {
@@ -109,6 +112,15 @@ class ActionLogService {
          LIMIT $2 OFFSET $3`,
         [userId, limit, start]
       );
+
+      // SÊNIOR: Se o banco retornou vazio, cacheamos o "vazio" no Redis por 5 minutos
+      // para evitar que o poll de 30s do frontend acorde o Neon DB sem necessidade.
+      if (result.rows.length === 0 && page === 1) {
+        await redisClient.lPushAsync(userLogsKey, "EMPTY_MARKER");
+        await redisClient.expireAsync(userLogsKey, 300); // 5 minutos de "silêncio" no banco
+        return [];
+      }
+
       return result.rows;
     } catch (err) {
       console.error(`[actionLogService] Erro ao buscar logs:`, err.message);
