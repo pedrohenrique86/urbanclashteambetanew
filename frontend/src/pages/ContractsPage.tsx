@@ -360,6 +360,7 @@ export default function ContractsPage() {
   const [showInterception, setShowInterception] = useState(false);
   const [cooldown, setCooldown] = useState(0);
   const [isManualOpen, setIsManualOpen] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
 
   useEffect(() => {
     if (cooldown > 0) {
@@ -375,6 +376,27 @@ export default function ContractsPage() {
   useEffect(() => {
     if (status?.logs) setLocalLogs(status.logs);
   }, [status]);
+
+  // Lógica de Filtragem de Tarefas (Página 1 e Página 2)
+  const allTasks = faction === 'gangsters' ? (config?.heists || []) : (config?.guardianTasks || []);
+  const userLvl = userProfile?.level || 1;
+  const unlockedTasks = allTasks.filter(t => t.level <= userLvl);
+  const nextLockedTask = allTasks.find(t => t.level > userLvl);
+  
+  // Página 1: Ativos (2 mais recentes desbloqueados + próximo bloqueado)
+  let activeTasks: any[] = [];
+  if (allTasks.length > 0) {
+    if (!nextLockedTask) {
+      // Se desbloqueou tudo, mostra apenas a última (Elite)
+      activeTasks = allTasks.slice(-1);
+    } else {
+      // 2 últimos desbloqueados + o próximo que está trancado
+      activeTasks = [...unlockedTasks.slice(-2), nextLockedTask];
+    }
+  }
+  
+  // Página 2: Histórico (Todos os outros desbloqueados que não estão nos ativos)
+  const historyTasks = unlockedTasks.filter(t => !activeTasks.some(a => a.id === t.id));
 
   useEffect(() => {
     socketService.on("contract:log", (newLog: ContractLog) => {
@@ -503,7 +525,15 @@ export default function ContractsPage() {
 
       <ContractManualModal isOpen={isManualOpen} onClose={() => setIsManualOpen(false)} faction={faction} />
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      {!config && (
+        <div className="flex flex-col items-center justify-center py-20 animate-pulse">
+          <div className="w-10 h-10 border-4 border-orange-500 border-t-transparent rounded-full animate-spin mb-4" />
+          <p className="text-[10px] font-black text-orange-500 uppercase tracking-widest">Sincronizando com a Central de Operações...</p>
+        </div>
+      )}
+
+      {config && (
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Main Interface */}
         <div className="lg:col-span-12 space-y-6">
           
@@ -614,60 +644,15 @@ export default function ContractsPage() {
               <span className="text-[10px] font-bold text-zinc-600 uppercase">Filtro: Nível Decrescente</span>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {faction === 'gangsters' ? (
-                config?.heists
-                  .filter((h, idx, arr) => {
-                    const userLvl = userProfile?.level || 1;
-                    const unlocked = arr.filter(t => t.level <= userLvl);
-                    const nextLocked = arr.find(t => t.level > userLvl);
-                    
-                    // Se não houver mais tarefas bloqueadas, mostra apenas a última da lista
-                    if (!nextLocked) {
-                      return idx === arr.length - 1;
-                    }
-
-                    const isLastTwoUnlocked = unlocked.slice(-2).some(t => t.id === h.id);
-                    const isNextLocked = nextLocked?.id === h.id;
-                    return isLastTwoUnlocked || isNextLocked;
-                  })
-                  .map(heist => (
-                    <ActionCard 
-                      key={heist.id} 
-                      data={heist} 
-                      type="heist"
-                      userLevel={userProfile?.level || 0}
-                      userEnergy={userProfile?.energy || 0}
-                      userPA={userProfile?.action_points || 0}
-                      userTox={userProfile?.toxicity || 0}
-                      userMoney={userProfile?.money || 0}
-                      disabled={loadingAction !== null || cooldown > 0}
-                      cooldown={cooldown}
-                      onAction={handleHeist}
-                      onSupply={handleQuickSupply}
-                    />
-                  ))
-              ) : (
-                config?.guardianTasks
-                  .filter((t, idx, arr) => {
-                    const userLvl = userProfile?.level || 1;
-                    const unlocked = arr.filter(task => task.level <= userLvl);
-                    const nextLocked = arr.find(task => task.level > userLvl);
-
-                    // Se não houver mais tarefas bloqueadas, mostra apenas a última da lista
-                    if (!nextLocked) {
-                      return idx === arr.length - 1;
-                    }
-
-                    const isLastTwoUnlocked = unlocked.slice(-2).some(task => task.id === t.id);
-                    const isNextLocked = nextLocked?.id === t.id;
-                    return isLastTwoUnlocked || isNextLocked;
-                  })
-                  .map(task => (
+            <div className="space-y-6">
+              {/* Active Tasks Grid (Página 1) */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {activeTasks.length > 0 ? (
+                  activeTasks.map(task => (
                     <ActionCard 
                       key={task.id} 
                       data={task} 
-                      type="task"
+                      type={faction === 'gangsters' ? "heist" : "task"}
                       userLevel={userProfile?.level || 0}
                       userEnergy={userProfile?.energy || 0}
                       userPA={userProfile?.action_points || 0}
@@ -675,15 +660,67 @@ export default function ContractsPage() {
                       userMoney={userProfile?.money || 0}
                       disabled={loadingAction !== null || cooldown > 0}
                       cooldown={cooldown}
-                      onAction={handleGuardianTask}
+                      onAction={faction === 'gangsters' ? handleHeist : handleGuardianTask}
                       onSupply={handleQuickSupply}
                     />
                   ))
+                ) : (
+                  <div className="col-span-full py-20 text-center border-2 border-dashed border-zinc-900 rounded-sm">
+                    <BriefcaseIcon className="w-12 h-12 text-zinc-800 mx-auto mb-4" />
+                    <p className="text-zinc-600 font-black uppercase text-xs tracking-widest">Nenhuma operação detectada no radar</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Toggle Histórico (Página 2) */}
+              {historyTasks.length > 0 && (
+                <div className="space-y-4">
+                  <div className="flex justify-center pt-4">
+                    <button 
+                      onClick={() => setShowHistory(!showHistory)}
+                      className="px-6 py-2 border border-zinc-800 bg-zinc-900/50 hover:bg-zinc-800 text-zinc-500 hover:text-zinc-300 transition-all text-[10px] font-black uppercase tracking-widest flex items-center gap-3"
+                      style={MILITARY_CLIP}
+                    >
+                      <LockClosedIcon className={`w-3 h-3 transition-transform ${showHistory ? 'rotate-180' : ''}`} />
+                      {showHistory ? "Ocultar Histórico de Operações" : `Ver Contratos Concluídos (${historyTasks.length})`}
+                    </button>
+                  </div>
+
+                  <AnimatePresence>
+                    {showHistory && (
+                      <motion.div 
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        exit={{ opacity: 0, height: 0 }}
+                        className="grid grid-cols-1 md:grid-cols-2 gap-4 overflow-hidden border-t border-zinc-900 pt-4"
+                      >
+                        {historyTasks.map(task => (
+                          <div key={task.id} className="opacity-40 grayscale hover:opacity-60 transition-opacity">
+                            <ActionCard 
+                              data={task} 
+                              type={faction === 'gangsters' ? "heist" : "task"}
+                              userLevel={userProfile?.level || 0}
+                              userEnergy={userProfile?.energy || 0}
+                              userPA={userProfile?.action_points || 0}
+                              userTox={userProfile?.toxicity || 0}
+                              userMoney={userProfile?.money || 0}
+                              disabled={true}
+                              cooldown={cooldown}
+                              onAction={() => {}}
+                              onSupply={() => {}}
+                            />
+                          </div>
+                        ))}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
               )}
             </div>
           </div>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
