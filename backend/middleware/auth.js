@@ -118,7 +118,7 @@ const generateToken = (userId) => {
   });
 
   const refreshToken = jwt.sign({ userId }, process.env.JWT_SECRET, {
-    expiresIn: "7d", // 7 dias (Persistência)
+    expiresIn: "21d", // 21 dias (Duração total da temporada + margem)
   });
 
   return { accessToken, refreshToken };
@@ -130,7 +130,7 @@ const generateAccessToken = (userId) => {
 };
 
 const generateRefreshToken = (userId) => {
-  return jwt.sign({ userId }, process.env.JWT_SECRET, { expiresIn: "7d" });
+  return jwt.sign({ userId }, process.env.JWT_SECRET, { expiresIn: "21d" });
 };
 
 /**
@@ -139,8 +139,8 @@ const generateRefreshToken = (userId) => {
 const createSession = async (userId, refreshToken) => {
   const redisClient = require("../config/redisClient");
   const key = `auth:refresh:${userId}`;
-  // Guardamos o refresh token no Redis para permitir revogação
-  await redisClient.setAsync(key, refreshToken, "EX", 604800); // 7 dias
+  // Guardamos o refresh token no Redis por 21 dias (1.814.400 segundos)
+  await redisClient.setAsync(key, refreshToken, "EX", 1814400); 
   return true;
 };
 
