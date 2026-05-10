@@ -8,6 +8,25 @@ let isReady = false;
 function getRawClient() { return client; }
 function getIsUpstash() { return false; }
 
+/**
+ * SÊNIOR: Configura Proteção Máxima e Performance no Redis (AOF)
+ * Ativa persistência Append-Only File com fsync a cada segundo.
+ */
+async function configurePersistence() {
+  if (!client || !isReady) return;
+  try {
+    // Tenta configurar via comandos (pode falhar dependendo do provedor Redis)
+    await client.configSet("appendonly", "yes");
+    await client.configSet("appendfsync", "everysec");
+    await client.configSet("auto-aof-rewrite-percentage", "100");
+    await client.configSet("auto-aof-rewrite-min-size", "64mb");
+    console.log("🛡️ [Redis] Persistência AOF Configurada: PROTEÇÃO MÁXIMA & PERFORMANCE ATIVADA");
+  } catch (err) {
+    console.warn("⚠️ [Redis] Não foi possível configurar persistência via CONFIG SET:", err.message);
+    console.warn("   -> Certifique-se de que 'appendonly yes' está no seu redis.conf para persistência garantida.");
+  }
+}
+
 async function initRedis() {
   try {
     const localClient = redis.createClient({
@@ -31,10 +50,11 @@ async function initRedis() {
 
     await localClient.connect();
     client = localClient;
-    // O evento 'ready' atualiza isReady para true. 
-    // Em alguns casos pode ser necessário marcar aqui também
     isReady = true; 
     console.log("✅ Redis (Local) OK");
+
+    // Aplica configurações de persistência solicitadas
+    await configurePersistence();
   } catch (err) {
     console.error(`[RedisClient] Redis indisponível durante inicialização:`, err.message);
     client = null;

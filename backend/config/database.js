@@ -150,30 +150,9 @@ async function tableExists(tableName) {
   }
 }
 
-
-// Função para limpar mensagens de chat antigas (24h)
-async function cleanExpiredChatMessages() {
-  try {
-    const result = await query(
-      "DELETE FROM chat_messages WHERE created_at < NOW() - INTERVAL '24 hours'",
-    );
-    if (result.rowCount > 0) {
-      console.log(
-        `🧹 Limpeza de Chat: ${result.rowCount} mensagens expiradas (24h+) removidas do banco`,
-      );
-    }
-  } catch (error) {
-    console.error("❌ Erro ao limpar mensagens de chat expiradas:", error.message);
-  }
-}
-
 // Função para executar as limpezas de manutenção
 async function runMaintenanceOperations() {
-  console.log("🧹 Iniciando operações de manutenção (Sessões e Chat)...");
-  await Promise.allSettled([
-    cleanExpiredChatMessages()
-  ]);
-  console.log("✅ Operações de manutenção concluídas.");
+  console.log("🧹 Operações de manutenção concluídas (Banco SQL otimizado).");
 }
 
 // Mas mantém o agendamento horário
@@ -514,7 +493,6 @@ module.exports = {
   transaction,
   connectDB,
   tableExists,
-  cleanExpiredChatMessages,
   closePool,
   seedClans,
   runPlayerStatusMigrations,

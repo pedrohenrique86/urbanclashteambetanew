@@ -1,39 +1,19 @@
 const redisClient = require("../config/redisClient");
-const db = require("../config/database");
 
-const HISTORY_MAX_LENGTH = 20; // Padronizado em 20 como solicitado
-const HISTORY_TTL_SECONDS = 86400; // 24h
-const EXPIRY_MS = 24 * 60 * 60 * 1000;
+const HISTORY_MAX_LENGTH = 100; // Aumentado para 100 mensagens
+const HISTORY_TTL_SECONDS = 604800; // 7 dias de retenção
+const EXPIRY_MS = 7 * 24 * 60 * 60 * 1000;
 
 const getHistoryKey = (clanId) => `chat:history:${clanId}`;
 
 /**
- * Salva a mensagem no Banco de Dados e atualiza o Cache (Redis)
+ * Salva a mensagem exclusivamente no Redis
  */
 async function addMessageToHistory(clanId, message) {
   const historyKey = getHistoryKey(clanId);
   const messageJson = JSON.stringify(message);
 
-  // 1. Persistência em Banco (Fonte de Verdade Oficial)
-  try {
-    const query = `
-      INSERT INTO chat_messages (id, clan_id, user_id, text, created_at)
-      VALUES ($1, $2, $3, $4, $5)
-    `;
-    // Usamos o id gerado no message se existir, ou deixamos o DB gerar
-    await db.query(query, [
-      message.id,
-      clanId,
-      message.userId,
-      message.text,
-      message.timestamp
-    ]);
-  } catch (err) {
-    console.error(`[ChatService] Erro ao salvar mensagem no Banco:`, err.message);
-    // Continuamos para o Redis mesmo se o banco falhar (prioridade tempo real)
-  }
-
-  // 2. Cache no Redis (Para leitura rápida das últimas 20)
+  // Cache no Redis (Fonte única de verdade agora)
   await redisClient.chatHistoryPipeline(
     historyKey,
     messageJson,
@@ -43,7 +23,7 @@ async function addMessageToHistory(clanId, message) {
 }
 
 /**
- * Busca histórico: Tenta Redis primeiro (fast path), Fallback no Banco.
+ * Busca histórico do Redis.
  */
 async function getChatHistory(clanId) {
   const clanIdNorm = String(clanId ?? "").trim();
@@ -54,55 +34,21 @@ async function getChatHistory(clanId) {
   const historyKey = getHistoryKey(clanIdNorm);
 
   try {
-    // 1. Tentar ler do Cache (Redis)
     const historyJson = await redisClient.lRangeAsync(historyKey, 0, -1);
     
-    if (Array.isArray(historyJson) && historyJson.length > 0) {
-      // SÊNIOR: Se o primeiro item for o marcador de vazio, retorna vazio imediatamente
-      if (historyJson[0] === "EMPTY_MARKER") return [];
+    if (!historyJson || historyJson.length === 0) return [];
+    if (historyJson[0] === "EMPTY_MARKER") return [];
 
-      const cutoff = Date.now() - EXPIRY_MS;
-      const history = historyJson
-        .map((msg) => {
-          if (!msg) return null;
-          try { return JSON.parse(msg); } catch { return null; }
-        })
-        .filter((msg) => msg && msg.timestamp && new Date(msg.timestamp).getTime() >= cutoff)
-        .reverse();
-      
-      if (history.length > 0) return history;
-    }
-
-    // 2. Fallback no Banco (Se Redis estiver vazio ou falhar)
-    console.log(`[ChatService] 📦 Cache MISS para clã ${clanIdNorm}. Buscando no Banco (últimas 24h)...`);
-    const { rows } = await db.query(
-      `SELECT m.id, m.user_id as "userId", u.username, m.text, m.created_at as "timestamp"
-       FROM chat_messages m
-       INNER JOIN users u ON m.user_id = u.id
-       WHERE m.clan_id = $1 
-         AND m.created_at >= NOW() - INTERVAL '24 hours'
-       ORDER BY m.created_at DESC 
-       LIMIT $2`,
-      [clanIdNorm, HISTORY_MAX_LENGTH]
-    );
-
-    if (rows.length === 0) {
-      // SÊNIOR: Se não há mensagens no banco, salvamos o marcador de vazio por 5 minutos
-      await redisClient.lPushAsync(historyKey, "EMPTY_MARKER");
-      await redisClient.expireAsync(historyKey, 300); 
-      return [];
-    }
-
-    // Formatar e converter timestamps para ISO para consistência
-    const dbHistory = rows.reverse().map(row => ({
-      ...row,
-      timestamp: new Date(row.timestamp).toISOString()
-    }));
-
-    // SÊNIOR: Opcionalmente, repopula o Redis com o que veio do banco
-    // para que a próxima chamada não dê MISS.
-    return dbHistory;
-
+    const cutoff = Date.now() - EXPIRY_MS;
+    const history = historyJson
+      .map((msg) => {
+        if (!msg) return null;
+        try { return JSON.parse(msg); } catch { return null; }
+      })
+      .filter((msg) => msg && msg.timestamp && new Date(msg.timestamp).getTime() >= cutoff)
+      .reverse();
+    
+    return history;
   } catch (err) {
     console.error(`[ChatService] ❌ Erro ao buscar histórico:`, err.message);
     return [];
@@ -117,9 +63,8 @@ async function handleNewMessage(io, socket, text) {
   if (!clanId || clanId === "null" || clanId === "undefined") return;
 
   const trimmedText = typeof text === "string" ? text.trim() : "";
-  if (!trimmedText || trimmedText.length > 100) return;
+  if (!trimmedText || trimmedText.length > 200) return;
 
-  // Gerar ID robusto aqui no Backend (RFC4122 v4)
   const crypto = require('crypto');
   const messageId = crypto.randomUUID();
 

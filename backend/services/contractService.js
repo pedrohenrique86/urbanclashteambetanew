@@ -120,10 +120,12 @@ class ContractService {
         ? `🚨 PLANTÃO URGENTE: O Renegado ${state.username} executou um GOLPE DE MESTRE! Todas as unidades em alerta máximo!`
         : `O Renegado ${state.username} realizou o roubo: ${heist.name}`;
 
-      const log = await query(
-        "INSERT INTO contract_logs (user_id, event_type, message, is_major) VALUES ($1, $2, $3, $4) RETURNING *",
-        [userId, 'HEIST_SUCCESS', message, isDaily]
-      );
+      // SÊNIOR: Registra via ActionLog (Redis-Only) com flag de visibilidade pública
+      await actionLogService.log(userId, 'HEIST_SUCCESS', 'contract', heist.id, {
+        public_message: message,
+        is_master: isDaily,
+        heist_name: heist.name
+      }, true);
 
       // Adiciona ao feed de atividades (Redis) para interceptação (janela de 3min)
       const activity = {
@@ -136,12 +138,9 @@ class ContractService {
       };
       await redisClient.zAddAsync(ACTIVITY_KEY, now, JSON.stringify(activity));
 
-      const io = require('../config/socket').getIO();
-      // Envia o log para o feed global (LiveNewsTicker)
-      io.emit('contract:log', log.rows[0]);
-
       // Se for Golpe de Mestre, envia alerta prioritário para os Guardiões
       if (isDaily) {
+        const io = require('../config/socket').getIO();
         io.emit('contract:master_heist_alert', {
           username: state.username,
           expiresAt: now + (180 * 1000) // 3 minutos de janela
@@ -348,52 +347,19 @@ class ContractService {
     const cacheKey = onlyMajor ? "cache:contract_logs:major" : "cache:public_logs_stream";
     
     try {
-      // 1. Tenta buscar do Redis (Stream Mode para 5k players)
       if (onlyMajor) {
         const cached = await redisClient.getAsync(cacheKey);
         if (cached) return JSON.parse(cached);
+        return []; // Se não houver no Redis, não bate no banco.
       } else {
-        const cachedList = await redisClient.lRangeAsync(cacheKey, 0, 49);
+        const cachedList = await redisClient.lRangeAsync(cacheKey, 0, 99);
         if (cachedList && cachedList.length > 0) {
           return cachedList.map(l => JSON.parse(l));
         }
+        return [];
       }
-
-      // 2. Busca do PostgreSQL apenas se não houver no cache
-      const where = onlyMajor ? 'AND (metadata->>\'is_master\')::boolean = true' : '';
-      const { rows } = await query(
-        `SELECT 
-          l.user_id,
-          up.username,
-          up.faction,
-          l.action_type as event_type,
-          l.metadata->>'public_message' as message,
-          l.created_at
-         FROM action_logs l
-         JOIN user_profiles up ON l.user_id = up.user_id
-         WHERE l.is_public = true ${where}
-         ORDER BY l.created_at DESC 
-         LIMIT 20`
-      );
-
-      // 3. Salva no Redis
-      if (rows.length > 0) {
-        if (onlyMajor) {
-          await redisClient.setAsync(cacheKey, JSON.stringify(rows), "EX", 300);
-        } else {
-          // Repopula a stream circular
-          const p = redisClient.pipeline();
-          p.del(cacheKey);
-          // Inverte para dar o push na ordem certa (o mais novo primeiro)
-          [...rows].reverse().forEach(row => p.lPush(cacheKey, JSON.stringify(row)));
-          p.expire(cacheKey, 3600);
-          await p.exec();
-        }
-      }
-
-      return rows;
     } catch (err) {
-      console.error("[contractService] Erro ao buscar logs:", err.message);
+      console.error("[contractService] Erro ao buscar logs do Redis:", err.message);
       return [];
     }
   }
