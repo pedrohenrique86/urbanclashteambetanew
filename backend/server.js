@@ -250,6 +250,9 @@ async function startServer() {
         try {
           console.log("🌌 Iniciando subsistemas de background...");
           const { seedInitialGameState } = require("./services/gameStateService");
+          const catalogService = require("./services/catalogService");
+          
+          await catalogService.warmup(); // SÊNIOR: Cache de itens permanente
           await seedInitialGameState();
           await checkAutoStart();
           await rankingCacheService.initializeRankingZSet();

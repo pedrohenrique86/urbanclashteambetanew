@@ -10,15 +10,23 @@ const redisClient = require("../config/redisClient");
 class CatalogService {
   constructor() {
     this.CACHE_KEY_ITEMS = "catalog:items";
-    this.TTL = 3600; // 1 hora
     this.itemsMap = {};
+    this.items = [];
   }
 
   /**
-   * Obtém todos os itens do catálogo, com cache no Redis.
+   * SÊNIOR: Warmup do Catálogo. Carrega tudo na RAM e no Redis para sempre.
    */
-  async getItems() {
-    if (this.items && this.items.length > 0) return this.items;
+  async warmup() {
+    console.log("🚀 [Catalog] Aquecendo cache de itens...");
+    return this.getItems(true);
+  }
+
+  /**
+   * Obtém todos os itens do catálogo, com cache no Redis (Permanente).
+   */
+  async getItems(forceRefresh = false) {
+    if (!forceRefresh && this.items && this.items.length > 0) return this.items;
 
     if (!redisClient.client.isReady) {
       const { rows } = await query("SELECT * FROM items ORDER BY base_price ASC");
@@ -27,10 +35,11 @@ class CatalogService {
 
     const cached = await redisClient.getAsync(this.CACHE_KEY_ITEMS);
     let rows;
-    if (cached) {
+    
+    if (cached && !forceRefresh) {
       rows = JSON.parse(cached);
     } else {
-      console.log("[Catalog] 📦 Cache MISS para itens. Carregando do Banco...");
+      console.log("📦 [Catalog] Carregando catálogo do PostgreSQL para Cache Permanente...");
       const dbRes = await query(`
         SELECT 
           id, code, name, description, type, rarity, base_price,
@@ -39,11 +48,12 @@ class CatalogService {
         ORDER BY base_price ASC
       `);
       rows = dbRes.rows;
-      await redisClient.setAsync(this.CACHE_KEY_ITEMS, JSON.stringify(rows), "EX", this.TTL);
+      // SÊNIOR: Cache sem expiração (Duração da temporada)
+      await redisClient.setAsync(this.CACHE_KEY_ITEMS, JSON.stringify(rows));
     }
 
     this.items = rows;
-    // SÊNIOR: Reconstrói o mapa de busca rápida O(1)
+    // SÊNIOR: Reconstrói o mapa de busca rápida O(1) na memória do processo
     this.itemsMap = {};
     rows.forEach(item => {
       this.itemsMap[item.code] = item;

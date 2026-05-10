@@ -134,18 +134,29 @@ function unsubscribe(client, topic) {
  * Usado internamente pelo listener do Redis.
  */
 function _localPublish(topic, event, data) {
-  if (!topics.has(topic)) return;
+  // 1. Envio via SSE (Legado/Compatibilidade)
+  if (topics.has(topic)) {
+    const msg = `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`;
+    const clients = topics.get(topic);
+    clients.forEach((client) => {
+      try { client.write(msg); } catch (e) {}
+    });
+  }
 
-  const msg = `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`;
-  const clients = topics.get(topic);
-
-  clients.forEach((client) => {
+  // 2. SÊNIOR: Envio via Socket.io (Alta Performance / Mobile Ready)
+  // Se for um tópico de jogador, enviamos para a sala específica dele no Socket.io
+  if (topic.startsWith("player:")) {
+    const userId = topic.replace("player:", "");
     try {
-      client.write(msg);
-    } catch (e) {
-      // Remoção automática via evento 'close' da req
+      const { getIO } = require("../socketHandler");
+      const io = getIO();
+      if (io) {
+        io.to(`user:${userId}`).emit(event, data);
+      }
+    } catch (err) {
+      // socketHandler pode não estar inicializado em scripts CLI
     }
-  });
+  }
 }
 
 /**
