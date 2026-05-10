@@ -126,15 +126,15 @@ const ContractManualModal = ({ isOpen, onClose, faction }: { isOpen: boolean, on
                   <ul className="space-y-6 text-[11px] font-mono text-slate-400 uppercase leading-relaxed">
                     <li className="flex items-start gap-4 p-3 bg-white/5 border-l-2 border-orange-500/30">
                       <span className="text-orange-500 font-black">01</span>
-                      <span><strong className="text-white text-sm">Renegados:</strong> Focados em <strong className="text-orange-400">PA (Planejamento)</strong>. Operações exigem tempo e estratégia. São a fonte primária de itens raros.</span>
+                      <span><strong className="text-white text-sm">Foco Operacional:</strong> O sistema suspende automaticamente tarefas obsoletas, mantendo visíveis apenas os <strong className="text-orange-400">2 contratos mais relevantes</strong> para seu nível.</span>
                     </li>
                     <li className="flex items-start gap-4 p-3 bg-white/5 border-l-2 border-blue-500/30">
                       <span className="text-blue-500 font-black">02</span>
-                      <span><strong className="text-white text-sm">Guardiões:</strong> Focados em <strong className="text-blue-400">Energia (Operacional)</strong>. Patrulhar exige suprimentos constantes de estamina.</span>
+                      <span><strong className="text-white text-sm">Contrato de Elite:</strong> Ao atingir o nível do último contrato disponível, todas as tarefas anteriores são suspensas, focando 100% na <strong className="text-blue-400">Operação Final</strong>.</span>
                     </li>
                     <li className="flex items-start gap-4 p-3 bg-white/5 border-l-2 border-yellow-500/30">
                       <span className="text-yellow-500 font-black">03</span>
-                      <span><strong className="text-white text-sm">Sincronia:</strong> O equilíbrio simbiótico garante que cada facção dependa e influencie o mercado da outra.</span>
+                      <span><strong className="text-white text-sm">Sincronia:</strong> O equilíbrio simbiótico garante que cada facção dependa e influencie o mercado da outra através de tarefas correlacionadas.</span>
                     </li>
                   </ul>
                 </section>
@@ -182,7 +182,7 @@ const ContractManualModal = ({ isOpen, onClose, faction }: { isOpen: boolean, on
                         <MapPinIcon className="w-4 h-4" /> EMBOSCADA
                       </div>
                       <p className="text-[10px] text-slate-400 leading-relaxed uppercase">
-                        Encontros ocorrem quando o contrato coincide com a área de patrulha. Chance de detecção: <strong className="text-white">15%</strong>.
+                        Ocorre quando tarefas de Guardião e Renegado são correlacionadas. Chance Dinâmica: <strong className="text-white">10% a 30%</strong> (Escalável por Nível).
                       </p>
                     </div>
                     <div className="bg-white/5 p-4 border border-amber-500/20 group hover:border-amber-500/40 transition-colors">
@@ -209,7 +209,7 @@ const ContractManualModal = ({ isOpen, onClose, faction }: { isOpen: boolean, on
                     </div>
                     <p className="text-[10px] text-red-400 font-black mb-2 tracking-widest">● GOLPE DE MESTRE</p>
                     <p className="text-[10px] font-mono text-slate-400 uppercase leading-relaxed">
-                      Sinais de Nível 5 ganham prioridade de processamento por 10 minutos. Risco elevado, mas recompensa garantida.
+                      Evento Crítico. Chance de detecção elevada para <strong className="text-red-500">50%</strong>. O sinal forte permanece ativo por 10 minutos para todos os Guardiões.
                     </p>
                   </div>
                   

@@ -95,6 +95,7 @@ class ContractService {
         heistName: heist.name,
         loot: lootGained,
         isMaster: isDaily,
+        level: heist.level,
         renegadeStats: {
           attack: newState.attack,
           luck: newState.luck,
@@ -197,8 +198,8 @@ class ContractService {
       }
 
       let interception = null;
-      if (Math.random() < task.interceptChance) {
-        const keys = await redisClient.keysAsync("heist_activity:*");
+      // SÊNIOR: Verificação de rastro no Redis para interceptação
+      const keys = await redisClient.keysAsync("heist_activity:*");
         const filteredKeys = keys.filter(k => k !== `heist_activity:${userId}`);
         
         if (filteredKeys.length > 0) {
@@ -217,9 +218,21 @@ class ContractService {
           const target = activities.find(a => a.isMaster) || activities[Math.floor(Math.random() * activities.length)];
           
           if (target) {
-            // SÊNIOR: Probabilidade adicional de encontro (15%) para não ser 1x1 garantido
-            // E verificação de "Janela de Simultaneidade" (60 segundos)
-            if (Math.random() < 0.15) {
+            // SÊNIOR: Probabilidade Dinâmica Escalável
+            let totalChance = 0.15; // Fallback
+            const heistLevel = target.level || 0;
+
+            if (target.isMaster) {
+              totalChance = 0.50; // Golpe de Mestre é 50%
+            } else if (heistLevel <= 20) {
+              totalChance = 0.10;
+            } else if (heistLevel <= 80) {
+              totalChance = 0.20;
+            } else {
+              totalChance = 0.30;
+            }
+
+            if (Math.random() < totalChance) {
               const gScore = (state.defense * 0.5) + (state.focus * 0.3) + (state.luck * 0.2);
               const rScore = (target.renegadeStats.attack * 0.5) + (target.renegadeStats.luck * 0.3) + (target.renegadeStats.focus * 0.2);
               
@@ -245,7 +258,6 @@ class ContractService {
             }
           }
         }
-      }
 
       const newState = await playerStateService.updatePlayerState(userId, updates);
 
