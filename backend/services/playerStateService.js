@@ -22,10 +22,73 @@ const {
   NUMERIC_FIELDS
 } = require("./playerStateConstants");
 
+const FACTION_ALIAS_MAP = {
+  gangsters:  "renegados",
+  gangster:   "renegados",
+  renegados:  "renegados",
+  renegado:   "renegados",
+  guardas:    "guardioes",
+  guarda:     "guardioes",
+  guardioes:  "guardioes",
+  guardiao:   "guardioes",
+  "guardiões": "guardioes",
+  "guardião":  "guardioes",
+};
+
 class PlayerStateService {
   constructor() {
     this.schedulePersistence();
     this.startGarbageCollector();
+  }
+
+  /**
+   * SÊNIOR: Resolve o nome canônico da facção.
+   */
+  resolveFactionName(input) {
+    if (!input) return "renegados";
+    return FACTION_ALIAS_MAP[String(input).toLowerCase().trim()] || "renegados";
+  }
+
+  /**
+   * SÊNIOR: Formata os dados brutos para o padrão esperado pelo Frontend.
+   * Centraliza cálculos de XP, Bônus de Status e Normalização de tipos.
+   */
+  formatProfile(profile) {
+    if (!profile) return null;
+    const gameLogic = require("../utils/gameLogic");
+
+    const level = parseInt(profile.level, 10) || 1;
+    const total_xp = parseInt(profile.total_xp || 0, 10);
+    const xpLevelPure = gameLogic.calculateLevelFromXp(total_xp);
+    const xpStatus = gameLogic.deriveXpStatus(total_xp, xpLevelPure);
+
+    const isRuptura = profile.status === 'Ruptura';
+    const statusMult = isRuptura ? 0.8 : 1;
+
+    return {
+      ...profile,
+      id: profile.user_id || profile.id,
+      username: profile.display_name || profile.username,
+      display_name: profile.display_name || profile.username,
+      is_admin: profile.is_admin === "1" || profile.is_admin === true || profile.is_admin === "true",
+      attack: (parseFloat(profile.attack) || 0) * statusMult,
+      defense: (parseFloat(profile.defense) || 0) * statusMult,
+      focus: (parseFloat(profile.focus) || 0) * statusMult,
+      instinct: (parseFloat(profile.instinct) || 0) * statusMult,
+      level,
+      total_xp,
+      current_xp: xpStatus.currentXp,
+      xp_required: xpStatus.xpRequired,
+      energy: parseInt(profile.energy, 10) || 0,
+      money: parseInt(profile.money, 10) || 0,
+      action_points: parseInt(profile.action_points, 10) || 0,
+      victories: parseInt(profile.victories, 10) || 0,
+      defeats: parseInt(profile.defeats, 10) || 0,
+      winning_streak: parseInt(profile.winning_streak, 10) || 0,
+      ucrypto: parseInt(profile.premium_coins || profile.ucrypto || 0, 10),
+      crit_chance_pct: gameLogic.calcCritChance(profile),
+      crit_damage_mult: gameLogic.calcCritDamageMultiplier(profile),
+    };
   }
 
   /**

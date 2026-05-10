@@ -3,11 +3,13 @@ const bcrypt = require("bcryptjs");
 const { body, validationResult } = require("express-validator");
 const { query, transaction } = require("../config/database");
 const { authenticateToken, requireOperational } = require("../middleware/auth");
+const { lockPlayerAction } = require("../middleware/lockMiddleware");
 const ActionPointsService = require("../services/actionPointsService");
 const redisClient = require("../config/redisClient");
 const { getGameState } = require("../services/gameStateService");
 const sseService = require("../services/sseService");
 const rankingCacheService = require("../services/rankingCacheService");
+const playerStateService = require("../services/playerStateService");
 const gameLogic = require("../utils/gameLogic");
 
 const router = express.Router();
@@ -33,122 +35,18 @@ function buildSafeUsername({ requestedUsername, userId, userFromDb }) {
 }
 
 function sanitizeBirthDate(birthDate) {
-  if (
-    birthDate === undefined ||
-    birthDate === null ||
-    birthDate === "" ||
-    birthDate === "Invalid Date" ||
-    birthDate === "null" ||
-    birthDate === "undefined"
-  ) {
+  if (!birthDate || ["null", "undefined", "Invalid Date", ""].includes(String(birthDate))) {
     return null;
   }
-  // Se for uma data ISO completa, pega apenas a parte da data
-  if (typeof birthDate === 'string' && birthDate.includes('T')) {
-     return birthDate.split('T')[0];
-  }
-  return birthDate;
-}
-
-async function invalidatePlayerCache(userId) {
-  const cacheKey = `playerState:${userId}`;
-  try {
-    await redisClient.delAsync(cacheKey);
-  } catch (_) { }
+  return typeof birthDate === 'string' && birthDate.includes('T') ? birthDate.split('T')[0] : birthDate;
 }
 
 async function refreshUserRankingCaches() {
   try {
     await Promise.allSettled([
-      rankingCacheService.triggerRefresh("users", "renegados"),
-      rankingCacheService.triggerRefresh("users", "guardioes"),
-      rankingCacheService.triggerRefresh("users", "gangsters"),
-      rankingCacheService.triggerRefresh("users", "guardas"),
-      rankingCacheService.triggerRefresh("users", "all"),
+      rankingCacheService.warmupRankings(), // SÊNIOR: Warmup unificado é mais eficiente
     ]);
   } catch (_) { }
-}
-
-/**
- * Converte qualquer valor de facção (legado ou novo) para o nome canônico
- * e retorna { canonicalName, factionId } consultando a tabela factions.
- * Suporta: gangsters, guardas (legado) e renegados, guardioes (novo).
- */
-const FACTION_ALIAS_MAP = {
-  gangsters:  "renegados",
-  gangster:   "renegados",
-  renegados:  "renegados",
-  renegado:   "renegados",
-  guardas:    "guardioes",
-  guarda:     "guardioes",
-  guardioes:  "guardioes",
-  guardiao:   "guardioes",
-  "guardiões": "guardioes",
-  "guardião":  "guardioes",
-};
-
-async function resolveFaction(factionInput, clientOrQuery) {
-  const canonical = FACTION_ALIAS_MAP[String(factionInput).toLowerCase().trim()];
-  if (!canonical) {
-    throw new Error(`Facção inválida: "${factionInput}". Use: renegados ou guardioes.`);
-  }
-
-  const fn = clientOrQuery?.query ? (sql, p) => clientOrQuery.query(sql, p) : query;
-  const result = await fn("SELECT id FROM factions WHERE name = $1", [canonical]);
-
-  if (result.rows.length === 0) {
-    throw new Error(`Facção "${canonical}" não encontrada na tabela factions. Execute a Migration A.`);
-  }
-
-  return { canonicalName: canonical, factionId: result.rows[0].id };
-}
-
-/**
- * Converte os dados brutos do perfil (do DB ou Redis) para o formato esperado pelo frontend.
- * Calcula campos derivados de XP e Combate em tempo real.
- */
-function convertProfileData(profile) {
-  if (!profile) return null;
-
-  // Se o profile veio do Redis, os campos numéricos podem estar como strings.
-  // Garantimos a conversão para manter a compatibilidade com o frontend.
-  const level    = parseInt(profile.level, 10) || 1;
-  const total_xp = parseInt(profile.total_xp || 0, 10);
-
-  // CRÍTICO: usa o nível PURO de XP (não o dinâmico) para derivar current_xp.
-  // O nível dinâmico (armazenado em 'level') inclui bônus de atributos/money —
-  // se usado diretamente em deriveXpStatus, getTotalXpUntilLevel() pode ultrapassar
-  // o total_xp real resultando em current_xp errado (ex: 142 em vez de 42).
-  const xpLevelPure = gameLogic.calculateLevelFromXp(total_xp);
-  const xpStatus    = gameLogic.deriveXpStatus(total_xp, xpLevelPure);
-
-  return {
-    ...profile,
-    id: profile.user_id || profile.id, // Normalização de ID
-    username: profile.username || profile.display_name,
-    is_admin: profile.is_admin === "1" || profile.is_admin === true || profile.is_admin === "true",
-    attack: (parseFloat(profile.attack) || 0) * (profile.status === 'Ruptura' ? 0.8 : 1),
-    defense: (parseFloat(profile.defense) || 0) * (profile.status === 'Ruptura' ? 0.8 : 1),
-    focus: (parseFloat(profile.focus) || 0) * (profile.status === 'Ruptura' ? 0.8 : 1),
-    critical_damage: parseFloat(profile.critical_damage) || 0,
-    critical_chance: parseFloat(profile.critical_chance) || 0,
-    intimidation: parseFloat(profile.intimidation) || 0,
-    discipline: parseFloat(profile.discipline) || 0,
-    level,
-    energy: parseInt(profile.energy, 10) || 0,
-    total_xp,
-    current_xp: xpStatus.currentXp,
-    xp_required: xpStatus.xpRequired,
-    action_points: parseInt(profile.action_points, 10) || 0,
-    money: parseInt(profile.money, 10) || 0,
-    victories: parseInt(profile.victories, 10) || 0,
-    defeats: parseInt(profile.defeats, 10) || 0,
-    winning_streak: parseInt(profile.winning_streak, 10) || 0,
-    ucrypto: parseInt(profile.premium_coins, 10) || 0,
-    // SÊNIOR: Valores DERIVADOS calculados em tempo real — nunca persistidos
-    crit_chance_pct : gameLogic.calcCritChance(profile),
-    crit_damage_mult: gameLogic.calcCritDamageMultiplier(profile),
-  };
 }
 
 
@@ -386,67 +284,28 @@ function getFactionStats(faction) {
 // GET /api/users/profile
 // =========================
 router.get("/profile", authenticateToken, async (req, res) => {
-  res.set({
-    "Cache-Control": "no-cache, no-store, must-revalidate",
-    Pragma: "no-cache",
-    Expires: "0",
-  });
-  
   try {
-    const playerStateService = require("../services/playerStateService");
-    let profile = await playerStateService.getPlayerState(req.user.id);
+    const profile = await playerStateService.getPlayerState(req.user.id);
+    if (!profile) return res.status(200).json(null);
 
-    if (!profile) {
-      return res.status(200).json(null);
-    }
-
-   // SÊNIOR: Toast Dinâmico para Conclusão de Treino Offline
-    // O worker do servidor em background varre a fila, conclui o treino
-    // e injeta 'pending_training_toast' no estado do jogador no Redis.
-    // Quando ele loga, nós pescamos esse aviso e repassamos ao frontend.
+    const convertedProfile = playerStateService.formatProfile(profile);
     
-    // Injeta o toast pendente para o frontend consumir e apaga do profile caso chegue no FrontEnd
-    // (Opcional: você pode aplicar redisClient.hDelAsync aqui se quiser garantir).
+    // SÊNIOR: Chips e Toasts vêm do SSOT (Redis)
+    convertedProfile.active_chips = profile.equipped_chips ? JSON.parse(profile.equipped_chips) : [];
     
-    const convertedProfile = convertProfileData(profile);
-    
-    // SÊNIOR: Chips Ativos agora vêm 100% do Cache Redis consolidado no playerState
-    try {
-      let chips = profile.equipped_chips || "[]";
-      if (typeof chips === 'string') chips = JSON.parse(chips);
-      convertedProfile.active_chips = chips;
-    } catch (e) {
-      console.error("Erro ao processar chips do cache:", e);
-      convertedProfile.active_chips = [];
-    }
-
     if (profile.pending_training_toast) {
-      try {
-        let parsedToast = profile.pending_training_toast;
-        if (typeof parsedToast === 'string') parsedToast = JSON.parse(parsedToast);
-        convertedProfile.pending_training_toast = parsedToast;
-        
-        // Limpa o toast do Redis após entregar
-        const redisClient = require("../config/redisClient");
-        await redisClient.hDelAsync(`playerState:${req.user.id}`, "pending_training_toast");
-      } catch (e) {
-        console.error("Erro ao fazer parse do pending_training_toast:", e);
-      }
+      convertedProfile.pending_training_toast = JSON.parse(profile.pending_training_toast);
+      await redisClient.hDelAsync(`playerState:${req.user.id}`, "pending_training_toast");
     }
 
-    // BUSCAR INVENTÁRIO (Especial para Bolsa Sombria e Dashboard)
-    try {
-      const inventoryService = require("../services/inventoryService");
-      convertedProfile.inventory = await inventoryService.getInventory(req.user.id);
-    } catch (e) {
-      console.error("Erro ao buscar inventário:", e);
-      convertedProfile.inventory = [];
-    }
+    // Inventário (O(1) com catálogo em RAM)
+    const inventoryService = require("../services/inventoryService");
+    convertedProfile.inventory = await inventoryService.getInventory(req.user.id);
 
     const gameState = await getGameState();
     res.json({ ...convertedProfile, gameState });
   } catch (error) {
-    console.error("❌ Erro ao buscar perfil do usuário (Redis):", error.message);
+    console.error("❌ Erro no perfil:", error.message);
     res.status(500).json({ error: "Erro interno do servidor" });
   }
 });
@@ -454,188 +313,54 @@ router.get("/profile", authenticateToken, async (req, res) => {
 // =========================
 // POST /api/users/profile
 // =========================
-router.post("/profile", authenticateToken, async (req, res) => {
+router.post("/profile", authenticateToken, lockPlayerAction(1000), async (req, res) => {
   try {
     const { faction } = req.body;
+    const canonical = playerStateService.resolveFactionName(faction);
+    
+    const existing = await query("SELECT id FROM user_profiles WHERE user_id = $1", [req.user.id]);
+    if (existing.rows.length > 0) return res.status(409).json({ error: "Perfil já existe" });
 
-    if (!faction || !FACTION_ALIAS_MAP[String(faction).toLowerCase().trim()]) {
-      return res
-        .status(400)
-        .json({ error: "Facção deve ser: renegados ou guardioes (ou gangsters/guardas)" });
-    }
+    const userRes = await query("SELECT id, username, email FROM users WHERE id = $1", [req.user.id]);
+    const user = userRes.rows[0];
 
-    const existingProfile = await query(
-      "SELECT id FROM user_profiles WHERE user_id = $1",
-      [req.user.id],
+    // SÊNIOR: Faction ID dinâmico via DB para garantir FK
+    const { rows: fRows } = await query("SELECT id FROM factions WHERE name = $1", [canonical]);
+    const factionId = fRows[0]?.id;
+
+    const stats = getFactionStats(canonical);
+    const safeName = buildSafeUsername({ userId: user.id, userFromDb: user });
+
+    const { rows } = await query(
+      `INSERT INTO user_profiles (user_id, username, display_name, faction, faction_id, level, energy, money, action_points, attack, defense, focus, intimidation, discipline, status)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15) RETURNING *`,
+      [user.id, safeName, safeName, canonical, factionId, stats.level, stats.energy, stats.money, stats.action_points, stats.attack, stats.defense, stats.focus, stats.intimidation, stats.discipline, stats.status]
     );
 
-    if (existingProfile.rows.length > 0) {
-      return res.status(409).json({ error: "Perfil já existe" });
-    }
-
-    const userData = await query(
-      "SELECT id, username, email FROM users WHERE id = $1",
-      [req.user.id],
-    );
-    const user = userData.rows[0];
-
-    if (!user) {
-      return res
-        .status(404)
-        .json({ error: "Usuário não encontrado para criação de perfil" });
-    }
-
-    // Resolve o faction_id obrigatório via tabela factions
-    const { canonicalName, factionId } = await resolveFaction(faction);
-    const factionStats = getFactionStats(canonicalName);
-
-    const usernameToInsert = buildSafeUsername({
-      requestedUsername: null,
-      userId: user.id,
-      userFromDb: user,
-    });
-
-    const result = await query(
-      `
-      INSERT INTO user_profiles (
-        user_id,
-        username,
-        display_name,
-        faction,
-        faction_id,
-        level,
-        total_xp,
-        energy,
-        action_points,
-        attack,
-        defense,
-        focus,
-        intimidation,
-        discipline,
-        instinct,
-        critical_chance,
-        critical_damage,
-        money,
-        victories,
-        defeats,
-        winning_streak,
-        status
-      )
-      VALUES (
-        $1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
-        $11, $12, $13, $14, $15, $16, $17, $18, $19, $20,
-        $21, $22
-      )
-      `,
-      [
-        user.id,
-        usernameToInsert,
-        usernameToInsert,
-        canonicalName,
-        factionId,
-        factionStats.level,
-        factionStats.total_xp,
-        factionStats.energy,
-        factionStats.action_points,
-        factionStats.attack,
-        factionStats.defense,
-        factionStats.focus,
-        factionStats.intimidation,
-        factionStats.discipline,
-        factionStats.instinct,
-        factionStats.critical_chance,
-        factionStats.critical_damage,
-        factionStats.money,
-        factionStats.victories,
-        factionStats.defeats,
-        factionStats.winning_streak,
-        factionStats.status,
-      ],
-    );
-
-    const insertedProfile = await query(`SELECT * FROM user_profiles WHERE user_id = $1`, [user.id]);
-
-    await invalidatePlayerCache(user.id);
     await refreshUserRankingCaches();
-
-    const converted = convertProfileData(insertedProfile.rows[0]);
-    res.status(201).json(converted);
+    res.status(201).json(playerStateService.formatProfile(rows[0]));
   } catch (error) {
-    if (error.code === "23505") {
-      return res.status(409).json({ error: "Perfil já existe ou username em uso" });
-    }
-
-    console.error("❌ Erro ao criar perfil do usuário:", error.message);
-    res.status(500).json({ error: "Erro interno do servidor" });
+    res.status(500).json({ error: error.message });
   }
 });
 
 // =========================
-// PUT /api/users/profile
+// PUT /api/users/profile (Dashboard/Settings)
 // =========================
-router.put(
-  "/profile",
-  authenticateToken,
-  updateProfileValidation,
-  async (req, res) => {
-    try {
-      const errors = validationResult(req);
-      if (!errors.isEmpty()) {
-        return res.status(400).json({
-          error: "Dados inválidos",
-          details: errors.array(),
-        });
-      }
+router.put("/profile", authenticateToken, lockPlayerAction(1000), updateProfileValidation, async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
 
-      const updateData = req.body;
-      const updateFields = [];
-      const updateValues = [];
-      let paramCount = 1;
+    const newState = await playerStateService.updatePlayerState(req.user.id, req.body);
+    if (!newState) return res.status(404).json({ error: "Perfil não encontrado" });
 
-      const allowedFields = [
-        "faction",
-        "bio",
-        "avatar_url",
-        "level",
-        "total_xp",
-        "energy",
-        "action_points",
-        "money",
-        "victories",
-        "defeats",
-        "winning_streak",
-      ];
-
-      for (const [key, value] of Object.entries(updateData)) {
-        if (allowedFields.includes(key) && value !== undefined) {
-          updateFields.push(`${key} = $${paramCount++}`);
-          updateValues.push(value);
-        }
-      }
-
-      if (updateFields.length === 0) {
-        return res
-          .status(400)
-          .json({ error: "Nenhum campo válido para atualizar" });
-      }
-
-      updateValues.push(req.user.id);
-
-      const newState = await playerStateService.updatePlayerState(req.user.id, updateData);
-
-      if (!newState) {
-        return res.status(404).json({ error: "Perfil não encontrado" });
-      }
-
-      await refreshUserRankingCaches();
-      const converted = convertProfileData(newState);
-      res.json(converted);
-    } catch (error) {
-      console.error("❌ Erro ao atualizar perfil do usuário:", error.message);
-      res.status(500).json({ error: "Erro interno do servidor" });
-    }
-  },
-);
+    await refreshUserRankingCaches();
+    res.json(playerStateService.formatProfile(newState));
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
 
 // =========================
 // GET /api/users/rankings
@@ -682,265 +407,75 @@ router.get("/rankings", async (req, res) => {
 // =========================
 router.get("/:id", async (req, res) => {
   try {
-    const { id } = req.params;
-    const playerStateService = require("../services/playerStateService");
+    const player = await playerStateService.getPlayerState(req.params.id);
+    if (!player) return res.status(404).json({ error: "Usuário não encontrado" });
 
-    const player = await playerStateService.getPlayerState(id);
-
-    if (!player) {
-      return res.status(404).json({ error: "Usuário não encontrado" });
-    }
-
-    let birthDate = null;
-    if (player.birth_date) {
-      try {
-        if (typeof player.birth_date === "string") {
-          birthDate = player.birth_date.split("T")[0];
-          // Validação básica de formato YYYY-MM-DD
-          if (!/^\d{4}-\d{2}-\d{2}$/.test(birthDate)) {
-             const d = new Date(player.birth_date);
-             birthDate = !isNaN(d.getTime()) ? d.toISOString().split("T")[0] : null;
-          }
-        } else {
-          const d = new Date(player.birth_date);
-          birthDate = !isNaN(d.getTime()) ? d.toISOString().split("T")[0] : null;
-        }
-      } catch (e) {
-        console.warn(`[USER_PROFILE] Data de nascimento inválida para user ${id}:`, player.birth_date);
-        birthDate = null;
-      }
-    }
-
+    // SÊNIOR: Formato seguro para perfil público (esconde dados sensíveis se necessário)
+    const formatted = playerStateService.formatProfile(player);
+    
     res.json({
       user: {
-        id: player.user_id,
-        username: player.username,
-        display_name: player.display_name,
-        country: player.country,
-        avatar_url: player.avatar_url,
-        bio: player.bio,
-        level: parseInt(player.level, 10) || 1,
-        faction: player.faction,
-        victories: parseInt(player.victories, 10) || 0,
-        defeats: parseInt(player.defeats, 10) || 0,
-        winning_streak: parseInt(player.winning_streak, 10) || 0,
+        id: formatted.id,
+        username: formatted.username,
+        display_name: formatted.display_name,
+        avatar_url: formatted.avatar_url,
+        bio: formatted.bio,
+        level: formatted.level,
+        faction: formatted.faction,
+        victories: formatted.victories,
+        defeats: formatted.defeats,
+        winning_streak: formatted.winning_streak,
         created_at: player.account_created_at,
-        birth_date: birthDate,
+        birth_date: player.birth_date ? player.birth_date.split('T')[0] : null,
         clan_name: player.clan_name || null,
       },
     });
   } catch (error) {
-    console.error("❌ Erro ao buscar perfil (Redis):", error.message);
-    res.status(500).json({ error: "Erro interno do servidor" });
+    res.status(500).json({ error: error.message });
   }
 });
 
 // =========================
 // PUT /api/users/:id/profile
 // =========================
-router.put(
-  "/:id/profile",
-  authenticateToken,
-  updateProfileValidation,
-  async (req, res) => {
-    try {
-      const { id } = req.params;
-
-      if (req.user.id !== id && !req.user.is_admin) {
-        return res.status(403).json({ error: "Acesso negado" });
-      }
-
-      const errors = validationResult(req);
-      if (!errors.isEmpty()) {
-        return res.status(400).json({
-          error: "Dados inválidos",
-          details: errors.array(),
-        });
-      }
-
-      const { username, bio, faction, avatar_url, birth_date } = req.body;
-
-      const sanitizedBirthDate = sanitizeBirthDate(birth_date);
-
-      const updatedProfile = await transaction(async (client) => {
-        const userResult = await client.query(
-          "SELECT id, username, email FROM users WHERE id = $1",
-          [id],
-        );
-        const user = userResult.rows[0];
-
-        if (!user) {
-          throw new Error("Usuário não encontrado");
-        }
-
-        if (birth_date !== undefined) {
-          await client.query(
-            "UPDATE users SET birth_date = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2",
-            [sanitizedBirthDate, id],
-          );
-        }
-
-        if (username !== undefined) {
-          await client.query(
-            "UPDATE users SET username = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2",
-            [username, id],
-          );
-        }
-
-        const profileResult = await client.query(
-          "SELECT * FROM user_profiles WHERE user_id = $1",
-          [id],
-        );
-        const profileExists = profileResult.rows.length > 0;
-
-        if (!profileExists) {
-          const usernameToInsert = buildSafeUsername({
-            requestedUsername: username,
-            userId: id,
-            userFromDb: user,
-          });
-
-          const rawFaction = faction || "renegados";
-          const { canonicalName: insertCanonical, factionId: insertFactionId } =
-            await resolveFaction(rawFaction, client);
-          const stats = getFactionStats(insertCanonical);
-
-          const insertResult = await client.query(
-            `
-            INSERT INTO user_profiles (
-              user_id,
-              username,
-              display_name,
-              bio,
-              faction,
-              faction_id,
-              avatar_url,
-              attack,
-              defense,
-              focus,
-              critical_damage,
-              critical_chance,
-              intimidation,
-              discipline
-            )
-            VALUES (
-              $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14
-            )
-            `,
-            [
-              id,
-              usernameToInsert,
-              usernameToInsert,
-              bio || "",
-              insertCanonical,    // faction VARCHAR canônico
-              insertFactionId,    // faction_id FK obrigatória
-              avatar_url || "",
-              stats.attack,
-              stats.defense,
-              stats.focus,
-              stats.critical_damage,
-              stats.critical_chance,
-              stats.intimidation,
-              stats.discipline,
-            ],
-          );
-
-          const insertedResult = await client.query(`SELECT * FROM user_profiles WHERE user_id = $1`, [id]);
-          return insertedResult.rows[0];
-        }
-
-        const updateFields = [];
-        const updateValues = [];
-        let paramCount = 1;
-
-        if (username !== undefined) {
-          updateFields.push(`username = $${paramCount++}`);
-          updateFields.push(`display_name = $${paramCount++}`);
-          updateValues.push(username);
-          updateValues.push(username);
-        }
-
-        if (bio !== undefined) {
-          updateFields.push(`bio = $${paramCount++}`);
-          updateValues.push(String(bio).substring(0, 500));
-        }
-
-        if (avatar_url !== undefined) {
-          updateFields.push(`avatar_url = $${paramCount++}`);
-          updateValues.push(avatar_url);
-        }
-
-        if (faction !== undefined) {
-          // Resolve faction_id e normaliza o VARCHAR simultaneamente
-          const { canonicalName: updCanonical, factionId: updFactionId } =
-            await resolveFaction(faction, client);
-          updateFields.push(`faction = $${paramCount++}`);
-          updateValues.push(updCanonical);
-          updateFields.push(`faction_id = $${paramCount++}`);
-          updateValues.push(updFactionId);
-        }
-
-        if (updateFields.length === 0 && birth_date !== undefined) {
-          const current = await client.query(
-            "SELECT * FROM user_profiles WHERE user_id = $1",
-            [id],
-          );
-          return current.rows[0];
-        }
-
-        if (updateFields.length === 0) {
-          throw new Error("Nenhum campo válido para atualizar");
-        }
-
-        updateValues.push(id);
-
-        const updateResult = await client.query(
-          `
-          UPDATE user_profiles
-          SET ${updateFields.join(", ")}, updated_at = CURRENT_TIMESTAMP
-          WHERE user_id = $${paramCount}
-          `,
-          updateValues,
-        );
-
-        const updatedResult = await client.query(`SELECT * FROM user_profiles WHERE user_id = $1`, [id]);
-        return updatedResult.rows[0];
-      });
-
-      await invalidatePlayerCache(id);
-      await refreshUserRankingCaches();
-
-      res.json({
-        message: "Perfil atualizado com sucesso",
-        profile: convertProfileData(updatedProfile),
-      });
-    } catch (error) {
-      if (
-        error.code === "23505" &&
-        (error.constraint === "users_username_key" ||
-          error.constraint === "user_profiles_username_unique" ||
-          error.constraint === "user_profiles_username_key")
-      ) {
-        return res
-          .status(409)
-          .json({ error: "Este nome de usuário já está em uso." });
-      }
-
-      if (error.message === "Usuário não encontrado") {
-        return res.status(404).json({ error: error.message });
-      }
-
-      if (error.message === "Nenhum campo válido para atualizar") {
-        return res.status(400).json({ error: error.message });
-      }
-
-      console.error("❌ Erro ao atualizar perfil:", error.message);
-      res
-        .status(500)
-        .json({ error: "Erro interno do servidor", details: error.message });
+router.put("/:id/profile", authenticateToken, lockPlayerAction(1000), updateProfileValidation, async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (req.user.id !== id && !req.user.is_admin) {
+      return res.status(403).json({ error: "Acesso negado" });
     }
-  },
-);
+
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
+
+    // SÊNIOR: Se houver mudança de birth_date ou username, atualizamos a tabela users (SQL)
+    if (req.body.birth_date || req.body.username) {
+      const sqlParts = [];
+      const sqlVals = [];
+      if (req.body.birth_date) {
+        sqlParts.push(`birth_date = $${sqlVals.length + 1}`);
+        sqlVals.push(sanitizeBirthDate(req.body.birth_date));
+      }
+      if (req.body.username) {
+        sqlParts.push(`username = $${sqlVals.length + 1}`);
+        sqlVals.push(req.body.username);
+      }
+      sqlVals.push(id);
+      await query(`UPDATE users SET ${sqlParts.join(', ')}, updated_at = CURRENT_TIMESTAMP WHERE id = $${sqlVals.length}`, sqlVals);
+    }
+
+    // Atualiza o estado principal no Redis (SSOT)
+    const newState = await playerStateService.updatePlayerState(id, req.body);
+    await refreshUserRankingCaches();
+
+    res.json({
+      message: "Perfil atualizado com sucesso",
+      profile: playerStateService.formatProfile(newState),
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
 
 // =========================
 // PUT /api/users/:id/password
