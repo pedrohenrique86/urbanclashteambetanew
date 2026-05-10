@@ -392,7 +392,7 @@ export default function ContractsPage() {
       socketService.off('contract:master_heist_alert', handleAlert);
       clearInterval(interval);
     };
-  }, [userProfile?.faction, showToast]);
+  }, [faction, showToast]);
 
   // Atualiza config (Ganhos dinâmicos) quando sobe de nível
   useEffect(() => {
