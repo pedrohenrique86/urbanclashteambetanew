@@ -99,7 +99,35 @@ class PlayerStateService {
       sseService.broadcastToUser(userId, "player:update", patchSSE);
     }
 
+    // SÊNIOR: Se mudou XP ou Nível, atualiza o Ranking ZSET em tempo real
+    if (updates.total_xp !== undefined || updates.level !== undefined) {
+      this.getPlayerState(userId).then(state => this._updateRankingScore(userId, state));
+    }
+
     return this.getPlayerState(userId);
+  }
+
+  /**
+   * Mantém os ZSETs de ranking (Global e Facção) sincronizados.
+   */
+  async _updateRankingScore(userId, state) {
+    if (!state || !redisClient.client.isReady) return;
+
+    // Fórmula de Score: Nível como peso principal (x100M) + XP total
+    const score = Number(state.level || 1) * 100000000 + Number(state.total_xp || 0);
+    const p = redisClient.pipeline();
+
+    p.zAdd(RANKING_ALL, score, String(userId));
+
+    if (state.faction === "renegados") {
+      p.zAdd(RANKING_RENEGADOS, score, String(userId));
+      p.zRem(RANKING_GUARDIOES, String(userId));
+    } else if (state.faction === "guardioes") {
+      p.zAdd(RANKING_GUARDIOES, score, String(userId));
+      p.zRem(RANKING_RENEGADOS, String(userId));
+    }
+
+    await p.exec();
   }
 
   /**
@@ -141,6 +169,9 @@ class PlayerStateService {
     p.hSet(redisKey, "is_dirty_at", "");
     p.expire(redisKey, 86400 * 7); // Cache por 7 dias se inativo
     await p.exec();
+
+    // SÊNIOR: Garante que o ranking ZSET esteja populado se o jogador carregar do DB
+    await this._updateRankingScore(userId, this._parseState(dbData));
   }
 
   /**

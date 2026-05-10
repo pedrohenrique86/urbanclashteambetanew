@@ -7,6 +7,9 @@
 
 const PLAYER_STATE_PREFIX = "playerState:";
 const DIRTY_PLAYERS_SET    = "dirtyPlayers";
+const RANKING_ALL          = "ranking:players:all";
+const RANKING_RENEGADOS    = "ranking:players:renegados";
+const RANKING_GUARDIOES    = "ranking:players:guardioes";
 const PERSISTENCE_INTERVAL = 3000; // 3 segundos
 
 /**
@@ -94,6 +97,9 @@ const NUMERIC_FIELDS = new Set([
 module.exports = {
   PLAYER_STATE_PREFIX,
   DIRTY_PLAYERS_SET,
+  RANKING_ALL,
+  RANKING_RENEGADOS,
+  RANKING_GUARDIOES,
   PERSISTENCE_INTERVAL,
   DB_PERSIST_FIELDS,
   VOLATILE_FIELDS,
