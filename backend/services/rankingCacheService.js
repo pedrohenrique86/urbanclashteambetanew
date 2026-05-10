@@ -510,6 +510,14 @@ function scheduleAsapRefresh() {
  * Necessário apenas na primeira execução ou após restart.
  */
 async function initializeRankingZSet() {
+  // SÊNIOR: Verifica se o ZSET já tem dados no Redis. 
+  // Se tiver, não precisamos acordar o banco no boot (Lazy Recovery).
+  const count = await redisClient.zCardAsync("ranking:players").catch(() => 0);
+  if (count > 0) {
+    console.log(`[ranking] ⚡ ZSET já populado no Redis (${count} jogadores). Pulando carga do banco.`);
+    return;
+  }
+
   console.log("[ranking] 🔄 Inicializando ZSET de ranking a partir do banco...");
 
   try {

@@ -81,8 +81,9 @@ async function connectDB() {
     client = await pool.connect();
     await client.query("SELECT NOW()");
     
-    // Executa migrações críticas em modo silencioso
-    await runPlayerStatusMigrations(true);
+    // SÊNIOR: Desativado o check automático de migrações no boot para economizar CU.
+    // As tabelas já foram criadas e não precisam ser verificadas em todo restart.
+    // await runPlayerStatusMigrations(true);
     
     return true;
   } catch (error) {

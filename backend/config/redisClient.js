@@ -369,6 +369,16 @@ const redisWrapper = {
       return null;
     }
   },
+
+  zCardAsync: async (key) => {
+    if (!key || !isReady) return 0;
+    try {
+      return await client.zCard(String(key));
+    } catch (err) {
+      console.error(`[RedisClient] Erro em zCardAsync key=${key}:`, err.message);
+      return 0;
+    }
+  },
   
   // ─── Set Operations ─────────────────────────────────────────────────────────
 

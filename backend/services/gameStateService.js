@@ -378,6 +378,13 @@ async function invalidateAndBroadcastState() {
 }
 
 async function checkAutoStart() {
+  // SÊNIOR: Verifica se já temos o estado no Redis. 
+  // Se tiver, não precisamos acordar o banco no boot.
+  const exists = await redisClient.existsAsync("game_state_hash").catch(() => 0);
+  if (exists) {
+    console.log("[gameState] ⚡ Estado do jogo já presente no Redis. Pulando verificação do banco.");
+    return;
+  }
   try {
     const cachedState = await safeRedisHGetAll(GAME_STATE_CACHE_KEY);
     let state;
