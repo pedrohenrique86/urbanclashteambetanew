@@ -616,39 +616,69 @@ export default function ContractsPage() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {faction === 'gangsters' ? (
-                config?.heists.map(heist => (
-                  <ActionCard 
-                    key={heist.id} 
-                    data={heist} 
-                    type="heist"
-                    userLevel={userProfile?.level || 0}
-                    userEnergy={userProfile?.energy || 0}
-                    userPA={userProfile?.action_points || 0}
-                    userTox={userProfile?.toxicity || 0}
-                    userMoney={userProfile?.money || 0}
-                    disabled={loadingAction !== null || cooldown > 0}
-                    cooldown={cooldown}
-                    onAction={handleHeist}
-                    onSupply={handleQuickSupply}
-                  />
-                ))
+                config?.heists
+                  .filter((h, idx, arr) => {
+                    const userLvl = userProfile?.level || 1;
+                    const unlocked = arr.filter(t => t.level <= userLvl);
+                    const nextLocked = arr.find(t => t.level > userLvl);
+                    
+                    // Se não houver mais tarefas bloqueadas, mostra apenas a última da lista
+                    if (!nextLocked) {
+                      return idx === arr.length - 1;
+                    }
+
+                    const isLastTwoUnlocked = unlocked.slice(-2).some(t => t.id === h.id);
+                    const isNextLocked = nextLocked?.id === h.id;
+                    return isLastTwoUnlocked || isNextLocked;
+                  })
+                  .map(heist => (
+                    <ActionCard 
+                      key={heist.id} 
+                      data={heist} 
+                      type="heist"
+                      userLevel={userProfile?.level || 0}
+                      userEnergy={userProfile?.energy || 0}
+                      userPA={userProfile?.action_points || 0}
+                      userTox={userProfile?.toxicity || 0}
+                      userMoney={userProfile?.money || 0}
+                      disabled={loadingAction !== null || cooldown > 0}
+                      cooldown={cooldown}
+                      onAction={handleHeist}
+                      onSupply={handleQuickSupply}
+                    />
+                  ))
               ) : (
-                config?.guardianTasks.map(task => (
-                  <ActionCard 
-                    key={task.id} 
-                    data={task} 
-                    type="task"
-                    userLevel={userProfile?.level || 0}
-                    userEnergy={userProfile?.energy || 0}
-                    userPA={userProfile?.action_points || 0}
-                    userTox={userProfile?.toxicity || 0}
-                    userMoney={userProfile?.money || 0}
-                    disabled={loadingAction !== null || cooldown > 0}
-                    cooldown={cooldown}
-                    onAction={handleGuardianTask}
-                    onSupply={handleQuickSupply}
-                  />
-                ))
+                config?.guardianTasks
+                  .filter((t, idx, arr) => {
+                    const userLvl = userProfile?.level || 1;
+                    const unlocked = arr.filter(task => task.level <= userLvl);
+                    const nextLocked = arr.find(task => task.level > userLvl);
+
+                    // Se não houver mais tarefas bloqueadas, mostra apenas a última da lista
+                    if (!nextLocked) {
+                      return idx === arr.length - 1;
+                    }
+
+                    const isLastTwoUnlocked = unlocked.slice(-2).some(task => task.id === t.id);
+                    const isNextLocked = nextLocked?.id === t.id;
+                    return isLastTwoUnlocked || isNextLocked;
+                  })
+                  .map(task => (
+                    <ActionCard 
+                      key={task.id} 
+                      data={task} 
+                      type="task"
+                      userLevel={userProfile?.level || 0}
+                      userEnergy={userProfile?.energy || 0}
+                      userPA={userProfile?.action_points || 0}
+                      userTox={userProfile?.toxicity || 0}
+                      userMoney={userProfile?.money || 0}
+                      disabled={loadingAction !== null || cooldown > 0}
+                      cooldown={cooldown}
+                      onAction={handleGuardianTask}
+                      onSupply={handleQuickSupply}
+                    />
+                  ))
               )}
             </div>
           </div>
