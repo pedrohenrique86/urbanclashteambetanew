@@ -111,39 +111,54 @@ const requireOwnership = (resourceIdParam = "id") => {
   };
 };
 
-// Função para gerar token JWT
+// Função para gerar o par de tokens (Access + Refresh)
 const generateToken = (userId) => {
-  return jwt.sign(
-    { userId },
-    process.env.JWT_SECRET,
-    { expiresIn: "7d" }, // Token expira em 7 dias
-  );
+  const accessToken = jwt.sign({ userId }, process.env.JWT_SECRET, {
+    expiresIn: "15m", // 15 minutos (Segurança)
+  });
+
+  const refreshToken = jwt.sign({ userId }, process.env.JWT_SECRET, {
+    expiresIn: "7d", // 7 dias (Persistência)
+  });
+
+  return { accessToken, refreshToken };
+};
+
+// Helpers individuais se necessário
+const generateAccessToken = (userId) => {
+  return jwt.sign({ userId }, process.env.JWT_SECRET, { expiresIn: "15m" });
+};
+
+const generateRefreshToken = (userId) => {
+  return jwt.sign({ userId }, process.env.JWT_SECRET, { expiresIn: "7d" });
 };
 
 /**
- * Função para criar sessão (Legado/No-op)
- * A autenticação agora é estritamente stateless baseada em JWT.
+ * Função para criar sessão no Redis (Refresh Token Persistence)
  */
-const createSession = async (userId) => {
-  // console.log("✅ Sessão validada (JWT) para usuário:", userId);
+const createSession = async (userId, refreshToken) => {
+  const redisClient = require("../config/redisClient");
+  const key = `auth:refresh:${userId}`;
+  // Guardamos o refresh token no Redis para permitir revogação
+  await redisClient.setAsync(key, refreshToken, "EX", 604800); // 7 dias
   return true;
 };
 
 /**
- * Função para invalidar sessão (Legado/No-op)
- * Como não há persistência de estado de sessão em banco, o logout é handled no client descartando o JWT.
+ * Função para invalidar sessão
  */
-const invalidateSession = async (userId, token) => {
-  // No-op: arquitetura stateless
+const invalidateSession = async (userId) => {
+  const redisClient = require("../config/redisClient");
+  await redisClient.delAsync(`auth:refresh:${userId}`);
+  await redisClient.delAsync(`auth:user:${userId}`); // Limpa cache de perfil também
   return true;
 };
 
 /**
- * Função para invalidar todas as sessões (Legado/No-op)
+ * Função para invalidar todas as sessões (Placeholder para escalabilidade)
  */
 const invalidateAllSessions = async (userId) => {
-  // No-op: arquitetura stateless
-  return true;
+  return invalidateSession(userId);
 };
 
 // Middleware para verificar se o jogador está com status 'Operacional'

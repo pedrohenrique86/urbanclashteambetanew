@@ -121,4 +121,22 @@ router.post("/set-player-status", authenticateToken, isAdmin, async (req, res) =
   }
 });
 
+// GET /api/admin/audit-logs - Recupera logs de auditoria do Redis
+router.get("/audit-logs", authenticateToken, isAdmin, async (req, res) => {
+  const { count, startId } = req.query;
+  
+  try {
+    const actionLogService = require("../services/actionLogService");
+    const logs = await actionLogService.getAuditLogs(parseInt(count) || 100, startId || '+');
+    
+    res.json({
+      success: true,
+      logs
+    });
+  } catch (error) {
+    console.error("Erro ao buscar logs de auditoria:", error);
+    res.status(500).json({ error: "Erro ao buscar logs de auditoria." });
+  }
+});
+
 module.exports = router;

@@ -25,6 +25,7 @@ const {
 class PlayerStateService {
   constructor() {
     this.schedulePersistence();
+    this.startGarbageCollector();
   }
 
   /**
@@ -34,6 +35,45 @@ class PlayerStateService {
     setInterval(() => {
       persistenceService.persistDirtyStates();
     }, PERSISTENCE_INTERVAL);
+  }
+
+  /**
+   * SÊNIOR: Garbage Collector (Zelador de Memória)
+   * Roda a cada 1 hora para limpar jogadores inativos há mais de 24h.
+   * Crucial para servidores com 1GB de RAM.
+   */
+  startGarbageCollector() {
+    setInterval(async () => {
+      try {
+        if (!redisClient.client.isReady) return;
+        console.log("🧹 [GC] Iniciando limpeza de memória (Garbage Collector)...");
+
+        // Buscamos todas as chaves de estado de jogador
+        const keys = await redisClient.client.keys(`${PLAYER_STATE_PREFIX}*`);
+        let cleaned = 0;
+
+        for (const key of keys) {
+          const state = await redisClient.hGetAllAsync(key);
+          
+          // Se não estiver 'dirty' (pendente de salvar) e for antigo, removemos
+          const isDirty = state.is_dirty === "1";
+          const lastUpdate = Number(state.is_dirty_at || 0);
+          const now = Date.now();
+
+          // Se o jogador está inativo há mais de 24 horas e os dados estão salvos no SQL
+          if (!isDirty && (now - lastUpdate > 86400000)) {
+            await redisClient.delAsync(key);
+            cleaned++;
+          }
+        }
+
+        if (cleaned > 0) {
+          console.log(`✅ [GC] Limpeza concluída: ${cleaned} perfis inativos removidos da RAM.`);
+        }
+      } catch (err) {
+        console.error("❌ [GC] Erro no Garbage Collector:", err.message);
+      }
+    }, 3600000); // Roda a cada 1 hora
   }
 
   /**

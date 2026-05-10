@@ -279,11 +279,11 @@ router.post("/login", authLimiter, loginValidation, async (req, res) => {
 
     const { password_hash, ...userWithoutPassword } = user;
 
-    // Gerar token JWT
-    const token = generateToken(user.id);
+    // Gerar par de tokens JWT (Access + Refresh)
+    const { accessToken, refreshToken } = generateToken(user.id);
 
-    // Criar sessão no banco
-    await createSession(user.id, token);
+    // Salvar o Refresh Token no Redis para persistência/revogação
+    await createSession(user.id, refreshToken);
 
     const gameState = await getGameState();
 
@@ -294,7 +294,8 @@ router.post("/login", authLimiter, loginValidation, async (req, res) => {
     );
 
     res.json({
-      token,
+      token: accessToken,
+      refreshToken: refreshToken,
       user: { ...userWithoutPassword, profile: profileResult.rows[0] || null },
       gameState,
       isFirstLogin, // Sempre será `false`
@@ -795,6 +796,39 @@ router.post("/reset-password", async (req, res) => {
   } catch (error) {
     console.error("❌ Erro ao redefinir senha:", error.message);
     res.status(500).json({ error: "Erro interno do servidor" });
+  }
+});
+
+// POST /api/auth/refresh - Renova o Access Token usando um Refresh Token válido
+router.post("/refresh", async (req, res) => {
+  const { refreshToken } = req.body;
+
+  if (!refreshToken) {
+    return res.status(401).json({ error: "Refresh token não fornecido" });
+  }
+
+  try {
+    const decoded = jwt.verify(refreshToken, process.env.JWT_SECRET);
+    const userId = decoded.userId;
+
+    // Verificar se o Refresh Token ainda é válido no Redis
+    const redisClient = require("../config/redisClient");
+    const storedToken = await redisClient.getAsync(`auth:refresh:${userId}`);
+
+    if (!storedToken || storedToken !== refreshToken) {
+      return res.status(403).json({ error: "Refresh token inválido ou expirado" });
+    }
+
+    // Gerar novo Access Token
+    const accessToken = jwt.sign({ userId }, process.env.JWT_SECRET, { expiresIn: "15m" });
+
+    res.json({
+      token: accessToken,
+      refreshToken // Retornamos o mesmo ou um novo se quiser fazer "refresh token rotation"
+    });
+  } catch (error) {
+    console.error("❌ Erro ao renovar token:", error.message);
+    res.status(403).json({ error: "Sessão inválida. Por favor, faça login novamente." });
   }
 });
 

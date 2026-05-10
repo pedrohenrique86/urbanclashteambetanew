@@ -69,9 +69,49 @@ const { initializeSocket } = require("./socketHandler");
 const rankingCacheService = require("./services/rankingCacheService");
 
 const compression = require("compression");
+const rateLimit = require("express-rate-limit");
 
 const app = express();
+
+// --- CONFIGURAÇÃO DE RATE LIMITING (ANTI-SPAM/ANTI-BOT) ---
+
+// 1. Limiter Geral (Evita sobrecarga no servidor Oracle de 1GB)
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutos
+  max: 1000, 
+  message: { error: "Muitas requisições. Tente novamente mais tarde." },
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => req.realIP || req.ip, // SÊNIOR: Usa o IP real extraído do proxy
+});
+
+// 2. Limiter de Ações de Jogo (Anti-Macros/Autoclickers)
+const gameActionLimiter = rateLimit({
+  windowMs: 1 * 60 * 1000, // 1 minuto
+  max: 40, 
+  message: { error: "Calma! Você está agindo rápido demais. Respire um pouco." },
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => req.realIP || req.ip,
+});
+
+// 3. Limiter de Autenticação (Anti-Força Bruta)
+const authLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hora
+  max: 20, 
+  message: { error: "Muitas tentativas de login. Tente novamente em uma hora." },
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => req.realIP || req.ip,
+});
+
 app.use(compression()); 
+app.use("/api/", apiLimiter);
+app.use("/api/auth/login", authLimiter);
+app.use("/api/contracts", gameActionLimiter);
+app.use("/api/combat", gameActionLimiter);
+app.use("/api/training", gameActionLimiter);
+
 const server = http.createServer(app);
 
 // SÊNIOR: Aumenta timeouts para aguentar latência de 4G instável
@@ -108,7 +148,7 @@ const corsOptions = {
 };
 
 app.use(cors(corsOptions));
-app.set("trust proxy", true); 
+app.set("trust proxy", 1); // Confia no primeiro proxy (Cloudflare/Oracle LB)
 app.use((req, res, next) => {
   req.realIP = req.headers['cf-connecting-ip'] || req.headers['x-forwarded-for'] || req.ip;
   next();

@@ -53,20 +53,27 @@ class ActionLogService {
         }
       }
 
+      // SÊNIOR: Auditoria Profissional via Redis Streams (Capped at 200k logs)
+      // Isso garante que você tenha um histórico longo sem precisar de SQL
+      const auditStreamKey = "cache:audit_stream";
+      await redisClient.xaddAsync(auditStreamKey, 'MAXLEN', '~', '200000', '*', 
+        'data', JSON.stringify(logEntry)
+      );
+
       const userLogsKey = `${LOGS_USER_PREFIX}${userId}`;
 
-      // Salva no Redis (500 últimos por usuário)
+      // Salva no Redis (500 últimos por usuário para histórico pessoal)
       const p = redisClient.pipeline();
       p.lPush(userLogsKey, JSON.stringify(logEntry));
       p.lTrim(userLogsKey, 0, MAX_RECENT_LOGS - 1);
-      p.expire(userLogsKey, 604800); // Retenção de 7 dias no Redis
+      p.expire(userLogsKey, 604800); // 7 dias
 
-      // Global Public Stream (Para Live Ticker e Contratos)
+      // Global Public Feed (Para Live Ticker e Contratos - 100 itens)
       if (isPublic) {
         const publicLogsKey = "cache:public_logs_stream";
         p.lPush(publicLogsKey, JSON.stringify(logEntry));
-        p.lTrim(publicLogsKey, 0, 99); // Mantém os 100 mais recentes públicos
-        p.expire(publicLogsKey, 86400); // 24h para feed público
+        p.lTrim(publicLogsKey, 0, 99);
+        p.expire(publicLogsKey, 86400); // 24h
       }
       
       await p.exec();
@@ -102,6 +109,35 @@ class ActionLogService {
       });
     } catch (err) {
       console.error(`[actionLogService] Erro ao buscar logs:`, err.message);
+      return [];
+    }
+  }
+
+  /**
+   * Recupera logs do Stream de Auditoria (Para o Painel Admin)
+   * @param {number} count Quantidade de logs para retornar
+   * @param {string} startId ID de início para paginação (opcional)
+   */
+  async getAuditLogs(count = 100, startId = '+') {
+    try {
+      const auditStreamKey = "cache:audit_stream";
+      // XREVRANGE busca do mais novo para o mais antigo
+      const rawLogs = await redisClient.xrevrangeAsync(auditStreamKey, startId, '-', 'COUNT', count);
+      
+      return rawLogs.map(entry => {
+        const [id, fields] = entry;
+        // O formato do XREVRANGE é [id, ["field1", "value1", "field2", "value2", ...]]
+        const dataIndex = fields.indexOf('data');
+        if (dataIndex === -1) return null;
+        
+        const logData = JSON.parse(fields[dataIndex + 1]);
+        return {
+          id, // ID único do Redis Stream (timestamp-sequence)
+          ...logData
+        };
+      }).filter(Boolean);
+    } catch (err) {
+      console.error(`[actionLogService] ❌ Erro ao buscar audit logs: ${err.message}`);
       return [];
     }
   }
