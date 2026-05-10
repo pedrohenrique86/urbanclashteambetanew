@@ -56,15 +56,17 @@ if (databaseUrl) {
   };
 }
 
+// SÊNIOR FIX: Pool unificado — usa o poolConfig já montado acima.
+// idleTimeoutMillis aumentado de 1s → 30s para permitir que o Neon entre
+// em auto-suspend quando não há jogadores ativos.
+// max reduzido de 20 → 10 em prod: o sistema é Redis-first, raramente usa
+// mais de 3-4 conexões simultâneas no ciclo de 10 minutos.
 const pool = new Pool({
-  connectionString: databaseUrl,
-  ssl: {
-    rejectUnauthorized: false,
-  },
-  max: isProduction ? 20 : 5, // Limita conexões em DEV
-  idleTimeoutMillis: 1000,     // Fecha conexões ociosas em 1 segundo
+  ...poolConfig,
+  max: isProduction ? 10 : 3,
+  idleTimeoutMillis: 30000,      // 30s ociosa antes de fechar (era 1s!)
   connectionTimeoutMillis: 10000,
-  allowExitOnIdle: true,
+  allowExitOnIdle: true,         // Permite que o processo Node.js encerre se só o pool estiver ativo
 });
 
 // SÊNIOR: Monitoramento de conexões para caçar vazamentos que impedem o sono do Neon

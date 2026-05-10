@@ -148,6 +148,11 @@ class ActionLogService {
     
     setInterval(async () => {
       try {
+        // SÊNIOR FIX: Não acorda o Neon se não há jogadores online.
+        // O ciclo ainda verifica o Redis (barato), mas só bate no Postgres se houver atividade.
+        const onlineCount = await redisClient.sCardAsync("online_players_set").catch(() => 0);
+        if (!onlineCount || onlineCount === 0) return;
+
         const startTime = Date.now();
         // Aumentado para 500 por lote para aguentar escala massiva
         const logsRaw = await redisClient.lRangeAsync(LOGS_QUEUE_KEY, 0, 499); 
@@ -184,6 +189,11 @@ class ActionLogService {
     const CLEANUP_INTERVAL = 1000 * 60 * 60 * 24; // 24 horas
     setInterval(async () => {
       try {
+        // SÊNIOR FIX: Cleanup só acorda o banco se há jogadores online.
+        // Se o servidor estiver vazio, adia a limpeza para o próximo ciclo de 24h.
+        const onlineCount = await redisClient.sCardAsync("online_players_set").catch(() => 0);
+        if (!onlineCount || onlineCount === 0) return;
+
         const result = await query(`DELETE FROM action_logs WHERE created_at < NOW() - INTERVAL '7 days'`);
         console.log(`[actionLogService] 🧹 Cleanup realizado: ${result.rowCount} logs antigos removidos.`);
       } catch (err) {

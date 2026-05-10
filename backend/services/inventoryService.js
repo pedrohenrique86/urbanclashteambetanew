@@ -21,7 +21,9 @@ class InventoryService {
     this.isFlushing = false;
     
     if (process.env.NODE_ENV !== 'test') {
-      setInterval(() => this.flushDirtyInventories(), SYNC_INTERVAL);
+      // SÊNIOR FIX: unref() adicionado para não manter o processo Node.js acordado sozinho
+      const t = setInterval(() => this.flushDirtyInventories(), SYNC_INTERVAL);
+      if (t.unref) t.unref();
     }
   }
 
@@ -196,15 +198,16 @@ class InventoryService {
    */
   async flushDirtyInventories() {
     if (this.isFlushing) return;
-    this.isFlushing = true;
 
     try {
       const dirtyUserIds = await redisClient.sMembersAsync(INV_DIRTY_SET);
-      if (dirtyUserIds.length === 0) {
-        this.isFlushing = false;
-        return;
-      }
+      if (dirtyUserIds.length === 0) return;
 
+      // SÊNIOR FIX: Não acorda o Neon se não há jogadores online.
+      const onlineCount = await redisClient.sCardAsync("online_players_set").catch(() => 0);
+      if (!onlineCount || onlineCount === 0) return;
+
+      this.isFlushing = true;
       await redisClient.delAsync(INV_DIRTY_SET);
       console.log(`[Inventory] 💾 Sincronizando ${dirtyUserIds.length} estados...`);
       

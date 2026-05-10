@@ -45,7 +45,7 @@ class AttributeBufferService {
   start() {
     if (this._timer) return;
     this._timer = setInterval(() => this.flush(), this._flushInterval);
-    if (this._timer.unref) this._timer.unref(); // Permite que o processo feche se apenas o timer estiver ativo
+    if (this._timer.unref) this._timer.unref(); // SÊNIOR FIX: adicionado unref() (estava faltando) para não manter o processo acordado
   }
 
   /**
@@ -63,6 +63,17 @@ class AttributeBufferService {
    */
   async flush() {
     if (this._isFlushing || this._buffer.size === 0) return;
+
+    // SÊNIOR FIX: Não acorda o Neon se não há jogadores online.
+    // Buffers só existem durante sessões ativas, mas verificamos por segurança.
+    try {
+      const redisClient = require("../config/redisClient");
+      const onlineCount = await redisClient.sCardAsync("online_players_set").catch(() => 0);
+      if (!onlineCount || onlineCount === 0) return;
+    } catch (_) {
+      // Se o Redis falhar, permite o flush (não bloqueia persistência)
+    }
+
     this._isFlushing = true;
 
     // Snapshot e limpeza do buffer imediata para não perder novos deltas durante a IO

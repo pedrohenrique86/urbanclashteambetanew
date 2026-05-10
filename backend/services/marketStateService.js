@@ -39,9 +39,10 @@ class MarketStateService {
     this.initialized = false;
     this.isFlushing = false;
     
-    // Inicia o worker de sincronização
+    // SÊNIOR FIX: unref() adicionado para não manter o processo Node.js acordado sozinho
     if (process.env.NODE_ENV !== 'test') {
-      setInterval(() => this.flushDirtyStock(), SYNC_INTERVAL);
+      const t = setInterval(() => this.flushDirtyStock(), SYNC_INTERVAL);
+      if (t.unref) t.unref();
     }
   }
 
@@ -100,15 +101,16 @@ class MarketStateService {
    */
   async flushDirtyStock() {
     if (this.isFlushing) return;
-    this.isFlushing = true;
 
     try {
       const dirtyItems = await redisClient.sMembersAsync(MARKET_DIRTY_SET);
-      if (dirtyItems.length === 0) {
-        this.isFlushing = false;
-        return;
-      }
+      if (dirtyItems.length === 0) return;
 
+      // SÊNIOR FIX: Não acorda o Neon se não há jogadores online.
+      const onlineCount = await redisClient.sCardAsync("online_players_set").catch(() => 0);
+      if (!onlineCount || onlineCount === 0) return;
+
+      this.isFlushing = true;
       console.log(`[MarketState] 💾 Persistindo ${dirtyItems.length} itens no PostgreSQL...`);
       
       // Limpa o set de dirty primeiro (se falhar o update, eles serão marcados de novo na próxima ação)
