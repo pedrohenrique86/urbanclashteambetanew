@@ -57,7 +57,13 @@ jobs:
 
             cd backend
             npm install --omit=dev
-            npm run migrate:up:prod || true
+            # SÊNIOR: Verificações de saúde do Banco SQLite e Backup
+            echo "🔍 Verificando integridade do SQLite e Litestream..."
+            ls -lh ~/urbanclashteambetanew/*.db || echo "⚠️  Aviso: Arquivos .db não encontrados (serão criados no boot)"
+            
+            # Garante que o Litestream está rodando
+            sudo systemctl restart litestream || echo "⚠️  Falha ao reiniciar Litestream"
+            sudo systemctl is-active litestream || echo "❌ Litestream NÃO está rodando!"
 
             # Para instância anterior e reinicia com PM2 na porta 3001
             pm2 delete backend 2>/dev/null || true
