@@ -239,10 +239,10 @@ async function startServer() {
 
     const io = new Server(server, { 
       cors: corsOptions,
-      pingTimeout: 5000, // Detecta queda em 5s (antes era 10s)
-      pingInterval: 2000, // Pergunta se tá vivo a cada 2s (antes era 5s)
-      connectTimeout: 10000,
-      transports: ["polling", "websocket"] // Garante suporte a ambos
+      pingTimeout: 30000, // SÊNIOR: Aumentado para 30s para resiliência em 4G
+      pingInterval: 10000, // SÊNIOR: Intervalo de 10s para não sobrecarregar a rede
+      connectTimeout: 20000,
+      transports: ["polling", "websocket"]
     });
     initializeSocket(io);
     schedulePersistence();

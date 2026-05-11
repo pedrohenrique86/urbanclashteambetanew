@@ -54,6 +54,7 @@ async function refreshUserRankingCaches() {
 // SSE Ranking
 // =========================
 router.get("/rankings/subscribe", (req, res) => {
+  req.setTimeout(0);
   res.set({
     "Content-Type": "text/event-stream",
     "Cache-Control": "no-cache, no-transform",
@@ -100,6 +101,7 @@ router.get("/rankings/subscribe", (req, res) => {
 // Segurança: token via query param — NÃO logado (sanitizado antes do morgan)
 // =========================
 router.get("/state/subscribe", authenticateToken, (req, res) => {
+  req.setTimeout(0);
   const userId = req.user.id;
   const topic  = `player:${userId}`;
 

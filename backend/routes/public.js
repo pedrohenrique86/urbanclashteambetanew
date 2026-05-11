@@ -25,10 +25,13 @@ router.get("/rankings", async (req, res) => {
 });
 
 router.get("/rankings/subscribe", (req, res) => {
+  req.setTimeout(0);
   res.set({
     "Content-Type": "text/event-stream",
-    "Cache-Control": "no-cache",
-    Connection: "keep-alive",
+    "Cache-Control": "no-cache, no-transform",
+    "Connection": "keep-alive",
+    "X-Accel-Buffering": "no",
+    "Content-Encoding": "identity",
     "Access-Control-Allow-Origin": "*",
   });
   if (res.flushHeaders) res.flushHeaders();
@@ -44,7 +47,7 @@ router.get("/rankings/subscribe", (req, res) => {
     } catch (_) {
       clearInterval(pingInterval);
     }
-  }, 25_000);
+  }, 15_000);
 
   // Previne crash do servidor quando mobile troca de rede (WiFi↔4G)
   res.on("error", () => {
