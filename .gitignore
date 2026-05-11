@@ -103,10 +103,4 @@ out/
 # OS Metadata
 Thumbs.db
 ehthumbs.db
-Desktop.ini
-
-# Database files
-*.db
-*.db-journal
-*.db-shm
-*.db-wal
+Desktop.ini
