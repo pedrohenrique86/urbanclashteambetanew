@@ -112,7 +112,7 @@ class PlayerStateService {
         console.log("🧹 [GC] Iniciando limpeza de memória (Garbage Collector)...");
 
         // Buscamos todas as chaves de estado de jogador
-        const keys = await redisClient.client.keys(`${PLAYER_STATE_PREFIX}*`);
+        const keys = await redisClient.keysAsync(`${PLAYER_STATE_PREFIX}*`);
         let cleaned = 0;
 
         for (const key of keys) {
