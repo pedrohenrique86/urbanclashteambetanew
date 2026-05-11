@@ -318,14 +318,14 @@ router.post("/profile", authenticateToken, lockPlayerAction(1000), async (req, r
     const { faction } = req.body;
     const canonical = playerStateService.resolveFactionName(faction);
     
-    const existing = await query("SELECT id FROM user_profiles WHERE user_id = $1", [req.user.id]);
+    const existing = await query("SELECT id FROM user_profiles WHERE user_id = ?", [req.user.id]);
     if (existing.rows.length > 0) return res.status(409).json({ error: "Perfil já existe" });
 
-    const userRes = await query("SELECT id, username, email FROM users WHERE id = $1", [req.user.id]);
+    const userRes = await query("SELECT id, username, email FROM users WHERE id = ?", [req.user.id]);
     const user = userRes.rows[0];
 
     // SÊNIOR: Faction ID dinâmico via DB para garantir FK
-    const { rows: fRows } = await query("SELECT id FROM factions WHERE name = $1", [canonical]);
+    const { rows: fRows } = await query("SELECT id FROM factions WHERE name = ?", [canonical]);
     const factionId = fRows[0]?.id;
 
     const stats = getFactionStats(canonical);
@@ -333,7 +333,7 @@ router.post("/profile", authenticateToken, lockPlayerAction(1000), async (req, r
 
     const { rows } = await query(
       `INSERT INTO user_profiles (user_id, username, display_name, faction, faction_id, level, energy, money, action_points, attack, defense, focus, intimidation, discipline, status)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15) RETURNING *`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [user.id, safeName, safeName, canonical, factionId, stats.level, stats.energy, stats.money, stats.action_points, stats.attack, stats.defense, stats.focus, stats.intimidation, stats.discipline, stats.status]
     );
 
@@ -453,15 +453,15 @@ router.put("/:id/profile", authenticateToken, lockPlayerAction(1000), updateProf
       const sqlParts = [];
       const sqlVals = [];
       if (req.body.birth_date) {
-        sqlParts.push(`birth_date = $${sqlVals.length + 1}`);
+        sqlParts.push(`birth_date = ?`);
         sqlVals.push(sanitizeBirthDate(req.body.birth_date));
       }
       if (req.body.username) {
-        sqlParts.push(`username = $${sqlVals.length + 1}`);
+        sqlParts.push(`username = ?`);
         sqlVals.push(req.body.username);
       }
       sqlVals.push(id);
-      await query(`UPDATE users SET ${sqlParts.join(', ')}, updated_at = CURRENT_TIMESTAMP WHERE id = $${sqlVals.length}`, sqlVals);
+      await query(`UPDATE users SET ${sqlParts.join(', ')}, updated_at = CURRENT_TIMESTAMP WHERE id = ?`, sqlVals);
     }
 
     // Atualiza o estado principal no Redis (SSOT)
@@ -502,7 +502,7 @@ router.put(
       const { currentPassword, newPassword } = req.body;
 
       const userResult = await query(
-        "SELECT password_hash FROM users WHERE id = $1",
+        "SELECT password_hash FROM users WHERE id = ?",
         [id],
       );
 
@@ -523,7 +523,7 @@ router.put(
       const newPasswordHash = await bcrypt.hash(newPassword, 12);
 
       await query(
-        "UPDATE users SET password_hash = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2",
+        "UPDATE users SET password_hash = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
         [newPasswordHash, id],
       );
 
@@ -549,7 +549,7 @@ router.get("/:id/clans", async (req, res) => {
         cm.role, cm.joined_at
       FROM clans c
       INNER JOIN clan_members cm ON c.id = cm.clan_id
-      WHERE cm.user_id = $1
+      WHERE cm.user_id = ?
       ORDER BY cm.joined_at DESC
       `,
       [id],
@@ -580,7 +580,7 @@ router.delete("/:id", authenticateToken, async (req, res) => {
 
     const result = await transaction(async (client) => {
       const deleteResult = await client.query(
-        "DELETE FROM users WHERE id = $1",
+        "DELETE FROM users WHERE id = ?",
         [id],
       );
 
@@ -638,12 +638,12 @@ router.get("/", async (req, res) => {
     let paramCount = 1;
 
     if (faction) {
-      whereClause += ` AND p.faction = $${paramCount++}`;
+      whereClause += ` AND p.faction = ?`;
       queryParams.push(faction);
     }
 
     if (search) {
-      whereClause += ` AND (COALESCE(p.username, u.username) ILIKE $${paramCount++} OR p.display_name ILIKE $${paramCount++})`;
+      whereClause += ` AND (COALESCE(p.username, u.username) LIKE ? OR p.display_name LIKE ?)`;
       queryParams.push(`%${search}%`, `%${search}%`);
     }
 
@@ -669,7 +669,7 @@ router.get("/", async (req, res) => {
       LEFT JOIN user_profiles p ON u.id = p.user_id
       ${whereClause}
       ORDER BY ${orderBy} ${sortOrder}
-      LIMIT $${paramCount++} OFFSET $${paramCount++}
+      LIMIT ? OFFSET ?
       `,
       [...queryParams, limitNum, offset],
     );

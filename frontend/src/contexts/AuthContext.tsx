@@ -5,7 +5,7 @@ interface AuthContextType {
   user: any | null;
   isHydrating: boolean;
   isLoggingIn: boolean;
-  login: (token: string, userData?: any) => Promise<void>;
+  login: (token: string, refreshToken?: string, userData?: any) => Promise<void>;
   logout: () => Promise<void>;
 }
 
@@ -72,8 +72,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     initAuth();
   }, []);
 
-  const login = useCallback(async (token: string, userData?: any) => {
-    tokenStorage.setToken(token);
+  const login = useCallback(async (token: string, refreshToken?: string, userData?: any) => {
+    tokenStorage.setToken(token, refreshToken);
     
     if (userData) {
       setUser(userData);

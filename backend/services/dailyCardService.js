@@ -19,7 +19,7 @@ class DailyCardService {
     // 2. Verificar se o jogador já tem sorteio ativo (não expirado) no BD
     const existing = await query(
       `SELECT * FROM player_daily_cards 
-       WHERE user_id = $1 AND expires_at > CURRENT_TIMESTAMP
+       WHERE user_id = ? AND expires_at > CURRENT_TIMESTAMP
        ORDER BY presented_at DESC LIMIT 1`,
       [userId]
     );
@@ -46,7 +46,7 @@ class DailyCardService {
 
     const insertResult = await query(
       `INSERT INTO player_daily_cards (user_id, expires_at, card_option_1, card_option_2, card_option_3)
-       VALUES ($1, $2, $3, $4, $5)
+       VALUES (?, ?, ?, ?, ?)
        RETURNING *`,
       [userId, expiresAt, options[0], options[1], options[2]]
     );
@@ -71,7 +71,7 @@ class DailyCardService {
       // 1. Buscar o sorteio ativo
       const dailyCardResult = await client.query(
         `SELECT * FROM player_daily_cards 
-         WHERE user_id = $1 AND expires_at > CURRENT_TIMESTAMP
+         WHERE user_id = ? AND expires_at > CURRENT_TIMESTAMP
          ORDER BY presented_at DESC LIMIT 1`,
         [userId]
       );
@@ -96,14 +96,14 @@ class DailyCardService {
 
       // 3. Marcar como escolhida
       await client.query(
-        `UPDATE player_daily_cards SET chosen_option = $1, chosen_at = CURRENT_TIMESTAMP WHERE id = $2`,
+        `UPDATE player_daily_cards SET chosen_option = ?, chosen_at = CURRENT_TIMESTAMP WHERE id = ?`,
         [optionIndex, dailyCard.id]
       );
 
       // 4. Registrar a recompensa
       const rewardResult = await client.query(
         `INSERT INTO card_rewards (daily_card_id, user_id, reward_type, item_id, reward_value, rarity, delivered, delivered_at)
-         VALUES ($1, $2, $3, $4, $5, $6, TRUE, CURRENT_TIMESTAMP)
+         VALUES (?, ?, ?, ?, ?, ?, TRUE, CURRENT_TIMESTAMP)
          RETURNING *`,
         [dailyCard.id, userId, chosenCard.reward_type, chosenCard.item_id, chosenCard.reward_value, chosenCard.rarity]
       );
@@ -185,7 +185,7 @@ class DailyCardService {
         // Lógica de inventário
         await client.query(
           `INSERT INTO player_inventory (user_id, item_id, quantity, acquired_via)
-           VALUES ($1, $2, 1, 'card')`,
+           VALUES (?, ?, 1, 'card')`,
           [userId, card.item_id]
         );
         break;
@@ -212,7 +212,7 @@ class DailyCardService {
     for (const card of basicCards) {
       await query(
         `INSERT INTO daily_card_pools (reward_type, reward_value, weight, rarity)
-         VALUES ($1, $2, $3, $4)`,
+         VALUES (?, ?, ?, ?)`,
         [card.type, card.value, card.weight, card.rarity]
       );
     }
@@ -221,7 +221,7 @@ class DailyCardService {
     for (const chip of chips.rows) {
       await query(
         `INSERT INTO daily_card_pools (reward_type, item_id, weight, rarity)
-         VALUES ($1, $2, $3, $4)`,
+         VALUES (?, ?, ?, ?)`,
         ['item', chip.id, 40, 'rare']
       );
     }

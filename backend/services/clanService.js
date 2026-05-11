@@ -14,7 +14,7 @@ class ClanService {
     return await transaction(async (client) => {
       // 1. Lock do clã para evitar ultrapassar max_members
       const clanResult = await client.query(
-        "SELECT id, is_recruiting, member_count, max_members, faction FROM clans WHERE id = $1 FOR UPDATE",
+        "SELECT id, is_recruiting, member_count, max_members, faction FROM clans WHERE id = ?",
         [clanId]
       );
 
@@ -26,7 +26,7 @@ class ClanService {
 
       // 2. Verificar se o usuário já tem clã
       const userProfile = await client.query(
-        "SELECT clan_id, faction FROM user_profiles WHERE user_id = $1 FOR UPDATE",
+        "SELECT clan_id, faction FROM user_profiles WHERE user_id = ?",
         [userId]
       );
 
@@ -40,17 +40,17 @@ class ClanService {
 
       // 3. Executar a entrada
       await client.query(
-        "INSERT INTO clan_members (clan_id, user_id, role) VALUES ($1, $2, 'member')",
+        "INSERT INTO clan_members (clan_id, user_id, role) VALUES (?, ?, 'member')",
         [clanId, userId]
       );
 
       await client.query(
-        "UPDATE user_profiles SET clan_id = $1, updated_at = CURRENT_TIMESTAMP WHERE user_id = $2",
+        "UPDATE user_profiles SET clan_id = ?, updated_at = CURRENT_TIMESTAMP WHERE user_id = ?",
         [clanId, userId]
       );
 
       await client.query(
-        "UPDATE clans SET member_count = member_count + 1 WHERE id = $1",
+        "UPDATE clans SET member_count = member_count + 1 WHERE id = ?",
         [clanId]
       );
 
@@ -77,13 +77,13 @@ class ClanService {
   async leaveClan(clanId, userId) {
     return await transaction(async (client) => {
       const memberRes = await client.query(
-        "SELECT role FROM clan_members WHERE user_id = $1 AND clan_id = $2 FOR UPDATE",
+        "SELECT role FROM clan_members WHERE user_id = ? AND clan_id = ?",
         [userId, clanId]
       );
 
       if (memberRes.rows.length === 0) {
         // Fallback: garante que o perfil esteja limpo mesmo se a tabela de membros falhar
-        await client.query("UPDATE user_profiles SET clan_id = NULL WHERE user_id = $1", [userId]);
+        await client.query("UPDATE user_profiles SET clan_id = NULL WHERE user_id = ?", [userId]);
         return { success: true, message: "Vínculo removido" };
       }
 
@@ -91,9 +91,9 @@ class ClanService {
         throw new Error("O líder não pode abandonar o clã sem transferir a liderança");
       }
 
-      await client.query("DELETE FROM clan_members WHERE user_id = $1 AND clan_id = $2", [userId, clanId]);
-      await client.query("UPDATE user_profiles SET clan_id = NULL WHERE user_id = $1", [userId]);
-      await client.query("UPDATE clans SET member_count = member_count - 1 WHERE id = $1", [clanId]);
+      await client.query("DELETE FROM clan_members WHERE user_id = ? AND clan_id = ?", [userId, clanId]);
+      await client.query("UPDATE user_profiles SET clan_id = NULL WHERE user_id = ?", [userId]);
+      await client.query("UPDATE clans SET member_count = member_count - 1 WHERE id = ?", [clanId]);
 
       // Sincronizar Caches
       await clanMemberService.removeMember(clanId, userId);

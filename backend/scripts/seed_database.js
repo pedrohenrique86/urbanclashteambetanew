@@ -5,7 +5,7 @@ async function findItemByCode(code) {
   const res = await query(
     `SELECT id, code, name
      FROM items
-     WHERE code = $1
+     WHERE code = ?
      LIMIT 1`,
     [code]
   );
@@ -34,19 +34,18 @@ async function upsertItem(itemConfig) {
     await query(
       `UPDATE items
        SET
-         name = $2,
-         description = $3,
-         type = $4,
-         rarity = $5,
-         base_attack_bonus = $6,
-         base_defense_bonus = $7,
-         base_focus_bonus = $8,
-         base_price = $9,
-         is_tradeable = $10,
-         is_lootable = $11
-       WHERE id = $1`,
+         name = ?,
+         description = ?,
+         type = ?,
+         rarity = ?,
+         base_attack_bonus = ?,
+         base_defense_bonus = ?,
+         base_focus_bonus = ?,
+         base_price = ?,
+         is_tradeable = ?,
+         is_lootable = ?
+       WHERE id = ?`,
       [
-        existing.id,
         payload.name,
         payload.description,
         payload.type,
@@ -57,6 +56,7 @@ async function upsertItem(itemConfig) {
         payload.price,
         payload.tradeable,
         payload.lootable,
+        existing.id,
       ]
     );
 
@@ -77,7 +77,7 @@ async function upsertItem(itemConfig) {
       is_tradeable,
       is_lootable
     )
-    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     RETURNING id`,
     [
       payload.code,
@@ -101,7 +101,7 @@ async function upsertShopItem({ itemId, currentPrice, basePrice, stock = 9999 })
   const existing = await query(
     `SELECT id
      FROM shop_items
-     WHERE item_id = $1
+     WHERE item_id = ?
        AND season_id IS NULL
        AND currency_type = 'money'
      LIMIT 1`,
@@ -112,13 +112,13 @@ async function upsertShopItem({ itemId, currentPrice, basePrice, stock = 9999 })
     await query(
       `UPDATE shop_items
        SET
-         current_price = $2,
-         base_price = $3,
+         current_price = ?,
+         base_price = ?,
          price_modifier = 1.0,
-         stock = $4,
+         stock = ?,
          is_active = true
-       WHERE id = $1`,
-      [existing.rows[0].id, currentPrice, basePrice, stock]
+       WHERE id = ?`,
+      [currentPrice, basePrice, stock, existing.rows[0].id]
     );
     return existing.rows[0].id;
   }
@@ -134,7 +134,7 @@ async function upsertShopItem({ itemId, currentPrice, basePrice, stock = 9999 })
       stock,
       is_active
     )
-    VALUES ($1, NULL, $2, $3, 1.0, 'money', $4, true)
+    VALUES (?, NULL, ?, ?, 1.0, 'money', ?, true)
     RETURNING id`,
     [itemId, currentPrice, basePrice, stock]
   );
@@ -146,9 +146,9 @@ async function upsertDailyCardPool(card) {
   const existing = await query(
     `SELECT id
      FROM daily_card_pools
-     WHERE reward_type = $1
-       AND reward_value IS NOT DISTINCT FROM $2
-       AND item_id IS NOT DISTINCT FROM $3
+     WHERE reward_type = ?
+       AND reward_value IS ?
+       AND item_id IS ?
      LIMIT 1`,
     [card.t, card.v, card.item || null]
   );
@@ -157,10 +157,10 @@ async function upsertDailyCardPool(card) {
     await query(
       `UPDATE daily_card_pools
        SET
-         weight = $2,
-         rarity = $3
-       WHERE id = $1`,
-      [existing.rows[0].id, card.w, card.r]
+         weight = ?,
+         rarity = ?
+       WHERE id = ?`,
+      [card.w, card.r, existing.rows[0].id]
     );
     return existing.rows[0].id;
   }
@@ -173,7 +173,7 @@ async function upsertDailyCardPool(card) {
       rarity,
       item_id
     )
-    VALUES ($1, $2, $3, $4, $5)
+    VALUES (?, ?, ?, ?, ?)
     RETURNING id`,
     [card.t, card.v, card.w, card.r, card.item || null]
   );
@@ -185,7 +185,7 @@ async function upsertBadge(badge) {
   const existing = await query(
     `SELECT id
      FROM badges
-     WHERE name = $1
+     WHERE name = ?
      LIMIT 1`,
     [badge.n]
   );
@@ -194,12 +194,12 @@ async function upsertBadge(badge) {
     await query(
       `UPDATE badges
        SET
-         description = $2,
-         type = $3,
-         condition_value = $4,
+         description = ?,
+         type = ?,
+         condition_value = ?,
          is_seasonal = false
-       WHERE id = $1`,
-      [existing.rows[0].id, badge.d, badge.t, badge.v]
+       WHERE id = ?`,
+      [badge.d, badge.t, badge.v, existing.rows[0].id]
     );
     return existing.rows[0].id;
   }
@@ -212,7 +212,7 @@ async function upsertBadge(badge) {
       condition_value,
       is_seasonal
     )
-    VALUES ($1, $2, $3, $4, false)
+    VALUES (?, ?, ?, ?, false)
     RETURNING id`,
     [badge.n, badge.d, badge.t, badge.v]
   );
@@ -224,7 +224,7 @@ async function upsertGameEvent(ev) {
   const existing = await query(
     `SELECT id
      FROM game_events
-     WHERE name = $1
+     WHERE name = ?
      LIMIT 1`,
     [ev.n]
   );
@@ -233,13 +233,13 @@ async function upsertGameEvent(ev) {
     await query(
       `UPDATE game_events
        SET
-         description = $2,
-         type = $3,
-         duration_hours = $4,
-         effect_config = $5,
+         description = ?,
+         type = ?,
+         duration_hours = ?,
+         effect_config = ?,
          is_active = true
-       WHERE id = $1`,
-      [existing.rows[0].id, ev.e.message, ev.ty, ev.d, JSON.stringify(ev.e)]
+       WHERE id = ?`,
+      [ev.e.message, ev.ty, ev.d, JSON.stringify(ev.e), existing.rows[0].id]
     );
     return existing.rows[0].id;
   }
@@ -253,7 +253,7 @@ async function upsertGameEvent(ev) {
       effect_config,
       is_active
     )
-    VALUES ($1, $2, $3, $4, $5, true)
+    VALUES (?, ?, ?, ?, ?, true)
     RETURNING id`,
     [ev.n, ev.e.message, ev.ty, ev.d, JSON.stringify(ev.e)]
   );
@@ -262,7 +262,7 @@ async function upsertGameEvent(ev) {
 }
 
 async function seed() {
-  console.log('Iniciando Seed de Dados do UrbanClash (Modo Idempotente Profissional)...');
+  console.log('Iniciando Seed de Dados do UrbanClash (Modo Idempotente Profissional - libSQL)...');
 
   const itemMap = {};
 
@@ -391,7 +391,7 @@ async function seed() {
       e: { target: 'equipment_stats', modifier: 0.7, message: 'Interferência ferrenha. Bônus de todos os Equipamentos reduzidos globalmente.' },
     },
     {
-      n: 'Abertura das Fronteiras Táticas',
+      n: 'Aumento na Tarifa de Energia',
       ty: 'economy',
       d: 72,
       e: { target: 'shop_buy_price', modifier: 0.8, message: 'Contrabandistas furaram os bloqueios. Desconto de 20% em TODO O SHOP!' },

@@ -1,45 +1,39 @@
-const { Pool } = require('pg');
+const { createClient } = require('@libsql/client');
 require('dotenv').config();
 
-// Teste 1: URL do .env
-console.log('🔍 Testando URL do .env:', process.env.DATABASE_URL);
+// SÊNIOR: Teste de conexão nativo para libSQL/Turso
+const url = process.env.DATABASE_URL || 'file:dev.db';
+const authToken = process.env.DATABASE_AUTH_TOKEN;
 
-// Teste 2: URL com escape
-const urlEscaped = 'postgresql://postgres:W0rdPr355%40%40@localhost:5432/urbanclash';
-console.log('🔍 Testando URL com escape:', urlEscaped);
+console.log('🔍 Testando conexão libSQL em:', url);
 
-// Teste 3: Configuração por partes
-const configParts = {
-  user: 'postgres',
-  password: 'W0rdPr355@@',
-  host: 'localhost',
-  port: 5432,
-  database: 'urbanclash'
-};
-console.log('🔍 Testando configuração por partes:', configParts);
+async function testConnection() {
+  const client = createClient({
+    url: url,
+    authToken: authToken
+  });
 
-async function testConnection(config, name) {
   try {
-    const pool = new Pool(config);
-    const result = await pool.query('SELECT NOW()');
-    console.log(`✅ ${name} - Conexão OK:`, result.rows[0].now);
-    await pool.end();
-    return true;
+    const start = Date.now();
+    const result = await client.execute('SELECT CURRENT_TIMESTAMP as now');
+    const duration = Date.now() - start;
+
+    console.log('\n✅ Conexão estabelecida com sucesso!');
+    console.log('🕒 Hora do Banco:', result.rows[0].now);
+    console.log('⚡ Latência:', duration, 'ms');
+    
+    // Teste de escrita simples (opcional)
+    // await client.execute('SELECT 1');
+    
   } catch (error) {
-    console.error(`❌ ${name} - Erro:`, error.message);
-    return false;
+    console.error('\n❌ Erro de conexão:', error.message);
+    if (error.message.includes('autocommit')) {
+      console.log('💡 Dica: Verifique se a URL do banco está correta no .env');
+    }
+  } finally {
+    // O cliente do libsql não precisa de .end() ou .close() manual obrigatoriamente
+    // mas é boa prática para scripts curtos
   }
 }
 
-async function runTests() {
-  console.log('\n🧪 Iniciando testes de conexão...\n');
-  
-  await testConnection({ connectionString: process.env.DATABASE_URL }, 'URL do .env');
-  await testConnection({ connectionString: urlEscaped }, 'URL com escape');
-  await testConnection(configParts, 'Configuração por partes');
-  
-  console.log('\n🏁 Testes concluídos.');
-  process.exit(0);
-}
-
-runTests().catch(console.error);
+testConnection().catch(console.error);

@@ -21,14 +21,19 @@ const api = axios.create({
 // Helper para gerenciar o token no localStorage para persistência real
 export const tokenStorage = {
   getToken: () => localStorage.getItem('auth_token') || localStorage.getItem('token'),
-  setToken: (token: string) => {
+  getRefreshToken: () => localStorage.getItem('refreshToken'),
+  setToken: (token: string, refreshToken?: string) => {
     localStorage.setItem('auth_token', token);
     localStorage.setItem('token', token);
+    if (refreshToken) {
+      localStorage.setItem('refreshToken', refreshToken);
+    }
     api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
   },
   clearToken: () => {
     localStorage.removeItem('auth_token');
     localStorage.removeItem('token');
+    localStorage.removeItem('refreshToken');
     delete api.defaults.headers.common['Authorization'];
   },
 };
@@ -44,18 +49,49 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// Interceptor com Lógica de Retry (Recuperação de 4G)
+// Interceptor com Lógica de Retry (Recuperação de 4G) e Refresh Token
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const { config } = error;
     
-    // Se não houver config ou o retry estiver desabilitado, rejeita
-    if (!config || config._retryCount >= 3) {
-      if (error.response?.status === 401) {
-        tokenStorage.clearToken();
-        window.dispatchEvent(new CustomEvent('auth:401'));
+    // SÊNIOR: Lógica de Refresh Token para erro 401 (Não autorizado/Expirado)
+    // Não tentamos refresh se a própria rota for /auth/refresh para evitar loop infinito
+    if (error.response?.status === 401 && !config._retry && !config.url?.includes('/auth/refresh')) {
+      config._retry = true; // Marca para evitar loop infinito
+      
+      try {
+        const refreshToken = tokenStorage.getRefreshToken();
+        if (refreshToken) {
+          if (import.meta.env.DEV) console.debug("[API] 🕒 Access Token expirado. Tentando renovar...");
+          
+          // Tenta renovar o token chamando o endpoint de refresh usando a própria instância api
+          // Isso garante que a baseURL e outras configurações sejam herdadas corretamente
+          const response = await api.post('/auth/refresh', { refreshToken });
+          const { token: newToken, refreshToken: newRefreshToken } = response.data;
+          
+          if (newToken) {
+            tokenStorage.setToken(newToken, newRefreshToken);
+            
+            // Atualiza o header da requisição original e tenta de novo
+            config.headers.Authorization = `Bearer ${newToken}`;
+            return api(config);
+          }
+        }
+      } catch (refreshError: any) {
+        if (import.meta.env.DEV) {
+          console.error("[API] ❌ Falha crítica ao renovar token:", refreshError.response?.data || refreshError.message);
+        }
+        // Se falhou o refresh, limpamos tudo e deslogamos
       }
+      
+      tokenStorage.clearToken();
+      window.dispatchEvent(new CustomEvent('auth:401'));
+      return Promise.reject(error);
+    }
+
+    // Se não houver config ou o retryCount de rede estiver esgotado, rejeita
+    if (!config || (config._retryCount || 0) >= 3) {
       return Promise.reject(error);
     }
 
@@ -71,7 +107,7 @@ api.interceptors.response.use(
 
     if (shouldRetry) {
       config._retryCount += 1;
-      console.warn(`🔄 4G instável detectado. Tentativa de recuperação ${config._retryCount}/3...`);
+      if (import.meta.env.DEV) console.warn(`🔄 4G instável detectado. Tentativa de recuperação ${config._retryCount}/3...`);
       // Delay exponencial antes de tentar de novo
       await new Promise(resolve => setTimeout(resolve, config._retryCount * 1000));
       return api(config);

@@ -91,7 +91,7 @@ router.post(
       }
 
       const { email } = req.body;
-      const emailExists = await query("SELECT id, is_email_confirmed FROM users WHERE email = $1", [
+      const emailExists = await query("SELECT id, is_email_confirmed FROM users WHERE email = ?", [
         email,
       ]);
       
@@ -129,7 +129,7 @@ router.post(
       const { email, username, password, birth_date, country } = req.body;
 
       // Verificar se email já existe
-      const emailExists = await query("SELECT id FROM users WHERE email = $1", [
+      const emailExists = await query("SELECT id FROM users WHERE email = ?", [
         email,
       ]);
 
@@ -143,7 +143,7 @@ router.post(
 
       // Verificar se username já existe
       const usernameExists = await query(
-        "SELECT id FROM users WHERE username = $1",
+        "SELECT id FROM users WHERE username = ?",
         [username],
       );
 
@@ -164,7 +164,7 @@ router.post(
 
         await client.query(
           `INSERT INTO users (id, email, username, password_hash, email_confirmation_token, birth_date, country) 
-         VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
           [
             userId,
             email,
@@ -176,7 +176,7 @@ router.post(
           ],
         );
 
-        const userResult = await client.query(`SELECT id, email, username, birth_date, country FROM users WHERE id = $1`, [userId]);
+        const userResult = await client.query(`SELECT id, email, username, birth_date, country FROM users WHERE id = ?`, [userId]);
         const user = userResult.rows[0];
 
         // Perfil será criado quando o usuário escolher a facção
@@ -226,7 +226,7 @@ router.post("/login", authLimiter, loginValidation, async (req, res) => {
 
     // Buscar usuário
     const userResult = await query(
-      "SELECT id, email, username, password_hash, is_email_confirmed, google_id FROM users WHERE email = $1",
+      "SELECT id, email, username, password_hash, is_email_confirmed, google_id FROM users WHERE email = ?",
       [email],
     );
 
@@ -289,7 +289,7 @@ router.post("/login", authLimiter, loginValidation, async (req, res) => {
 
     // Buscar perfil do usuário para retornar na resposta
     const profileResult = await query(
-      "SELECT * FROM user_profiles WHERE user_id = $1",
+      "SELECT * FROM user_profiles WHERE user_id = ?",
       [user.id],
     );
 
@@ -444,7 +444,7 @@ router.post("/google/callback", async (req, res) => {
 
     // Verificar se o usuário já existe
     console.log("DEBUG: 7. Verificando usuário por google_id:", google_id);
-    let userResult = await query("SELECT * FROM users WHERE google_id = $1", [
+    let userResult = await query("SELECT * FROM users WHERE google_id = ?", [
       google_id,
     ]);
     let user = userResult.rows[0];
@@ -457,7 +457,7 @@ router.post("/google/callback", async (req, res) => {
         email,
       );
       // Se não encontrou por google_id, tenta por email para vincular contas
-      userResult = await query("SELECT * FROM users WHERE email = $1", [email]);
+      userResult = await query("SELECT * FROM users WHERE email = ?", [email]);
       user = userResult.rows[0];
       console.log("DEBUG: 10. Resultado da busca por email:", user);
 
@@ -469,13 +469,13 @@ router.post("/google/callback", async (req, res) => {
         // E também atualizar o país se ele estiver nulo, usando o valor determinado
         await query(
           `UPDATE users SET 
-           google_id = $1, 
+           google_id = ?, 
            is_email_confirmed = TRUE,
-           country = COALESCE(users.country, $3)
-           WHERE id = $2`,
-          [google_id, user.id, country],
+           country = COALESCE(users.country, ?)
+           WHERE id = ?`,
+          [google_id, country, user.id],
         );
-        const updatedUser = await query(`SELECT * FROM users WHERE id = $1`, [user.id]);
+        const updatedUser = await query(`SELECT * FROM users WHERE id = ?`, [user.id]);
         user = updatedUser.rows[0];
         console.log(
           `DEBUG: 12. Conta vinculada. País atualizado para ${user.country} se era nulo.`,
@@ -494,7 +494,7 @@ router.post("/google/callback", async (req, res) => {
 
         while (usernameExistsInDb) {
           const existingUsernameCheck = await query(
-            "SELECT id FROM users WHERE username = $1",
+            "SELECT id FROM users WHERE username = ?",
             [uniqueUsername],
           );
           if (existingUsernameCheck.rows.length === 0) {
@@ -508,10 +508,10 @@ router.post("/google/callback", async (req, res) => {
         const newUserId = crypto.randomUUID();
         await query(
           `INSERT INTO users (id, username, email, google_id, is_email_confirmed, country)
-           VALUES ($1, $2, $3, $4, true, $5)`,
+           VALUES (?, ?, ?, ?, true, ?)`,
           [newUserId, uniqueUsername, email, google_id, country],
         );
-        const newUserResult = await query(`SELECT * FROM users WHERE id = $1`, [newUserId]);
+        const newUserResult = await query(`SELECT * FROM users WHERE id = ?`, [newUserId]);
         user = newUserResult.rows[0];
         console.log("DEBUG: 14. Novo usuário criado:", user);
       }
@@ -521,11 +521,11 @@ router.post("/google/callback", async (req, res) => {
         console.log("DEBUG: Usuário existente sem país, atualizando.");
         await query(
           `UPDATE users 
-           SET country = $2
-           WHERE id = $1`,
-          [user.id, country]
+           SET country = ?
+           WHERE id = ?`,
+          [country, user.id]
         );
-        const updateResult = await query(`SELECT * FROM users WHERE id = $1`, [user.id]);
+        const updateResult = await query(`SELECT * FROM users WHERE id = ?`, [user.id]);
         user = updateResult.rows[0];
         console.log("DEBUG: País do usuário existente atualizado:", user);
       }
@@ -540,7 +540,7 @@ router.post("/google/callback", async (req, res) => {
 
     // Buscar perfil para retornar ao frontend
     const profileResult = await query(
-      "SELECT * FROM user_profiles WHERE user_id = $1",
+      "SELECT * FROM user_profiles WHERE user_id = ?",
       [user.id],
     );
     console.log("DEBUG: 18. Perfil do usuário buscado:", profileResult.rows[0]);
@@ -594,7 +594,7 @@ router.get("/me", authenticateToken, async (req, res) => {
   try {
     // O middleware authenticateToken já adicionou o user.id ao req.user
     const userResult = await query(
-      "SELECT id, email, username, is_email_confirmed, google_id FROM users WHERE id = $1",
+      "SELECT id, email, username, is_email_confirmed, google_id FROM users WHERE id = ?",
       [req.user.id],
     );
 
@@ -606,7 +606,7 @@ router.get("/me", authenticateToken, async (req, res) => {
 
     // Buscar perfil do usuário
     const profileResult = await query(
-      "SELECT * FROM user_profiles WHERE user_id = $1",
+      "SELECT * FROM user_profiles WHERE user_id = ?",
       [user.id],
     );
 
@@ -634,7 +634,7 @@ router.post("/confirm-email", async (req, res) => {
 
   try {
     const userResult = await query(
-      "SELECT id, email, username, is_email_confirmed, google_id FROM users WHERE email_confirmation_token = $1",
+      "SELECT id, email, username, is_email_confirmed, google_id FROM users WHERE email_confirmation_token = ?",
       [token],
     );
 
@@ -645,7 +645,7 @@ router.post("/confirm-email", async (req, res) => {
     const user = userResult.rows[0];
 
     await query(
-      "UPDATE users SET is_email_confirmed = TRUE, email_confirmation_token = NULL WHERE id = $1",
+      "UPDATE users SET is_email_confirmed = TRUE, email_confirmation_token = NULL WHERE id = ?",
       [user.id],
     );
 
@@ -655,7 +655,7 @@ router.post("/confirm-email", async (req, res) => {
 
     // Verifica se é o primeiro acesso (sem perfil)
     const profileResult = await query(
-      "SELECT id FROM user_profiles WHERE user_id = $1",
+      "SELECT id FROM user_profiles WHERE user_id = ?",
       [user.id]
     );
     const isFirstLogin = profileResult.rows.length === 0;
@@ -693,7 +693,7 @@ router.post("/resend-confirmation", async (req, res) => {
 
   try {
     const userResult = await query(
-      "SELECT id, is_email_confirmed FROM users WHERE email = $1",
+      "SELECT id, is_email_confirmed FROM users WHERE email = ?",
       [email],
     );
 
@@ -710,7 +710,7 @@ router.post("/resend-confirmation", async (req, res) => {
     const newConfirmationToken = emailService.generateConfirmationToken();
 
     await query(
-      "UPDATE users SET email_confirmation_token = $1 WHERE id = $2",
+      "UPDATE users SET email_confirmation_token = ? WHERE id = ?",
       [newConfirmationToken, user.id],
     );
 
@@ -732,7 +732,7 @@ router.post("/forgot-password", async (req, res) => {
   }
 
   try {
-    const userResult = await query("SELECT id FROM users WHERE email = $1", [
+    const userResult = await query("SELECT id FROM users WHERE email = ?", [
       email,
     ]);
 
@@ -749,7 +749,7 @@ router.post("/forgot-password", async (req, res) => {
     const resetTokenExpires = new Date(Date.now() + 3600000); // 1 hora
 
     await query(
-      "UPDATE users SET password_reset_token = $1, password_reset_expires = $2 WHERE id = $3",
+      "UPDATE users SET password_reset_token = ?, password_reset_expires = ? WHERE id = ?",
       [resetToken, resetTokenExpires, userId],
     );
 
@@ -777,7 +777,7 @@ router.post("/reset-password", async (req, res) => {
 
   try {
     const userResult = await query(
-      "SELECT id FROM users WHERE password_reset_token = $1 AND password_reset_expires > CURRENT_TIMESTAMP",
+      "SELECT id FROM users WHERE password_reset_token = ? AND password_reset_expires > CURRENT_TIMESTAMP",
       [token],
     );
 
@@ -790,7 +790,7 @@ router.post("/reset-password", async (req, res) => {
     const passwordHash = await bcrypt.hash(newPassword, saltRounds);
 
     await query(
-      "UPDATE users SET password_hash = $1, password_reset_token = NULL, password_reset_expires = NULL WHERE id = $2",
+      "UPDATE users SET password_hash = ?, password_reset_token = NULL, password_reset_expires = NULL WHERE id = ?",
       [passwordHash, userId],
     );
 

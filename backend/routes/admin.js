@@ -98,7 +98,7 @@ router.post("/set-player-status", authenticateToken, isAdmin, async (req, res) =
 
     // Se passou username, resolve para ID
     if (!targetId && username) {
-      const result = await query("SELECT id FROM users WHERE username = $1", [username]);
+      const result = await query("SELECT id FROM users WHERE username = ?", [username]);
       if (result.rows.length === 0) return res.status(404).json({ error: "Usuário não encontrado." });
       targetId = result.rows[0].id;
     }

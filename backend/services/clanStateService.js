@@ -18,7 +18,7 @@ async function loadClanState(clanId) {
       SELECT 
         c.id, c.season_score, c.faction, c.max_members, c.member_count
       FROM clans c
-      WHERE c.id = $1
+      WHERE c.id = ?
       `,
       [clanId]
     );
@@ -128,7 +128,7 @@ async function persistDirtyClanStates() {
 
         // Persiste no DB
         await query(
-           "UPDATE clans SET season_score = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2",
+           "UPDATE clans SET season_score = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
            [safeScore, clanId]
         );
 

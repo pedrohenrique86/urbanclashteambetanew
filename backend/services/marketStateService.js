@@ -121,7 +121,7 @@ class MarketStateService {
       for (const code of dirtyItems) {
         const stock = await this.getStock(code);
         await query(
-          "UPDATE items SET market_stock = $1 WHERE code = $2",
+          "UPDATE items SET market_stock = ? WHERE code = ?",
           [stock, code]
         );
       }

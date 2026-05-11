@@ -23,7 +23,7 @@ class ClanMemberService {
 
     if (!exists) {
       const { rows } = await query(
-        "SELECT user_id FROM clan_members WHERE clan_id = $1",
+        "SELECT user_id FROM clan_members WHERE clan_id = ?",
         [clanId]
       );
 

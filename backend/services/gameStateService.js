@@ -64,9 +64,9 @@ async function seedInitialGameState() {
       };
 
       const promises = Object.entries(defaultConfig).map(async ([key, value]) => {
-        const check = await query(`SELECT key FROM game_config WHERE key = $1`, [key]);
-        if (check.rows.length === 0) {
-          await query(`INSERT INTO game_config (key, value) VALUES ($1, $2)`, [key, value]);
+        const { rows } = await query("SELECT key, value FROM game_config WHERE key = ?", [key]);
+        if (rows.length === 0) {
+          await query("INSERT INTO game_config (key, value) VALUES (?, ?)", [key, value]);
         }
       });
 
@@ -199,19 +199,19 @@ async function getGameStatus() {
 async function updateGameConfig(key, value) {
   try {
     let result = await query(
-      `UPDATE game_config SET value = $2, updated_at = CURRENT_TIMESTAMP WHERE key = $1`,
-      [key, String(value)],
+      `UPDATE game_config SET value = ?, updated_at = CURRENT_TIMESTAMP WHERE key = ?`,
+      [String(value), key],
     );
 
     if (result.rowCount === 0) {
       await query(
-        `INSERT INTO game_config (key, value, updated_at) VALUES ($1, $2, CURRENT_TIMESTAMP)`,
+        `INSERT INTO game_config (key, value, updated_at) VALUES (?, ?, CURRENT_TIMESTAMP)`,
         [key, String(value)],
       );
     }
     
     // Select the inserted/updated row explicitly instead of RETURNING *
-    const rowResult = await query(`SELECT * FROM game_config WHERE key = $1`, [key]);
+    const rowResult = await query(`SELECT * FROM game_config WHERE key = ?`, [key]);
 
     await invalidateAndBroadcastState();
 
@@ -239,9 +239,9 @@ async function scheduleGame(startTime, durationSeconds = 20 * 24 * 60 * 60) {
       ['game_duration', String(durationSeconds)],
       ['is_countdown_active', 'false']
     ]) {
-      const upd = await query(`UPDATE game_config SET value = $1, updated_at = CURRENT_TIMESTAMP WHERE key = $2`, [v, k]);
+      const upd = await query(`UPDATE game_config SET value = ?, updated_at = CURRENT_TIMESTAMP WHERE key = ?`, [v, k]);
       if (upd.rowCount === 0) {
-        await query(`INSERT INTO game_config (key, value, updated_at) VALUES ($1, $2, CURRENT_TIMESTAMP)`, [k, v]);
+        await query(`INSERT INTO game_config (key, value, updated_at) VALUES (?, ?, CURRENT_TIMESTAMP)`, [k, v]);
       }
     }
     await query("COMMIT");
@@ -273,9 +273,9 @@ async function startGame(startTime, durationSeconds = 20 * 24 * 60 * 60) {
       ['game_duration', String(durationSeconds)],
       ['is_countdown_active', 'true']
     ]) {
-      const upd = await query(`UPDATE game_config SET value = $1, updated_at = CURRENT_TIMESTAMP WHERE key = $2`, [v, k]);
+      const upd = await query(`UPDATE game_config SET value = ?, updated_at = CURRENT_TIMESTAMP WHERE key = ?`, [v, k]);
       if (upd.rowCount === 0) {
-        await query(`INSERT INTO game_config (key, value, updated_at) VALUES ($1, $2, CURRENT_TIMESTAMP)`, [k, v]);
+        await query(`INSERT INTO game_config (key, value, updated_at) VALUES (?, ?, CURRENT_TIMESTAMP)`, [k, v]);
       }
     }
     await query("COMMIT");
@@ -301,9 +301,9 @@ async function stopGame() {
       ['is_countdown_active', 'false'],
       ['is_paused', 'false']
     ]) {
-      const upd = await query(`UPDATE game_config SET value = $1, updated_at = CURRENT_TIMESTAMP WHERE key = $2`, [v, k]);
+      const upd = await query(`UPDATE game_config SET value = ?, updated_at = CURRENT_TIMESTAMP WHERE key = ?`, [v, k]);
       if (upd.rowCount === 0) {
-        await query(`INSERT INTO game_config (key, value, updated_at) VALUES ($1, $2, CURRENT_TIMESTAMP)`, [k, v]);
+        await query(`INSERT INTO game_config (key, value, updated_at) VALUES (?, ?, CURRENT_TIMESTAMP)`, [k, v]);
       }
     }
     await query("DELETE FROM game_config WHERE key = 'game_start_time'");

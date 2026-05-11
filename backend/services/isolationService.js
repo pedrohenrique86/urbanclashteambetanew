@@ -133,9 +133,9 @@ async function getAlliesInIsolation(userId) {
     `SELECT u.id, u.username, u.country, p.avatar_url, p.level, p.status_ends_at
      FROM user_profiles p
      JOIN users u ON p.user_id = u.id
-     WHERE p.faction = $1 
+     WHERE p.faction = ? 
        AND p.status = 'Isolamento'
-       AND p.user_id != $2
+       AND p.user_id != ?
      ORDER BY p.status_ends_at ASC
      LIMIT 20`,
     [faction, userId]

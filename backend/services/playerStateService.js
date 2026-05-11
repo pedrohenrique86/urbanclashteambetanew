@@ -142,11 +142,11 @@ class PlayerStateService {
   /**
    * Obtém o estado completo do jogador.
    * Prioridade 1: Redis (Cache/RAM)
-   * Prioridade 2: PostgreSQL (Disco) + Hidratação no Redis
+   * Prioridade 2: Banco de Dados (Disco) + Hidratação no Redis
    */
   async getPlayerState(userId) {
     if (!redisClient.client.isReady) {
-      const res = await query("SELECT * FROM user_profiles WHERE user_id = $1", [userId]);
+      const res = await query("SELECT * FROM user_profiles WHERE user_id = ?", [userId]);
       return res.rows[0];
     }
 
@@ -154,7 +154,7 @@ class PlayerStateService {
     let state = await redisClient.hGetAllAsync(redisKey);
 
     if (!state || Object.keys(state).length === 0) {
-      const dbRes = await query("SELECT * FROM user_profiles WHERE user_id = $1", [userId]);
+      const dbRes = await query("SELECT * FROM user_profiles WHERE user_id = ?", [userId]);
       if (dbRes.rows.length === 0) return null;
 
       state = dbRes.rows[0];
@@ -207,7 +207,7 @@ class PlayerStateService {
 
   /**
    * Atualiza o estado do jogador de forma atômica no Redis.
-   * Marca o jogador como "Dirty" para persistência futura no PostgreSQL.
+   * Marca o jogador como "Dirty" para persistência futura no Banco de Dados.
    */
   async updatePlayerState(userId, updates) {
     const redisKey = `${PLAYER_STATE_PREFIX}${userId}`;
@@ -311,7 +311,7 @@ class PlayerStateService {
   }
 
   /**
-   * Alimenta o Redis com dados frescos do PostgreSQL.
+   * Alimenta o Redis com dados frescos do Banco de Dados.
    */
   async _hydrateRedis(userId, dbData) {
     const redisKey = `${PLAYER_STATE_PREFIX}${userId}`;
@@ -418,7 +418,7 @@ class PlayerStateService {
     if (!userIds || userIds.length === 0) return [];
     if (!redisClient.client.isReady) {
       const { rows } = await query(
-        `SELECT * FROM user_profiles WHERE user_id IN (${userIds.map((_, i) => `$${i+1}`).join(',')})`,
+        `SELECT * FROM user_profiles WHERE user_id IN (${userIds.map(() => `?`).join(',')})`,
         userIds
       );
       return rows;
@@ -443,7 +443,7 @@ class PlayerStateService {
     // Se algum jogador não estiver no cache, buscamos no DB (Hydration cirúrgica)
     if (missingIds.length > 0) {
       const dbRes = await query(
-        `SELECT * FROM user_profiles WHERE user_id IN (${missingIds.map((_, i) => `$${i+1}`).join(',')})`,
+        `SELECT * FROM user_profiles WHERE user_id IN (${missingIds.map(() => `?`).join(',')})`,
         missingIds
       );
       

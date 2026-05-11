@@ -6,10 +6,25 @@ const { authenticateSocket } = require("../services/authService");
 const authenticateToken = async (req, res, next) => {
   try {
     const authHeader = req.headers["authorization"];
-    const token = (authHeader && authHeader.split(" ")[1]) || req.query.token;
+    let token = req.query.token;
 
-    if (!token) {
-      return res.status(401).json({ error: "Token de acesso requerido" });
+    if (authHeader) {
+      const parts = authHeader.split(" ");
+      if (parts.length === 2 && parts[0].toLowerCase() === "bearer") {
+        token = parts[1];
+      } else if (parts.length === 1) {
+        token = parts[0]; // Caso enviem o token direto no header sem 'Bearer'
+      }
+    }
+
+    if (!token || token === "null" || token === "undefined") {
+      if (process.env.NODE_ENV === 'development') {
+        console.warn(`[Auth] ⚠️ Tentativa de acesso sem token em: ${req.path}`);
+      }
+      return res.status(401).json({ 
+        error: "Token de acesso requerido",
+        code: "TOKEN_MISSING"
+      });
     }
 
     // SÊNIOR: Delegamos a autenticação para o serviço central que possui cache no Redis
@@ -25,19 +40,26 @@ const authenticateToken = async (req, res, next) => {
     req.user = user;
     next();
   } catch (error) {
-    if (error.name === "JsonWebTokenError") return res.status(401).json({ error: "Token inválido" });
-    if (error.name === "TokenExpiredError") return res.status(401).json({ error: "Token expirado" });
+    if (error.name === "JsonWebTokenError") {
+      console.warn(`[Auth] ❌ Token Inválido: ${error.message}`);
+      return res.status(401).json({ error: "Token inválido", code: "TOKEN_INVALID" });
+    }
+    if (error.name === "TokenExpiredError") {
+      console.warn(`[Auth] 🕒 Token Expirado em: ${error.expiredAt}`);
+      return res.status(401).json({ error: "Token expirado", code: "TOKEN_EXPIRED" });
+    }
 
-    console.error("❌ Erro na autenticação:", error.message);
+    console.error("❌ Erro fatal na autenticação:", error.message);
     
     if (error.message.includes("não encontrado")) {
       return res.status(401).json({ 
         error: "Sessão inválida", 
-        message: "Usuário não encontrado. Por favor, faça login novamente." 
+        message: "Usuário não encontrado no banco de dados. Por favor, faça login novamente.",
+        code: "USER_NOT_FOUND"
       });
     }
 
-    return res.status(500).json({ error: "Erro interno do servidor" });
+    return res.status(500).json({ error: "Erro interno no middleware de autenticação" });
   }
 };
 
@@ -55,7 +77,7 @@ const optionalAuth = async (req, res, next) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
     const userResult = await query(
-      "SELECT id, email, username, is_email_confirmed FROM users WHERE id = $1",
+      "SELECT id, email, username, is_email_confirmed FROM users WHERE id = ?",
       [decoded.userId],
     );
 

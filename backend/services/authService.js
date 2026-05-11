@@ -49,7 +49,7 @@ async function authenticateSocket(token) {
         up.clan_id
       FROM users u
       LEFT JOIN user_profiles up ON u.id = up.user_id
-      WHERE u.id = $1;
+      WHERE u.id = ?;
     `;
 
     const result = await query(userQuery, [userId]);

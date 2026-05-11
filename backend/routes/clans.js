@@ -54,12 +54,12 @@ router.get("/", async (req, res) => {
     let paramCount = 1;
 
     if (faction) {
-      whereClause += ` AND c.faction = $${paramCount++}`;
+      whereClause += ` AND c.faction = ?`;
       queryParams.push(playerStateService.resolveFactionName(faction));
     }
 
     if (search) {
-      whereClause += ` AND c.name ILIKE $${paramCount++}`;
+      whereClause += ` AND c.name LIKE ?`;
       queryParams.push(`%${search}%`);
     }
 
@@ -69,7 +69,7 @@ router.get("/", async (req, res) => {
 
     const clansResult = await query(
       `SELECT id, name, description, faction, member_count, max_members, is_recruiting, created_at 
-       FROM clans c ${whereClause} ORDER BY ${sort === "member_count" ? "c.member_count" : "c.created_at"} ${order} LIMIT $${paramCount++} OFFSET $${paramCount++}`,
+       FROM clans c ${whereClause} ORDER BY ${sort === "member_count" ? "c.member_count" : "c.created_at"} ${order} LIMIT ? OFFSET ?`,
       [...queryParams, Number(limit), offset]
     );
 
@@ -107,7 +107,7 @@ router.get("/rankings", async (req, res) => {
 // =========================
 router.get("/:id", async (req, res) => {
   try {
-    const clanRes = await query("SELECT * FROM clans WHERE id = $1", [req.params.id]);
+    const clanRes = await query("SELECT * FROM clans WHERE id = ?", [req.params.id]);
     if (clanRes.rows.length === 0) return res.status(404).json({ error: "Clã não encontrado" });
     res.json({ clan: parseClanCount(clanRes.rows[0]) });
   } catch (error) {
@@ -154,21 +154,21 @@ router.post("/", authenticateToken, lockPlayerAction(2000), createClanValidation
     const userId = req.user.id;
 
     const result = await transaction(async (client) => {
-      const profile = (await client.query("SELECT clan_id, faction FROM user_profiles WHERE user_id = $1 FOR UPDATE", [userId])).rows[0];
+      const profile = (await client.query("SELECT clan_id, faction FROM user_profiles WHERE user_id = ?", [userId])).rows[0];
       if (profile.clan_id) throw new Error("Você já tem um clã");
       
       const canonical = playerStateService.resolveFactionName(faction);
       if (profile.faction !== canonical) throw new Error("Facção incompatível");
 
       const clanId = require("crypto").randomUUID();
-      const { rows: fRows } = await client.query("SELECT id FROM factions WHERE name = $1", [canonical]);
+      const { rows: fRows } = await client.query("SELECT id FROM factions WHERE name = ?", [canonical]);
       
       await client.query(
-        "INSERT INTO clans (id, name, description, faction, faction_id, max_members, member_count) VALUES ($1, $2, $3, $4, $5, $6, 1)",
+        "INSERT INTO clans (id, name, description, faction, faction_id, max_members, member_count) VALUES (?, ?, ?, ?, ?, ?, 1)",
         [clanId, name, description, canonical, fRows[0].id, max_members]
       );
-      await client.query("INSERT INTO clan_members (clan_id, user_id, role) VALUES ($1, $2, 'leader')", [clanId, userId]);
-      await client.query("UPDATE user_profiles SET clan_id = $1 WHERE user_id = $2", [clanId, userId]);
+      await client.query("INSERT INTO clan_members (clan_id, user_id, role) VALUES (?, ?, 'leader')", [clanId, userId]);
+      await client.query("UPDATE user_profiles SET clan_id = ? WHERE user_id = ?", [clanId, userId]);
 
       return clanId;
     });
@@ -219,11 +219,11 @@ router.delete("/:id", authenticateToken, lockPlayerAction(2000), async (req, res
     const memberIds = await clanMemberService.getMemberIds(id);
 
     await transaction(async (client) => {
-      const leader = (await client.query("SELECT role FROM clan_members WHERE clan_id = $1 AND user_id = $2", [id, req.user.id])).rows[0];
+      const leader = (await client.query("SELECT role FROM clan_members WHERE clan_id = ? AND user_id = ?", [id, req.user.id])).rows[0];
       if (!leader || leader.role !== 'leader') throw new Error("Apenas o líder pode deletar o clã");
 
-      await client.query("UPDATE user_profiles SET clan_id = NULL WHERE clan_id = $1", [id]);
-      await client.query("DELETE FROM clans WHERE id = $1", [id]);
+      await client.query("UPDATE user_profiles SET clan_id = NULL WHERE clan_id = ?", [id]);
+      await client.query("DELETE FROM clans WHERE id = ?", [id]);
     });
 
     // SÊNIOR: Sincronização em massa (Redis + SSE + AuthCache)

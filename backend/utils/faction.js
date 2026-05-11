@@ -28,7 +28,7 @@ async function resolveFaction(factionInput, clientOrQuery) {
   }
 
   const fn = clientOrQuery?.query ? (sql, p) => clientOrQuery.query(sql, p) : query;
-  const result = await fn("SELECT id FROM factions WHERE name = $1", [canonical]);
+  const result = await fn("SELECT id FROM factions WHERE name = ?", [canonical]);
 
   if (result.rows.length === 0) {
     throw new Error(`Facção "${canonical}" não encontrada na tabela factions. Verifique as migrations.`);

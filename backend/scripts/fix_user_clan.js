@@ -12,16 +12,16 @@ async function fixUserClanStatus() {
     // 1. Banco de Dados
     await transaction(async (client) => {
       // Remover de clan_members
-      const delRes = await client.query("DELETE FROM clan_members WHERE user_id = $1 RETURNING clan_id", [userId]);
+      const delRes = await client.query("DELETE FROM clan_members WHERE user_id = ?", [userId]);
       if (delRes.rows.length > 0) {
         const clanId = delRes.rows[0].clan_id;
         console.log(`✅ Removido da tabela clan_members (Clã anterior: ${clanId})`);
         // Decrementar contagem do clã
-        await client.query("UPDATE clans SET member_count = GREATEST(0, member_count - 1) WHERE id = $1", [clanId]);
+        await client.query("UPDATE clans SET member_count = MAX(0, member_count - 1) WHERE id = ?", [clanId]);
       }
 
       // Limpar user_profiles
-      await client.query("UPDATE user_profiles SET clan_id = NULL WHERE user_id = $1", [userId]);
+      await client.query("UPDATE user_profiles SET clan_id = NULL WHERE user_id = ?", [userId]);
       console.log("✅ Perfil atualizado no banco (clan_id = NULL)");
     });
 

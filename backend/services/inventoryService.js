@@ -33,7 +33,7 @@ class InventoryService {
         `SELECT i.code, pi.quantity, pi.is_equipped, pi.slot
          FROM player_inventory pi
          JOIN items i ON pi.item_id = i.id
-         WHERE pi.user_id = $1`,
+         WHERE pi.user_id = ?`,
         [userId]
       );
 

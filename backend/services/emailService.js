@@ -97,7 +97,7 @@ class EmailService {
   async sendWelcomeEmail(email, username) {
     const subject = "Bem-vindo ao Urban Clash Team!";
     // Constrói a URL completa para a imagem. Essencial para clientes de e-mail.
-    const backendUrl = process.env.BACKEND_URL || "http://localhost:3001";
+    const backendUrl = process.env.BACKEND_URL || "http://localhost:3002";
     const bannerUrl = `${backendUrl}/images/banner_boas_vindas.png`;
 
     const html = `

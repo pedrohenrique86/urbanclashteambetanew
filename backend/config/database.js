@@ -55,12 +55,7 @@ async function connectDB() {
 async function query(text, params = []) {
   const start = Date.now();
   try {
-    // SÊNIOR: Transpilação em tempo de execução de dialetos (Postgres -> SQLite)
-    const sql = text
-      .replace(/\$(\d+)/g, '?')
-      .replace(/NOW\(\)/gi, 'CURRENT_TIMESTAMP'); 
-    
-    const res = await client.execute({ sql, args: params });
+    const res = await client.execute({ sql: text, args: params });
     
     const duration = Date.now() - start;
     if (duration > 1000) {
@@ -86,10 +81,7 @@ async function transaction(callback) {
   try {
     const txWrapper = {
       query: async (text, params = []) => {
-        const sql = text
-          .replace(/\$(\d+)/g, '?')
-          .replace(/NOW\(\)/gi, 'CURRENT_TIMESTAMP');
-        const res = await tx.execute({ sql, args: params });
+        const res = await tx.execute({ sql: text, args: params });
         return { rows: res.rows, rowCount: res.rows.length };
       }
     };

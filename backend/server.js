@@ -158,17 +158,21 @@ app.use(express.json({ limit: "10mb" }));
 // Log de debug para ver o que chega do mobile (4G Diagnostic)
 app.use((req, res, next) => {
   const oldJson = res.json;
-  res.json = function(data) {
-    if (res.statusCode >= 400 && (req.path.includes('/auth') || req.path.includes('/profile'))) {
-      console.log(`[4G-DIAGNOSTIC] ❌ Falha em ${req.method} ${req.path}`);
-      console.log(` > Status: ${res.statusCode}`);
-      console.log(` > IP: ${req.ip}`);
-      console.log(` > Auth Header: ${req.headers.authorization ? 'Presente' : 'AUSENTE'}`);
-      console.log(` > Token Query: ${req.query.token ? 'Presente' : 'AUSENTE'}`);
-      console.log(` > UA: ${req.get('user-agent')}`);
-    }
-    return oldJson.apply(res, arguments);
-  };
+    res.json = function(data) {
+      if (res.statusCode >= 400 && (req.path.includes('/auth') || req.path.includes('/profile'))) {
+        const authHeader = req.headers.authorization || '';
+        const maskedHeader = authHeader ? `${authHeader.substring(0, 15)}...` : 'AUSENTE';
+        
+        console.log(`[4G-DIAGNOSTIC] ❌ Falha em ${req.method} ${req.path}`);
+        console.log(` > Status: ${res.statusCode}`);
+        console.log(` > IP: ${req.ip}`);
+        console.log(` > Auth Header: ${maskedHeader}`);
+        console.log(` > Token Query: ${req.query.token ? 'Presente' : 'AUSENTE'}`);
+        console.log(` > UA: ${req.get('user-agent')}`);
+        if (data && data.error) console.log(` > Error: ${data.error} (${data.code || 'no-code'})`);
+      }
+      return oldJson.apply(res, arguments);
+    };
   next();
 });
 

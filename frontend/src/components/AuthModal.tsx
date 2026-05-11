@@ -431,7 +431,7 @@ export default function AuthModal({
             }
 
             // Registra token e usuario: UserProfileContext reage via useEffect
-            await login(authData.token, userData);
+            await login(authData.token, authData.refreshToken, userData);
 
             // Apenas fecha o modal. O ProtectedRoute cuidará do redirecionamento.
             onClose();

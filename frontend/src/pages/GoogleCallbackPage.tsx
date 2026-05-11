@@ -59,7 +59,7 @@ export default function GoogleCallbackPage() {
 
         if (authData.token) {
           // Apenas faz o login. O UserProfileContext irá começar a recarregar o perfil automaticamente.
-          await login(authData.token, authData.user);
+          await login(authData.token, authData.refreshToken, authData.user);
           
           // Libera o estado para que o outro useEffect espere o carregamento do perfil
           setAuthComplete(true);
