@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import useSWR from "swr";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -42,7 +42,7 @@ export default function AdminPage() {
   const [startId, setStartId] = useState("+");
   const [history, setHistory] = useState<string[]>([]); // Para navegação reversa simplificada
 
-  const fetchLogs = async (cursor: string = "+") => {
+  const fetchLogs = useCallback(async (cursor: string = "+") => {
     setIsLoading(true);
     try {
       const data = await apiClient.getAuditLogs(50, cursor);
@@ -52,13 +52,13 @@ export default function AdminPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [showToast]);
 
   useEffect(() => {
     if (userProfile?.is_admin) {
       fetchLogs();
     }
-  }, [userProfile?.is_admin]);
+  }, [userProfile?.is_admin, fetchLogs]);
 
   const handleNextPage = () => {
     if (logs.length > 0) {
