@@ -1,5 +1,6 @@
 const { createClient } = require("@libsql/client");
 const path = require("path");
+const fs = require("fs");
 
 // 1. Carrega o .env padrão
 require("dotenv").config({ path: path.join(__dirname, "../.env") });
@@ -37,6 +38,22 @@ const client = createClient({
  * Função para conectar ao banco
  */
 async function connectDB() {
+  // SÊNIOR: Verificação de saúde do arquivo físico (Crítico para VMs Linux/Oracle)
+  if (databaseUrl.startsWith("file:")) {
+    const filePath = databaseUrl.replace("file:", "");
+    try {
+      if (fs.existsSync(filePath)) {
+        fs.accessSync(filePath, fs.constants.R_OK | fs.constants.W_OK);
+        console.log(`📂 [Database] Arquivo ${localDbFile} detectado e com permissões OK.`);
+      } else {
+        console.warn(`⚠️ [Database] Arquivo ${localDbFile} não encontrado no caminho: ${filePath}`);
+      }
+    } catch (err) {
+      console.error(`❌ [Database] ERRO DE PERMISSÃO no arquivo ${localDbFile}:`, err.message);
+      console.error(`   -> DICA: Execute 'chmod 666 ${localDbFile}' na VM para liberar acesso.`);
+    }
+  }
+
   try {
     await client.execute("SELECT 1");
     console.log(`✅ Conectado ao banco [${localDbFile}] com sucesso.`);
