@@ -39,6 +39,7 @@ class PlayerStateService {
   constructor() {
     this.schedulePersistence();
     this.startGarbageCollector();
+    this.trainingTimers = new Map();
   }
 
   /**
@@ -454,6 +455,36 @@ class PlayerStateService {
     }
 
     return hydrated;
+  }
+
+  /**
+   * SÊNIOR: Agenda o fim de um treinamento para notificação via SSE.
+   * Gerencia o timer em memória para avisar o player assim que o tempo acaba.
+   */
+  scheduleTraining(userId, endsAtMs) {
+    this.cancelScheduledTraining(userId);
+    
+    const delay = endsAtMs - Date.now();
+    if (delay <= 0) return;
+
+    const timer = setTimeout(() => {
+      sseService.broadcastToUser(userId, "training:completed", { 
+        message: "Unidade: Treinamento tático finalizado. Reivindique os ganhos de atributo." 
+      });
+      this.trainingTimers.delete(userId);
+    }, delay + 500); // 500ms de margem de segurança
+
+    this.trainingTimers.set(userId, timer);
+  }
+
+  /**
+   * Cancela um timer de treinamento agendado.
+   */
+  cancelScheduledTraining(userId) {
+    if (this.trainingTimers.has(userId)) {
+      clearTimeout(this.trainingTimers.get(userId));
+      this.trainingTimers.delete(userId);
+    }
   }
 }
 
