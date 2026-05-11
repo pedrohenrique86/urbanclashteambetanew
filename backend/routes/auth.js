@@ -533,9 +533,9 @@ router.post("/google/callback", async (req, res) => {
 
     console.log("DEBUG: 15. Usuário final para login:", user);
     // A partir daqui, 'user' existe e está logado
-    const token = generateToken(user.id);
+    const { accessToken, refreshToken } = generateToken(user.id);
     console.log("DEBUG: 16. Token JWT gerado.");
-    await createSession(user.id, token);
+    await createSession(user.id, refreshToken);
     console.log("DEBUG: 17. Sessão criada.");
 
     // Buscar perfil para retornar ao frontend
@@ -558,7 +558,8 @@ router.post("/google/callback", async (req, res) => {
     const { password_hash, ...userWithoutPassword } = user;
 
     res.json({
-      token,
+      token: accessToken,
+      refreshToken,
       user: { ...userWithoutPassword, profile: profileResult.rows[0] || null },
       gameState,
       isFirstLogin,
@@ -649,8 +650,8 @@ router.post("/confirm-email", async (req, res) => {
     );
 
     // Auto-login: Gera sessão e token imediatamente para evitar redirecionamento para Home deslogado
-    const authToken = generateToken(user.id);
-    await createSession(user.id, authToken);
+    const { accessToken, refreshToken } = generateToken(user.id);
+    await createSession(user.id, refreshToken);
 
     // Verifica se é o primeiro acesso (sem perfil)
     const profileResult = await query(
@@ -663,7 +664,8 @@ router.post("/confirm-email", async (req, res) => {
     // Constrói a resposta base
     const response = {
       message: "Email confirmado com sucesso",
-      token: authToken,
+      token: accessToken,
+      refreshToken,
       user: { ...user, is_email_confirmed: true, profile: null },
       gameState,
       isFirstLogin,

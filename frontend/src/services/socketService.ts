@@ -195,6 +195,13 @@ class SocketService {
     this.on<ChatMessage>("chat:message", callback);
   }
 
+  /**
+   * Registra um listener para quando o histórico de chat for limpo por um admin.
+   */
+  onChatHistoryCleared(callback: (data: { message: string }) => void): void {
+    this.on<{ message: string }>("chat:history_cleared", callback);
+  }
+
   // --- Métodos específicos do Chat de Recuperação ---
 
   authenticateRecovery(token: string): void {

@@ -308,6 +308,29 @@ const redisWrapper = {
     }
   },
 
+  // ─── STREAMS (Para Audit Logs) ───────────────────────────────────────────
+
+  xaddAsync: async (key, ...args) => {
+    if (!key || !isReady) return null;
+    try {
+      // SÊNIOR: No node-redis v4, usamos o comando raw para flexibilidade total com streams
+      return await client.sendCommand(['XADD', String(key), ...args.map(String)]);
+    } catch (err) {
+      console.error(`[RedisClient] Erro em xaddAsync key=${key}:`, err.message);
+      return null;
+    }
+  },
+
+  xrevrangeAsync: async (key, end, start, ...args) => {
+    if (!key || !isReady) return [];
+    try {
+      return await client.sendCommand(['XREVRANGE', String(key), String(end), String(start), ...args.map(String)]);
+    } catch (err) {
+      console.error(`[RedisClient] Erro em xrevrangeAsync key=${key}:`, err.message);
+      return [];
+    }
+  },
+
   scanIterator: (options) => {
     if (!isReady) {
       async function* empty() { yield* []; }
@@ -382,6 +405,16 @@ const redisWrapper = {
     } catch (err) {
       console.error(`[RedisClient] Erro em zRangeByScoreAsync key=${key}:`, err.message);
       return [];
+    }
+  },
+
+  zRevRankAsync: async (key, member) => {
+    if (!key || !isReady) return null;
+    try {
+      return await client.zRank(String(key), String(member), { REV: true });
+    } catch (err) {
+      console.error(`[RedisClient] Erro em zRevRankAsync key=${key}:`, err.message);
+      return null;
     }
   },
 

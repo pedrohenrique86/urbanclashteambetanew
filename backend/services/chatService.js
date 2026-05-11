@@ -92,4 +92,24 @@ async function handleNewMessage(io, socket, text) {
   }
 }
 
-module.exports = { getChatHistory, handleNewMessage };
+async function clearAllChats() {
+  try {
+    const keys = await redisClient.keysAsync("chat:*");
+    let count = 0;
+    if (keys.length > 0) {
+      for (const key of keys) {
+        // Não removemos a lista de online, apenas o histórico de mensagens
+        if (!key.endsWith(":online")) {
+          await redisClient.delAsync(key);
+          count++;
+        }
+      }
+    }
+    return count;
+  } catch (err) {
+    console.error("[ChatService] ❌ Erro ao limpar chats:", err.message);
+    throw err;
+  }
+}
+
+module.exports = { getChatHistory, handleNewMessage, clearAllChats };

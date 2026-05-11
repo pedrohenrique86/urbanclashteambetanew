@@ -48,6 +48,7 @@ const NetworkCircuitPage = lazy(() => import("./pages/NetworkCircuitPage"));
 const TacticalArsenalPage = lazy(() => import("./pages/TacticalArsenalPage"));
 const NetworkLogsPage = lazy(() => import("./pages/NetworkLogsPage"));
 const SeasonPage = lazy(() => import("./pages/SeasonPage"));
+const AdminPage = lazy(() => import("./pages/AdminPage"));
 
 import "./index.css";
 
@@ -133,6 +134,7 @@ const router = createBrowserRouter([
           { path: "tactical-arsenal", element: <TacticalArsenalPage /> },
           { path: "network-logs", element: <NetworkLogsPage /> },
           { path: "season", element: <SeasonPage /> },
+          { path: "admin-panel", element: <AdminPage /> },
         ],
       },
     ],

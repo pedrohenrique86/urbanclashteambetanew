@@ -431,6 +431,16 @@ class ApiClient {
   async getClanRankings() {
     return this.request("/clans/rankings");
   }
+
+  async clearChats() {
+    return this.request("/admin/clear-chats", {
+      method: "POST",
+    });
+  }
+
+  async getAuditLogs(count = 100, startId = "+") {
+    return this.request(`/admin/audit-logs?count=${count}&startId=${startId}`);
+  }
 }
 
 const apiClient = new ApiClient();

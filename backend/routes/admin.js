@@ -139,4 +139,54 @@ router.get("/audit-logs", authenticateToken, isAdmin, async (req, res) => {
   }
 });
 
+// POST /api/admin/clear-chats - Limpa todos os históricos de chat (Global, Clã, etc)
+router.post("/clear-chats", authenticateToken, isAdmin, async (req, res) => {
+  try {
+    const chatService = require("../services/chatService");
+    const count = await chatService.clearAllChats();
+    
+    // Notifica todos os sockets para limparem o estado local
+    const { getIO } = require("../socketHandler");
+    const io = getIO();
+    if (io) {
+      io.emit("chat:history_cleared", { message: "O histórico de chat foi limpo por um administrador." });
+    }
+
+    res.json({
+      success: true,
+      message: `Sucesso: ${count} chaves de histórico de chat foram removidas.`,
+      count
+    });
+  } catch (error) {
+    console.error("Erro ao limpar históricos de chat:", error);
+    res.status(500).json({ error: "Erro interno ao limpar chats." });
+  }
+});
+
+// GET /api/admin/export-logs - Exporta logs em formato TXT para download
+router.get("/export-logs", authenticateToken, isAdmin, async (req, res) => {
+  try {
+    const actionLogService = require("../services/actionLogService");
+    // Buscamos um lote grande para o export (máximo 200k)
+    const logs = await actionLogService.getAuditLogs(200000);
+    
+    let content = "URBAN CLASH TEAM - RELATÓRIO DE AUDITORIA GLOBAL\n";
+    content += `Gerado em: ${new Date().toLocaleString("pt-BR")}\n`;
+    content += "=".repeat(80) + "\n\n";
+
+    logs.forEach(log => {
+      const date = new Date(log.createdAt).toLocaleString("pt-BR");
+      const metadata = typeof log.metadata === 'string' ? log.metadata : JSON.stringify(log.metadata);
+      content += `[${date}] USER: ${log.userId.padEnd(36)} | ACTION: ${log.actionType.padEnd(15)} | DATA: ${metadata}\n`;
+    });
+
+    res.setHeader("Content-Type", "text/plain");
+    res.setHeader("Content-Disposition", "attachment; filename=audit_logs.txt");
+    res.send(content);
+  } catch (error) {
+    console.error("Erro ao exportar logs:", error);
+    res.status(500).json({ error: "Erro interno ao gerar exportação." });
+  }
+});
+
 module.exports = router;

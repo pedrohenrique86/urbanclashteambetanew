@@ -33,11 +33,14 @@ class RankingCacheService {
    * SÊNIOR: Obtém a posição exata de um usuário no ranking de forma instantânea (O(1)).
    */
   async getUserRank(userId, faction = "all") {
+    const resolved = playerStateService.resolveFactionName(faction);
     let zkey = RANKING_ALL;
-    if (faction === "renegados") zkey = RANKING_RENEGADOS;
-    if (faction === "guardioes") zkey = RANKING_GUARDIOES;
+    if (faction && faction !== "all") {
+      if (resolved === "renegados") zkey = RANKING_RENEGADOS;
+      else if (resolved === "guardioes") zkey = RANKING_GUARDIOES;
+    }
     
-    const rank = await redisClient.client.zRevRank(zkey, String(userId));
+    const rank = await redisClient.zRevRankAsync(zkey, String(userId));
     return rank !== null ? rank + 1 : null;
   }
 
@@ -45,12 +48,16 @@ class RankingCacheService {
    * Ranking de Jogadores via ZSET (Tempo Real)
    */
   async _getUsersRanking(faction) {
+    const resolved = playerStateService.resolveFactionName(faction);
     let zkey = RANKING_ALL;
-    if (faction === "renegados") zkey = RANKING_RENEGADOS;
-    if (faction === "guardioes") zkey = RANKING_GUARDIOES;
+    
+    if (faction && faction !== "all") {
+      if (resolved === "renegados") zkey = RANKING_RENEGADOS;
+      else if (resolved === "guardioes") zkey = RANKING_GUARDIOES;
+    }
 
     // Pega os Top 100 (mais que suficiente para 99% das visualizações)
-    const topIds = await redisClient.client.zRevRange(zkey, 0, 99);
+    const topIds = await redisClient.zRevRangeAsync(zkey, 0, 99);
     
     if (!topIds || topIds.length === 0) {
       return { data: [], etag: "empty", timestamp: Date.now() };

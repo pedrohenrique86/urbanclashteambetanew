@@ -275,10 +275,11 @@ class PlayerStateService {
 
     p.zAdd(RANKING_ALL, [member]);
     
-    if (state.faction === "renegados") {
+    const resolved = this.resolveFactionName(state.faction);
+    if (resolved === "renegados") {
       p.zAdd(RANKING_RENEGADOS, [member]);
       p.zRem(RANKING_GUARDIOES, String(userId));
-    } else if (state.faction === "guardioes") {
+    } else if (resolved === "guardioes") {
       p.zAdd(RANKING_GUARDIOES, [member]);
       p.zRem(RANKING_RENEGADOS, String(userId));
     }

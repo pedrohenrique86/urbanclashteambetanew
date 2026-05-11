@@ -170,12 +170,18 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({
       }, 2000);
     };
 
+    const handleHistoryCleared = (data: { message: string }) => {
+      if (import.meta.env.DEV) console.debug("[ChatContext] " + data.message);
+      setMessages([]);
+    };
+
     // Registra TODOS os listeners ANTES de disparar a autenticação.
     socketService.onChatAuthSuccess(handleAuthSuccess);
     socketService.onChatAuthFailed(handleAuthFailed);
     socketService.onChatHistory(handleChatHistory);
     socketService.onChatHistoryError(handleHistoryError);
     socketService.onMessageReceived(handleNewMessage);
+    socketService.onChatHistoryCleared(handleHistoryCleared);
 
     const authTimeout = setTimeout(() => {
       socketService.authenticateChat(token);
@@ -193,6 +199,7 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({
       socketService.off("chat:history", handleChatHistory);
       socketService.off("chat:history_error", handleHistoryError);
       socketService.off("chat:message", handleNewMessage);
+      socketService.off("chat:history_cleared", handleHistoryCleared);
       setIsConnected(false);
     };
     // A dependência agora inclui o clan_id do usuário, que é fundamental.
