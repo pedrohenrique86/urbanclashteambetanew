@@ -103,4 +103,8 @@ out/
 # OS Metadata
 Thumbs.db
 ehthumbs.db
-Desktop.ini
+Desktop.ini
+
+# Local infrastructure overrides
+docker-compose.override.yml
+
