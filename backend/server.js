@@ -73,31 +73,66 @@ const rateLimit = require("express-rate-limit");
 
 const app = express();
 
+
+app.set("trust proxy", 1);
+app.use((req, res, next) => {
+  req.realIP = req.headers['cf-connecting-ip'] || req.headers['x-forwarded-for'] || req.ip;
+  next();
+});
+
+const allowedOrigins = [
+  process.env.FRONTEND_URL,
+  "https://www.urbanclashteam.com",
+  "https://urbanclashteam.com",
+  "https://www.urbanclashteam.com/",
+  "https://urbanclashteam.com/",
+  "http://localhost:3000",
+  "http://localhost:5173",
+  "http://localhost:3002"
+].filter(Boolean);
+
+const corsOptions = {
+  origin: (origin, callback) => {
+    if (!origin || origin.includes("urbanclashteam.com") || origin.includes("localhost") || origin.includes("127.0.0.1")) {
+      callback(null, true);
+    } else {
+      console.warn(`🛑 CORS bloqueado para: ${origin}`);
+      callback(null, false);
+    }
+  },
+  credentials: true,
+  optionsSuccessStatus: 200
+};
+
+app.use(cors(corsOptions));
+app.use(compression());
+app.use(express.json({ limit: "10mb" }));
+
 // --- CONFIGURAÇÃO DE RATE LIMITING (ANTI-SPAM/ANTI-BOT) ---
 
-// 1. Limiter Geral (Evita sobrecarga no servidor Oracle de 1GB)
+// 1. Limiter Geral
 const apiLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutos
+  windowMs: 15 * 60 * 1000,
   max: 1000, 
   message: { error: "Muitas requisições. Tente novamente mais tarde." },
   standardHeaders: true,
   legacyHeaders: false,
-  keyGenerator: (req) => req.realIP || req.ip, // SÊNIOR: Usa o IP real extraído do proxy
+  keyGenerator: (req) => req.realIP || req.ip,
 });
 
-// 2. Limiter de Ações de Jogo (Anti-Macros/Autoclickers)
+// 2. Limiter de Ações de Jogo
 const gameActionLimiter = rateLimit({
-  windowMs: 1 * 60 * 1000, // 1 minuto
-  max: 40, 
+  windowMs: 1 * 60 * 1000,
+  max: 100, // Aumentado para 100 para evitar falsos positivos no status
   message: { error: "Calma! Você está agindo rápido demais. Respire um pouco." },
   standardHeaders: true,
   legacyHeaders: false,
   keyGenerator: (req) => req.realIP || req.ip,
 });
 
-// 3. Limiter de Autenticação (Anti-Força Bruta)
+// 3. Limiter de Autenticação
 const authLimiter = rateLimit({
-  windowMs: 60 * 60 * 1000, // 1 hora
+  windowMs: 60 * 60 * 1000,
   max: 20, 
   message: { error: "Muitas tentativas de login. Tente novamente em uma hora." },
   standardHeaders: true,
@@ -105,7 +140,6 @@ const authLimiter = rateLimit({
   keyGenerator: (req) => req.realIP || req.ip,
 });
 
-app.use(compression()); 
 app.use("/api/", apiLimiter);
 app.use("/api/auth/login", authLimiter);
 app.use("/api/contracts", gameActionLimiter);
@@ -121,39 +155,6 @@ server.timeout = 30000; // 30 segundos para dar tempo do 4G responder
 
 const PORT = process.env.PORT || 3001;
 
-const allowedOrigins = [
-  process.env.FRONTEND_URL,
-  "https://www.urbanclashteam.com",
-  "https://urbanclashteam.com",
-  "https://www.urbanclashteam.com/",
-  "https://urbanclashteam.com/",
-  "http://localhost:3000",
-  "http://localhost:5173",
-  "http://localhost:3002"
-].filter(Boolean);
-
-// CORS dinâmico e robusto
-const corsOptions = {
-  origin: (origin, callback) => {
-    // SÊNIOR: CORS permissivo para o domínio principal e local
-    if (!origin || origin.includes("urbanclashteam.com") || origin.includes("localhost") || origin.includes("127.0.0.1")) {
-      callback(null, true);
-    } else {
-      console.warn(`🛑 CORS bloqueado para: ${origin}`);
-      callback(null, false);
-    }
-  },
-  credentials: true,
-  optionsSuccessStatus: 200
-};
-
-app.use(cors(corsOptions));
-app.set("trust proxy", 1); // Confia no primeiro proxy (Cloudflare/Oracle LB)
-app.use((req, res, next) => {
-  req.realIP = req.headers['cf-connecting-ip'] || req.headers['x-forwarded-for'] || req.ip;
-  next();
-});
-app.use(express.json({ limit: "10mb" }));
 
 // Log de debug para ver o que chega do mobile (4G Diagnostic)
 app.use((req, res, next) => {
