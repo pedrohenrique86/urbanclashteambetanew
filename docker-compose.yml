@@ -17,8 +17,14 @@ services:
       - "100"
       - --auto-aof-rewrite-min-size
       - 64mb
+      - --aof-use-rdb-preamble
+      - "yes"
+      - --no-appendfsync-on-rewrite
+      - "yes"
+      - --aof-load-truncated
+      - "yes"
       - --maxmemory
-      - 256mb
+      - 512mb
       - --maxmemory-policy
       - allkeys-lru
 
