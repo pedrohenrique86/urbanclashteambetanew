@@ -55,8 +55,10 @@ async function connectDB() {
 async function query(text, params = []) {
   const start = Date.now();
   try {
-    // SÊNIOR: Transpilação em tempo de execução de placeholders do Postgres ($1) para SQLite (?)
-    const sql = text.replace(/\$(\d+)/g, '?'); 
+    // SÊNIOR: Transpilação em tempo de execução de dialetos (Postgres -> SQLite)
+    const sql = text
+      .replace(/\$(\d+)/g, '?')
+      .replace(/NOW\(\)/gi, 'CURRENT_TIMESTAMP'); 
     
     const res = await client.execute({ sql, args: params });
     
@@ -84,7 +86,9 @@ async function transaction(callback) {
   try {
     const txWrapper = {
       query: async (text, params = []) => {
-        const sql = text.replace(/\$(\d+)/g, '?');
+        const sql = text
+          .replace(/\$(\d+)/g, '?')
+          .replace(/NOW\(\)/gi, 'CURRENT_TIMESTAMP');
         const res = await tx.execute({ sql, args: params });
         return { rows: res.rows, rowCount: res.rows.length };
       }

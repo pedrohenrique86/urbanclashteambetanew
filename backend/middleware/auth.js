@@ -29,6 +29,14 @@ const authenticateToken = async (req, res, next) => {
     if (error.name === "TokenExpiredError") return res.status(401).json({ error: "Token expirado" });
 
     console.error("❌ Erro na autenticação:", error.message);
+    
+    if (error.message.includes("não encontrado")) {
+      return res.status(401).json({ 
+        error: "Sessão inválida", 
+        message: "Usuário não encontrado. Por favor, faça login novamente." 
+      });
+    }
+
     return res.status(500).json({ error: "Erro interno do servidor" });
   }
 };

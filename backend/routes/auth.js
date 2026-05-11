@@ -777,7 +777,7 @@ router.post("/reset-password", async (req, res) => {
 
   try {
     const userResult = await query(
-      "SELECT id FROM users WHERE password_reset_token = $1 AND password_reset_expires > NOW()",
+      "SELECT id FROM users WHERE password_reset_token = $1 AND password_reset_expires > CURRENT_TIMESTAMP",
       [token],
     );
 

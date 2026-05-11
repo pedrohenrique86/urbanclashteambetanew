@@ -96,7 +96,7 @@ async function getGameStateFromDB() {
     }, {});
     return config;
   } catch (error) {
-    console.error("❌ Erro ao buscar game_config do PostgreSQL:", error);
+    console.error("❌ Erro ao buscar game_config do Banco de Dados:", error);
     throw error;
   }
 }
@@ -176,7 +176,7 @@ async function getGameState() {
     console.error("❌ Erro ao buscar do Redis, fallback para DB:", error);
   }
 
-  console.log("📦 Cache MISS: Buscando estado do PostgreSQL");
+  console.log("📦 Cache MISS: Buscando estado do Banco de Dados");
   const rawConfig = await getGameStateFromDB();
   const gameState = calculateGameState(rawConfig);
 
@@ -199,13 +199,13 @@ async function getGameStatus() {
 async function updateGameConfig(key, value) {
   try {
     let result = await query(
-      `UPDATE game_config SET value = $2, updated_at = NOW() WHERE key = $1`,
+      `UPDATE game_config SET value = $2, updated_at = CURRENT_TIMESTAMP WHERE key = $1`,
       [key, String(value)],
     );
 
     if (result.rowCount === 0) {
       await query(
-        `INSERT INTO game_config (key, value, updated_at) VALUES ($1, $2, NOW())`,
+        `INSERT INTO game_config (key, value, updated_at) VALUES ($1, $2, CURRENT_TIMESTAMP)`,
         [key, String(value)],
       );
     }
@@ -239,9 +239,9 @@ async function scheduleGame(startTime, durationSeconds = 20 * 24 * 60 * 60) {
       ['game_duration', String(durationSeconds)],
       ['is_countdown_active', 'false']
     ]) {
-      const upd = await query(`UPDATE game_config SET value = $1, updated_at = NOW() WHERE key = $2`, [v, k]);
+      const upd = await query(`UPDATE game_config SET value = $1, updated_at = CURRENT_TIMESTAMP WHERE key = $2`, [v, k]);
       if (upd.rowCount === 0) {
-        await query(`INSERT INTO game_config (key, value, updated_at) VALUES ($1, $2, NOW())`, [k, v]);
+        await query(`INSERT INTO game_config (key, value, updated_at) VALUES ($1, $2, CURRENT_TIMESTAMP)`, [k, v]);
       }
     }
     await query("COMMIT");
@@ -273,9 +273,9 @@ async function startGame(startTime, durationSeconds = 20 * 24 * 60 * 60) {
       ['game_duration', String(durationSeconds)],
       ['is_countdown_active', 'true']
     ]) {
-      const upd = await query(`UPDATE game_config SET value = $1, updated_at = NOW() WHERE key = $2`, [v, k]);
+      const upd = await query(`UPDATE game_config SET value = $1, updated_at = CURRENT_TIMESTAMP WHERE key = $2`, [v, k]);
       if (upd.rowCount === 0) {
-        await query(`INSERT INTO game_config (key, value, updated_at) VALUES ($1, $2, NOW())`, [k, v]);
+        await query(`INSERT INTO game_config (key, value, updated_at) VALUES ($1, $2, CURRENT_TIMESTAMP)`, [k, v]);
       }
     }
     await query("COMMIT");
@@ -301,9 +301,9 @@ async function stopGame() {
       ['is_countdown_active', 'false'],
       ['is_paused', 'false']
     ]) {
-      const upd = await query(`UPDATE game_config SET value = $1, updated_at = NOW() WHERE key = $2`, [v, k]);
+      const upd = await query(`UPDATE game_config SET value = $1, updated_at = CURRENT_TIMESTAMP WHERE key = $2`, [v, k]);
       if (upd.rowCount === 0) {
-        await query(`INSERT INTO game_config (key, value, updated_at) VALUES ($1, $2, NOW())`, [k, v]);
+        await query(`INSERT INTO game_config (key, value, updated_at) VALUES ($1, $2, CURRENT_TIMESTAMP)`, [k, v]);
       }
     }
     await query("DELETE FROM game_config WHERE key = 'game_start_time'");
@@ -408,9 +408,9 @@ async function checkAutoStart() {
       console.log(
         `⏰ Auto-start: Horário ${startTime.toISOString()} alcançado. Ativando countdown...`,
       );
-      const updCount = await query(`UPDATE game_config SET value = 'true', updated_at = NOW() WHERE key = 'is_countdown_active'`);
+      const updCount = await query(`UPDATE game_config SET value = 'true', updated_at = CURRENT_TIMESTAMP WHERE key = 'is_countdown_active'`);
       if (updCount.rowCount === 0) {
-         await query(`INSERT INTO game_config (key, value, updated_at) VALUES ('is_countdown_active', 'true', NOW())`);
+         await query(`INSERT INTO game_config (key, value, updated_at) VALUES ('is_countdown_active', 'true', CURRENT_TIMESTAMP)`);
       }
       await invalidateAndBroadcastState(); // CORRIGIDO
       console.log("🎮 Jogo iniciado automaticamente!");
