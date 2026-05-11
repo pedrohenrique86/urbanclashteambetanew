@@ -107,4 +107,12 @@ Desktop.ini
 
 # Local infrastructure overrides
 docker-compose.override.yml
+
+# Database
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+storage/
+data/
 
