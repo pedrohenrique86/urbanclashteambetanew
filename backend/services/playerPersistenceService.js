@@ -38,20 +38,8 @@ class PlayerPersistenceService {
 
       const setClauses = safeFields.map(([k], i) => {
         const col = `"${k}"`;
-        if (k === "status") return `${col} = $${i + 1}::player_status_type`;
-        if (k.endsWith("_at")) return `${col} = $${i + 1}::timestamp`;
-        if (k === "last_training_reset" || k === "last_ap_reset") return `${col} = $${i + 1}::date`;
-        
-        const isNumeric = [
-          "level", "total_xp", "money", "energy", "action_points", 
-          "victories", "defeats", "winning_streak", "daily_training_count",
-          "attack", "defense", "focus", "instinct", "intimidation", "discipline",
-          "critical_chance", "critical_damage", "toxicity",
-          "faction_id", "premium_coins", "login_streak", "merit", "corruption"
-        ].includes(k);
-
-        if (isNumeric) return `${col} = $${i + 1}::numeric`;
-        return `${col} = $${i + 1}`;
+        // SÊNIOR: No SQLite/libSQL não usamos castings como ::uuid ou ::timestamp
+        return `${col} = ?`;
       });
 
       const values = safeFields.map(([k, v]) => {
@@ -66,7 +54,7 @@ class PlayerPersistenceService {
       await query(
         `UPDATE user_profiles
          SET ${setClauses.join(", ")}, updated_at = CURRENT_TIMESTAMP
-         WHERE user_id = $${safeFields.length + 1}::uuid`,
+         WHERE user_id = ?`,
         values,
       );
 
@@ -120,60 +108,43 @@ class PlayerPersistenceService {
     if (toUpdate.length === 0) return;
 
     try {
-      const valuePlaceholders = [];
-      const flatValues = [];
-      
-      toUpdate.forEach((item, rowIndex) => {
-        const rowOffset = rowIndex * (fields.length + 1);
-        const rowParams = [`$${rowOffset + 1}`]; // user_id
-        flatValues.push(item.uid);
+      const { transaction } = require("../config/database");
 
-        fields.forEach((f, fIndex) => {
-          rowParams.push(`$${rowOffset + fIndex + 2}`);
-          let val = item.state[f];
-          if (val === "" || val === "null" || val === null || val === undefined) {
-            val = null;
-          } else if (['attack', 'defense', 'focus', 'instinct'].includes(f)) {
-            val = Math.round(Number(val) * 100) / 100;
-          }
-          flatValues.push(val);
-        });
-        valuePlaceholders.push(`(${rowParams.join(", ")})`);
+      // SÊNIOR: No SQLite, o bulk update mais performático e seguro é rodar
+      // queries individuais dentro de uma única transação de escrita.
+      await transaction(async (tx) => {
+        for (const item of toUpdate) {
+          const safeFields = fields.filter(f => item.state[f] !== undefined);
+          if (safeFields.length === 0) continue;
+
+          const setClauses = safeFields.map((f, i) => `"${f}" = ?`);
+          const values = safeFields.map(f => {
+            let val = item.state[f];
+            if (val === "" || val === "null" || val === null || val === undefined) {
+              return null;
+            } else if (['attack', 'defense', 'focus', 'instinct'].includes(f)) {
+              return Math.round(Number(val) * 100) / 100;
+            }
+            return val;
+          });
+
+          values.push(item.uid);
+          
+          await tx.query(
+            `UPDATE user_profiles 
+             SET ${setClauses.join(", ")}, updated_at = CURRENT_TIMESTAMP 
+             WHERE user_id = ?`,
+            values
+          );
+        }
       });
-
-      const setClauses = fields.map(f => {
-        if (f === "status") return `"${f}" = v."${f}"::player_status_type`;
-        if (f.endsWith("_at")) return `"${f}" = v."${f}"::timestamp`;
-        if (f === "last_training_reset" || f === "last_ap_reset") return `"${f}" = v."${f}"::date`;
-        
-        const isNumeric = [
-          "level", "total_xp", "money", "energy", "action_points", 
-          "victories", "defeats", "winning_streak", "daily_training_count",
-          "attack", "defense", "focus", "instinct", "intimidation", "discipline",
-          "critical_chance", "critical_damage", "toxicity",
-          "faction_id", "premium_coins", "login_streak", "merit", "corruption"
-        ].includes(f);
-
-        if (isNumeric) return `"${f}" = v."${f}"::numeric`;
-        return `"${f}" = v."${f}"`;
-      });
-      
-      const columnNames = fields.map(f => `"${f}"`).join(", ");
-      const sql = `
-        UPDATE user_profiles AS p
-        SET ${setClauses.join(", ")}, updated_at = CURRENT_TIMESTAMP
-        FROM (VALUES ${valuePlaceholders.join(", ")}) AS v(user_id, ${columnNames})
-        WHERE p.user_id = v.user_id::uuid
-      `;
-
-      await query(sql, flatValues);
 
       // Limpeza das flags de sujo
       for (const item of toUpdate) {
         await this._clearDirtyFlag(item.uid, item.loadedDirtyAt);
       }
 
-      console.log(`[playerPersistence] 💾 Lote de ${toUpdate.length} jogadores persistido com sucesso.`);
+      console.log(`[playerPersistence] 💾 Lote de ${toUpdate.length} jogadores persistido com sucesso (SQLite).`);
     } catch (dbErr) {
       console.error(`[playerPersistence] ❌ ERRO NO LOTE:`, dbErr.message);
       // Fallback: Tentativa individual

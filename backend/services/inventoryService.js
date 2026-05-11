@@ -184,21 +184,30 @@ class InventoryService {
         });
 
         if (uids.length > 0) {
-          // Primeiro reseta os equipamentos no banco para este usuário
-          await query("UPDATE player_inventory SET is_equipped = FALSE, slot = NULL WHERE user_id = $1", [userId]);
-          
-          // Depois executa o Bulk Upsert
-          await query(`
-            INSERT INTO player_inventory (user_id, item_id, quantity, is_equipped, slot)
-            SELECT u.uid, i.id, u.qty, u.eq, u.sl
-            FROM UNNEST($1::uuid[], $2::text[], $3::int[], $4::boolean[], $5::text[]) 
-              AS u(uid, code, qty, eq, sl)
-            JOIN items i ON i.code = u.code
-            ON CONFLICT (user_id, item_id) DO UPDATE SET 
-              quantity = EXCLUDED.quantity,
-              is_equipped = EXCLUDED.is_equipped,
-              slot = EXCLUDED.slot
-          `, [uids, codes, qties, equips, slots]);
+          const { transaction } = require("../config/database");
+
+          // SÊNIOR: No SQLite, para simular o comportamento do UNNEST/Upsert em lote,
+          // usamos uma transação explícita. Isso garante atomicidade e alta performance.
+          await transaction(async (tx) => {
+            // 1. Reseta os equipamentos no banco para este usuário
+            await tx.query(
+              "UPDATE player_inventory SET is_equipped = 0, slot = NULL WHERE user_id = ?",
+              [userId]
+            );
+
+            // 2. Executa o Upsert individual para cada item
+            for (let i = 0; i < uids.length; i++) {
+              await tx.query(`
+                INSERT INTO player_inventory (user_id, item_id, quantity, is_equipped, slot)
+                SELECT ?, id, ?, ?, ?
+                FROM items WHERE code = ?
+                ON CONFLICT (user_id, item_id) DO UPDATE SET 
+                  quantity = EXCLUDED.quantity,
+                  is_equipped = EXCLUDED.is_equipped,
+                  slot = EXCLUDED.slot
+              `, [uids[i], qties[i], equips[i] ? 1 : 0, slots[i], codes[i]]);
+            }
+          });
         }
       }
       console.log(`[Inventory] ✅ Sincronizados ${dirtyIds.length} inventários.`);

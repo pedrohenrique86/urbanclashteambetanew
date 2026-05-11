@@ -1,0 +1,56 @@
+services:
+  redis:
+    image: redis:7
+    container_name: urbanclash_redis
+    ports:
+      - "6379:6379"
+    networks:
+      - urbanclash_network
+    restart: unless-stopped
+    command:
+      - redis-server
+      - --appendonly
+      - "yes"
+      - --appendfsync
+      - everysec
+      - --auto-aof-rewrite-percentage
+      - "100"
+      - --auto-aof-rewrite-min-size
+      - 64mb
+      - --aof-use-rdb-preamble
+      - "yes"
+      - --no-appendfsync-on-rewrite
+      - "yes"
+      - --aof-load-truncated
+      - "yes"
+      - --maxmemory
+      - 500mb
+      - --maxmemory-policy
+      - noeviction
+
+#  backend:
+#    build:
+#      context: .
+#      dockerfile: Dockerfile.backend
+#    container_name: urbanclash_backend
+#    ports:
+#      - "3001:3001"
+#    environment:
+#      - DATABASE_URL=postgresql://postgres:W0rdPr355@@@postgres:5432/urbanclash
+#      - JWT_SECRET=your-super-secret-jwt-key-change-this-in-production
+#      - SENDGRID_API_KEY=your-sendgrid-api-key
+#      - FROM_EMAIL=noreply@urbanclash.com
+#      - FRONTEND_URL=http://localhost:3000
+#      - BACKEND_URL=http://localhost:3001
+#      - PORT=3001
+#      - NODE_ENV=development
+#    depends_on:
+#      postgres:
+#        condition: service_healthy
+#    networks:
+#      - urbanclash_network
+#    restart: unless-stopped
+
+networks:
+  urbanclash_network:
+    driver: bridge

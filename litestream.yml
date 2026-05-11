@@ -1,0 +1,23 @@
+# Configuração Litestream para UrbanClash Team
+# Sincroniza o SQLite da VM com o Cloudflare R2 em tempo real
+
+dbs:
+  - path: ./dev.db
+    replicas:
+      - type: s3
+        name: r2-dev
+        endpoint: https://<ACCOUNT_ID>.r2.cloudflarestorage.com
+        bucket: urbanclash-backups
+        path: dev.db
+        access-key-id: <ACCESS_KEY>
+        secret-access-key: <SECRET_KEY>
+
+  - path: ./prod.db
+    replicas:
+      - type: s3
+        name: r2-prod
+        endpoint: https://<ACCOUNT_ID>.r2.cloudflarestorage.com
+        bucket: urbanclash-backups
+        path: prod.db
+        access-key-id: <ACCESS_KEY>
+        secret-access-key: <SECRET_KEY>

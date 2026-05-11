@@ -26,7 +26,7 @@ services:
       - --maxmemory
       - 500mb
       - --maxmemory-policy
-      - noeviction
+      - allkeys-lru
 
 #  backend:
 #    build:

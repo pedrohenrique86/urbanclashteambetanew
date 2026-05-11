@@ -86,22 +86,35 @@ class AttributeBufferService {
 
       if (userIds.length === 0 || attributes.length === 0) return;
 
-      /**
-       * SÊNIOR: Bulk Update Atômico via CTE (Common Table Expression).
-       * Este padrão permite atualizar múltiplas linhas em uma única viagem ao servidor,
-       * aplicando deltas relativos (evitando sobrescrições se o valor mudar no meio tempo).
-       */
-      const queryStr = this._buildBulkUpdateQuery(capturedBuffer, userIds, attributes);
-      const values = this._buildFlattenedValues(capturedBuffer, userIds, attributes);
+      const { transaction } = require("../config/database");
 
-      await query(queryStr, values);
+      // SÊNIOR: No SQLite, para manter a atomicidade e performance do "SET attr = attr + delta",
+      // usamos uma transação de escrita e processamos cada usuário do buffer individualmente.
+      await transaction(async (tx) => {
+        for (const userId of userIds) {
+          const userData = capturedBuffer.get(userId);
+          const activeAttrs = Object.keys(userData);
+          
+          if (activeAttrs.length === 0) continue;
+
+          const setClauses = activeAttrs.map(attr => `"${attr}" = "${attr}" + ?`);
+          const values = activeAttrs.map(attr => userData[attr]);
+          values.push(userId);
+
+          await tx.query(
+            `UPDATE user_profiles 
+             SET ${setClauses.join(", ")}, updated_at = CURRENT_TIMESTAMP 
+             WHERE user_id = ?`,
+            values
+          );
+        }
+      });
       
       if (process.env.NODE_ENV !== 'production') {
-        console.log(`[Write-Behind] ✅ Persistidos deltas para ${userIds.length} jogadores.`);
+        console.log(`[Write-Behind] ✅ Persistidos deltas para ${userIds.length} jogadores (SQLite).`);
       }
     } catch (err) {
       console.error("[Write-Behind] ❌ Erro ao persistir lote de atributos:", err.message);
-      // Opcional: Re-inserir no buffer em caso de erro crítico de conexão
     } finally {
       this._isFlushing = false;
     }
@@ -113,46 +126,6 @@ class AttributeBufferService {
       Object.keys(userData).forEach(attr => attrs.add(attr));
     });
     return Array.from(attrs);
-  }
-
-  /**
-   * Constrói a query de Bulk Update atômico.
-   * Ex: UPDATE p SET money = p.money + u.money FROM (VALUES ($1, $2), ...) u...
-   */
-  _buildBulkUpdateQuery(buffer, userIds, attributes) {
-    const numAttrs = attributes.length;
-    const valuePlaceholders = [];
-    
-    // Gera ($1, $2, $3, ...), ($4, $5, $6, ...)
-    userIds.forEach((_, i) => {
-      const offset = i * (numAttrs + 1);
-      const row = [`$${offset + 1}`]; // Primeiro é o userId
-      for (let j = 0; j < numAttrs; j++) {
-        row.push(`$${offset + j + 2}`);
-      }
-      valuePlaceholders.push(`(${row.join(", ")})`);
-    });
-
-    const setClauses = attributes.map(attr => `${attr} = user_profiles.${attr} + vals.${attr}_delta`);
-
-    return `
-      UPDATE user_profiles
-      SET ${setClauses.join(", ")}, updated_at = CURRENT_TIMESTAMP
-      FROM (VALUES ${valuePlaceholders.join(", ")}) AS vals(user_id, ${attributes.map(a => `${a}_delta`).join(", ")})
-      WHERE user_profiles.user_id = vals.user_id::uuid
-    `;
-  }
-
-  _buildFlattenedValues(buffer, userIds, attributes) {
-    const values = [];
-    userIds.forEach(userId => {
-      values.push(userId);
-      const userData = buffer.get(userId);
-      attributes.forEach(attr => {
-        values.push(userData[attr] || 0); // Delta 0 se o usuário não tiver esse atributo no lote
-      });
-    });
-    return values;
   }
 }
 

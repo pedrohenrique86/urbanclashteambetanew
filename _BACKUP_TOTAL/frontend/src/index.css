@@ -1,0 +1,239 @@
+@import "tailwindcss/base";
+@import "tailwindcss/components";
+@import "tailwindcss/utilities";
+
+@layer utilities {
+  .font-exo {
+    font-family: theme("fontFamily.exo");
+  }
+
+  .font-orbitron {
+    font-family: theme("fontFamily.orbitron");
+  }
+
+  /* Custom scrollbar styles - Compatible with all browsers */
+
+  /* Webkit browsers (Chrome, Safari, Edge) */
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: #374151;
+    border-radius: 4px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, #9ca3af 0%, #6b7280 100%);
+    border-radius: 4px;
+    border: 1px solid #4b5563;
+    transition: all 0.2s ease;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(180deg, #d1d5db 0%, #9ca3af 100%);
+    border-color: #6b7280;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb:active {
+    background: linear-gradient(180deg, #f3f4f6 0%, #d1d5db 100%);
+  }
+
+  /* Corner where scrollbars meet */
+  .custom-scrollbar::-webkit-scrollbar-corner {
+    background: #374151;
+  }
+
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}
+
+* {
+  font-display: swap;
+}
+
+body {
+  background-color: #111827;
+  /* bg-gray-900 */
+  color: #ffffff;
+  /* text-white */
+  font-family: 'Exo 2', sans-serif;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: 'Orbitron', sans-serif;
+}
+
+button {
+  font-family: inherit;
+}
+
+.font-orbitron {
+  font-family: 'Orbitron', sans-serif !important;
+}
+
+.font-exo {
+  font-family: 'Exo 2', sans-serif !important;
+}
+
+.font-impact {
+  font-family: Impact, Haettenschweiler, 'Arial Narrow Bold', sans-serif !important;
+}
+
+/* SÊNIOR: ESTRUTURA UNIVERSAL RESPONSIVA */
+.urban-container {
+  width: 100%;
+  max-width: 1600px; /* Limite saudável para conteúdos de jogo */
+  margin-left: auto;
+  margin-right: auto;
+  position: relative;
+}
+
+/* RESET DE SEGURANÇA: Impede que qualquer elemento estoure a largura da tela */
+img, video, canvas, svg, input, select, textarea {
+  max-width: 100% !important;
+  box-sizing: border-box;
+}
+
+iframe {
+  max-width: 100%;
+}
+
+/* AAA Gaming Animations */
+@keyframes marquee-slow {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+.animate-marquee-slow {
+  animation: marquee-slow 40s linear infinite;
+}
+
+/* Utilitário para ocultar scroll horizontal por erro de conteúdo */
+.no-x-scroll {
+  overflow-x: hidden;
+}
+
+/* MILITARY & CYBERPUNK HUD UTILITIES */
+.military-clip {
+  clip-path: polygon(8px 0%, 100% 0%, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0% 100%, 0% 8px);
+}
+
+.cyber-card {
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(34, 211, 238, 0.3);
+  box-shadow: 0 0 40px rgba(34, 211, 238, 0.1), inset 0 1px rgba(255, 255, 255, 0.1);
+  position: relative;
+  overflow: hidden;
+}
+
+.cyber-card-violet {
+  border-color: rgba(139, 92, 246, 0.4);
+  box-shadow: 0 0 40px rgba(139, 92, 246, 0.1), inset 0 1px rgba(255, 255, 255, 0.1);
+}
+
+.cyber-card-fuchsia {
+  border-color: rgba(217, 70, 239, 0.4);
+  box-shadow: 0 0 40px rgba(217, 70, 239, 0.1), inset 0 1px rgba(255, 255, 255, 0.1);
+}
+
+.cyber-card-copper {
+  border-color: rgba(184, 115, 51, 0.5);
+  box-shadow: 0 0 40px rgba(184, 115, 51, 0.1), inset 0 1px rgba(255, 255, 255, 0.1);
+}
+
+.cyber-button {
+  background: rgba(34, 211, 238, 0.1);
+  border: 1px solid rgba(34, 211, 238, 0.5);
+  color: #67e8f9; /* cyan-300 */
+  font-family: 'Orbitron', sans-serif;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.3em;
+  transition: all 150ms ease-in-out;
+}
+
+.cyber-button-copper {
+  background: rgba(0, 0, 0, 0.8);
+  border: 1px solid rgba(184, 115, 51, 0.6);
+  color: #cd7f32; /* bronze/copper-light */
+  font-family: 'Orbitron', sans-serif;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.3em;
+  transition: all 150ms ease-in-out;
+  backdrop-filter: blur(4px);
+}
+
+.cyber-button-copper:hover:not(:disabled) {
+  background: rgba(184, 115, 51, 0.2);
+  border-color: #b87333;
+  box-shadow: 0 0 20px rgba(184, 115, 51, 0.3);
+}
+
+.cyber-button-copper:active:not(:disabled) {
+  transform: translateY(1px);
+  box-shadow: 0 0 10px rgba(184, 115, 51, 0.2);
+}
+
+.cyber-button:hover:not(:disabled) {
+  background: rgba(34, 211, 238, 0.2);
+  border-color: #22d3ee;
+  box-shadow: 0 0 20px rgba(34, 211, 238, 0.3);
+}
+
+.cyber-button:active:not(:disabled) {
+  transform: translateY(1px);
+  box-shadow: 0 0 10px rgba(34, 211, 238, 0.2);
+}
+
+.cyber-button:disabled {
+  background: rgba(30, 41, 59, 0.8);
+  border-color: rgba(51, 65, 85, 0.5);
+  color: #64748b;
+  cursor: not-allowed;
+}
+
+@keyframes scan {
+  0% { top: -10%; opacity: 0; }
+  50% { opacity: 0.5; }
+  100% { top: 110%; opacity: 0; }
+}
+
+.animate-scan {
+  animation: scan 4s linear infinite;
+}
+
+.bg-tactical-grid {
+  background-image: 
+    linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+@keyframes status-edge-pulse {
+  0%, 100% { 
+    opacity: 0.4; 
+    box-shadow: 0 0 5px currentColor;
+  }
+  50% { 
+    opacity: 1; 
+    box-shadow: 0 0 15px currentColor;
+  }
+}
+
+.animate-status-pulse {
+  animation: status-edge-pulse 2s ease-in-out infinite;
+}
+

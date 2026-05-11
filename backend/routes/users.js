@@ -232,7 +232,7 @@ function getFactionStats(faction) {
   };
 
   // Aceita tanto os valores legados (gangsters/guardas) quanto os novos (renegados/guardioes)
-  const canonical = FACTION_ALIAS_MAP[String(faction).toLowerCase().trim()];
+  const canonical = playerStateService.resolveFactionName(faction);
 
   if (canonical === "renegados") {
     return {
