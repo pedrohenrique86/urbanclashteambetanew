@@ -60,6 +60,23 @@ async function connectDB() {
     return true;
   } catch (error) {
     console.error("❌ Erro ao conectar com libSQL:", error.message);
+    
+    // SÊNIOR: Detecção de Corrupção Crítica
+    if (error.message.includes("malformed") || error.message.includes("corrupt")) {
+      console.error("🚨 [CRITICAL] BANCO DE DADOS CORROMPIDO DETECTADO!");
+      if (databaseUrl.startsWith("file:")) {
+        const filePath = databaseUrl.replace("file:", "");
+        const backupPath = `${filePath}.corrupt.${Date.now()}`;
+        try {
+          fs.renameSync(filePath, backupPath);
+          console.error(`📦 Arquivo corrompido movido para: ${backupPath}`);
+          console.error("💡 O servidor tentará criar um novo banco no próximo reinício. REINICIE O PROCESSO AGORA.");
+          process.exit(1); // Força reinício para o libSQL criar o novo arquivo
+        } catch (renameErr) {
+          console.error("❌ Falha ao isolar arquivo corrompido:", renameErr.message);
+        }
+      }
+    }
     throw error;
   }
 }

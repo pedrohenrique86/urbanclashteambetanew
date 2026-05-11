@@ -3,7 +3,7 @@ services:
     image: redis:7
     container_name: urbanclash_redis
     ports:
-      - "6379:6379"
+      - "6380:6379"
     networks:
       - urbanclash_network
     restart: unless-stopped
@@ -17,14 +17,8 @@ services:
       - "100"
       - --auto-aof-rewrite-min-size
       - 64mb
-      - --aof-use-rdb-preamble
-      - "yes"
-      - --no-appendfsync-on-rewrite
-      - "yes"
-      - --aof-load-truncated
-      - "yes"
       - --maxmemory
-      - 500mb
+      - 256mb
       - --maxmemory-policy
       - allkeys-lru
 

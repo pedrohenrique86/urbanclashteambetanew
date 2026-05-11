@@ -220,7 +220,14 @@ async function startServer() {
     }
     // SÊNIOR: Handler para Rotas não encontradas (evita que a requisição fique pendurada)
     app.use((req, res) => {
-      res.status(404).json({ error: "Rota não encontrada ou indisponível no momento." });
+      if (isProduction) {
+        console.warn(`⚠️ [404] Rota não encontrada: ${req.method} ${req.url} - IP: ${req.ip}`);
+      }
+      res.status(404).json({ 
+        error: "Rota não encontrada ou indisponível no momento.",
+        path: req.url,
+        method: req.method
+      });
     });
 
     // SÊNIOR: Middleware de Erro Global — Captura qualquer falha e impede o crash
@@ -247,7 +254,8 @@ async function startServer() {
     initializeSocket(io);
     schedulePersistence();
     const serverInstance = server.listen(PORT, "0.0.0.0", () => {
-      console.log(`🚀 SERVIDOR INICIADO NA PORTA ${PORT} [${isProduction ? 'PROD' : 'DEV'}]`);
+      const modeEmoji = isProduction ? "🛡️ [PRODUÇÃO]" : "🛠️ [DESENVOLVIMENTO]";
+      console.log(`${modeEmoji} SERVIDOR INICIADO NA PORTA ${PORT}`);
       
       // SÊNIOR: Tarefas de background com delay para estabilização
       setTimeout(async () => {
