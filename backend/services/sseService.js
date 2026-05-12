@@ -143,9 +143,9 @@ function _localPublish(topic, event, data) {
     });
   }
 
-  // 2. SÊNIOR: Envio via Socket.io (Alta Performance / Mobile Ready)
+  // 2. SÊNIOR: Envio via WebSocket Nativo (Alta Performance)
   try {
-    const { getIO } = require("../socketHandler");
+    const { getIO } = require("../socketHandlerNative");
     const io = getIO();
     if (io) {
       if (topic.startsWith("player:")) {

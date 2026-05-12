@@ -20,7 +20,8 @@ const cors = require("cors");
 const helmet = require("helmet");
 const morgan = require("morgan");
 const http = require("http");
-const { Server } = require("socket.io");
+// Substituído Socket.io por WebSockets Nativos (High Performance)
+const { initializeSocket } = require("./socketHandlerNative");
 
 // Erros de stream (mobile trocando WiFi↔4G, conexão caindo).
 // NÃO devem derrubar o servidor — são inofensivos.
@@ -65,7 +66,7 @@ const redisClient = require("./config/redisClient");
 const { redisReadyPromise } = redisClient;
 const { checkAutoStart } = require("./services/gameStateService");
 const { schedulePersistence } = require("./services/playerStateService");
-const { initializeSocket } = require("./socketHandler");
+// Já importado no topo
 const rankingCacheService = require("./services/rankingCacheService");
 
 const compression = require("compression");
@@ -245,14 +246,8 @@ async function startServer() {
       });
     });
 
-    const io = new Server(server, { 
-      cors: corsOptions,
-      pingTimeout: 30000, // SÊNIOR: Aumentado para 30s para resiliência em 4G
-      pingInterval: 10000, // SÊNIOR: Intervalo de 10s para não sobrecarregar a rede
-      connectTimeout: 20000,
-      transports: ["polling", "websocket"]
-    });
-    initializeSocket(io);
+    // SÊNIOR: Inicializa o WebSocket Nativo (Alta Performance)
+    initializeSocket(server);
     schedulePersistence();
     const serverInstance = server.listen(PORT, "0.0.0.0", () => {
       const modeEmoji = isProduction ? "🛡️ [PRODUÇÃO]" : "🛠️ [DESENVOLVIMENTO]";
