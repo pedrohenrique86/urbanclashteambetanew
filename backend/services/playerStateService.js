@@ -181,7 +181,7 @@ class PlayerStateService {
     if (energy >= maxEnergy) return state;
 
     const now = Date.now();
-    const lastUpdate = Number(state.last_energy_update || now);
+    const lastUpdate = Number(state.energy_updated_at || now);
     const gameLogic = require("../utils/gameLogic");
     const regenRateMinutes = (gameLogic.ENERGY && gameLogic.ENERGY.REGEN_RATE_MINUTES) ? gameLogic.ENERGY.REGEN_RATE_MINUTES : 3;
     const msPerPoint = regenRateMinutes * 60 * 1000;
@@ -194,13 +194,17 @@ class PlayerStateService {
       const leftoverMs = elapsed % msPerPoint;
       const newLastUpdate = now - leftoverMs;
 
-      await this.updatePlayerState(userId, {
-        energy: newEnergy - energy, // Usamos o incremento relativo para ser atômico
-        last_energy_update: newLastUpdate.toString()
-      });
+      // SÊNIOR: Atualização atômica direta no Redis para evitar recursão com updatePlayerState
+      const redisKey = `${PLAYER_STATE_PREFIX}${userId}`;
+      await redisClient.client.hIncrBy(redisKey, "energy", pointsToRegen);
+      await redisClient.client.hSet(redisKey, "energy_updated_at", newLastUpdate.toString());
+      await redisClient.client.hSet(redisKey, "is_dirty", "1");
+      await redisClient.client.sAdd(DIRTY_PLAYERS_SET, String(userId));
 
-      // Retorna o estado atualizado
-      return { ...state, energy: newEnergy, last_energy_update: newLastUpdate };
+      // Notifica o frontend
+      sseService.broadcastToUser(userId, "player:update", { energy: newEnergy });
+
+      return { ...state, energy: newEnergy, energy_updated_at: newLastUpdate };
     }
 
     return state;

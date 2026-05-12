@@ -21,7 +21,7 @@ const DB_PERSIST_FIELDS = new Set([
   "critical_chance", "critical_damage",
   "intimidation", "discipline",
   "money", "display_name", "bio", "avatar_url", "faction", "faction_id",
-  "energy", "action_points",
+  "energy", "energy_updated_at", "action_points",
   "victories", "defeats", "winning_streak",
   "status", "status_ends_at",
   "last_daily_special_at", "last_training_reset", "last_ap_reset"
@@ -43,7 +43,6 @@ const VOLATILE_FIELDS = new Set([
   "pending_interception",
   "weapon_damage",
   "shield_protection",
-  "last_energy_update",
   "max_energy",
   "recon_reason",
   "recon_phrase",
@@ -103,7 +102,7 @@ const NUMERIC_FIELDS = new Set([
   "money", "intimidation", "discipline", "victories", "defeats", 
   "winning_streak", "daily_training_count", "toxicity",
   "recon_loss_credits", "recon_loss_xp", "merit", "corruption",
-  "faction_id", "premium_coins", "login_streak", "last_energy_update"
+  "faction_id", "premium_coins", "login_streak", "energy_updated_at"
 ]);
 
 module.exports = {

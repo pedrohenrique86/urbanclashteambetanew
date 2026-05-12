@@ -334,9 +334,9 @@ router.post("/profile", authenticateToken, lockPlayerAction(1000), async (req, r
     const safeName = buildSafeUsername({ userId: user.id, userFromDb: user });
 
     const { rows } = await query(
-      `INSERT INTO user_profiles (user_id, username, display_name, faction, faction_id, level, energy, money, action_points, attack, defense, focus, intimidation, discipline, status)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [user.id, safeName, safeName, canonical, factionId, stats.level, stats.energy, stats.money, stats.action_points, stats.attack, stats.defense, stats.focus, stats.intimidation, stats.discipline, stats.status]
+      `INSERT INTO user_profiles (user_id, username, display_name, faction, faction_id, level, energy, money, action_points, attack, defense, focus, intimidation, discipline, status, energy_updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [user.id, safeName, safeName, canonical, factionId, stats.level, stats.energy, stats.money, stats.action_points, stats.attack, stats.defense, stats.focus, stats.intimidation, stats.discipline, stats.status, Date.now().toString()]
     );
 
     await refreshUserRankingCaches();
