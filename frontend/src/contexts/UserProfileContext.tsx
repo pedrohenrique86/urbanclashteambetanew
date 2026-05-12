@@ -444,23 +444,8 @@ export const UserProfileProvider = ({ children }: { children: ReactNode }) => {
     }
   });
 
-  // SÊNIOR: Listener global para Socket.IO para detecção de duplicidade
-  useEffect(() => {
-    if (!user) {
-      setIsDuplicate(false);
-      return;
-    }
-
-    const handleDuplicate = () => {
-      console.warn("[SOCKET] 🛡️ Sessão duplicada detectada via Socket.IO");
-      setIsDuplicate(true);
-    };
-
-    socketService.onDuplicateSession(handleDuplicate);
-    return () => {
-      socketService.off("session_duplicate", handleDuplicate);
-    };
-  }, [user]);
+  // SÊNIOR: Detecção de duplicidade agora centralizada no SSE para maior leveza.
+  // O listener do Socket.io foi removido para evitar redundância.
 
   const DuplicateSessionOverlay = () => {
     if (!isDuplicate) return null;

@@ -89,7 +89,7 @@ class PlayerStateService {
       ucrypto: parseInt(profile.premium_coins || profile.ucrypto || 0, 10),
       crit_chance_pct: gameLogic.calcCritChance(profile),
       crit_damage_mult: gameLogic.calcCritDamageMultiplier(profile),
-      energy_updated_at: profile.energy_updated_at,
+      energy_updated_at: profile.energy_updated_at || Date.now().toString(),
     };
   }
 
