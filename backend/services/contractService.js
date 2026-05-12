@@ -391,14 +391,15 @@ class ContractService {
             if (!metadata.money_gain && !metadata.public_message?.includes('$')) return null;
 
             let faction = metadata.faction || null;
-            let displayMessage = metadata.public_message || "";
-
-            // Reformatar com frases sérias para logs legados
-            if (log.actionType === 'HEIST_SUCCESS' || log.actionType === 'heist') {
+            // SÊNIOR: Se já existe uma public_message no metadado, USAMOS ELA.
+            // Não re-sorteamos a frase, para manter a consistência entre o Toast e o Feed.
+            if (metadata.public_message) {
+              displayMessage = metadata.public_message;
+            } else if (log.actionType === 'HEIST_SUCCESS' || log.actionType === 'heist') {
+              // FALLBACK para logs legados sem public_message
               faction = 'gangsters';
               const money = metadata.money_gain ? `$${metadata.money_gain.toLocaleString()}` : (displayMessage.includes('$') ? '$' + displayMessage.split('$')[1] : "");
               const name = metadata.public_message?.split(' ')[0] || "Agente";
-              // Tenta pegar o nome da heist do metadado ou extrair do texto antigo (ex: "roubo: Nome")
               let target = metadata.heist_name || (displayMessage.includes(': ') ? displayMessage.split(': ')[1] : (displayMessage.includes('realizou ') ? displayMessage.split('realizou ')[1].split(' e')[0] : "OPERACAO"));
               
               const phrases = [
@@ -409,10 +410,10 @@ class ContractService {
               const p = phrases[Math.abs(log.createdAt.length % phrases.length)];
               displayMessage = p.replace("{name}", name).replace("{target}", target.toUpperCase()).replace("{money}", money);
             } else if (log.actionType === 'guardian_task') {
+              // FALLBACK para logs legados
               faction = 'guardas';
               const money = metadata.money_gain ? `$${metadata.money_gain.toLocaleString()}` : (displayMessage.includes('$') ? '$' + displayMessage.split('$')[1] : "");
               const name = metadata.public_message?.split(' ')[0] || "Guardião";
-              // Extrai o nome da tarefa (ex: "completou Patrulha")
               let target = displayMessage.includes('completou ') ? displayMessage.split('completou ')[1].replace('.', '') : "PATRULHA";
               
               const phrases = [
