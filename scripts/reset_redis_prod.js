@@ -2,7 +2,10 @@
  * reset_redis_prod.js
  * Script utilitário para resetar o cache de produção via túnel Tailscale.
  */
-const { createClient } = require('redis');
+const path = require('path');
+// SÊNIOR: Resolvemos o módulo do Redis a partir da pasta backend
+const redisPath = path.resolve(__dirname, '../backend/node_modules/redis');
+const { createClient } = require(redisPath);
 
 async function resetAll() {
     const dbs = [0, 1]; // 0 = Dev, 1 = Prod
