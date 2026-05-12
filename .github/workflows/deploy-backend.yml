@@ -119,7 +119,10 @@ jobs:
             git reset --hard origin/main
 
             # Instala dependências básicas se não existirem
-            sudo apt update && sudo apt install -y nginx lsof docker.io git docker-compose-v2 || true
+            sudo apt update && sudo apt install -y nginx lsof docker.io git || true
+            if ! command -v pm2 &> /dev/null; then
+              sudo npm install -g pm2
+            fi
 
             # Para o Redis do sistema e sobe via Docker
             sudo systemctl stop redis-server || true
