@@ -146,7 +146,7 @@ router.post("/clear-chats", authenticateToken, isAdmin, async (req, res) => {
     const count = await chatService.clearAllChats();
     
     // Notifica todos os sockets para limparem o estado local
-    const { getIO } = require("../socketHandler");
+    const { getIO } = require("../socketHandlerNative");
     const io = getIO();
     if (io) {
       io.emit("chat:history_cleared", { message: "O histórico de chat foi limpo por um administrador." });

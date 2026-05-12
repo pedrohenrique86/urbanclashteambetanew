@@ -348,7 +348,7 @@ async function resumeGame() {
 async function invalidateAndBroadcastState() {
   try {
     // Quebra a dependência circular importando o getIO somente quando necessário.
-    const { getIO } = require("../socketHandler");
+    const { getIO } = require("../socketHandlerNative");
     await Promise.all([
       safeRedisDel(GAME_STATE_CACHE_KEY),
       safeRedisDel(GAME_STATUS_CACHE_KEY),

@@ -1,5 +1,5 @@
 const redisClient = require("../config/redisClient");
-const { getIO } = require("../socketHandler");
+const { getIO } = require("../socketHandlerNative");
 
 /**
  * actionLogService.js - ARQUITETURA REDIS-ONLY
