@@ -10,6 +10,7 @@
     "test": "jest",
     "setup:sqlite": "node ../scripts/setup_sqlite.js",
     "seed:sqlite": "node ../scripts/seed_sqlite.js",
+    "migrate:up:all": "node ../scripts/setup_sqlite.js",
     "dev:local": "cross-env NODE_ENV=development PORT=3002 nodemon server.js",
     "dev:all": "docker-compose -f ../docker-compose.yml up -d redis && npm run dev:local"
   },

@@ -15,16 +15,19 @@ if (process.env.NODE_ENV === "production") {
 
 const isProduction = process.env.NODE_ENV === "production";
 
-// Configuração do cliente libSQL (Turso ou Local VM)
-// SÊNIOR: Gerenciamento inteligente de dois bancos na VM (dev.db e prod.db)
+// SÊNIOR: Gerenciamento inteligente de conexão (Prioriza Remoto via Tailscale/VM)
+const remoteUrl = process.env.LIBSQL_URL || process.env.TURSO_DATABASE_URL;
 const localDbFile = isProduction ? "prod.db" : "dev.db";
 const localDbPath = `file:${path.join(__dirname, "../../", localDbFile)}`;
 
-const databaseUrl = process.env.TURSO_DATABASE_URL || 
-                   process.env.LIBSQL_URL || 
-                   localDbPath;
+const databaseUrl = remoteUrl || localDbPath;
+const authToken = process.env.LIBSQL_AUTH_TOKEN || process.env.TURSO_AUTH_TOKEN || "";
 
-const authToken = process.env.TURSO_AUTH_TOKEN || "";
+if (remoteUrl) {
+  console.log(`📡 [Database] Usando CONEXÃO REMOTA: ${remoteUrl}`);
+} else {
+  console.log(`📂 [Database] Usando BANCO LOCAL: ${localDbFile}`);
+}
 
 console.log(`🔌 [Database] Modo: ${isProduction ? 'PRODUÇÃO' : 'DESENVOLVIMENTO'}`);
 console.log(`🔌 [Database] Conectando via libSQL: ${databaseUrl}`);
