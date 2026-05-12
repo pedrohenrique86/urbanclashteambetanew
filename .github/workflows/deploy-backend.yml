@@ -92,6 +92,70 @@ jobs:
             fi
             pm2 save
 
+  # --- DEPLOY DO BACKEND NO GOOGLE CLOUD (RESERVA) ---
+  deploy-backend-google:
+    name: 🛡️ Deploy Backend (Google Cloud)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v6
+
+      - name: SSH into Google and Update
+        uses: appleboy/ssh-action@v1.2.5
+        with:
+          host: ${{ secrets.GCP_HOST }}
+          username: ${{ secrets.GCP_USERNAME }}
+          key: ${{ secrets.GCP_SSH_KEY }}
+          script: |
+            # Garante que as pastas básicas existem
+            mkdir -p ~/urbanclashteambetanew
+            cd ~/urbanclashteambetanew
+            
+            # Sincroniza o código
+            if [ ! -d ".git" ]; then
+              git clone https://github.com/${{ github.repository }} .
+            fi
+            git fetch origin
+            git reset --hard origin/main
+
+            # Instala dependências básicas se não existirem
+            sudo apt update && sudo apt install -y nginx lsof docker.io git docker-compose-v2 || true
+
+            # Para o Redis do sistema e sobe via Docker
+            sudo systemctl stop redis-server || true
+            sudo systemctl disable redis-server || true
+            docker compose up -d redis
+
+            # Cria pasta de logs
+            mkdir -p backend/logs
+
+            # Mata processos nas portas 3001/3002
+            for PORT in 3001 3002; do
+              PID=$(lsof -ti tcp:$PORT 2>/dev/null || true)
+              if [ -n "$PID" ]; then
+                kill -9 $PID 2>/dev/null || true
+              fi
+            done
+
+            # Nginx Config (Opcional, mas mantém paridade com Oracle)
+            sudo cp config/nginx/urbanclash.conf /etc/nginx/sites-available/urbanclash || true
+            sudo ln -sf /etc/nginx/sites-available/urbanclash /etc/nginx/sites-enabled/urbanclash || true
+            sudo rm -f /etc/nginx/sites-enabled/default || true
+            sudo nginx -t && sudo systemctl reload nginx || true
+
+            cd backend
+            npm install --omit=dev
+
+            # Inicia com PM2 (Memória reduzida para o Google)
+            pm2 delete backend 2>/dev/null || true
+            pm2 start server.js \
+              --name "backend" \
+              --node-args="--max-old-space-size=256" \
+              --env NODE_ENV=production \
+              --log ~/urbanclashteambetanew/backend/logs/pm2-combined.log \
+              --time
+            pm2 save
+
   # --- DEPLOY DO FRONTEND NO CLOUDFLARE ---
   deploy-frontend:
     name: 🌐 Deploy Frontend (Cloudflare)
