@@ -163,7 +163,7 @@ class ContractService {
 
       // Se for Golpe de Mestre, envia alerta prioritário para os Guardiões
       if (isDaily) {
-        const io = require('../config/socket').getIO();
+        const io = require('../socketHandlerNative').getIO();
         io.emit('contract:master_heist_alert', {
           username: state.username,
           expiresAt: now + (180 * 1000) // 3 minutos de janela

@@ -377,6 +377,7 @@ async function handleCleanup(ws) {
 }
 
 const getIO = () => ({
+  emit: (type, data) => broadcastToRoom("all", type, data),
   to: (room) => ({
     emit: (type, data) => broadcastToRoom(room, type, data)
   })
