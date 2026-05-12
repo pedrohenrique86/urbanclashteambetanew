@@ -24,7 +24,7 @@ services:
       - --aof-load-truncated
       - "yes"
       - --maxmemory
-      - 512mb
+      - 256mb
       - --maxmemory-policy
       - allkeys-lru
 
