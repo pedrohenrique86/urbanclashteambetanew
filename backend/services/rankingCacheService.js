@@ -115,7 +115,7 @@ class RankingCacheService {
       username: state.display_name || state.username,
       display_name: state.display_name || state.username,
       avatar_url: state.avatar_url,
-      level: level,
+      level: gameLogic.calculateDynamicLevel(state),
       total_xp: total_xp,
       current_xp: xpStatus.currentXp,
       xp_required: xpStatus.xpRequired,

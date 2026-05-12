@@ -100,12 +100,18 @@ const PlayerRankingItem = React.memo(function PlayerRankingItem({ player, config
         </div>
       </div>
 
-      {/* Stats - Standardized horizontal layout */}
-      <div className="flex items-center gap-4 sm:gap-16 pr-2">
-         <div className="flex flex-col items-center">
-            <span className="text-[7px] text-zinc-400 font-black uppercase tracking-widest leading-none mb-1">NVL</span>
-            <span className="text-xs sm:text-base font-orbitron font-black text-white leading-none">{player.level}</span>
-         </div>
+       {/* Stats - Standardized horizontal layout */}
+       <div className="flex items-center gap-4 sm:gap-12 pr-2">
+          <div className="flex flex-col items-center min-w-[40px]">
+             <span className="text-[7px] text-zinc-400 font-black uppercase tracking-widest leading-none mb-1">NVL</span>
+             <span className="text-xs sm:text-base font-orbitron font-black text-white leading-none">{player.level}</span>
+          </div>
+          <div className="flex flex-col items-center min-w-[60px]">
+             <span className="text-[7px] text-zinc-400 font-black uppercase tracking-widest leading-none mb-1">TOTAL_XP</span>
+             <span className="text-[10px] sm:text-xs font-orbitron font-black text-zinc-400 leading-none">
+                {player.total_xp ? (player.total_xp >= 1000000 ? `${(player.total_xp / 1000000).toFixed(1)}M` : `${(player.total_xp / 1000).toFixed(1)}k`) : "0k"}
+             </span>
+          </div>
          <div className="hidden sm:flex flex-col items-center w-20">
             <span className="text-[7px] text-zinc-600 font-black uppercase tracking-widest mb-1 text-center">STATUS</span>
             <div className="flex items-center justify-center">

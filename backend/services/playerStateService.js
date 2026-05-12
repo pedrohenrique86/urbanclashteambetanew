@@ -89,6 +89,7 @@ class PlayerStateService {
       ucrypto: parseInt(profile.premium_coins || profile.ucrypto || 0, 10),
       crit_chance_pct: gameLogic.calcCritChance(profile),
       crit_damage_mult: gameLogic.calcCritDamageMultiplier(profile),
+      energy_updated_at: profile.energy_updated_at,
     };
   }
 
@@ -202,7 +203,10 @@ class PlayerStateService {
       await redisClient.client.sAdd(DIRTY_PLAYERS_SET, String(userId));
 
       // Notifica o frontend
-      sseService.broadcastToUser(userId, "player:update", { energy: newEnergy });
+      sseService.broadcastToUser(userId, "player:update", { 
+        energy: newEnergy, 
+        energy_updated_at: newLastUpdate.toString() 
+      });
 
       return { ...state, energy: newEnergy, energy_updated_at: newLastUpdate };
     }
@@ -264,11 +268,16 @@ class PlayerStateService {
    */
   async _updateRankingScore(userId, state) {
     if (!state || !redisClient.client.isReady) return;
+    const gameLogic = require("../utils/gameLogic");
 
     // SÊNIOR: Validação rigorosa para evitar erro de 'undefined' no Redis v4
-    const levelVal = Number(state.level || 0);
-    const xpVal = Number(state.total_xp || 0);
-    const score = (levelVal * 100000000) + xpVal;
+    // SÊNIOR: Nível Dinâmico (XP + Atributos + Dinheiro)
+    const dynamicLevel = gameLogic.calculateDynamicLevel(state);
+    const totalXp = Number(state.total_xp || 0);
+    
+    // SÊNIOR: Score unificado (Level.XP) para ordenação perfeita
+    // O Level é a parte inteira, o XP é o critério de desempate (decimal).
+    const score = dynamicLevel + (totalXp / 1000000000);
 
     if (isNaN(score) || !userId) {
       console.warn(`[RankingUpdate] ⚠️ Dados inválidos para ranking: uid=${userId}, score=${score}`);

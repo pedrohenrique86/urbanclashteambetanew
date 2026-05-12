@@ -8,6 +8,7 @@ export interface Player {
   faction: "gangsters" | "guardas";
   country?: string;
   current_xp: number;
+  total_xp?: number;
   position?: number;
   clan_name?: string;
   status?: string;

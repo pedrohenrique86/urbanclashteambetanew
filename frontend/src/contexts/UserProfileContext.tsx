@@ -83,6 +83,7 @@ export interface UserProfile {
   } | null;
   last_daily_special_at?: string | null;
   inventory?: any[];
+  energy_updated_at?: string;
 }
 
 export interface IUserProfileContext {
@@ -128,6 +129,7 @@ function mergePlayerStateIntoProfile(
   if (patch.xpRequired !== undefined) next.xp_required = patch.xpRequired;
 
   if (patch.energy !== undefined) next.energy = patch.energy;
+  if (patch.energy_updated_at !== undefined) next.energy_updated_at = patch.energy_updated_at;
   if (patch.maxEnergy !== undefined) next.max_energy = patch.maxEnergy;
   if (patch.actionPoints !== undefined) next.action_points = patch.actionPoints;
   if (patch.attack !== undefined) next.attack = patch.attack;
@@ -267,6 +269,7 @@ export const UserProfileProvider = ({ children }: { children: ReactNode }) => {
         pending_interception: profileData.pending_interception || null,
         inventory: profileData.inventory || [],
         last_daily_special_at: profileData.last_daily_special_at || null,
+        energy_updated_at: profileData.energy_updated_at,
       };
     },
     [],
@@ -556,6 +559,49 @@ export const UserProfileProvider = ({ children }: { children: ReactNode }) => {
       if (timerId) clearTimeout(timerId);
     };
   }, [currentStatusEndsAt, currentStatus]);
+
+  // SÊNIOR: Predição de Regeneração de Energia (Client-Side)
+  // Faz a energia subir visualmente na Topbar sem precisar de refresh ou polling.
+  useEffect(() => {
+    if (!userProfile?.energy_updated_at || (userProfile.energy >= (userProfile.max_energy || 100))) return;
+
+    const REGEN_RATE_MS = 3 * 60 * 1000; // 3 Minutos
+
+    const intervalId = setInterval(() => {
+      const now = Date.now();
+      const lastUpdate = Number(userProfile.energy_updated_at);
+      const elapsed = now - lastUpdate;
+      
+      const pointsToRegen = Math.floor(elapsed / REGEN_RATE_MS);
+      
+      if (pointsToRegen > 0) {
+        const maxE = userProfile.max_energy || 100;
+        const currentE = userProfile.energy;
+        
+        if (currentE < maxE) {
+          const newEnergy = Math.min(maxE, currentE + pointsToRegen);
+          const leftoverMs = elapsed % REGEN_RATE_MS;
+          const newTimestamp = now - leftoverMs;
+
+          setUserProfile(prev => {
+            if (!prev) return prev;
+            // Se o valor já mudou (por um fetch ou SSE), cancelamos para evitar inconsistência
+            if (prev.energy !== currentE) return prev;
+            
+            const next = { 
+              ...prev, 
+              energy: newEnergy, 
+              energy_updated_at: newTimestamp.toString() 
+            };
+            writeProfileCache(next);
+            return next;
+          });
+        }
+      }
+    }, 15000); // Checa a cada 15 segundos para ser suave
+
+    return () => clearInterval(intervalId);
+  }, [userProfile?.energy, userProfile?.energy_updated_at, userProfile?.max_energy]);
 
   const contextValue = useMemo(
     () => ({

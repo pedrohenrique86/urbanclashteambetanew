@@ -102,17 +102,20 @@ export default React.memo(function PlayerRankingItem({
           </div>
         </div>
 
-        {/* Level */}
-        <div className="flex flex-col items-end flex-shrink-0 pl-1">
-           <span className={`text-[9px] sm:text-[10px] font-black font-orbitron ${accentColor}`}>
-             NVL_{player.level}
-           </span>
-           <div className="flex gap-[1px] mt-0.5">
-             {Array.from({ length: 5 }).map((_, i) => (
-               <div key={i} className={`w-0.5 h-2 sm:w-1 sm:h-1 ${i < Math.min(player.level / 10, 5) ? (isGuard ? 'bg-blue-500' : 'bg-orange-500') : 'bg-white/10'}`} />
-             ))}
-           </div>
-        </div>
+         {/* Level & XP */}
+         <div className="flex flex-col items-end flex-shrink-0 pl-1">
+            <span className={`text-[9px] sm:text-[10px] font-black font-orbitron ${accentColor}`}>
+              NVL_{player.level}
+            </span>
+            <span className="text-[7px] sm:text-[8px] font-mono text-zinc-500 uppercase tracking-tighter">
+              {player.total_xp ? `${(player.total_xp / 1000).toFixed(1)}k` : "0k"}_XP
+            </span>
+            <div className="flex gap-[1px] mt-0.5">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <div key={i} className={`w-0.5 h-2 sm:w-1 sm:h-1 ${i < Math.min(player.level / 10, 5) ? (isGuard ? 'bg-blue-500' : 'bg-orange-500') : 'bg-white/10'}`} />
+              ))}
+            </div>
+         </div>
       </div>
     </div>
   );
