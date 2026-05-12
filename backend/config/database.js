@@ -23,14 +23,8 @@ const localDbPath = `file:${path.join(__dirname, "../../", localDbFile)}`;
 const databaseUrl = remoteUrl || localDbPath;
 const authToken = process.env.LIBSQL_AUTH_TOKEN || process.env.TURSO_AUTH_TOKEN || "";
 
-if (remoteUrl) {
-  console.log(`📡 [Database] Usando CONEXÃO REMOTA: ${remoteUrl}`);
-} else {
-  console.log(`📂 [Database] Usando BANCO LOCAL: ${localDbFile}`);
-}
-
-console.log(`🔌 [Database] Modo: ${isProduction ? 'PRODUÇÃO' : 'DESENVOLVIMENTO'}`);
-console.log(`🔌 [Database] Conectando via libSQL: ${databaseUrl}`);
+const connectionType = remoteUrl ? "📡 REMOTA" : "📂 LOCAL";
+console.log(`🔌 [Database] Modo: ${isProduction ? 'PRODUÇÃO' : 'DESENVOLVIMENTO'} | Conexão: ${connectionType} | URL: ${databaseUrl}`);
 
 const client = createClient({
   url: databaseUrl,
@@ -92,8 +86,8 @@ async function connectDB() {
 async function query(text, params = []) {
   const start = Date.now();
   try {
-    // SÊNIOR: Auto-replace de $1, $2... para ? (Compatibilidade SQLite/libSQL)
-    // Isso evita que o servidor caia se esquecermos algum placeholder do Postgres.
+    // SÊNIOR: Auto-replace de $1, $2... para ? (Compatibilidade SQL/libSQL)
+    // Isso evita erros se houver placeholders legados no estilo Postgres.
     const normalizedText = text.replace(/\$\d+/g, "?");
     const res = await client.execute({ sql: normalizedText, args: params });
     

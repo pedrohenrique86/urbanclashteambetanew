@@ -5,7 +5,7 @@ const redisClient = require("../config/redisClient");
  * CatalogService
  * 
  * Centraliza o carregamento e cache de dados estáticos (Itens, Roubos, Tarefas).
- * Reduz a carga no PostgreSQL eliminando queries repetitivas em tabelas que mudam raramente.
+ * Reduz a carga no Banco de Dados (libSQL) eliminando queries repetitivas.
  */
 class CatalogService {
   constructor() {
@@ -39,7 +39,7 @@ class CatalogService {
     if (cached && !forceRefresh) {
       rows = JSON.parse(cached);
     } else {
-      console.log("📦 [Catalog] Carregando catálogo do PostgreSQL para Cache Permanente...");
+      console.log("📦 [Catalog] Carregando catálogo do Banco de Dados para Cache Permanente...");
       const dbRes = await query(`
         SELECT 
           id, code, name, description, type, rarity, base_price,

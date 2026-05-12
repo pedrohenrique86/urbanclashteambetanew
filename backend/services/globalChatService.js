@@ -2,7 +2,7 @@
  * globalChatService.js
  * 
  * Gerencia o chat global unificado (Social Zone) usando Redis.
- * Escalável para milhares de jogadores, 100% volátil (não toca no PostgreSQL).
+ * Escalável para milhares de jogadores, 100% volátil (não toca no Banco de Dados).
  */
 
 const redisClient = require("../config/redisClient");

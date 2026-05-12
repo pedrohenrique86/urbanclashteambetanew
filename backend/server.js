@@ -109,6 +109,11 @@ app.use(cors(corsOptions));
 app.use(compression());
 app.use(express.json({ limit: "10mb" }));
 
+// SÊNIOR: Logging de Requisições em Desenvolvimento
+if (!isProduction) {
+  app.use(morgan("dev"));
+}
+
 // --- CONFIGURAÇÃO DE RATE LIMITING (ANTI-SPAM/ANTI-BOT) ---
 
 // 1. Limiter Geral
@@ -211,14 +216,11 @@ async function startServer() {
     await redisReadyPromise;
     
     // SÊNIOR: Limpa a lista de jogadores online no Redis durante o boot.
-    // Isso evita que jogadores que estavam conectados fiquem 'presos' no set
-    // caso o servidor tenha caído sem fechar as conexões SSE.
+    // Garante estado consistente se o servidor caiu sem fechar conexões.
     if (redisClient.client.isReady) {
-      await redisClient.delAsync("online_players_set");
-      await redisClient.delAsync("online_players:recovery");
-      await redisClient.delAsync("online_players:isolation");
-      await redisClient.delAsync("chat:global:online");
-      console.log("🧹 Set de jogadores online, listas de recuperação, isolamento e global resetados no Redis.");
+      const keysToReset = ["online_players_set", "online_players:recovery", "online_players:isolation", "chat:global:online"];
+      await Promise.all(keysToReset.map(key => redisClient.delAsync(key)));
+      console.log("🧹 Cache de Sessões Online resetado (Estado Consistente)");
     }
     // SÊNIOR: Handler para Rotas não encontradas (evita que a requisição fique pendurada)
     app.use((req, res) => {
@@ -252,6 +254,34 @@ async function startServer() {
     const serverInstance = server.listen(PORT, "0.0.0.0", () => {
       const modeEmoji = isProduction ? "🛡️ [PRODUÇÃO]" : "🛠️ [DESENVOLVIMENTO]";
       console.log(`${modeEmoji} SERVIDOR INICIADO NA PORTA ${PORT}`);
+
+      if (!isProduction) {
+        const os = require("os");
+        const nets = os.networkInterfaces();
+        const ips = [];
+        for (const name of Object.keys(nets)) {
+          for (const net of nets[name]) {
+            if (net.family === "IPv4" && !net.internal) ips.push(net.address);
+          }
+        }
+
+        console.log("------------------------------------------------------------------");
+        console.log(`🚀 Diagnóstico de Inicialização:`);
+        console.log(`   - Node: ${process.version} | OS: ${process.platform} (${os.release()})`);
+        console.log(`   - RAM: ${(process.memoryUsage().rss / 1024 / 1024).toFixed(2)} MB`);
+        console.log(`   - Rede Local: http://localhost:${PORT}`);
+        ips.forEach(ip => console.log(`   - Rede Externa: http://${ip}:${PORT}`));
+        
+        // Verificação de .env Críticos
+        const criticalEnv = ["JWT_SECRET", "REDIS_URL"];
+        const missing = criticalEnv.filter(k => !process.env[k]);
+        if (missing.length > 0) {
+          console.warn(`⚠️  VARIÁVEIS CRÍTICAS AUSENTES NO .ENV: ${missing.join(", ")}`);
+        } else {
+          console.log(`   - Configurações .env: ✅ OK`);
+        }
+        console.log("------------------------------------------------------------------");
+      }
       
       // SÊNIOR: Tarefas de background com delay para estabilização
       setTimeout(async () => {
@@ -264,7 +294,6 @@ async function startServer() {
           await seedInitialGameState();
           await checkAutoStart();
           await rankingCacheService.initializeRankingZSet();
-          await rankingCacheService.warmupRankings();
           rankingCacheService.startPeriodicRefresh();
           require("./services/energyRegenService").startEnergyRegenHeartbeat();
           console.log("✅ Todos os subsistemas operacionais.");
