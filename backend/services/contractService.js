@@ -129,7 +129,7 @@ class ContractService {
       // Toast Simples e Completo para o Jogador
       const attrGains = attrGained.map(a => {
         const labels = { attack: 'ATK', defense: 'DEF', focus: 'FOC', instinct: 'INS' };
-        return `+${a.gain}${labels[a.attr] || a.attr.substring(0,3).toUpperCase()}`;
+        return `+${a.gain} ${labels[a.attr] || a.attr.substring(0,3).toUpperCase()}`;
       }).join(" ");
       const lootMsg = lootGained.length > 0 ? ` [LOOT: ${lootGained.map(l => l.code).join(", ")}]` : "";
       const message = `SUCESSO! +$${moneyGained.toLocaleString()} | +${xpGained} XP | ${attrGains}${lootMsg}`;
@@ -324,7 +324,7 @@ class ContractService {
       // Toast Simples e Completo para o Jogador
       const attrGains = attrGained.map(a => {
         const labels = { attack: 'ATK', defense: 'DEF', focus: 'FOC', instinct: 'INS' };
-        return `+${a.gain}${labels[a.attr] || a.attr.substring(0,3).toUpperCase()}`;
+        return `+${a.gain} ${labels[a.attr] || a.attr.substring(0,3).toUpperCase()}`;
       }).join(" ");
       const lootMsg = lootGained.length > 0 ? ` [LOOT: ${lootGained.map(l => l.code).join(", ")}]` : "";
       const message = `SUCESSO! +$${moneyGained.toLocaleString()} | +${xpGained} XP | ${attrGains}${lootMsg}`;
