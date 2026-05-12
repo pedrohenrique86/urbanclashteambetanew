@@ -12,6 +12,7 @@ import {
   ChevronDoubleUpIcon
 } from "@heroicons/react/24/outline";
 import { motion, AnimatePresence } from "framer-motion";
+import { getRarityColor } from "../utils/rarity";
 
 const MILITARY_CLIP = { clipPath: "polygon(8px 0%, 100% 0%, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0% 100%, 0% 8px)" };
 
@@ -38,18 +39,24 @@ export default function DarkMarketPage() {
     try {
       const data = await marketService.getItems();
       setItems(data);
-      // Inicializar quantidades com 1 se não existirem
-      const qts: Record<string, number> = { ...quantities };
-      data.forEach((item: MarketItem) => {
-        if (!qts[item.code]) qts[item.code] = 1;
+      // SÊNIOR: Só inicializa se o estado estiver vazio para evitar loop infinito
+      setQuantities(prev => {
+        const newQtys = { ...prev };
+        let changed = false;
+        data.forEach((item: MarketItem) => {
+          if (!newQtys[item.code]) {
+            newQtys[item.code] = 1;
+            changed = true;
+          }
+        });
+        return changed ? newQtys : prev;
       });
-      setQuantities(qts);
     } catch (err: any) {
       showToast("Falha ao carregar a Bolsa Sombria.", "error");
     } finally {
       setLoading(false);
     }
-  }, [showToast, quantities]);
+  }, [showToast]);
 
   useEffect(() => {
     fetchItems();
@@ -237,7 +244,7 @@ export default function DarkMarketPage() {
                           } shadow-[0_0_8px_currentColor]`}></div>
                           <div>
                             <div className="flex items-center gap-2">
-                              <span className="text-white font-black font-orbitron tracking-wider text-sm uppercase">
+                              <span className={`font-black font-orbitron tracking-wider text-sm uppercase ${getRarityColor(item.rarity)}`}>
                                 {item.name}
                               </span>
                               {isRarityHigh && (

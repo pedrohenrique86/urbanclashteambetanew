@@ -65,10 +65,21 @@ const DAILY_SPECIAL = {
 };
 
 const SPECIAL_ITEMS_POOL = [
-  'cabos_cobre', 'placas_mae_queimadas', 'sucata_placa_video', 'chips_defeituosos',
-  'baterias_litio', 'fiacao_fibra_otica', 'pecas_drone', 'modulos_memoria',
-  'motores_passo_precisao', 'processadores_basicos', 'biomaterial_bruto',
-  'sensores_otica_avancada', 'neuro_chips', 'circuitos_integrados_raros', 'drives_ouro'
+  { code: 'sucata_placa_video', rarity: 'common' },
+  { code: 'cabos_cobre', rarity: 'common' },
+  { code: 'chips_defeituosos', rarity: 'common' },
+  { code: 'pecas_drone', rarity: 'common' },
+  { code: 'fiacao_fibra_otica', rarity: 'common' },
+  { code: 'baterias_litio', rarity: 'rare' },
+  { code: 'modulos_memoria', rarity: 'rare' },
+  { code: 'processadores_basicos', rarity: 'rare' },
+  { code: 'biomaterial_bruto', rarity: 'rare' },
+  { code: 'neuro_chips', rarity: 'rare' },
+  { code: 'drives_ouro', rarity: 'rare' },
+  { code: 'armazenamento_quantico', rarity: 'rare' },
+  { code: 'matriz_criptografica', rarity: 'legendary' },
+  { code: 'nucleos_ia', rarity: 'legendary' },
+  { code: 'reator_fusao_portatil', rarity: 'legendary' }
 ];
 
 module.exports = {

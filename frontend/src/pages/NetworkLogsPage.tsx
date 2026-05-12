@@ -18,6 +18,7 @@ import {
 import { logService, NetworkLog } from "../services/logService";
 import { useUserProfile } from "../hooks/useUserProfile";
 import { FACTION_ALIAS_MAP_FRONTEND } from "../utils/faction";
+import { getRarityColor } from "../utils/rarity";
 
 const MILITARY_CLIP = { clipPath: "polygon(8px 0%, 100% 0%, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0% 100%, 0% 8px)" };
 
@@ -32,6 +33,7 @@ const LogIcon = ({ type, metadata }: { type: string, metadata: any }) => {
     case 'poison_clear':
       return <Beaker className="w-4 h-4 text-purple-400" />;
     case 'heist':
+    case 'HEIST_SUCCESS':
       return <Flame className="w-4 h-4 text-orange-400" />;
     case 'guardian_task':
       return <ShieldCheck className="w-4 h-4 text-blue-400" />;
@@ -45,6 +47,7 @@ const LogContent = ({ log }: { log: NetworkLog }) => {
   
   switch (log.action_type) {
     case 'heist':
+    case 'HEIST_SUCCESS':
       return (
         <div className="flex flex-col gap-1">
           <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
@@ -56,9 +59,9 @@ const LogContent = ({ log }: { log: NetworkLog }) => {
             <span className="text-emerald-400/80">+{meta.xp_gain} XP</span>
             {meta.corruption_gain > 0 && <span className="text-orange-500">+{meta.corruption_gain} INFÂMIA</span>}
             {meta.items_looted && meta.items_looted.length > 0 && (
-              <div className="flex items-center gap-1 text-purple-400 font-bold border-l border-slate-700 pl-3">
+              <div className="flex items-center gap-1 font-bold border-l border-slate-700 pl-3">
                 {meta.items_looted.map((item: any, i: number) => (
-                  <span key={i} className="uppercase">
+                  <span key={i} className={`uppercase ${getRarityColor(item.rarity)}`}>
                     {item.code.replace(/_/g, ' ')} x{item.quantity}
                   </span>
                 ))}
@@ -67,7 +70,7 @@ const LogContent = ({ log }: { log: NetworkLog }) => {
             {meta.stats_gained && (
               <div className="flex items-center gap-2 border-l border-slate-700 pl-3 ml-1">
                 {Object.entries(meta.stats_gained).map(([key, val]) => (
-                  <span key={key} className="text-slate-400 uppercase">{key === 'instinct' ? 'INS' : key.substring(0,3)} +{String(val)}</span>
+                  <span key={key} className="text-slate-400 uppercase">{key === 'instinct' ? 'INST' : key.substring(0,3)} +{String(val)}</span>
                 ))}
               </div>
             )}
@@ -87,9 +90,9 @@ const LogContent = ({ log }: { log: NetworkLog }) => {
             <span className="text-emerald-400/80">+{meta.xp_gain} XP</span>
             <span className="text-blue-400/80">+{meta.merit_gain || meta.xp_gain} MÉRITO</span>
             {meta.items_looted && meta.items_looted.length > 0 && (
-              <div className="flex items-center gap-1 text-purple-400 font-bold border-l border-slate-700 pl-3">
+              <div className="flex items-center gap-1 font-bold border-l border-slate-700 pl-3">
                 {meta.items_looted.map((item: any, i: number) => (
-                  <span key={i} className="uppercase">
+                  <span key={i} className={`uppercase ${getRarityColor(item.rarity)}`}>
                     {item.code.replace(/_/g, ' ')} x{item.quantity}
                   </span>
                 ))}
@@ -98,7 +101,7 @@ const LogContent = ({ log }: { log: NetworkLog }) => {
             {meta.stats_gained && (
               <div className="flex items-center gap-2 border-l border-slate-700 pl-3 ml-1">
                 {Object.entries(meta.stats_gained).map(([key, val]) => (
-                  <span key={key} className="text-slate-400 uppercase">{key === 'instinct' ? 'INS' : key.substring(0,3)} +{String(val)}</span>
+                  <span key={key} className="text-slate-400 uppercase">{key === 'instinct' ? 'INST' : key.substring(0,3)} +{String(val)}</span>
                 ))}
               </div>
             )}

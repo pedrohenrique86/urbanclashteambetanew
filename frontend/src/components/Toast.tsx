@@ -7,6 +7,7 @@ import {
   ExclamationTriangleIcon,
   XMarkIcon
 } from "@heroicons/react/24/outline";
+import { getRarityColor } from "../utils/rarity";
 
 interface ToastProps {
   message: string;
@@ -141,11 +142,27 @@ export default function Toast({
                        return null;
                     }
 
+                    const parseMessage = (text: string) => {
+                      const parts = text.split(/(§[^§]+§)/g);
+                      return parts.map((part, i) => {
+                        if (part.startsWith('§') && part.endsWith('§')) {
+                          const inner = part.slice(1, -1);
+                          const [rarity, content] = inner.split(':');
+                          return (
+                            <span key={i} className={getRarityColor(rarity)}>
+                              {content}
+                            </span>
+                          );
+                        }
+                        return part;
+                      });
+                    };
+
                     return (
                       <p key={idx} className={`leading-tight break-words font-exo font-bold uppercase tracking-normal ${
                         idx === 0 || !message.includes('\n') ? 'text-[13px] text-white mb-1' : 'text-[11px] text-slate-300'
                       }`}>
-                        {trimmedLine}
+                        {parseMessage(trimmedLine)}
                       </p>
                     );
                   })}

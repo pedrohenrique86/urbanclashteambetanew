@@ -77,13 +77,14 @@ class ContractService {
 
       const moneyGained = REWARDS.money(heist.money[0], heist.money[1]);
       const xpGained = REWARDS.xp(heist.xp[0], heist.xp[1]);
+      const infamyGained = Math.floor(heist.level * 2);
       
       const updates = {
         action_points: -heist.costPA,
         energy: -heist.costEnergy,
         money: moneyGained,
         total_xp: xpGained,
-        corruption: Math.floor(heist.level * 2)
+        corruption: infamyGained
       };
 
       if (isDaily) updates.last_daily_special_at = new Date().toISOString();
@@ -98,19 +99,21 @@ class ContractService {
         attrGained.push({ attr, gain });
       });
 
-      // SORTE -> INSTINTO (INS): Chance de 20% (1 em cada 5)
+      // SORTE -> INSTINTO (INST): Chance de 20% (1 em cada 5)
+      let instinctGainText = "";
       if (Math.random() < 0.20) {
         const instinctGain = parseFloat((Math.random() * (0.06 - 0.01) + 0.01).toFixed(2));
         updates.instinct = (updates.instinct || 0) + instinctGain;
         attrGained.push({ attr: 'instinct', gain: instinctGain });
+        instinctGainText = ` | +${instinctGain} INST`;
       }
 
       const lootGained = [];
       if (Math.random() < heist.lootChance) {
-        const randomItem = SPECIAL_ITEMS_POOL[Math.floor(Math.random() * SPECIAL_ITEMS_POOL.length)];
+        const itemObj = SPECIAL_ITEMS_POOL[Math.floor(Math.random() * SPECIAL_ITEMS_POOL.length)];
         const qty = Math.floor(Math.random() * 3) + 1;
-        await inventoryService.addItem(userId, randomItem, qty);
-        lootGained.push({ code: randomItem, quantity: qty });
+        await inventoryService.addItem(userId, itemObj.code, qty);
+        lootGained.push({ code: itemObj.code, quantity: qty, rarity: itemObj.rarity });
       }
 
       const now = Date.now();
@@ -127,12 +130,16 @@ class ContractService {
       const publicMessage = phraseGenerator.generate('gangsters', { ...phraseData, name: state.username });
 
       // Toast Simples e Completo para o Jogador
-      const attrGains = attrGained.map(a => {
-        const labels = { attack: 'ATK', defense: 'DEF', focus: 'FOC', instinct: 'INS' };
+      const attrGains = attrGained.filter(a => a.attr !== 'instinct').map(a => {
+        const labels = { attack: 'ATK', defense: 'DEF', focus: 'FOC' };
         return `+${a.gain} ${labels[a.attr] || a.attr.substring(0,3).toUpperCase()}`;
       }).join(" ");
-      const lootMsg = lootGained.length > 0 ? ` [LOOT: ${lootGained.map(l => l.code).join(", ")}]` : "";
-      const message = `SUCESSO! +$${moneyGained.toLocaleString()} | +${xpGained} XP | ${attrGains}${lootMsg}`;
+
+      const lootMsg = lootGained.length > 0 
+        ? ` [LOOT: ${lootGained.map(l => `§${l.rarity}:${l.code.replace(/_/g, ' ')}§`).join(", ")}]` 
+        : "";
+
+      const message = `SUCESSO! +$${moneyGained.toLocaleString()} | +${xpGained} XP | +${infamyGained} INF | ${attrGains}${instinctGainText}${lootMsg}`;
 
       // SÊNIOR: Tracking do Maior Ganho do Dia (Ranking de Destaque)
       const DAILY_MAX_KEY = `stats:daily_max:gangsters`;
@@ -156,9 +163,9 @@ class ContractService {
         heist_name: heist.name,
         money_gain: moneyGained,
         xp_gain: xpGained,
-        corruption_gain: updates.corruption,
+        corruption_gain: infamyGained,
         stats_gained: attrGained.reduce((acc, a) => ({ ...acc, [a.attr]: a.gain }), {}),
-        items_looted: lootGained.map(l => ({ code: l.code, quantity: l.quantity })),
+        items_looted: lootGained.map(l => ({ code: l.code, quantity: l.quantity, rarity: l.rarity })),
       }, true);
 
       // Adiciona ao feed de atividades (Redis) para interceptação (janela de 3min)
@@ -217,14 +224,6 @@ class ContractService {
       const meritGained = REWARDS.xp(task.merit[0], task.merit[1]);
       const xpGained = REWARDS.xp(task.xp[0], task.xp[1]);
 
-      const lootGained = [];
-      if (Math.random() < task.lootChance) {
-        const randomItem = SPECIAL_ITEMS_POOL[Math.floor(Math.random() * SPECIAL_ITEMS_POOL.length)];
-        const qty = Math.floor(Math.random() * 2) + 1;
-        await inventoryService.addItem(userId, randomItem, qty);
-        lootGained.push({ code: randomItem, quantity: qty });
-      }
-
       const updates = {
         action_points: -task.costPA,
         energy: -task.costEnergy,
@@ -243,11 +242,21 @@ class ContractService {
         attrGained.push({ attr, gain });
       });
 
-      // SORTE -> INSTINTO (INS): Chance de 20% (1 em cada 5)
+      // SORTE -> INSTINTO (INST): Chance de 20% (1 em cada 5)
+      let instinctGainText = "";
       if (Math.random() < 0.20) {
         const instinctGain = parseFloat((Math.random() * (0.06 - 0.01) + 0.01).toFixed(2));
         updates.instinct = (updates.instinct || 0) + instinctGain;
         attrGained.push({ attr: 'instinct', gain: instinctGain });
+        instinctGainText = ` | +${instinctGain} INST`;
+      }
+
+      const lootGained = [];
+      if (Math.random() < task.lootChance) {
+        const itemObj = SPECIAL_ITEMS_POOL[Math.floor(Math.random() * SPECIAL_ITEMS_POOL.length)];
+        const qty = Math.floor(Math.random() * 2) + 1;
+        await inventoryService.addItem(userId, itemObj.code, qty);
+        lootGained.push({ code: itemObj.code, quantity: qty, rarity: itemObj.rarity });
       }
 
       let interception = null;
@@ -297,7 +306,7 @@ class ContractService {
                   targetId: target.key.split(":")[1],
                   targetName: target.username,
                   heistName: target.heistName,
-                  items: target.loot.length > 0 ? target.loot : [{ code: SPECIAL_ITEMS_POOL[Math.floor(Math.random() * SPECIAL_ITEMS_POOL.length)], quantity: 1 }]
+                  items: target.loot.length > 0 ? target.loot : [{ code: SPECIAL_ITEMS_POOL[Math.floor(Math.random() * SPECIAL_ITEMS_POOL.length)].code, quantity: 1, rarity: 'common' }]
                 };
                 updates.pending_interception = interception;
                 await redisClient.delAsync(target.key);
@@ -322,12 +331,16 @@ class ContractService {
       const publicMessage = phraseGenerator.generate('guardas', { ...phraseData, name: state.username });
 
       // Toast Simples e Completo para o Jogador
-      const attrGains = attrGained.map(a => {
-        const labels = { attack: 'ATK', defense: 'DEF', focus: 'FOC', instinct: 'INS' };
+      const attrGains = attrGained.filter(a => a.attr !== 'instinct').map(a => {
+        const labels = { attack: 'ATK', defense: 'DEF', focus: 'FOC' };
         return `+${a.gain} ${labels[a.attr] || a.attr.substring(0,3).toUpperCase()}`;
       }).join(" ");
-      const lootMsg = lootGained.length > 0 ? ` [LOOT: ${lootGained.map(l => l.code).join(", ")}]` : "";
-      const message = `SUCESSO! +$${moneyGained.toLocaleString()} | +${xpGained} XP | ${attrGains}${lootMsg}`;
+
+      const lootMsg = lootGained.length > 0 
+        ? ` [LOOT: ${lootGained.map(l => `§${l.rarity}:${l.code.replace(/_/g, ' ')}§`).join(", ")}]` 
+        : "";
+
+      const message = `SUCESSO! +$${moneyGained.toLocaleString()} | +${xpGained} XP | +${meritGained} MER | ${attrGains}${instinctGainText}${lootMsg}`;
 
       // SÊNIOR: Tracking do Maior Ganho do Dia (Ranking de Destaque)
       const DAILY_MAX_KEY = `stats:daily_max:guardas`;
@@ -348,7 +361,7 @@ class ContractService {
         merit_gain: meritGained,
         xp_gain: xpGained,
         stats_gained: attrGained.reduce((acc, a) => ({ ...acc, [a.attr]: a.gain }), {}),
-        items_looted: lootGained.map(l => ({ code: l.code, quantity: l.quantity })),
+        items_looted: lootGained.map(l => ({ code: l.code, quantity: l.quantity, rarity: l.rarity })),
         interception: !!interception,
         is_major: meritGained > 500 || !!interception,
         faction: 'guardas',
