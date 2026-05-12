@@ -130,7 +130,7 @@ class RankingCacheService {
   async _fetchPlayersFromDB(ids) {
     try {
       const { rows } = await query(
-        `SELECT * FROM user_profiles WHERE user_id IN (${ids.map((_, i) => `$${i+1}`).join(',')})`,
+        `SELECT * FROM user_profiles WHERE user_id IN (${ids.map(() => `?`).join(',')})`,
         ids
       );
       return rows.map(r => this._formatPlayer(r, 0));
