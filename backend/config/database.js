@@ -89,7 +89,10 @@ async function connectDB() {
 async function query(text, params = []) {
   const start = Date.now();
   try {
-    const res = await client.execute({ sql: text, args: params });
+    // SÊNIOR: Auto-replace de $1, $2... para ? (Compatibilidade SQLite/libSQL)
+    // Isso evita que o servidor caia se esquecermos algum placeholder do Postgres.
+    const normalizedText = text.replace(/\$\d+/g, "?");
+    const res = await client.execute({ sql: normalizedText, args: params });
     
     const duration = Date.now() - start;
     if (duration > 1000) {
