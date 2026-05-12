@@ -205,16 +205,23 @@ function broadcast(event, data) {
 
 /** Envia para TODOS os clientes conectados NESTE processo. */
 function _localPublishAll(event, data) {
+  // 1. Envio para Clientes SSE
   const message = `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`;
   for (const clientSet of topics.values()) {
     for (const client of clientSet) {
-      try {
-        client.write(message);
-      } catch (e) {
-        // Falha silenciosa
-      }
+      try { client.write(message); } catch (e) {}
     }
   }
+
+  // 2. SÊNIOR: Envio para Clientes WebSocket Nativo (Global)
+  try {
+    const { getIO } = require("../socketHandlerNative");
+    const io = getIO();
+    if (io) {
+      // O getIO do Native devolve um objeto que faz broadcast global se não for filtrado
+      io.to("all").emit(event, data);
+    }
+  } catch (err) {}
 }
 
 /**

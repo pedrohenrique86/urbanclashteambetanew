@@ -1,6 +1,24 @@
 // SÊNIOR: Serviço de WebSocket Nativo (High Performance)
 // Substitui o socket.io-client para reduzir overhead no navegador.
 
+// SÊNIOR: Tipagens legadas mantidas para compatibilidade de build
+interface GameState {
+  status: string;
+  startTime: string | null;
+  duration: number | null;
+  serverTime: string;
+  isActive: boolean;
+  isPaused: boolean;
+  endTime: string | null;
+  remainingTime: number;
+  gameStatus: string;
+  lastUpdated: string;
+}
+
+interface ServerTime {
+  serverTime: number;
+}
+
 interface ChatMessage {
   id: string;
   userId: string;
@@ -171,6 +189,14 @@ class SocketService {
     this.on<ChatMessage[]>("chat:history", callback);
   }
 
+  onChatHistoryError(callback: () => void): void {
+    this.on<void>("chat:history_error", callback);
+  }
+
+  onChatHistoryCleared(callback: (data: { message: string }) => void): void {
+    this.on<{ message: string }>("chat:history_cleared", callback);
+  }
+
   onMessageReceived(callback: (message: ChatMessage) => void): void {
     this.on<ChatMessage>("chat:message", callback);
   }
@@ -245,4 +271,4 @@ class SocketService {
 }
 
 export const socketService = new SocketService();
-export type { ChatMessage };
+export type { ChatMessage, GameState, ServerTime };

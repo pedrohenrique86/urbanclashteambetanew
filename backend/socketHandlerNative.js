@@ -174,8 +174,19 @@ function leaveRoom(ws, roomName) {
 }
 
 function broadcastToRoom(roomName, type, data, excludeWs = null) {
+  const payload = JSON.stringify({ type, data });
+  
+  if (roomName === "all") {
+    // SÊNIOR: Broadcast Global (todos os clientes conectados)
+    wss.clients.forEach(client => {
+      if (client !== excludeWs && client.readyState === WebSocket.OPEN) {
+        client.send(payload);
+      }
+    });
+    return;
+  }
+
   if (rooms.has(roomName)) {
-    const payload = JSON.stringify({ type, data });
     rooms.get(roomName).forEach(client => {
       if (client !== excludeWs && client.readyState === WebSocket.OPEN) {
         client.send(payload);
