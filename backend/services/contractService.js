@@ -4,6 +4,7 @@ const playerStateService = require("./playerStateService");
 const inventoryService = require("./inventoryService");
 const actionLogService = require("./actionLogService");
 const { HEIST_TYPES, GUARDIAN_TYPES, DAILY_SPECIAL, SPECIAL_ITEMS_POOL, REWARDS } = require("../utils/contractConstants");
+const phraseGenerator = require("../utils/phraseGenerator");
 
 /**
  * contractService.js
@@ -118,27 +119,37 @@ class ContractService {
 
       const isMajor = moneyGained > 50000 || isDaily;
       
-      const renegadoPhrases = [
-        "{name} FEZ UM ASSALTO A {target} E ESCAPOU COM {money} NINGUEM SEGURA ESSE JOGADOR",
-        "{name} PASSOU PELO CERCO DA POLICIA EM {target} E LEVOU {money} PARA O ESCONDERIJO",
-        "{name} DEIXOU OS GUARDAS NO CHAO EM {target} E SAIU COM OS BOLSOS CHEIOS DE {money}",
-        "{name} FINALIZOU O SERVIÇO EM {target} E DESAPARECEU COM {money} DA REDE",
-        "{name} EXECUTOU O PLANO PERFEITO EM {target} E AGORA TEM {money} A MAIS NA CONTA",
-        "{name} MOSTROU QUEM MANDA EM {target} E LEVOU {money} SEM DEIXAR RASTROS",
-        "{name} DESAFIOU A SEGURANÇA DE {target} E SAIU VITORIOSO COM {money}",
-        "{name} INVADIU O SETOR {target} E FOI EMBORA COM {money} NO BOLSO"
-      ];
-      
-      const randomPhrase = renegadoPhrases[Math.floor(Math.random() * renegadoPhrases.length)];
-      const message = randomPhrase
-        .replace("{name}", state.username)
-        .replace("{target}", heist.name.toUpperCase())
-        .replace("{money}", `$${moneyGained.toLocaleString()}`);
+      // Mensagem Dinâmica (Motor Combinatório) - EXCLUSIVO PARA O FEED PÚBLICO
+      const phraseData = {
+        target: heist.name,
+        money: `$${moneyGained.toLocaleString()}`
+      };
+      const publicMessage = phraseGenerator.generate('gangsters', { ...phraseData, name: state.username });
+
+      // Toast Simples e Completo para o Jogador
+      const attrGains = attrGained.map(a => {
+        const labels = { attack: 'ATK', defense: 'DEF', focus: 'FOC', instinct: 'INS' };
+        return `+${a.gain}${labels[a.attr] || a.attr.substring(0,3).toUpperCase()}`;
+      }).join(" ");
+      const lootMsg = lootGained.length > 0 ? ` [LOOT: ${lootGained.map(l => l.code).join(", ")}]` : "";
+      const message = `SUCESSO! +$${moneyGained.toLocaleString()} | +${xpGained} XP | ${attrGains}${lootMsg}`;
+
+      // SÊNIOR: Tracking do Maior Ganho do Dia (Ranking de Destaque)
+      const DAILY_MAX_KEY = `stats:daily_max:gangsters`;
+      const currentMax = await redisClient.getAsync(DAILY_MAX_KEY);
+      if (!currentMax || moneyGained > JSON.parse(currentMax).amount) {
+        await redisClient.setAsync(DAILY_MAX_KEY, JSON.stringify({
+          userId,
+          username: state.username,
+          amount: moneyGained,
+          target: heist.name,
+          timestamp: Date.now()
+        }));
+      }
 
       // SÊNIOR: Registra via ActionLog (Redis-Only) com flag de visibilidade pública
-      // Apenas um log público para evitar duplicidade no feed
       await actionLogService.log(userId, 'HEIST_SUCCESS', 'contract', heist.id, {
-        public_message: message,
+        public_message: publicMessage,
         is_master: isDaily,
         is_major: isMajor,
         faction: 'gangsters',
@@ -303,6 +314,34 @@ class ContractService {
 
       const newState = await playerStateService.updatePlayerState(userId, updates);
 
+      // Mensagem Dinâmica (Motor Combinatório Militar) - EXCLUSIVO PARA O FEED PÚBLICO
+      const phraseData = {
+        target: task.name,
+        money: `$${moneyGained.toLocaleString()}`
+      };
+      const publicMessage = phraseGenerator.generate('guardas', { ...phraseData, name: state.username });
+
+      // Toast Simples e Completo para o Jogador
+      const attrGains = attrGained.map(a => {
+        const labels = { attack: 'ATK', defense: 'DEF', focus: 'FOC', instinct: 'INS' };
+        return `+${a.gain}${labels[a.attr] || a.attr.substring(0,3).toUpperCase()}`;
+      }).join(" ");
+      const lootMsg = lootGained.length > 0 ? ` [LOOT: ${lootGained.map(l => l.code).join(", ")}]` : "";
+      const message = `SUCESSO! +$${moneyGained.toLocaleString()} | +${xpGained} XP | ${attrGains}${lootMsg}`;
+
+      // SÊNIOR: Tracking do Maior Ganho do Dia (Ranking de Destaque)
+      const DAILY_MAX_KEY = `stats:daily_max:guardas`;
+      const currentMax = await redisClient.getAsync(DAILY_MAX_KEY);
+      if (!currentMax || moneyGained > JSON.parse(currentMax).amount) {
+        await redisClient.setAsync(DAILY_MAX_KEY, JSON.stringify({
+          userId,
+          username: state.username,
+          amount: moneyGained,
+          target: task.name,
+          timestamp: Date.now()
+        }));
+      }
+
       // Log Unificado (Individual + Público)
       await actionLogService.log(userId, 'guardian_task', 'contract', task.id, {
         money_gain: moneyGained,
@@ -313,27 +352,11 @@ class ContractService {
         interception: !!interception,
         is_major: meritGained > 500 || !!interception,
         faction: 'guardas',
-        public_message: (() => {
-          const guardPhrases = [
-            "{name} INTERCEPTOU O CRIME EM {target} E RECEBEU {money} PELA HONRA DA CIDADE",
-            "{name} COMPLETOU A OPERAÇÃO EM {target} E FOI RECOMPENSADO COM {money} PELO MERITO",
-            "{name} GARANTIU A SEGURANÇA EM {target} E AS AUTORIDADES PAGARAM {money} PELO SERVIÇO",
-            "{name} MOSTROU O PODER DA LEI EM {target} E FATUROU {money} PELA ORDEM RESTABELECIDA",
-            "{name} FEZ O TRABALHO DE ELITE EM {target} E A RECOMPENSA DE {money} FOI DEPOSITADA",
-            "{name} PROTEGEU O SETOR {target} COM SUCESSO E RECEBEU {money} PELO DESEMPENHO",
-            "{name} FINALIZOU A PATRULHA EM {target} E RECEBEU {money} DE GRATIFICAÇÃO",
-            "{name} RESTAUROU A PAZ EM {target} E FOI BONIFICADO COM {money}"
-          ];
-          const phrase = guardPhrases[Math.floor(Math.random() * guardPhrases.length)];
-          return phrase
-            .replace("{name}", state.username)
-            .replace("{target}", task.name.toUpperCase())
-            .replace("{money}", `$${moneyGained.toLocaleString()}`);
-        })()
+        public_message: publicMessage
       }, true);
 
       return {
-        message: `Tarefa concluída. Recebido $${moneyGained.toLocaleString()}, ${meritGained} Mérito e ${xpGained} XP.`,
+        message,
         moneyGained,
         meritGained,
         attrGained,
@@ -393,6 +416,7 @@ class ContractService {
             let faction = metadata.faction || null;
             // SÊNIOR: Se já existe uma public_message no metadado, USAMOS ELA.
             // Não re-sorteamos a frase, para manter a consistência entre o Toast e o Feed.
+            let displayMessage = "";
             if (metadata.public_message) {
               displayMessage = metadata.public_message;
             } else if (log.actionType === 'HEIST_SUCCESS' || log.actionType === 'heist') {

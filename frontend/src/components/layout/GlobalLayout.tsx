@@ -66,11 +66,6 @@ const GlobalLayout: React.FC<GlobalLayoutProps> = ({ children }) => {
     (p) => location.pathname === p || location.pathname.startsWith("/auth/"),
   );
 
-  // SÊNIOR: A conclusão do treinamento agora é 100% gerenciada pelo Backend (Worker). 
-  // Nenhuma checagem (tick) de tempo precisa ser feita pelo front-end. O servidor
-  // processará no milissegundo exato e despachará via SSE o novo status ou enviará no login.
-
-
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.key === "Escape" && hasOpenPanel) {
@@ -100,7 +95,7 @@ const GlobalLayout: React.FC<GlobalLayoutProps> = ({ children }) => {
     if (userProfile?.pending_training_toast) {
       const g = userProfile.pending_training_toast;
       showToast(
-        `Treinamento concluído! [ +${g.attack} ATK, +${g.defense} DEF, +${g.focus} FOC, +${g.xp} XP ]`,
+        `SUCESSO! +${g.attack} ATK | +${g.defense} DEF | +${g.focus} FOC | +${g.xp} XP`,
         "success",
         7000
       );
@@ -112,7 +107,6 @@ const GlobalLayout: React.FC<GlobalLayoutProps> = ({ children }) => {
   }, [userProfile?.pending_training_toast, showToast, setUserProfile]);
 
   // SÊNIOR: Monitor de Mudança de Status (Feedback Narrativo)
-  // Notifica o usuário instantaneamente sobre mudanças críticas de estado.
   const currentStatus = userProfile?.status || 'Operacional';
   const pendingTrainingToast = userProfile?.pending_training_toast;
 
@@ -121,10 +115,8 @@ const GlobalLayout: React.FC<GlobalLayoutProps> = ({ children }) => {
     
     const prevStatus = prevStatusRef.current;
 
-    // Caso Inicial: Login ou Refresh
     if (prevStatus === null) {
       prevStatusRef.current = currentStatus;
-      // Se já começar em estado crítico no carregamento, avisa uma vez por sessão
       if (currentStatus === 'Ruptura' && !sessionStorage.getItem('bleeding_toast_shown')) {
         showToast("ALERTA: Integridade comprometida. Ruptura de sistema detectada. Visite a Unidade de Manutenção.", "error", 8000);
         sessionStorage.setItem('bleeding_toast_shown', 'true');
@@ -132,7 +124,6 @@ const GlobalLayout: React.FC<GlobalLayoutProps> = ({ children }) => {
       return;
     }
 
-    // Mudança de Estado detectada
     if (prevStatus !== currentStatus) {
       prevStatusRef.current = currentStatus;
 
@@ -168,12 +159,8 @@ const GlobalLayout: React.FC<GlobalLayoutProps> = ({ children }) => {
           type = 'info';
           break;
         case 'Operacional':
-          // Reset flag de sangramento quando estabilizar
           sessionStorage.removeItem('bleeding_toast_shown');
-          
-          // Evita duplicidade com o toast detalhado de fim de treino (outro useEffect)
           if (prevStatus === 'Aprimoramento' && pendingTrainingToast) return;
-          
           if (['Ruptura', 'Recondicionamento', 'Isolamento', 'Aprimoramento'].includes(prevStatus)) {
             message = "✅ SISTEMA: Estabilização concluída. Status operacional restaurado.";
             type = 'success';
@@ -274,19 +261,8 @@ const GlobalLayout: React.FC<GlobalLayoutProps> = ({ children }) => {
         </div>
       </div>
 
-      <Tooltip
-        id="server-time-tooltip"
-        place="top-end"
-        style={{ zIndex: 99999 }}
-        className="!bg-slate-700 !bg-opacity-80 !backdrop-blur-sm !text-white !rounded-lg !px-3 !py-1 !text-[8px] !font-sans"
-      />
-      <Tooltip
-        id="game-clock-tooltip"
-        place="top-end"
-        style={{ zIndex: 99999 }}
-        className="!bg-slate-700 !bg-opacity-80 !backdrop-blur-sm !text-white !rounded-lg !px-3 !py-1 !text-[8px] !font-sans"
-      />
-
+      <Tooltip id="server-time-tooltip" place="top-end" style={{ zIndex: 99999 }} className="!bg-slate-700 !bg-opacity-80 !backdrop-blur-sm !text-white !rounded-lg !px-3 !py-1 !text-[8px] !font-sans" />
+      <Tooltip id="game-clock-tooltip" place="top-end" style={{ zIndex: 99999 }} className="!bg-slate-700 !bg-opacity-80 !backdrop-blur-sm !text-white !rounded-lg !px-3 !py-1 !text-[8px] !font-sans" />
       <MobileAppDrawer />
       <ScrollToTopButton scrollableRef={scrollableContainerRef} />
     </div>

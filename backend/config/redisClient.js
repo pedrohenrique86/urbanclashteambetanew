@@ -67,10 +67,8 @@ const redisReadyPromise = initRedis();
 
 const redisWrapper = {
   redisReadyPromise,
-  client: {
-    get isReady() {
-      return isReady;
-    },
+  get client() {
+    return client || { isReady: false };
   },
 
   getAsync: async (k) => {

@@ -296,6 +296,7 @@ async function startServer() {
           await rankingCacheService.initializeRankingZSet();
           rankingCacheService.startPeriodicRefresh();
           require("./services/energyRegenService").startEnergyRegenHeartbeat();
+          require("./services/cronService").start();
           console.log("✅ Todos os subsistemas operacionais.");
         } catch (bgError) {
           console.error("⚠️ Erro nos processos de background:", bgError);

@@ -530,12 +530,7 @@ export default function ContractsPage() {
     setCooldown(3);
     try {
       const res = await api.post("/contracts/heist", { heistId });
-      let msg = res.data.message;
-      if (res.data.attrGained && res.data.attrGained.length > 0) {
-        const attrMsg = res.data.attrGained.map((a: any) => `+${a.gain} ${a.attr.toUpperCase()}`).join(', ');
-        msg += ` [Evolução: ${attrMsg}]`;
-      }
-      showToast(msg, "success");
+      showToast(res.data.message, "success");
       await mutate();
       await refreshProfile();
     } catch (e: any) {
@@ -551,12 +546,7 @@ export default function ContractsPage() {
     setCooldown(3);
     try {
       const res = await api.post("/contracts/guardian-task", { taskId });
-      let msg = res.data.message;
-      if (res.data.attrGained && res.data.attrGained.length > 0) {
-        const attrMsg = res.data.attrGained.map((a: any) => `+${a.gain} ${a.attr.toUpperCase()}`).join(', ');
-        msg += ` [Evolução: ${attrMsg}]`;
-      }
-      showToast(msg, "success");
+      showToast(res.data.message, "success");
       if (res.data.interception) {
         setShowInterception(true);
       }
