@@ -7,7 +7,7 @@ const { query } = require("../config/database");
  * ARQUITETURA DE ALTA PERFORMANCE (5000+ JOGADORES)
  * 
  * Fonte Primária: Redis (In-memory)
- * Persistência: PostgreSQL (Async Batch Dirty)
+ * Persistência: Banco de Dados (Async Batch Dirty)
  * Fluxo: Ação -> Redis (Lua Script Atômico) -> Dirty Set -> Persistência de fundo (15s)
  */
 
@@ -90,7 +90,7 @@ class MarketStateService {
       throw new Error("Estoque global insuficiente no mercado.");
     }
 
-    // Marca como dirty para persistência futura no Postgres
+    // Marca como dirty para persistência futura no Banco de Dados
     await redisClient.sAddAsync(MARKET_DIRTY_SET, itemCode);
     
     return parseInt(result);
@@ -106,12 +106,12 @@ class MarketStateService {
       const dirtyItems = await redisClient.sMembersAsync(MARKET_DIRTY_SET);
       if (dirtyItems.length === 0) return;
 
-      // SÊNIOR FIX: Não acorda o Neon se não há jogadores online.
+      // SÊNIOR FIX: Não acorda o Banco se não há jogadores online.
       const onlineCount = await redisClient.sCardAsync("online_players_set").catch(() => 0);
       if (!onlineCount || onlineCount === 0) return;
 
       this.isFlushing = true;
-      console.log(`[MarketState] 💾 Persistindo ${dirtyItems.length} itens no PostgreSQL...`);
+      console.log(`[MarketState] 💾 Persistindo ${dirtyItems.length} itens no Banco de Dados...`);
       
       // Limpa o set de dirty primeiro (se falhar o update, eles serão marcados de novo na próxima ação)
       // SÊNIOR: Uma estratégia mais segura seria remover apenas após o sucesso, mas 

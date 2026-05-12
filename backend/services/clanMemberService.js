@@ -5,7 +5,7 @@ const { query } = require("../config/database");
  * ClanMemberService
  * 
  * Gerencia a lista de membros de clãs no Redis.
- * Fonte de Verdade: PostgreSQL
+ * Fonte de Verdade: Banco de Dados (libSQL)
  * Cache de Alta Performance: Redis Set (clan:members:{clanId})
  */
 class ClanMemberService {

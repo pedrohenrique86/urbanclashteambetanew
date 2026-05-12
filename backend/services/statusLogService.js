@@ -4,7 +4,7 @@ const redisClient = require("../config/redisClient");
  * StatusLogService
  * 
  * Armazena o histórico de mudanças de status do jogador no Redis (Redis-Only).
- * Substitui a tabela player_status_logs do PostgreSQL.
+ * Substitui o antigo log em Banco de Dados Relacional.
  */
 class StatusLogService {
   constructor() {

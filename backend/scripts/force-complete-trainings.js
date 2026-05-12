@@ -10,13 +10,12 @@ async function run() {
 
     const nowStr = new Date(Date.now() - 60000).toISOString(); // 1 minuto atrás
     
-    // 1. Force expiration in PostgreSQL just in case
-    console.log("⏳ Atualizando PostgreSQL...");
+    // 1. Force expiration in Database just in case
+    console.log("⏳ Atualizando Banco de Dados...");
     const res = await query(`
       UPDATE user_profiles 
-      SET training_ends_at = CURRENT_TIMESTAMP - INTERVAL '1 minute' 
-      WHERE training_ends_at > CURRENT_TIMESTAMP AND active_training_type IS NOT NULL
-      RETURNING user_id
+      SET training_ends_at = datetime('now', '-1 minute') 
+      WHERE training_ends_at > datetime('now') AND active_training_type IS NOT NULL
     `);
     console.log(`✅ ${res.rowCount} perfis atualizados no DB.`);
 

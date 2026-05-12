@@ -6,7 +6,7 @@ const redisClient = require("../config/redisClient");
  * recoveryService.js
  * 
  * Lógica para a Base de Recuperação (Antídotos e Resgate de Aliados).
- * Focado em performance (5000 players) e atomicidade via Redis/Postgres.
+ * Focado em performance (5000 players) e atomicidade via Redis/libSQL.
  */
 
 async function buyAntidote(userId) {

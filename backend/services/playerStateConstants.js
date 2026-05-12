@@ -2,7 +2,7 @@
  * playerStateConstants.js
  * 
  * Centraliza as definições de campos e chaves para evitar inconsistências 
- * entre o cache (Redis) e a persistência (PostgreSQL).
+ * entre o cache (Redis) e a persistência (libSQL).
  */
 
 const PLAYER_STATE_PREFIX = "playerState:";
@@ -13,7 +13,7 @@ const RANKING_GUARDIOES    = "ranking:players:guardioes";
 const PERSISTENCE_INTERVAL = 3000; // 3 segundos
 
 /**
- * Campos que devem ser persistidos no PostgreSQL (user_profiles).
+ * Campos que devem ser persistidos no Banco de Dados (user_profiles).
  */
 const DB_PERSIST_FIELDS = new Set([
   "total_xp", "level",
@@ -29,7 +29,7 @@ const DB_PERSIST_FIELDS = new Set([
 
 /**
  * Campos que vivem APENAS no Redis (Alta Volatilidade).
- * Não são enviados para o PostgreSQL para economizar I/O.
+ * Não são enviados para o Banco de Dados para economizar I/O.
  */
 const VOLATILE_FIELDS = new Set([
   "is_admin",

@@ -2,7 +2,7 @@
  * playerPersistenceService.js
  * 
  * SÊNIOR: Este serviço é responsável exclusivamente pelo motor de Write-Behind.
- * Ele gerencia a sincronização entre a memória (Redis) e o disco (PostgreSQL).
+ * Ele gerencia a sincronização entre a memória (Redis) e o disco (libSQL).
  */
 
 const { query } = require("../config/database");

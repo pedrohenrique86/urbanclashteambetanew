@@ -5,7 +5,7 @@ const { query } = require("../config/database");
  * 
  * Implementação de Buffered Write-Behind para atributos de jogadores.
  * Otimiza a performance acumulando deltas (incrementos/decrementos) em memória
- * e persistindo-os via Bulk Update no PostgreSQL a cada 3 segundos.
+ * e persistindo-os via Bulk Update no Banco de Dados a cada 3 segundos.
  * 
  * Vantagens:
  * 1. Redução drástica de IO no Banco de Dados (de 1000 UPDATES para 1 único Bulk Update).
@@ -64,7 +64,7 @@ class AttributeBufferService {
   async flush() {
     if (this._isFlushing || this._buffer.size === 0) return;
 
-    // SÊNIOR FIX: Não acorda o Neon se não há jogadores online.
+    // SÊNIOR FIX: Não acorda o Banco se não há jogadores online.
     // Buffers só existem durante sessões ativas, mas verificamos por segurança.
     try {
       const redisClient = require("../config/redisClient");
