@@ -24,6 +24,7 @@ export interface PlayerStatePatch {
   currentXp?     : number;
   xpRequired?    : number;
   energy?        : number;
+  energy_updated_at?: string;
   maxEnergy?     : number;
   actionPoints?  : number;
   attack?        : number;
