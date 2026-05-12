@@ -80,16 +80,16 @@ const LiveNewsTicker: React.FC = () => {
   const currentNews = news[activeIndex] || news[0];
   if (!showLiveFeed || !currentNews) return null;
 
-  const getFactionBadge = () => {
-    if (!currentNews.faction) return null;
-    if (currentNews.faction === 'gangsters') {
+  const getFactionBadge = (item: NewsItem) => {
+    if (!item.faction) return null;
+    if (item.faction === 'gangsters') {
       return (
         <span className="text-orange-400 font-bold mr-1">
           [RENEGADO]
         </span>
       );
     }
-    if (currentNews.faction === 'guardas') {
+    if (item.faction === 'guardas') {
       return (
         <span className="text-blue-800 font-bold mr-1">
           [GUARDIÃO]
@@ -99,56 +99,48 @@ const LiveNewsTicker: React.FC = () => {
     return null;
   };
 
+  const newsContent = (
+    <div className="flex items-center">
+      {news.map((item) => (
+        <div key={item.id} className="flex items-center gap-3 px-6 whitespace-nowrap">
+          <NewspaperIcon className="w-3 h-3 text-red-500 flex-shrink-0" />
+          <span className="text-white font-mono text-[10px]">
+            {new Date(item.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+          </span>
+          <div className="text-[11px] text-white/90 uppercase tracking-wider flex items-center font-black">
+            {getFactionBadge(item)}
+            <span>{item.message}</span>
+          </div>
+          <span className="text-white/20 mx-4 opacity-50">•</span>
+        </div>
+      ))}
+    </div>
+  );
+
   return (
     <div 
-      className={`mt-1 w-full backdrop-blur-2xl border rounded-2xl p-1.5 shadow-2xl flex items-center overflow-hidden font-orbitron pointer-events-auto mx-auto h-8 transition-colors duration-500 ${
-        currentNews.is_major 
+      className={`w-full backdrop-blur-2xl border rounded-full p-1 shadow-2xl flex items-center overflow-hidden font-orbitron pointer-events-auto transition-all duration-500 h-9 ${
+        currentNews?.is_major 
           ? "bg-red-600/40 border-red-500 animate-pulse" 
           : "bg-black/60 border-white/10"
       }`}
       style={{
-        boxShadow: currentNews.is_major 
+        boxShadow: currentNews?.is_major 
           ? "inset 0 1px 1px rgba(255, 255, 255, 0.2), 0 0 20px rgba(220, 38, 38, 0.4)"
           : "inset 0 1px 1px rgba(255, 255, 255, 0.05), 0 20px 50px rgba(0, 0, 0, 0.9)",
       }}
     >
-      {/* "LIVE" Badge */}
-      <div className="flex items-center gap-2 px-3 bg-red-600 h-full text-white text-[9px] font-black italic tracking-tighter shadow-[5px_0_15px_rgba(220,38,38,0.3)] z-10 rounded-lg">
+      {/* "LIVE" Badge Oval */}
+      <div className="flex items-center gap-2 px-4 bg-red-600 h-full text-white text-[10px] font-black italic tracking-tighter shadow-[5px_0_15px_rgba(220,38,38,0.3)] z-20 rounded-full flex-shrink-0">
         <SignalIcon className="w-3 h-3 animate-pulse" />
         LIVE
       </div>
 
-      {/* Scrolling Container */}
+      {/* Marquee Container */}
       <div className="flex-1 overflow-hidden relative h-full flex items-center">
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={currentNews.id}
-            initial={{ y: 20, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            exit={{ y: -20, opacity: 0 }}
-            transition={{ duration: 0.5, ease: "easeOut" }}
-            className="px-6 flex items-center gap-3 w-full"
-          >
-            <NewspaperIcon className="w-3 h-3 text-red-500 flex-shrink-0" />
-            <div className="text-[11px] text-white/90 uppercase tracking-wider truncate flex items-center">
-              {getFactionBadge()}
-              <span>{currentNews.message}</span>
-            </div>
-            <span className="text-[8px] text-white/30 font-mono ml-auto">
-              {new Date(currentNews.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
-            </span>
-          </motion.div>
-        </AnimatePresence>
-      </div>
-
-      {/* Breaking News Visual decoration */}
-      <div className="hidden md:flex items-center px-4 h-full border-l border-white/10 gap-4">
-        <div className="w-24 h-1 bg-white/5 rounded-full overflow-hidden">
-          <motion.div 
-            animate={{ x: [-100, 100] }}
-            transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-            className="w-full h-full bg-red-500/40 shadow-[0_0_10px_rgba(239,68,68,0.5)]"
-          />
+        <div className="flex items-center animate-marquee-slow" style={{ animationDuration: '80s' }}>
+          {newsContent}
+          {newsContent}
         </div>
       </div>
     </div>

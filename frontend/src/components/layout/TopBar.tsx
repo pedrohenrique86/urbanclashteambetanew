@@ -139,8 +139,9 @@ const TopBar: React.FC<TopBarProps> = ({ userProfile }) => {
 
   return (
     <>
-      <div className="w-full flex flex-col items-center pt-2 md:pt-3 pb-0 pointer-events-none">
-        <div className="flex flex-col items-center w-[95%] md:w-fit">
+      <div className="w-full flex flex-col items-center pt-2 md:pt-4 pb-0 pointer-events-none">
+        <div className="flex flex-col items-center w-[95%] md:w-fit gap-2">
+          <LiveNewsTicker />
           <div
             className="relative bg-black/60 backdrop-blur-2xl border border-white/10 rounded-2xl p-1.5 shadow-2xl w-full md:w-auto pointer-events-auto"
             style={{
@@ -218,7 +219,6 @@ const TopBar: React.FC<TopBarProps> = ({ userProfile }) => {
               ))}
             </div>
           </div>
-          <LiveNewsTicker />
         </div>
       </div>
 
