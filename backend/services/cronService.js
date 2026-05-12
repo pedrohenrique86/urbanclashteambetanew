@@ -48,21 +48,26 @@ class CronService {
         }
       }
 
+      const actionLogService = require("./actionLogService");
+
       if (highlights.gangsters || highlights.guardas) {
-        // Envia anúncio via LOG (Ticker de Notícias)
+        // SÊNIOR: Limpa os logs públicos do dia anterior para que o feed mostre apenas os destaques
+        await redisClient.delAsync("cache:public_logs_stream");
+
+        // Envia anúncio via LOG (Ticker de Notícias) e persiste no Redis
         if (highlights.gangsters) {
           const phrase = phraseGenerator.generate('gangsters', { 
             name: highlights.gangsters.username, 
             target: highlights.gangsters.target, 
             money: `$${highlights.gangsters.amount.toLocaleString()}` 
           });
-          io.emit('contract:log', {
-            id: `highlight-gang-${Date.now()}`,
-            message: `👑 RENEGADO DO DIA: ${phrase}`,
-            event_type: 'HEIST_SUCCESS',
+
+          await actionLogService.log(highlights.gangsters.userId, 'HEIST_SUCCESS', 'contract', 'daily_winner', {
+            public_message: `👑 RENEGADO DO DIA: ${phrase}`,
             is_major: true,
-            faction: 'gangsters'
-          });
+            faction: 'gangsters',
+            money_gain: highlights.gangsters.amount
+          }, true);
         }
 
         if (highlights.guardas) {
@@ -71,16 +76,16 @@ class CronService {
             target: highlights.guardas.target, 
             money: `$${highlights.guardas.amount.toLocaleString()}` 
           });
-          io.emit('contract:log', {
-            id: `highlight-guard-${Date.now()}`,
-            message: `🎖️ GUARDIÃO DO DIA: ${phrase}`,
-            event_type: 'guardian_task',
+
+          await actionLogService.log(highlights.guardas.userId, 'guardian_task', 'contract', 'daily_winner', {
+            public_message: `🎖️ GUARDIÃO DO DIA: ${phrase}`,
             is_major: true,
-            faction: 'guardas'
-          });
+            faction: 'guardas',
+            money_gain: highlights.guardas.amount
+          }, true);
         }
         
-        console.log("✅ Destaques do dia enviados para o Ticker de Notícias.");
+        console.log("✅ Destaques do dia enviados e persistidos no Ticker.");
       }
 
     } catch (error) {

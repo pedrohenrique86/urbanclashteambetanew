@@ -166,7 +166,7 @@ class ContractService {
         corruption_gain: infamyGained,
         stats_gained: attrGained.reduce((acc, a) => ({ ...acc, [a.attr]: a.gain }), {}),
         items_looted: lootGained.map(l => ({ code: l.code, quantity: l.quantity, rarity: l.rarity })),
-      }, true);
+      }, false);
 
       // Adiciona ao feed de atividades (Redis) para interceptação (janela de 3min)
       const activity = {
@@ -315,7 +315,7 @@ class ContractService {
                 await actionLogService.log(userId, 'interception_fail', 'contract', task.id, {
                   public_message: `O Guardião ${state.username} detectou o rastro de um crime, mas o suspeito conseguiu escapar da abordagem!`,
                   target_name: target.username
-                }, true);
+                }, false);
               }
             }
           }
@@ -366,7 +366,7 @@ class ContractService {
         is_major: meritGained > 500 || !!interception,
         faction: 'guardas',
         public_message: publicMessage
-      }, true);
+      }, false);
 
       return {
         message,
