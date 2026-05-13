@@ -1,12 +1,23 @@
-const { createClient } = require("@libsql/client");
 const path = require("path");
 const fs = require("fs");
 
 /**
  * SÊNIOR: Script de Backup Universal libSQL
- * Utiliza 'VACUUM INTO' para criar um clone perfeito do banco ativo
- * sem precisar de binários externos (sqlite3/libsql-shell).
+ * Localiza o módulo @libsql/client automaticamente na pasta backend
  */
+function loadLibSql() {
+    const rootModule = path.join(process.cwd(), "node_modules", "@libsql/client");
+    const backendModule = path.join(process.cwd(), "backend", "node_modules", "@libsql/client");
+    
+    if (fs.existsSync(rootModule)) return require(rootModule);
+    if (fs.existsSync(backendModule)) return require(backendModule);
+    
+    console.error("❌ Erro: Módulo '@libsql/client' não encontrado em /node_modules ou /backend/node_modules.");
+    process.exit(1);
+}
+
+const { createClient } = loadLibSql();
+
 async function run() {
     const dbFile = process.argv[2];
     const backupFile = process.argv[3];
@@ -19,30 +30,21 @@ async function run() {
     const fullPath = path.isAbsolute(dbFile) ? dbFile : path.join(process.cwd(), dbFile);
     const fullDest = path.isAbsolute(backupFile) ? backupFile : path.join(process.cwd(), backupFile);
 
-    // O VACUUM INTO exige que o arquivo de destino NÃO exista
-    if (fs.existsSync(fullDest)) {
-        try {
-            fs.unlinkSync(fullDest);
-        } catch (e) {
-            console.error(`❌ Não foi possível remover backup antigo: ${e.message}`);
-        }
-    }
+    // Garante que o diretório de destino existe
+    const destDir = path.dirname(fullDest);
+    if (!fs.existsSync(destDir)) fs.mkdirSync(destDir, { recursive: true });
 
-    console.log(`📡 [libSQL Backup] Iniciando snapshot de: ${dbFile}...`);
-    
-    // Conexão local simples
+    if (fs.existsSync(fullDest)) fs.unlinkSync(fullDest);
+
+    console.log(`📡 [libSQL Backup] Snapshot de: ${fullPath}...`);
     const client = createClient({ url: `file:${fullPath}` });
 
     try {
-        const start = Date.now();
-        // Comando mágico do libSQL/SQLite para backup a quente
         await client.execute(`VACUUM INTO '${fullDest}'`);
-        const duration = Date.now() - start;
-        
-        console.log(`✅ [libSQL Backup] Sucesso: ${backupFile} (${duration}ms)`);
+        console.log(`✅ [libSQL Backup] Sucesso: ${backupFile}`);
         process.exit(0);
     } catch (err) {
-        console.error(`❌ [libSQL Backup] FALHA CRÍTICA:`, err.message);
+        console.error(`❌ [libSQL Backup] FALHA:`, err.message);
         process.exit(1);
     }
 }
