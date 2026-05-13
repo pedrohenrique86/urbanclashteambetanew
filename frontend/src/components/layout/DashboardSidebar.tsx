@@ -64,7 +64,7 @@ interface NavItem {
 
 // SÊNIOR: Mapa centralizado de requisitos de nível para o sidebar
 const LEVEL_REQUIREMENTS: Record<string, number> = {
-  "/reckoning": 1,
+  "/reckoning": 10,
 };
 
 // Nova estrutura de dados do menu

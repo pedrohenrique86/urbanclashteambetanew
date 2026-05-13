@@ -361,7 +361,7 @@ export default function ReckoningPage() {
   const isAdmin = userProfile?.is_admin || false;
 
   const { data: radarData, mutate } = useSWR(
-    (dynamicLevel >= 1 || isAdmin) ? "/combat/radar" : null, 
+    (dynamicLevel >= 10 || isAdmin) ? "/combat/radar" : null, 
     combatService.getRadarTokens,
     { 
       revalidateOnFocus: false, 
@@ -371,7 +371,7 @@ export default function ReckoningPage() {
 
   const targets = radarData?.targets;
   const limits = radarData?.limits;
-  const isLoading = !radarData && (dynamicLevel >= 1 || isAdmin);
+  const isLoading = !radarData && (dynamicLevel >= 10 || isAdmin);
 
   const handleInstantAttack = async (targetId: string) => {
     const currentPA = userProfile?.action_points || 0;
