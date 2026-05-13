@@ -2,7 +2,10 @@ const path = require("path");
 const fs = require("fs");
 
 // Detecta se é produção pela porta da VM (3001)
-const isProduction = process.env.NODE_ENV === "production" || process.env.PORT == "3001";
+const isProduction = 
+  process.env.NODE_ENV === "production" || 
+  process.env.PORT === "3001" || 
+  process.platform === "linux"; // Força produção em ambiente Linux/Nuvem
 
 if (isProduction) {
   const prodEnvPath = path.join(__dirname, ".env.production");
