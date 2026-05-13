@@ -406,6 +406,19 @@ const redisWrapper = {
     }
   },
 
+  zRemRangeByScoreAsync: async (key, min, max) => {
+    if (!key || !isReady) return 0;
+    try {
+      const k = String(key);
+      const mMin = String(min);
+      const mMax = String(max);
+      return await client.sendCommand(['ZREMRANGEBYSCORE', k, mMin, mMax]);
+    } catch (err) {
+      console.error(`[RedisClient] Erro em zRemRangeByScoreAsync key=${key}:`, err.message);
+      return 0;
+    }
+  },
+
   zRevRankAsync: async (key, member) => {
     if (!key || !isReady) return null;
     try {
