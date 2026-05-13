@@ -107,7 +107,11 @@ export default React.memo(function PlayerRankingItem({
             <span className={`text-[9px] sm:text-[10px] font-black font-orbitron ${accentColor}`}>
               NVL_{player.level}
             </span>
-            <span className="text-[7px] sm:text-[8px] font-mono text-zinc-500 uppercase tracking-tighter">
+            <span 
+              className="text-[7px] sm:text-[8px] font-mono text-zinc-500 uppercase tracking-tighter cursor-help"
+              data-tooltip-id="ranking-xp-tooltip"
+              data-tooltip-content={`Total: ${Number(player.total_xp || 0).toLocaleString("pt-BR")} XP`}
+            >
               {player.total_xp ? `${(player.total_xp / 1000).toFixed(1)}k` : "0k"}_XP
             </span>
             <div className="flex gap-[1px] mt-0.5">

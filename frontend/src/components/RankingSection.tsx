@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { motion } from "framer-motion";
+import { Tooltip } from "react-tooltip";
 import { Player, Clan } from "../types/ranking";
 import { useRankingCache } from "../hooks/useRankingCache";
 import PlayerRankingItem from "./PlayerRankingItem";
@@ -193,6 +194,12 @@ export default function RankingSection() {
           ))}
         </div>
       </div>
+      <Tooltip 
+        id="ranking-xp-tooltip" 
+        place="top" 
+        className="!bg-black/90 !backdrop-blur-xl !text-white !rounded-xl !px-4 !py-2 !text-[10px] !border !border-white/10 !shadow-2xl font-orbitron uppercase tracking-widest"
+        style={{ zIndex: 9999 }}
+      />
     </section>
   );
 }

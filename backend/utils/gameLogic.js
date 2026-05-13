@@ -95,8 +95,8 @@ function calculateDynamicLevel(user) {
   const statsBonus = Math.floor(totalStats / 25);
 
   // 3. Bônus por Riqueza (Dinheiro em mãos)
-  // Cada $100.000 = +1 Nível de Prestígio
-  // Isso torna o dinheiro um bônus, não a fonte principal de nível.
+  // Cada $100.000 = +1 Nível de Prestígio (Sincronizado com Topbar.tsx)
+  // Isso torna o dinheiro um bônus estratégico para o rank.
   const moneyBonus = Math.floor((Number(user.money) || 0) / 100000);
 
   // Nível Total = Base + Atributos + Dinheiro

@@ -270,8 +270,12 @@ class PlayerStateService {
       sseService.broadcastToUser(userId, "player:update", patchSSE);
     }
 
-    // SÊNIOR: Se mudou XP ou Nível, atualiza o Ranking ZSET em tempo real
-    if (updates.total_xp !== undefined || updates.level !== undefined) {
+    // SÊNIOR: Se mudou XP, Nível, Atributos ou Dinheiro, atualiza o Ranking ZSET em tempo real
+    // Esses campos compõem o Nível Dinâmico (Prestígio) que é a base do ranking.
+    const rankingFields = ['total_xp', 'level', 'attack', 'defense', 'focus', 'money'];
+    const needsRankingUpdate = Object.keys(updates).some(k => rankingFields.includes(k));
+
+    if (needsRankingUpdate) {
       this.getPlayerState(userId).then(state => this._updateRankingScore(userId, state));
     }
 
@@ -314,6 +318,18 @@ class PlayerStateService {
     }
 
     await p.exec();
+
+    // SÊNIOR: Broadcast para o canal de ranking se o jogador estiver no Top 100
+    // Isso permite que o ranking na tela atualize sem refresh manual.
+    const rank = await redisClient.zRevRankAsync(RANKING_ALL, String(userId));
+    if (rank !== null && rank < 100) {
+      sseService.publish("ranking", "ranking:update", { 
+        userId, 
+        rank: rank + 1,
+        level: dynamicLevel,
+        total_xp: totalXp
+      });
+    }
   }
 
   /**
