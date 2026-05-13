@@ -244,7 +244,7 @@ const ContractManualModal = ({ isOpen, onClose, faction }: { isOpen: boolean, on
   );
 };
 
-const ActionCard = ({ data, onAction, disabled, userLevel, userEnergy, userPA, userTox, userMoney, type, cooldown, onSupply }: any) => {
+const ActionCard = ({ data, onAction, disabled, userLevel, userEnergy, userPA, userTox, userMoney, type, cooldown, onSupply, isCompleted }: any) => {
   const isLocked = userLevel < data.level;
   const hasResources = (userEnergy >= (data.costEnergy || 0)) && (userPA >= (data.costPA || 0));
   const isRenegade = type === 'heist';
@@ -373,19 +373,19 @@ const ActionCard = ({ data, onAction, disabled, userLevel, userEnergy, userPA, u
           </motion.button>
         )}
 
-        {/* ACTION BUTTON */}
         <button
           onClick={() => onAction(data.id)}
-          disabled={isLocked || disabled || !hasResources}
+          disabled={isLocked || disabled || !hasResources || isCompleted}
           className={`w-full py-4 cyber-button-copper military-clip
-            ${isLocked || !hasResources ? 'opacity-50 grayscale' : ''}`}
+            ${isLocked || !hasResources || isCompleted ? 'opacity-50 grayscale' : ''}`}
         >
           <span className="relative z-10 flex items-center justify-center gap-2">
-             {!hasResources ? (
+             {isCompleted ? 'CONTRATO CONCLUÍDO' : 
+              (!hasResources ? (
                userEnergy < (data.costEnergy || 0) ? 'ENERGIA INSUFICIENTE' : 'PA INSUFICIENTE'
              ) : (
                isRenegade ? 'EXECUTAR OPERAÇÃO' : 'ASSUMIR TAREFA'
-             )}
+             ))}
           </span>
         </button>
       </div>
@@ -498,8 +498,8 @@ export default function ContractsPage() {
       // Se desbloqueou tudo, mostra apenas a última (Elite)
       activeTasks = allTasks.slice(-1);
     } else {
-      // 2 últimos desbloqueados + o próximo que está trancado
-      activeTasks = [...unlockedTasks.slice(-2), nextLockedTask];
+      // SÊNIOR: Apenas 1 mais recente desbloqueado + o próximo que está trancado
+      activeTasks = [...unlockedTasks.slice(-1), nextLockedTask];
     }
   }
   
@@ -938,6 +938,7 @@ export default function ContractsPage() {
                           cooldown={cooldown}
                           onAction={() => {}}
                           onSupply={() => {}}
+                          isCompleted={true}
                         />
                       </div>
                     ))}
