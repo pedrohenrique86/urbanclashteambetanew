@@ -179,7 +179,15 @@ class PlayerStateService {
     const energy = Number(state.energy || 0);
     const maxEnergy = Number(state.max_energy || 100);
     
-    if (energy >= maxEnergy) return state;
+    if (energy >= maxEnergy) {
+      if (energy > maxEnergy) {
+        // SÊNIOR: Se o valor no Redis passou do teto (bug anterior), resetamos para o máximo
+        const redisKey = `${PLAYER_STATE_PREFIX}${userId}`;
+        await redisClient.client.hSet(redisKey, "energy", maxEnergy.toString());
+        return { ...state, energy: maxEnergy };
+      }
+      return state;
+    }
 
     const now = Date.now();
     const lastUpdate = Number(state.energy_updated_at || now);
@@ -195,9 +203,15 @@ class PlayerStateService {
       const leftoverMs = elapsed % msPerPoint;
       const newLastUpdate = now - leftoverMs;
 
-      // SÊNIOR: Atualização atômica direta no Redis para evitar recursão com updatePlayerState
+      // SÊNIOR: Atualização atômica no Redis. 
+      // Calculamos o incremento real necessário para atingir o novo valor (capado)
       const redisKey = `${PLAYER_STATE_PREFIX}${userId}`;
-      await redisClient.client.hIncrBy(redisKey, "energy", pointsToRegen);
+      const actualIncrement = newEnergy - energy;
+
+      if (actualIncrement > 0) {
+        await redisClient.client.hIncrBy(redisKey, "energy", actualIncrement);
+      }
+      
       await redisClient.client.hSet(redisKey, "energy_updated_at", newLastUpdate.toString());
       await redisClient.client.hSet(redisKey, "is_dirty", "1");
       await redisClient.client.sAdd(DIRTY_PLAYERS_SET, String(userId));
