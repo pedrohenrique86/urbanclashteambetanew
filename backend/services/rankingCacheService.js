@@ -186,9 +186,30 @@ class RankingCacheService {
       return;
     }
 
+    const p = redisClient.pipeline();
+    
     for (const row of rows) {
-      await playerStateService._updateRankingScore(row.user_id, row);
+      // Optimização Sênior: Para o warmup, ignoramos o disparo de eventos SSE individuais
+      // e o zRevRankAsync de cada player. Fazemos apenas os zAdds em lote.
+      const dynamicLevel = gameLogic.calculateDynamicLevel(row);
+      const totalXp = Number(row.total_xp || 0);
+      const score = dynamicLevel + (totalXp / 1000000000);
+      
+      if (isNaN(score) || !row.user_id) continue;
+      
+      const member = { score, value: String(row.user_id) };
+      
+      p.zAdd(RANKING_ALL, [member]);
+      
+      const resolved = playerStateService.resolveFactionName(row.faction);
+      if (resolved === "renegados") {
+        p.zAdd(RANKING_RENEGADOS, [member]);
+      } else if (resolved === "guardioes") {
+        p.zAdd(RANKING_GUARDIOES, [member]);
+      }
     }
+    
+    await p.exec();
     console.log(`[ranking] ✅ ${rows.length} jogadores indexados nos ZSETs.`);
   }
 

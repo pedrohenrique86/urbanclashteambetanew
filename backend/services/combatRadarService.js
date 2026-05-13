@@ -34,13 +34,22 @@ class CombatRadarService {
     const enemyFactionKey = myFaction.includes('guard') ? 'gangsters' : 'guardas';
     const ENEMY_SET_KEY = `online_players_set:${enemyFactionKey}`;
 
+    // 1. Busca Limites de Combate para aplicar regras de radar
+    const [pvpStr, pveStr, resetAt] = await Promise.all([
+      redisClient.getAsync(`combat:count:pvp:${userId}`),
+      redisClient.getAsync(`combat:count:pve:${userId}`),
+      redisClient.getAsync(`combat:reset_at:${userId}`)
+    ]);
+    const pvp = parseInt(pvpStr || 0);
+    const pve = parseInt(pveStr || 0);
+
     // SÊNIOR: Estrutura do Radar Refatorada
     // 3 Slots para PvP (Jogadores Reais ou Elite Bots de fallback)
     // 3 Slots para PvE (Bots Comuns)
     let pvpTargets = [];
     let pveTargets = [];
 
-    // 1. Busca Jogadores Reais Online (PvP)
+    // 2. Busca Jogadores Reais Online (PvP)
     try {
       const rawIds = await redisClient.sRandMemberAsync(ENEMY_SET_KEY, 10);
       if (rawIds) {
@@ -55,7 +64,7 @@ class CombatRadarService {
           const tLevel = gameLogic.calculateDynamicLevel(target);
 
           if (target.user_id !== userId && tLevel >= (attackerLevel - 3) && tLevel <= (attackerLevel + 3)) {
-            if (pvpTargets.length < 3) {
+            if (pvpTargets.length < 6) {
               pvpTargets.push({
                 id: target.user_id,
                 level: tLevel,
@@ -73,57 +82,59 @@ class CombatRadarService {
       console.error("[Radar] Erro ao buscar players reais:", e.message);
     }
 
-    // 2. Fallback PvP: Se não houver jogadores suficientes, preenchemos com BOTS ELITE
+    // 3. Fallback PvP: Se não houver jogadores suficientes, preenchemos com BOTS ELITE
+    // REGRA DE NEGÓCIO: O jogador precisa primeiro completar os 10 PvE diários (pve >= 10).
+    // Só depois disso os Bots Elite aparecem para preencher as vagas (se não houver humanos).
     const usedNames = new Set(pvpTargets.map(t => t.name));
-    while (pvpTargets.length < 3) {
-      const npcId = `npc_elite_${Math.random().toString(36).substr(2, 5)}`;
-      const npc = this.generateNpcData(npcId, attacker);
-      if (!usedNames.has(npc.username)) {
-        usedNames.add(npc.username);
-        pvpTargets.push({
-          id: npcId,
-          level: npc.level,
-          faction: npc.faction,
-          name: npc.username,
-          online: true,
-          is_npc: true,
-          is_elite: true
-        });
+    
+    // Se pve >= 10, o radar inteiro (até 6 vagas) vira PvP/Elite.
+    if (pve >= 10) {
+      while (pvpTargets.length < 6) {
+        const npcId = `npc_elite_${Math.random().toString(36).substr(2, 5)}`;
+        const npc = this.generateNpcData(npcId, attacker);
+        if (!usedNames.has(npc.username)) {
+          usedNames.add(npc.username);
+          pvpTargets.push({
+            id: npcId,
+            level: npc.level,
+            faction: npc.faction,
+            name: npc.username,
+            online: true,
+            is_npc: true,
+            is_elite: true
+          });
+        }
       }
     }
 
-    // 3. Preenchimento PvE: Bots Comuns
-    while (pveTargets.length < 3) {
-      const npcId = `npc_bot_${Math.random().toString(36).substr(2, 5)}`;
-      const npc = this.generateNpcData(npcId, attacker);
-      if (!usedNames.has(npc.username)) {
-        usedNames.add(npc.username);
-        pveTargets.push({
-          id: npcId,
-          level: npc.level,
-          faction: npc.faction,
-          name: npc.username,
-          online: true,
-          is_npc: true,
-          is_elite: false
-        });
+    // 4. Preenchimento PvE: Bots Comuns (Só se ainda não completou os 10)
+    // Preenche as vagas restantes até garantirmos 6 alvos visíveis
+    if (pve < 10) {
+      while ((pvpTargets.length + pveTargets.length) < 6) {
+        const npcId = `npc_bot_${Math.random().toString(36).substr(2, 5)}`;
+        const npc = this.generateNpcData(npcId, attacker);
+        if (!usedNames.has(npc.username)) {
+          usedNames.add(npc.username);
+          pveTargets.push({
+            id: npcId,
+            level: npc.level,
+            faction: npc.faction,
+            name: npc.username,
+            online: true,
+            is_npc: true,
+            is_elite: false
+          });
+        }
       }
     }
 
     const targets = [...pvpTargets, ...pveTargets];
 
-    // 3. Busca Limites de Combate
-    const [pvp, pve, resetAt] = await Promise.all([
-      redisClient.getAsync(`combat:count:pvp:${userId}`),
-      redisClient.getAsync(`combat:count:pve:${userId}`),
-      redisClient.getAsync(`combat:reset_at:${userId}`)
-    ]);
-
     const response = {
       targets: targets.slice(0, 6),
       limits: {
-        pvp: parseInt(pvp || 0),
-        pve: parseInt(pve || 0),
+        pvp,
+        pve,
         reset_at: resetAt ? parseInt(resetAt) : null
       }
     };
@@ -137,7 +148,9 @@ class CombatRadarService {
    */
   generateNpcData(npcId, attacker) {
     const isRare = npcId.includes("_rare") || Math.random() < 0.05;
-    const seed = npcId.split("_")[1];
+    // SÊNIOR: Fix para o infinite loop. 
+    // npcId é "npc_elite_12345" ou "npc_bot_12345". O hash deve usar a parte aleatória (index 2).
+    const seed = npcId.split("_")[2] || npcId; 
     let hash = 0;
     for (let i = 0; i < seed.length; i++) hash = (hash << 5) - hash + seed.charCodeAt(i);
     
@@ -149,8 +162,11 @@ class CombatRadarService {
     const attackerLevel = gameLogic.calculateDynamicLevel(attacker);
     const level = Math.max(1, attackerLevel + (Math.abs(hash % 5) - 2));
 
+    // Se o pool for pequeno ou indefinido, usamos um nome genérico com o seed para garantir unicidade
+    const baseName = (pool && pool.length > 0) ? pool[Math.abs(hash) % pool.length] : `Spectro-${seed}`;
+
     return {
-      username: `[BOT] ${pool[Math.abs(hash) % pool.length]}`,
+      username: `[BOT] ${baseName} ${seed.substring(0, 2).toUpperCase()}`, // Garante unicidade
       level,
       faction: botFaction,
       is_rare: isRare,

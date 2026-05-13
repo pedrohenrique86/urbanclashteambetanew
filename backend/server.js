@@ -215,13 +215,8 @@ async function startServer() {
     await connectDB();
     await redisReadyPromise;
     
-    // SÊNIOR: Limpa a lista de jogadores online no Redis durante o boot.
-    // Garante estado consistente se o servidor caiu sem fechar conexões.
-    if (redisClient.client.isReady) {
-      const keysToReset = ["online_players_set", "online_players:recovery", "online_players:isolation", "chat:global:online"];
-      await Promise.all(keysToReset.map(key => redisClient.delAsync(key)));
-      console.log("🧹 Cache de Sessões Online resetado (Estado Consistente)");
-    }
+    // SÊNIOR: Subsistemas de background com delay para estabilização
+    // (A limpeza de cache do Redis agora é manual via comando gai)
     // SÊNIOR: Handler para Rotas não encontradas (evita que a requisição fique pendurada)
     app.use((req, res) => {
       if (isProduction) {
