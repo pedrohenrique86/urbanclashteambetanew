@@ -358,8 +358,10 @@ export default function ReckoningPage() {
   const isAnyResultShowing = Object.keys(battleResults).length > 0;
   const isCurrentlyProcessing = !!processingId;
 
+  const isAdmin = userProfile?.is_admin || false;
+
   const { data: radarData, mutate } = useSWR(
-    dynamicLevel >= 10 ? "/combat/radar" : null, 
+    (dynamicLevel >= 1 || isAdmin) ? "/combat/radar" : null, 
     combatService.getRadarTokens,
     { 
       revalidateOnFocus: false, 
@@ -369,6 +371,7 @@ export default function ReckoningPage() {
 
   const targets = radarData?.targets;
   const limits = radarData?.limits;
+  const isLoading = !radarData && (dynamicLevel >= 1 || isAdmin);
 
   const handleInstantAttack = async (targetId: string) => {
     const currentPA = userProfile?.action_points || 0;
@@ -634,13 +637,31 @@ export default function ReckoningPage() {
                </div>
 
                <div className="px-12 py-5 bg-red-600/20 border border-red-500/60 text-3xl md:text-5xl font-orbitron font-black text-white shadow-[0_0_50px_rgba(239,68,68,0.3)] relative z-10" style={MILITARY_CLIP}>
-                  <CountdownReset resetAt={limits.reset_at} />
+              <CountdownReset resetAt={limits.reset_at} />
                </div>
             </motion.div>
           ) : (
             <motion.div key="radar" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                   {targets?.map((tgt) => {
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {isLoading && (
+                      <div className="col-span-full py-20 flex flex-col items-center justify-center bg-black/40 border border-white/5 rounded-lg">
+                        <div className="w-16 h-16 rounded-full border-t-2 border-yellow-500 animate-spin mb-4" />
+                        <h3 className="text-slate-400 font-orbitron font-bold text-sm uppercase tracking-tighter mb-1">Varredura em Curso</h3>
+                        <p className="text-slate-500 font-mono text-[10px] uppercase tracking-widest">Sincronizando com a rede tática...</p>
+                      </div>
+                    )}
+                    
+                    {!isLoading && (!targets || targets.length === 0) && (
+                      <div className="col-span-full py-20 flex flex-col items-center justify-center bg-black/40 border border-white/5 rounded-lg">
+                        <div className="w-16 h-16 rounded-full bg-slate-900 flex items-center justify-center mb-4 border border-white/10">
+                          <ShieldExclamationIcon className="w-8 h-8 text-slate-700" />
+                        </div>
+                        <h3 className="text-slate-400 font-orbitron font-bold text-sm uppercase tracking-tighter mb-1">Zona Silenciosa</h3>
+                        <p className="text-slate-500 font-mono text-[10px] uppercase tracking-widest">Nenhum sinal detectado na rede</p>
+                      </div>
+                    )}
+
+                    {targets?.map((tgt) => {
                    const estPower = (tgt.level * 6); 
                    const isRisky = estPower > (playerPower * 1.15);
                    

@@ -9,7 +9,7 @@ const { lockPlayerAction } = require("../middleware/lockMiddleware");
  * @route GET /api/combat/radar
  * @desc Get nearby targets for PvP
  */
-router.get("/radar", authenticateToken, requireMinLevel(10), async (req, res) => {
+router.get("/radar", authenticateToken, requireMinLevel(1), async (req, res) => {
   try {
     const targets = await combatService.getRadarTargets(req.user.id);
     res.json(targets);
@@ -29,7 +29,7 @@ router.get("/radar", authenticateToken, requireMinLevel(10), async (req, res) =>
  * @route GET /api/combat/precalc/:targetId
  * @desc Gives hint from Spectro and target context before confirming attack
  */
-router.get("/precalc/:targetId", authenticateToken, requireMinLevel(10), async (req, res) => {
+router.get("/precalc/:targetId", authenticateToken, requireMinLevel(1), async (req, res) => {
   try {
     const info = await combatService.getPreCombatStatus(req.user.id, req.params.targetId);
     res.json(info);
@@ -43,7 +43,7 @@ router.get("/precalc/:targetId", authenticateToken, requireMinLevel(10), async (
  * @route POST /api/combat/attack/:targetId
  * @desc Execute the old strategic attack (Legacy)
  */
-router.post("/attack/:targetId", authenticateToken, requireMinLevel(10), lockPlayerAction(1000), async (req, res) => {
+router.post("/attack/:targetId", authenticateToken, requireMinLevel(1), lockPlayerAction(1000), async (req, res) => {
   try {
     const { tactic } = req.body;
     const result = await combatService.executeAttack(req.user.id, req.params.targetId, tactic);
@@ -57,7 +57,7 @@ router.post("/attack/:targetId", authenticateToken, requireMinLevel(10), lockPla
  * @route POST /api/combat/instant-attack/:targetId
  * @desc Executa o ataque no estilo The Crims (Instantâneo)
  */
-router.post("/instant-attack/:targetId", authenticateToken, requireMinLevel(10), lockPlayerAction(1000), async (req, res) => {
+router.post("/instant-attack/:targetId", authenticateToken, requireMinLevel(1), lockPlayerAction(1000), async (req, res) => {
   try {
     const result = await combatService.executeInstantAttack(req.user.id, req.params.targetId);
     res.json(result);
@@ -70,7 +70,7 @@ router.post("/instant-attack/:targetId", authenticateToken, requireMinLevel(10),
  * @route POST /api/combat/active-start/:targetId
  * @desc Start Active Turn-based Combat
  */
-router.post("/active-start/:targetId", authenticateToken, requireMinLevel(10), lockPlayerAction(1000), async (req, res) => {
+router.post("/active-start/:targetId", authenticateToken, requireMinLevel(1), lockPlayerAction(1000), async (req, res) => {
   try {
     const state = await combatService.startActiveCombat(req.user.id, req.params.targetId);
     res.json(state);
