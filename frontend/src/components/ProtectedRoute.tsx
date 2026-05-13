@@ -11,7 +11,7 @@ interface ProtectedRouteProps {
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, requiresFaction = false }) => {
   const { user, isHydrating: isAuthHydrating } = useAuth();
-  const { userProfile, loading: isProfileLoading } = useUserProfileContext();
+  const { userProfile, loading: isProfileLoading, isError } = useUserProfileContext();
   const location = useLocation();
   const [timedOut, setTimedOut] = React.useState(false);
 
@@ -59,8 +59,12 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, requiresFacti
   }
 
   // DECISÃO 2: REQUER FACÇÃO, MAS NÃO TEM
-  // Se a rota exige facção e o perfil carregado não tem uma, redireciona para a seleção.
-  if (requiresFaction && !userProfile?.faction) {
+  // SÊNIOR: Só redirecionamos se o carregamento TERMINOU com sucesso, não estamos em timeout,
+  // e realmente não há facção. Se houver timeout ou erro, mantemos o usuário onde ele está
+  // para evitar que oscilações no 4G o joguem para a tela de seleção injustamente.
+  const isSyncing = isAuthHydrating || isProfileLoading || (timedOut && !userProfile);
+  
+  if (requiresFaction && !isSyncing && !isError && !userProfile?.faction) {
     // Exceção: não redirecionar se já estivermos na página de seleção.
     if (location.pathname !== '/faction-selection') {
       return <Navigate to="/faction-selection" state={{ from: location }} replace />;

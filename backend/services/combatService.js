@@ -158,14 +158,17 @@ class CombatService {
     const limitKey = isPve ? `combat:count:pve:${userId}` : `combat:count:pvp:${userId}`;
     const count = await redisClient.incrAsync(limitKey);
     
-    // Se totalizar 10 lutas, entra em reset de 24h
-    const otherKey = isPve ? `combat:count:pvp:${userId}` : `combat:count:pve:${userId}`;
-    const other = parseInt(await redisClient.getAsync(otherKey) || 0);
+    // SÊNIOR: Novos Limites: 10 Bots Comuns (PvE) + 5 Jogadores Reais/Elite (PvP)
+    const pveLimit = 10;
+    const pvpLimit = 5;
+
+    const pveCount = isPve ? count : parseInt(await redisClient.getAsync(`combat:count:pve:${userId}`) || 0);
+    const pvpCount = !isPve ? count : parseInt(await redisClient.getAsync(`combat:count:pvp:${userId}`) || 0);
     
-    if (count + other >= 10) {
+    if (pveCount >= pveLimit && pvpCount >= pvpLimit) {
       await redisClient.setAsync(`combat:reset_at:${userId}`, String(Date.now() + 86400000), "EX", 86400);
-      await redisClient.delAsync(limitKey);
-      await redisClient.delAsync(otherKey);
+      await redisClient.delAsync(`combat:count:pve:${userId}`);
+      await redisClient.delAsync(`combat:count:pvp:${userId}`);
     }
   }
 

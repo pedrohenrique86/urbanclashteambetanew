@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import useSWR from "swr";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { combatService, RadarTarget, PreCombatInfo, CombatResult } from "../services/combatService";
@@ -107,11 +107,11 @@ const BattleRulesInfo = ({ isOpen, onClose }: { isOpen: boolean, onClose: () => 
                     </li>
                     <li className="flex items-start gap-4 p-3 bg-white/5 border-l-2 border-cyan-500/30">
                       <span className="text-cyan-500 font-black">02</span>
-                      <span>Cargas de Combate: Você possui <strong className="text-white text-sm">10 ataques</strong> totais (5 para PvE e 5 para PvP/Elite).</span>
+                      <span>Cargas de Combate: Você possui <strong className="text-white text-sm">15 ataques</strong> totais (10 para PvE/Bots e 5 para PvP/Elite).</span>
                     </li>
                     <li className="flex items-start gap-4 p-3 bg-white/5 border-l-2 border-cyan-500/30">
                       <span className="text-cyan-500 font-black">03</span>
-                      <span>Recarga de Matriz: Ao esgotar as 10 cargas, o sistema entra em <strong className="text-red-500 text-sm">Lock de 24h</strong> para reidratação.</span>
+                      <span>Recarga de Matriz: Ao esgotar as 15 cargas, o sistema entra em <strong className="text-red-500 text-sm">Lock de 24h</strong> para reidratação.</span>
                     </li>
                   </ul>
                 </section>
@@ -333,7 +333,25 @@ export default function ReckoningPage() {
   const playerStats = calculateCombatStats(userProfile);
   const { powerSolo: playerPower } = calculateTotalPower(userProfile || {}, userProfile?.active_chips || []);
 
-  const playerLevel = userProfile?.level || 1;
+  const dynamicLevel = useMemo(() => {
+    if (!userProfile) return 1;
+    const atk = Number(userProfile.attack || 0);
+    const def = Number(userProfile.defense || 0);
+    const foc = Number(userProfile.focus || 0);
+    const money = Number(userProfile.money || 0);
+    const totalXp = Number(userProfile.xp || 0);
+
+    let xpLvl = 1, rem = totalXp;
+    while (rem >= 100 + Math.floor(xpLvl / 5) * 10 && xpLvl < 5000) {
+      rem -= 100 + Math.floor(xpLvl / 5) * 10; xpLvl++;
+    }
+
+    const statsBonus = Math.floor((atk + def + foc) / 25);
+    const moneyBonus = Math.floor(money / 100000);
+
+    return xpLvl + statsBonus + moneyBonus;
+  }, [userProfile]);
+
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [battleResults, setBattleResults] = useState<Record<string, any>>({});
 
@@ -341,7 +359,7 @@ export default function ReckoningPage() {
   const isCurrentlyProcessing = !!processingId;
 
   const { data: radarData, mutate } = useSWR(
-    playerLevel >= 10 ? "/combat/radar" : null, 
+    dynamicLevel >= 10 ? "/combat/radar" : null, 
     combatService.getRadarTokens,
     { 
       revalidateOnFocus: false, 
@@ -476,8 +494,8 @@ export default function ReckoningPage() {
                       </div>
                       <div className="w-[1px] h-3 bg-yellow-500/20 mx-1" />
                       <div className="flex items-center gap-2">
-                        <span className="text-[8px] font-mono text-slate-500 uppercase tracking-tighter">PvE/Sync:</span>
-                        <span className={`text-[10px] font-orbitron font-black ${(limits?.pve ?? 0) >= 5 ? 'text-red-500 animate-pulse' : 'text-white'}`}>{limits?.pve || 0}/5</span>
+                        <span className="text-[8px] font-mono text-slate-500 uppercase tracking-tighter">PvE/Bots:</span>
+                        <span className={`text-[10px] font-orbitron font-black ${(limits?.pve ?? 0) >= 10 ? 'text-red-500 animate-pulse' : 'text-white'}`}>{limits?.pve || 0}/10</span>
                       </div>
                     </>
                    )}
