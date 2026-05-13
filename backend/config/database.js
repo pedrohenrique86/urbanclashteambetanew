@@ -13,8 +13,10 @@ if (process.env.NODE_ENV === "production") {
   });
 }
 
-const isProduction = process.env.NODE_ENV === "production";
-
+const isProduction = 
+  process.env.NODE_ENV === "production" || 
+  process.env.PORT === "3001" || 
+  process.platform === "linux"; // Força produção em ambiente Linux/Nuvem
 // SÊNIOR: Gerenciamento inteligente de conexão (Prioriza Remoto via Tailscale/VM)
 const remoteUrl = process.env.LIBSQL_URL || process.env.TURSO_DATABASE_URL;
 const localDbFile = isProduction ? "prod.db" : "dev.db";
