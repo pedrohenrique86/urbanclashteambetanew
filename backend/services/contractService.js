@@ -60,6 +60,15 @@ class ContractService {
       if (state.action_points < heist.costPA) throw new Error("PA insuficiente.");
       if (state.energy < heist.costEnergy) throw new Error("Energia insuficiente.");
 
+      // SÊNIOR: Enforce de balanceamento (Só pode fazer a melhor tarefa do seu nível atual)
+      if (!isDaily) {
+        const unlockedHeists = HEIST_TYPES.filter(h => h.level <= state.level);
+        const bestHeist = unlockedHeists[unlockedHeists.length - 1];
+        if (heist.id !== bestHeist.id) {
+          throw new Error(`Operação obsoleta. Para o seu nível, foque em: ${bestHeist.name}.`);
+        }
+      }
+
       if (isDaily) {
         const lastDaily = state.last_daily_special_at ? new Date(state.last_daily_special_at) : null;
         const now = new Date();
@@ -175,7 +184,10 @@ class ContractService {
         heistId: heist.id,
         heistName: heist.name,
         timestamp: now,
-        isMaster: isDaily
+        isMaster: isDaily,
+        level: state.level,
+        renegadeStats: { attack: state.attack, focus: state.focus, instinct: state.instinct },
+        loot: lootGained
       };
       await redisClient.zAddAsync(ACTIVITY_KEY, now, JSON.stringify(activity));
 
@@ -220,6 +232,13 @@ class ContractService {
       if (state.action_points < task.costPA) throw new Error("PA insuficiente.");
       if (state.energy < task.costEnergy) throw new Error("Energia insuficiente.");
 
+      // SÊNIOR: Enforce de balanceamento (Só pode fazer a melhor tarefa do seu nível atual)
+      const unlockedTasks = GUARDIAN_TYPES.filter(t => t.level <= state.level);
+      const bestTask = unlockedTasks[unlockedTasks.length - 1];
+      if (task.id !== bestTask.id) {
+        throw new Error(`Tarefa obsoleta. Para o seu nível, foque em: ${bestTask.name}.`);
+      }
+
       const moneyGained = REWARDS.money(task.salary[0], task.salary[1]);
       const meritGained = REWARDS.xp(task.merit[0], task.merit[1]);
       const xpGained = REWARDS.xp(task.xp[0], task.xp[1]);
@@ -260,57 +279,60 @@ class ContractService {
       }
 
       let interception = null;
-      // SÊNIOR: Verificação de rastro no Redis para interceptação
-      const keys = await redisClient.keysAsync("heist_activity:*");
-        const filteredKeys = keys.filter(k => k !== `heist_activity:${userId}`);
+      // SÊNIOR: Verificação de rastro no Redis para interceptação (usando ZSET global:heist_activity)
+      const ACTIVITY_KEY = "global:heist_activity";
+      const threeMinsAgo = Date.now() - (3 * 60 * 1000);
+      
+      // Limpa rastros antigos (lixo)
+      await redisClient.zRemRangeByScoreAsync(ACTIVITY_KEY, '-inf', threeMinsAgo - 1);
+      
+      // Busca rastros recentes
+      const rawActivities = await redisClient.zRangeByScoreAsync(ACTIVITY_KEY, threeMinsAgo, '+inf');
+      
+      if (rawActivities && rawActivities.length > 0) {
+        const activities = [];
+        for (const raw of rawActivities) {
+           const parsed = JSON.parse(raw);
+           // Não intercepta a si mesmo e verifica se o roubo é vinculado ou se é Golpe de Mestre
+           if (parsed.userId !== userId && (task.linkedHeists?.includes(parsed.heistId) || parsed.isMaster)) {
+             activities.push({ rawStr: raw, ...parsed });
+           }
+        }
+
+        const target = activities.find(a => a.isMaster) || (activities.length > 0 ? activities[Math.floor(Math.random() * activities.length)] : null);
         
-        if (filteredKeys.length > 0) {
-          const activities = [];
-          for (const k of filteredKeys) {
-             const raw = await redisClient.getAsync(k);
-             if (raw) {
-               const parsed = JSON.parse(raw);
-               // SÊNIOR: Só intercepta se o roubo for vinculado à tarefa ou for Golpe de Mestre
-               if (task.linkedHeists.includes(parsed.heistId) || parsed.isMaster) {
-                 activities.push({ key: k, ...parsed });
-               }
-             }
+        if (target) {
+          // SÊNIOR: Probabilidade Dinâmica Escalável
+          let totalChance = 0.15; // Fallback
+          const heistLevel = target.level || 0;
+
+          if (target.isMaster) {
+            totalChance = 0.50; // Golpe de Mestre é 50%
+          } else if (heistLevel <= 20) {
+            totalChance = 0.10;
+          } else if (heistLevel <= 80) {
+            totalChance = 0.20;
+          } else {
+            totalChance = 0.30;
           }
 
-          const target = activities.find(a => a.isMaster) || activities[Math.floor(Math.random() * activities.length)];
-          
-          if (target) {
-            // SÊNIOR: Probabilidade Dinâmica Escalável
-            let totalChance = 0.15; // Fallback
-            const heistLevel = target.level || 0;
+          if (Math.random() < totalChance) {
+            const gScore = (state.defense * 0.5) + (state.focus * 0.3) + (state.instinct * 0.2);
+            const rScore = (target.renegadeStats.attack * 0.5) + (target.renegadeStats.instinct * 0.3) + (target.renegadeStats.focus * 0.2);
+            
+            const gFinal = gScore * (0.9 + Math.random() * 0.2);
+            const rFinal = rScore * (0.9 + Math.random() * 0.2);
 
-            if (target.isMaster) {
-              totalChance = 0.50; // Golpe de Mestre é 50%
-            } else if (heistLevel <= 20) {
-              totalChance = 0.10;
-            } else if (heistLevel <= 80) {
-              totalChance = 0.20;
+            if (gFinal > rFinal) {
+              interception = {
+                targetId: target.userId,
+                targetName: target.username,
+                heistName: target.heistName,
+                items: target.loot && target.loot.length > 0 ? target.loot : [{ code: SPECIAL_ITEMS_POOL[Math.floor(Math.random() * SPECIAL_ITEMS_POOL.length)].code, quantity: 1, rarity: 'common' }]
+              };
+              updates.pending_interception = interception;
+              await redisClient.zRemAsync(ACTIVITY_KEY, target.rawStr);
             } else {
-              totalChance = 0.30;
-            }
-
-            if (Math.random() < totalChance) {
-              const gScore = (state.defense * 0.5) + (state.focus * 0.3) + (state.instinct * 0.2);
-              const rScore = (target.renegadeStats.attack * 0.5) + (target.renegadeStats.instinct * 0.3) + (target.renegadeStats.focus * 0.2);
-              
-              const gFinal = gScore * (0.9 + Math.random() * 0.2);
-              const rFinal = rScore * (0.9 + Math.random() * 0.2);
-
-              if (gFinal > rFinal) {
-                interception = {
-                  targetId: target.key.split(":")[1],
-                  targetName: target.username,
-                  heistName: target.heistName,
-                  items: target.loot.length > 0 ? target.loot : [{ code: SPECIAL_ITEMS_POOL[Math.floor(Math.random() * SPECIAL_ITEMS_POOL.length)].code, quantity: 1, rarity: 'common' }]
-                };
-                updates.pending_interception = interception;
-                await redisClient.delAsync(target.key);
-              } else {
                 console.log(`[Interception] ${state.username} falhou ao capturar ${target.username} (G:${gFinal.toFixed(1)} vs R:${rFinal.toFixed(1)})`);
                 await actionLogService.log(userId, 'interception_fail', 'contract', task.id, {
                   public_message: `O Guardião ${state.username} detectou o rastro de um crime, mas o suspeito conseguiu escapar da abordagem!`,
