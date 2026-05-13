@@ -256,9 +256,12 @@ const requireMinLevel = (minLevel) => {
       if (req.user.is_admin) return next();
 
       const playerStateService = require("../services/playerStateService");
+      const gameLogic = require("../utils/gameLogic");
       const state = await playerStateService.getPlayerState(req.user.id);
       
-      const level = Number(state?.level || 1);
+      // SÊNIOR: O desbloqueio de recursos deve seguir o Nível Dinâmico (Prestígio)
+      // para bater com o que o usuário vê na Topbar.
+      const level = gameLogic.calculateDynamicLevel(state);
 
       if (level < minLevel) {
         return res.status(403).json({

@@ -129,7 +129,32 @@ export const MobileAppDrawer: React.FC = () => {
   const { userProfile } = useUserProfileContext();
   const playerStatus = userProfile?.status || 'Operacional';
 
+  // SÊNIOR: Cálculo do Nível Dinâmico (Prestígio) para sincronia com a Topbar
+  const dynamicLevel = useMemo(() => {
+    if (!userProfile) return 1;
+    const atk = Number(userProfile.attack || 0);
+    const def = Number(userProfile.defense || 0);
+    const foc = Number(userProfile.focus || 0);
+    const money = Number(userProfile.money || 0);
+    const totalXp = Number(userProfile.xp || 0);
+
+    let xpLvl = 1, rem = totalXp;
+    while (rem >= 100 + Math.floor(xpLvl / 5) * 10 && xpLvl < 5000) {
+      rem -= 100 + Math.floor(xpLvl / 5) * 10; xpLvl++;
+    }
+
+    const statsBonus = Math.floor((atk + def + foc) / 25);
+    const moneyBonus = Math.floor(money / 100000);
+
+    return xpLvl + statsBonus + moneyBonus;
+  }, [userProfile]);
+
   const isPathBlocked = useCallback((path: string) => {
+    // SÊNIOR: Requisitos de Nível (Sincronizado com Sidebar)
+    const LEVEL_REQUIREMENTS: Record<string, number> = { "/reckoning": 10 };
+    const levelReq = LEVEL_REQUIREMENTS[path];
+    if (levelReq && dynamicLevel < levelReq) return true;
+
     if (playerStatus === 'Operacional' || playerStatus === 'Ruptura') return false;
 
     const whitelist = [
@@ -147,7 +172,7 @@ export const MobileAppDrawer: React.FC = () => {
     if (playerStatus === 'Aprimoramento') whitelist.push('/training');
 
     return !whitelist.some(p => path === p || path.startsWith(p + '/'));
-  }, [playerStatus]);
+  }, [playerStatus, dynamicLevel]);
 
   // Removido o uso do hook central para evitar que a Gaveta inteira (800+ linhas)
   // re-renderize a cada 1 segundo. Usamos o Wrapper local abaixo.

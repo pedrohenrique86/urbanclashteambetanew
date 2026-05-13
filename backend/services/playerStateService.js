@@ -220,6 +220,21 @@ class PlayerStateService {
    */
   async updatePlayerState(userId, updates) {
     const redisKey = `${PLAYER_STATE_PREFIX}${userId}`;
+
+    // SÊNIOR: Se mudou XP, calculamos se o nível base subiu para manter sincronia real-time
+    if (updates.total_xp !== undefined) {
+      const currentState = await this.getPlayerState(userId);
+      const gameLogic = require("../utils/gameLogic");
+      const currentXp = Number(currentState.total_xp || 0);
+      const newTotalXp = currentXp + Number(updates.total_xp);
+      const calculatedLevel = gameLogic.calculateLevelFromXp(newTotalXp);
+      const storedLevel = Number(currentState.level || 1);
+      
+      if (calculatedLevel > storedLevel) {
+        updates.level = calculatedLevel;
+      }
+    }
+
     const p = redisClient.pipeline();
 
     const patchSSE = {};
