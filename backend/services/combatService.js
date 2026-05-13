@@ -72,9 +72,19 @@ class CombatService {
         throw new Error(`Sistemas em modo ${attacker.status}. Combate bloqueado.`);
       }
 
-      // 3. Carregar Defensor (Real ou NPC)
-      const defender = await this._getDefenderSnapshot(targetId, attacker);
+      // 3. Verificação de Limites Diários
       const isNpc = targetId.startsWith("npc_");
+      const isPve = isNpc && !targetId.includes("_elite");
+      const limitKey = isPve ? `combat:count:pve:${userId}` : `combat:count:pvp:${userId}`;
+      const limit = isPve ? COMBAT_CONFIG.RADAR_PVE_LIMIT : COMBAT_CONFIG.RADAR_PVP_LIMIT;
+      
+      const currentCount = parseInt(await redisClient.getAsync(limitKey) || 0);
+      if (currentCount >= limit) {
+        throw new Error(`Limite diário de ataques ${isPve ? 'PvE (Bots)' : 'PvP/Elite'} atingido. Aguarde o reset.`);
+      }
+
+      // 4. Carregar Defensor (Real ou NPC)
+      const defender = await this._getDefenderSnapshot(targetId, attacker);
 
       if (!defender) throw new Error("Defensor não encontrado.");
 
@@ -158,13 +168,15 @@ class CombatService {
     const limitKey = isPve ? `combat:count:pve:${userId}` : `combat:count:pvp:${userId}`;
     const count = await redisClient.incrAsync(limitKey);
     
-    // SÊNIOR: Novos Limites: 10 Bots Comuns (PvE) + 5 Jogadores Reais/Elite (PvP)
-    const pveLimit = 10;
-    const pvpLimit = 5;
+    // SÊNIOR: Limites dinâmicos via Config
+    const pveLimit = COMBAT_CONFIG.RADAR_PVE_LIMIT;
+    const pvpLimit = COMBAT_CONFIG.RADAR_PVP_LIMIT;
 
     const pveCount = isPve ? count : parseInt(await redisClient.getAsync(`combat:count:pve:${userId}`) || 0);
     const pvpCount = !isPve ? count : parseInt(await redisClient.getAsync(`combat:count:pvp:${userId}`) || 0);
     
+    // Se atingir AMBOS os limites, define o tempo para o reset automático (24h)
+    // Nota: O CronService também limpa isso à meia-noite.
     if (pveCount >= pveLimit && pvpCount >= pvpLimit) {
       await redisClient.setAsync(`combat:reset_at:${userId}`, String(Date.now() + 86400000), "EX", 86400);
       await redisClient.delAsync(`combat:count:pve:${userId}`);

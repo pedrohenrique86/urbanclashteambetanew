@@ -14,28 +14,32 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, requiresFacti
   const { userProfile, loading: isProfileLoading, isError } = useUserProfileContext();
   const location = useLocation();
   const [timedOut, setTimedOut] = React.useState(false);
-
-  // SÊNIOR: Mecanismo de Safe-Exit para evitar loops infinitos de loading
-  // Se o estado demorar mais de 8s para sincronizar, permitimos o render para evitar o "travamento"
+  // SÊNIOR: Mecanismo de Safe-Exit para evitar loops infinitos de loading (ex: Backend fora do ar)
+  // Se o estado demorar mais de 10s para sincronizar, permitimos o render para evitar o "travamento"
   React.useEffect(() => {
-    if (isAuthHydrating || (user && isProfileLoading)) {
+    const isSyncing = isAuthHydrating || (user && isProfileLoading);
+    if (isSyncing) {
       const timer = setTimeout(() => {
-        console.warn("[ProtectedRoute] ⚠️ Sincronização de estado demorou demais. Forçando renderização de segurança.");
+        if (import.meta.env.DEV) {
+          console.warn("[ProtectedRoute] ⚠️ Sincronização interrompida por timeout. Verifique o Backend.");
+        }
         setTimedOut(true);
-      }, 8000);
+      }, 10000); // 10 segundos de paciência
       return () => clearTimeout(timer);
     } else {
       setTimedOut(false);
     }
   }, [isAuthHydrating, isProfileLoading, user]);
 
-  // ESTADO DE CARREGAMENTO UNIFICADO (Com Blindagem Anti-Loop)
-  if (!timedOut && (isAuthHydrating || (user && isProfileLoading))) {
+  // SÊNIOR: Lógica de Boot Otimista
+  // Se temos um usuário (mesmo que vindo do cache), permitimos o render imediato.
+  const isHydratingAndNoUser = isAuthHydrating && !user;
+
+  // ESTADO DE CARREGAMENTO (Apenas se não houver NADA para mostrar E não deu timeout)
+  if (!timedOut && (isHydratingAndNoUser || (user && isProfileLoading && !userProfile))) {
     return (
       <div className="flex h-screen items-center justify-center bg-[#050505] relative overflow-hidden">
-        {/* Background Ambient Glow */}
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-orange-500/5 blur-[120px] rounded-full pointer-events-none" />
-        
         <div className="relative flex flex-col items-center gap-6">
           <LoadingSpinner size="lg" />
           <div className="flex flex-col items-center">
@@ -49,12 +53,9 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, requiresFacti
     );
   }
 
-  // SÊNIOR: Removido aviso de Sincronização Interrompida a pedido do usuário.
-  // O sistema agora tenta renderizar mesmo com erro na API para evitar bloqueios no 4G.
-  
   // DECISÃO 1: NÃO AUTENTICADO
-  // Se o carregamento terminou e não há usuário, redireciona para a home/login.
-  if (!user) {
+  // Se o carregamento terminou (ou desistiu) e realmente não há usuário, redireciona.
+  if (!isAuthHydrating && !user) {
     return <Navigate to="/" state={{ from: location }} replace />;
   }
 

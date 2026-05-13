@@ -307,7 +307,7 @@ export const UserProfileProvider = ({ children }: { children: ReactNode }) => {
 
     const performFetch = async (retryCount = 0): Promise<UserProfile | null> => {
       try {
-        const response = await api.get(`/users/profile?_t=${Date.now()}`);
+        const response = await api.get(`/users/profile`);
         const profileData = response.data;
 
         // SÊNIOR: Sempre marcamos como buscado para este ID para evitar loading infinito,

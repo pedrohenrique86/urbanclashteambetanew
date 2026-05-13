@@ -110,7 +110,7 @@ class CombatRadarService {
       }
     }
 
-    targets = [...pvpTargets, ...pveTargets];
+    const targets = [...pvpTargets, ...pveTargets];
 
     // 3. Busca Limites de Combate
     const [pvp, pve, resetAt] = await Promise.all([
