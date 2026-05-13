@@ -70,13 +70,21 @@ function subscribe(client, topic, cid = null) {
 
     if (topic.startsWith("player:")) {
       const userId = topic.replace("player:", "");
+      const playerStateService = require("./playerStateService");
+      
       redisClient.sAddAsync(ONLINE_SET_KEY, userId).catch(() => {});
-      redisClient.hGetAsync(`playerState:${userId}`, "faction").then(faction => {
-        if (faction) {
-          const canonical = faction.toLowerCase().trim().includes('guard') ? 'guardas' : 'gangsters';
-          redisClient.sAddAsync(`${ONLINE_SET_KEY}:${canonical}`, userId).catch(() => {});
+      
+      // SÊNIOR: Não usa hGet direto pois o Redis pode ter sido resetado.
+      // Usa o service que garante a hidratação vinda do DB.
+      playerStateService.getPlayerState(userId).then(state => {
+        if (state && state.faction) {
+          const canonical = playerStateService.resolveFactionName(state.faction);
+          const alias = canonical === "guardioes" ? "guardas" : "gangsters";
+          redisClient.sAddAsync(`${ONLINE_SET_KEY}:${alias}`, userId).catch(() => {});
         }
-      }).catch(() => {});
+      }).catch(err => {
+        console.error(`[SSE] Erro ao recuperar facção para online_set (uid=${userId}):`, err.message);
+      });
     }
   }
   topics.get(topic).add(client);

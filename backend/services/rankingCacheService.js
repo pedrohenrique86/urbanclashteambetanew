@@ -162,13 +162,26 @@ class RankingCacheService {
    * Warmup Inicial: Popula os ZSETs a partir do banco de dados.
    */
   async initializeRankingZSet() {
+    if (!redisClient.client.isReady) {
+      console.warn("[ranking] ⚠️ Redis não está pronto. Warmup adiado.");
+      return;
+    }
+
     const count = await redisClient.zCardAsync(RANKING_ALL);
-    if (count > 0) return;
+    if (count > 0) {
+      console.log(`[ranking] ℹ️ ZSET já populado (${count} jogadores).`);
+      return;
+    }
 
     console.log("[ranking] 🔄 Populando ZSETs de ranking pela primeira vez...");
     const { rows } = await query(
       `SELECT user_id, level, total_xp, faction FROM user_profiles ORDER BY level DESC, total_xp DESC LIMIT 2000`
     );
+
+    if (rows.length === 0) {
+      console.log("[ranking] ℹ️ Nenhum jogador encontrado no banco para indexar.");
+      return;
+    }
 
     for (const row of rows) {
       await playerStateService._updateRankingScore(row.user_id, row);
