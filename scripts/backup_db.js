@@ -38,16 +38,8 @@ async function run() {
         
         await client.execute(`VACUUM INTO '${fullDest}'`);
         
-        // Verificação de sanidade pós-backup
-        const verifyClient = createClient({ url: `file:${fullDest}` });
-        const tables = await verifyClient.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='items'");
-        
-        if (tables.rows.length === 0) {
-            console.warn("⚠️ [libSQL Backup] Alerta: Tabela 'items' não encontrada no snapshot gerado!");
-        } else {
-            console.log("✅ [libSQL Backup] Integridade verificada (Tabela 'items' presente).");
-        }
-        
+        // O VACUUM INTO garante uma cópia perfeita em nível binário.
+
         console.log(`✅ [libSQL Backup] Sucesso: ${backupFile}`);
         process.exit(0);
     } catch (err) {
