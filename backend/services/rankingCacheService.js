@@ -175,10 +175,13 @@ class RankingCacheService {
 
     console.log("[ranking] 🔄 Populando ZSETs de ranking pela primeira vez...");
     const { rows } = await query(
-      `SELECT user_id, level, total_xp, faction FROM user_profiles ORDER BY level DESC, total_xp DESC LIMIT 2000`
+      `SELECT user_id, level, total_xp, faction, attack, defense, focus, money 
+       FROM user_profiles 
+       ORDER BY level DESC, total_xp DESC 
+       LIMIT 2000`
     );
 
-    if (rows.length === 0) {
+    if (!rows || rows.length === 0) {
       console.log("[ranking] ℹ️ Nenhum jogador encontrado no banco para indexar.");
       return;
     }

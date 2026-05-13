@@ -105,6 +105,27 @@ const NUMERIC_FIELDS = new Set([
   "faction_id", "premium_coins", "login_streak", "energy_updated_at"
 ]);
 
+const FACTION_ALIAS_MAP = {
+  gangsters:  "renegados",
+  gangster:   "renegados",
+  renegados:  "renegados",
+  renegado:   "renegados",
+  guardas:    "guardioes",
+  guarda:     "guardioes",
+  guardioes:  "guardioes",
+  guardiao:   "guardioes",
+  "guardiões": "guardioes",
+  "guardião":  "guardioes",
+};
+
+/**
+ * Resolve o nome canônico da facção.
+ */
+function resolveFactionName(input) {
+  if (!input) return "renegados";
+  return FACTION_ALIAS_MAP[String(input).toLowerCase().trim()] || "renegados";
+}
+
 module.exports = {
   PLAYER_STATE_PREFIX,
   DIRTY_PLAYERS_SET,
@@ -115,5 +136,6 @@ module.exports = {
   DB_PERSIST_FIELDS,
   VOLATILE_FIELDS,
   FIELD_TO_SSE,
-  NUMERIC_FIELDS
+  NUMERIC_FIELDS,
+  resolveFactionName
 };
