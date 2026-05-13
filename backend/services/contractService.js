@@ -196,7 +196,7 @@ class ContractService {
         const io = require('../socketHandlerNative').getIO();
         io.emit('contract:master_heist_alert', {
           username: state.username,
-          expiresAt: now + (180 * 1000) // 3 minutos de janela
+          expiresAt: now + (3 * 1000) // Janela de 3 segundos (tempo real)
         });
       }
 
@@ -281,13 +281,13 @@ class ContractService {
       let interception = null;
       // SÊNIOR: Verificação de rastro no Redis para interceptação (usando ZSET global:heist_activity)
       const ACTIVITY_KEY = "global:heist_activity";
-      const threeMinsAgo = Date.now() - (3 * 60 * 1000);
+      const threeSecondsAgo = Date.now() - (3 * 1000);
       
       // Limpa rastros antigos (lixo)
-      await redisClient.zRemRangeByScoreAsync(ACTIVITY_KEY, '-inf', threeMinsAgo - 1);
+      await redisClient.zRemRangeByScoreAsync(ACTIVITY_KEY, '-inf', threeSecondsAgo - 1);
       
-      // Busca rastros recentes
-      const rawActivities = await redisClient.zRangeByScoreAsync(ACTIVITY_KEY, threeMinsAgo, '+inf');
+      // Busca rastros recentes (janela de 3 segundos para "Tempo Real")
+      const rawActivities = await redisClient.zRangeByScoreAsync(ACTIVITY_KEY, threeSecondsAgo, '+inf');
       
       if (rawActivities && rawActivities.length > 0) {
         const activities = [];
