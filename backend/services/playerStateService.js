@@ -167,7 +167,8 @@ class PlayerStateService {
     // Se o jogador ficou offline, recuperamos a energia e checamos se o treino acabou
     const parsed = this._parseState(state);
     const withEnergy = await this.regenEnergyForPlayer(userId, parsed);
-    return this.checkTrainingCompletion(userId, withEnergy);
+    const withTraining = await this.checkTrainingCompletion(userId, withEnergy);
+    return this.checkStatusCompletion(userId, withTraining);
   }
 
   /**
@@ -204,6 +205,39 @@ class PlayerStateService {
        } catch (err) {
          console.error(`[playerState] Erro na auto-finalização do treino: ${err.message}`);
        }
+    }
+    return state;
+  }
+
+  /**
+   * SÊNIOR: Resolve estados temporários (Isolamento, Recondicionamento, Ruptura)
+   * que possuem um cronômetro de expiração (status_ends_at).
+   */
+  async checkStatusCompletion(userId, state) {
+    if (!state.status_ends_at || state.status === "Operacional") return state;
+
+    const endsAt = new Date(state.status_ends_at).getTime();
+    if (endsAt <= Date.now()) {
+      try {
+        const updates = { 
+          status: "Operacional", 
+          status_ends_at: null 
+        };
+        
+        const newState = await this.updatePlayerState(userId, updates);
+        
+        // Notifica o frontend sobre a mudança de estado
+        const sseService = require("./sseService");
+        sseService.broadcastToUser(userId, "player:patch", {
+          type: "player:patch",
+          patch: { status: "Operacional", status_ends_at: null },
+          version: Date.now()
+        });
+
+        return { ...state, ...updates };
+      } catch (err) {
+        console.error(`[playerState] Erro ao auto-resolver status ${state.status}: ${err.message}`);
+      }
     }
     return state;
   }
@@ -297,9 +331,15 @@ class PlayerStateService {
     for (const [key, val] of Object.entries(updates)) {
       let finalVal = val;
       
+      // SÊNIOR: Suporte a valor absoluto forçado via objeto { $set: val }
+      if (val && typeof val === 'object' && val.$set !== undefined) {
+        const absoluteVal = String(val.$set);
+        p.hSet(redisKey, key, absoluteVal);
+        patchSSE[FIELD_TO_SSE[key] || key] = val.$set;
+        continue;
+      }
+
       // SÊNIOR: Incremento relativo ou valor absoluto?
-      // O level e daily_training_count (quando resetado) devem ser absolutos.
-      // O padrão para campos numéricos é INCREMENTO, exceto se especificado.
       const isAbsoluteField = ['level'].includes(key);
 
       if (typeof val === 'number' && NUMERIC_FIELDS.has(key) && !isAbsoluteField) {
@@ -396,8 +436,14 @@ class PlayerStateService {
   _parseState(state) {
     const out = { ...state };
     for (const field in out) {
+      const val = out[field];
+      if (val === "null" || val === "" || val === undefined) {
+        out[field] = null;
+        continue;
+      }
+
       if (NUMERIC_FIELDS.has(field)) {
-        let n = Number(out[field] || 0); // SÊNIOR: Default 0 evita crash no toLocaleString() do frontend
+        let n = Number(val);
         if (!isNaN(n)) {
           if (['attack', 'defense', 'focus', 'instinct'].includes(field)) {
             n = Math.round(n * 100) / 100;
@@ -409,7 +455,7 @@ class PlayerStateService {
       }
     }
     // Booleano Especial
-    out.is_admin = out.is_admin === "1" || out.is_admin === "true";
+    out.is_admin = out.is_admin === "1" || out.is_admin === "true" || out.is_admin === true;
     return out;
   }
 

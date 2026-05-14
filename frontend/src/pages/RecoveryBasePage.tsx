@@ -152,7 +152,7 @@ export default function RecoveryBasePage() {
               </div>
               <div>
                 <h3 className="text-[9px] font-orbitron text-slate-500 tracking-[0.2em]">PREMIUM_ASSETS</h3>
-                <p className="text-xl font-black font-orbitron text-yellow-500 italic">{userProfile.ucrypto || 0} <span className="text-[9px] text-white">UC</span></p>
+                <p className="text-xl font-black font-orbitron text-yellow-500 italic">{userProfile.uCrypto || 0} <span className="text-[9px] text-white">UC</span></p>
               </div>
             </div>
           </div>

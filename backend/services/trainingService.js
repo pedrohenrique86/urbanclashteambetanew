@@ -38,8 +38,8 @@ class TrainingService {
         if (lastReset > 0 && now - lastReset >= cooldownMs) {
           // Reset automático após 24h da última conclusão do set de 8
           await playerStateService.updatePlayerState(userId, { 
-            daily_training_count: 0,
-            last_training_reset: "" // SÊNIOR: Limpa para o próximo ciclo
+            daily_training_count: { $set: 0 },
+            last_training_reset: { $set: "" } // SÊNIOR: Limpa para o próximo ciclo
           });
           state.daily_training_count = 0;
         } else {

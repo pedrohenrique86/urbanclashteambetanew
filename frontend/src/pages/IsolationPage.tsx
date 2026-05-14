@@ -150,7 +150,7 @@ export default function IsolationPage() {
                 <div>
                   <h3 className="text-[9px] font-orbitron text-white/40 tracking-[0.2em]">U-CRYPTON</h3>
                   <p className="text-xl font-black font-orbitron text-amber-400 italic">
-                    {userProfile.ucrypto || 0} <span className="text-[9px] text-white">UC</span>
+                    {userProfile.uCrypto || 0} <span className="text-[9px] text-white">UC</span>
                   </p>
                 </div>
               </div>

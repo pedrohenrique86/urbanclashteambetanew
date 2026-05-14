@@ -13,6 +13,7 @@ interface UserProfile {
   intimidation?: number;
   discipline?: number;
   winning_streak?: number;
+  uCrypto?: number;
 }
 
 interface StatsCardsProps {

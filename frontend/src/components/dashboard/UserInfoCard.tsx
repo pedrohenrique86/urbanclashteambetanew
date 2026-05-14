@@ -15,6 +15,7 @@ interface UserProfile {
   focus?: number;
   money?: number;
   faction?: string;
+  uCrypto?: number;
 }
 
 interface UserInfoCardProps {

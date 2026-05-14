@@ -57,6 +57,7 @@ export interface UserProfile {
   focus?: number;
   instinct?: number;
   critical_damage?: number;
+  uCrypto?: number;
   created_at?: string;
   updated_at?: string;
   active_chips?: Array<{

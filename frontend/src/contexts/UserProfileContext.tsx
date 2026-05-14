@@ -40,7 +40,7 @@ export interface UserProfile {
   user_id?: string;
   current_xp?: number;
   resources?: number;
-  ucrypto?: number;
+  uCrypto?: number;
   victories?: number;
   defeats?: number;
   winning_streak?: number;
@@ -157,7 +157,7 @@ function mergePlayerStateIntoProfile(
   if (patch.toxicity !== undefined) next.toxicity = patch.toxicity;
   if (patch.bio !== undefined) next.bio = patch.bio;
   if (patch.avatar_url !== undefined) next.avatar_url = patch.avatar_url;
-  if (patch.uCrypto !== undefined) next.ucrypto = patch.uCrypto;
+  if (patch.uCrypto !== undefined) next.uCrypto = patch.uCrypto;
   if (patch.merit !== undefined) next.merit = patch.merit;
   if (patch.corruption !== undefined) next.corruption = patch.corruption;
   if (patch.pendingInterception !== undefined) next.pending_interception = patch.pendingInterception;
@@ -265,7 +265,7 @@ export const UserProfileProvider = ({ children }: { children: ReactNode }) => {
         bio: profileData.bio,
         avatar_url: profileData.avatar_url,
         active_chips: profileData.active_chips || [],
-        ucrypto: Number(profileData.ucrypto) || 0,
+        uCrypto: Number(profileData.uCrypto || profileData.ucrypto) || 0,
         merit: Number(profileData.merit) || 0,
         corruption: Number(profileData.corruption) || 0,
         pending_interception: profileData.pending_interception || null,
