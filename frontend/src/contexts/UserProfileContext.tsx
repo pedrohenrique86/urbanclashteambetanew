@@ -386,7 +386,7 @@ export const UserProfileProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     if (userProfile?.pending_training_toast) {
       const toast = userProfile.pending_training_toast;
-      showToast(toast.message || "Módulo finalizado com sucesso.", toast.type || "success", 7000);
+      showToast(toast.message || "Módulo finalizado com sucesso.", toast.type || "success", 3000);
       
       // Limpa o toast do estado local para evitar repetições no re-render
       setUserProfile(prev => prev ? { ...prev, pending_training_toast: null } : null);
@@ -458,7 +458,7 @@ export const UserProfileProvider = ({ children }: { children: ReactNode }) => {
       window.dispatchEvent(new CustomEvent("urbanclash:market_update", { detail: payload }));
     },
     onTrainingCompleted: (payload) => {
-      showToast(payload.message || "Treinamento finalizado!", "success", 7000);
+      showToast(payload.message || "Treinamento finalizado!", "success", 3000);
       // Forçamos um refresh do perfil para garantir que o botão de coletar apareça
       refreshProfile(true);
     }

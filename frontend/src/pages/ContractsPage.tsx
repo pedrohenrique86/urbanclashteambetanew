@@ -422,7 +422,7 @@ export default function ContractsPage() {
     const handleAlert = (data: { username: string, expiresAt: number }) => {
       if (faction === 'guardas') {
         setMasterHeistAlert(data);
-        showToast(`ALERTA NÍVEL 5: ${data.username} executando Golpe de Mestre!`, 'warning');
+        showToast(`ALERTA NÍVEL 5: ${data.username} executando Golpe de Mestre!`, 'warning', 2000);
       }
     };
 
@@ -514,7 +514,7 @@ export default function ContractsPage() {
 
     socketService.on("notification", (notif: any) => {
       if (notif.type === 'intercepted') {
-        showToast(notif.message, "error");
+        showToast(notif.message, "error", 2000);
         refreshProfile();
       }
     });
@@ -531,11 +531,11 @@ export default function ContractsPage() {
     setCooldown(3);
     try {
       const res = await api.post("/contracts/heist", { heistId });
-      showToast(res.data.message, "success");
+      showToast(res.data.message, "success", 2000);
       await mutate();
       await refreshProfile();
     } catch (e: any) {
-      showToast(e.response?.data?.error || "Erro na operação", "error");
+      showToast(e.response?.data?.error || "Erro na operação", "error", 2000);
     } finally {
       setLoadingAction(null);
     }
@@ -547,14 +547,14 @@ export default function ContractsPage() {
     setCooldown(3);
     try {
       const res = await api.post("/contracts/guardian-task", { taskId });
-      showToast(res.data.message, "success");
+      showToast(res.data.message, "success", 2000);
       if (res.data.interception) {
         setShowInterception(true);
       }
       await mutate();
       await refreshProfile();
     } catch (e: any) {
-      showToast(e.response?.data?.error || "Erro na tarefa", "error");
+      showToast(e.response?.data?.error || "Erro na tarefa", "error", 2000);
     } finally {
       setLoadingAction(null);
     }
@@ -564,11 +564,11 @@ export default function ContractsPage() {
     setLoadingAction('resolve');
     try {
       const res = await api.post("/contracts/resolve-interception", { action });
-      showToast(res.data.message, action === 'sell' ? "warning" : "success");
+      showToast(res.data.message, action === 'sell' ? "warning" : "success", 2000);
       setShowInterception(false);
       await refreshProfile();
     } catch (e: any) {
-      showToast(e.response?.data?.error || "Erro ao resolver", "error");
+      showToast(e.response?.data?.error || "Erro ao resolver", "error", 2000);
     } finally {
       setLoadingAction(null);
     }
@@ -577,10 +577,10 @@ export default function ContractsPage() {
   const handleQuickSupply = async (itemId: string) => {
     try {
       const res = await supplyService.buySupply(itemId, true); // true = isFieldBuy
-      showToast(`${res.message} [ +${res.gainedEnergy}% EN ]`, "success");
+      showToast(`${res.message} [ +${res.gainedEnergy}% EN ]`, "success", 2000);
       await refreshProfile();
     } catch (err: any) {
-      showToast(err.response?.data?.error || err.message, "error");
+      showToast(err.response?.data?.error || err.message, "error", 2000);
     }
   };
 
@@ -889,7 +889,7 @@ export default function ContractsPage() {
                       if (bestTask) {
                         handleGuardianTask(bestTask.id);
                       } else {
-                        showToast("Nenhuma tarefa de interceptação disponível para seu nível.", "error");
+                        showToast("Nenhuma tarefa de interceptação disponível para seu nível.", "error", 2000);
                       }
                     }}
                     disabled={loadingAction !== null}

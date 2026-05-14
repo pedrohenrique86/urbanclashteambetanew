@@ -39,7 +39,7 @@ export default function RankingSection() {
         return;
       }
       setShowNotification(true);
-      const timer = setTimeout(() => setShowNotification(false), 5000);
+      const timer = setTimeout(() => setShowNotification(false), 3000);
       return () => clearTimeout(timer);
     }
   }, [lastUpdated]);

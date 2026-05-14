@@ -97,7 +97,7 @@ const GlobalLayout: React.FC<GlobalLayoutProps> = ({ children }) => {
       showToast(
         `SUCESSO! +${g.attack} ATK | +${g.defense} DEF | +${g.focus} FOC | +${g.xp} XP`,
         "success",
-        7000
+        3000
       );
       // Limpa o toast no estado React para não disparar novamente em re-renders
       setUserProfile((prev) =>
@@ -118,7 +118,7 @@ const GlobalLayout: React.FC<GlobalLayoutProps> = ({ children }) => {
     if (prevStatus === null) {
       prevStatusRef.current = currentStatus;
       if (currentStatus === 'Ruptura' && !sessionStorage.getItem('bleeding_toast_shown')) {
-        showToast("ALERTA: Integridade comprometida. Ruptura de sistema detectada. Visite a Unidade de Manutenção.", "error", 8000);
+        showToast("ALERTA: Integridade comprometida. Ruptura de sistema detectada. Visite a Unidade de Manutenção.", "error", 3000);
         sessionStorage.setItem('bleeding_toast_shown', 'true');
       }
       return;
@@ -169,7 +169,7 @@ const GlobalLayout: React.FC<GlobalLayoutProps> = ({ children }) => {
       }
 
       if (message) {
-        showToast(message, type, 6000);
+        showToast(message, type, 3000);
       }
     }
   }, [currentStatus, pendingTrainingToast, showToast, userProfile]);

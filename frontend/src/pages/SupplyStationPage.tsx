@@ -166,7 +166,7 @@ export default function SupplyStationPage() {
       showToast(
         `${res.message} [ +${res.gainedEnergy}% EN ]`,
         "success",
-        5000
+        3000
       );
       
       // Force profile refresh to update UI immediately
@@ -194,7 +194,7 @@ export default function SupplyStationPage() {
     setLoading("antidote");
     try {
       const res = await supplyService.buyAntidote();
-      showToast(res.message, "success", 5000);
+      showToast(res.message, "success", 3000);
       await refreshProfile();
     } catch (err: any) {
       showToast(err.response?.data?.error || err.message, "error");

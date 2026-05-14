@@ -30,7 +30,7 @@ const MILITARY_CLIP = {
 export default function Toast({
   message,
   type,
-  duration = 5000,
+  duration = 3000,
   show,
   onClose,
 }: ToastProps) {

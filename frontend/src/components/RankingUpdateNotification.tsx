@@ -13,7 +13,7 @@ export default function RankingUpdateNotification({
 
   useEffect(() => {
     setShow(true);
-    const timer = setTimeout(() => setShow(false), 5000);
+    const timer = setTimeout(() => setShow(false), 3000);
     return () => clearTimeout(timer);
   }, [lastUpdated]);
 
@@ -61,7 +61,7 @@ export default function RankingUpdateNotification({
               <motion.div 
                 initial={{ width: "100%" }}
                 animate={{ width: "0%" }}
-                transition={{ duration: 5, ease: "linear" }}
+                transition={{ duration: 3, ease: "linear" }}
                 className="h-full bg-cyan-400 shadow-[0_0_8px_rgba(34,211,238,0.4)]"
               />
             </div>

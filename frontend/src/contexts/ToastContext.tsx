@@ -27,10 +27,10 @@ export function ToastProvider({ children }: ToastProviderProps) {
     message: '',
     type: 'info' as ToastType,
     show: false,
-    duration: 5000
+    duration: 3000
   });
 
-  const showToast = (message: string, type: ToastType, duration = 5000) => {
+  const showToast = (message: string, type: ToastType, duration = 3000) => {
     setToast({
       message,
       type,
@@ -49,7 +49,7 @@ export function ToastProvider({ children }: ToastProviderProps) {
     const handleGlobalToast = (event: any) => {
       const { message, type, duration } = event.detail || {};
       if (message && type) {
-        showToast(message, type, duration || 5000);
+        showToast(message, type, duration || 3000);
       }
     };
 
