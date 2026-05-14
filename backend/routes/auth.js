@@ -45,6 +45,14 @@ const registerLimiter = rateLimit({
   legacyHeaders: false,
 });
 
+const commonAuthLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutos
+  max: 10, // máximo 10 tentativas por IP
+  message: { error: "Muitas solicitações. Tente novamente em 15 minutos." },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 // Validações
 const registerValidation = [
   body("email").isEmail().normalizeEmail().withMessage("Email inválido"),
@@ -79,6 +87,7 @@ const loginValidation = [
 // POST /api/auth/check-email - Verificar se o email já existe
 router.post(
   "/check-email",
+  commonAuthLimiter,
   [body("email").isEmail().normalizeEmail().withMessage("Email inválido")],
   async (req, res) => {
     try {
@@ -684,7 +693,7 @@ router.post("/confirm-email", async (req, res) => {
 });
 
 // POST /api/auth/resend-confirmation - Reenviar email de confirmação
-router.post("/resend-confirmation", async (req, res) => {
+router.post("/resend-confirmation", commonAuthLimiter, async (req, res) => {
   const { email } = req.body;
 
   if (!email) {
@@ -724,7 +733,7 @@ router.post("/resend-confirmation", async (req, res) => {
 });
 
 // POST /api/auth/forgot-password - Solicitar redefinição de senha
-router.post("/forgot-password", async (req, res) => {
+router.post("/forgot-password", commonAuthLimiter, async (req, res) => {
   const { email } = req.body;
 
   if (!email) {
