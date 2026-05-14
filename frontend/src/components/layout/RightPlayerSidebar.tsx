@@ -5,7 +5,6 @@ import { FACTION_ALIAS_MAP_FRONTEND } from "../../utils/faction";
 import { useTheme } from "../../contexts/ThemeContext";
 
 // Import Assets
-import spriterenegadoBg from "../../assets/assetscardplayer/spriterenegado.webp";
 import bottomUi from "../../assets/assetscardplayer/sprite_0002.webp";
 import iconTarget from "../../assets/assetscardplayer/sprite_0005.webp";
 import iconSword from "../../assets/assetscardplayer/sprite_0006.webp";
@@ -17,14 +16,14 @@ interface RightPlayerSidebarProps {
 }
 
 const CircularProgress = ({ progress, label, value, gradientId, glowColor }: { progress: number, label: string, value: string, gradientId: string, glowColor: string }) => {
-  const radius = 34;
+  const radius = 42;
   const stroke = 4;
   const normalizedRadius = radius - stroke * 2;
   const circumference = normalizedRadius * 2 * Math.PI;
   const strokeDashoffset = circumference - (progress / 100) * circumference;
 
   return (
-    <div className="relative flex items-center justify-center w-[72px] h-[72px]">
+    <div className="relative flex items-center justify-center w-[84px] h-[84px]">
       <svg height={radius * 2} width={radius * 2} className="transform -rotate-90 absolute inset-0">
         <circle
           stroke="rgba(255,255,255,0.1)"
@@ -46,9 +45,9 @@ const CircularProgress = ({ progress, label, value, gradientId, glowColor }: { p
           cy={radius}
         />
       </svg>
-      <div className="absolute flex flex-col items-center justify-center text-center">
-        <span className="text-[10px] font-black text-white/90 tracking-widest uppercase leading-none mb-1">{label}</span>
-        <span className="text-[12px] text-white font-orbitron font-bold leading-none">{value}</span>
+      <div className="absolute flex flex-col items-center justify-center text-center w-full px-1">
+        <span className="text-[9px] font-black text-white/90 tracking-wider uppercase leading-none mb-0.5">{label}</span>
+        <span className="text-[12px] text-white font-orbitron font-bold leading-none tracking-tight truncate w-full">{value}</span>
       </div>
     </div>
   );
@@ -56,11 +55,11 @@ const CircularProgress = ({ progress, label, value, gradientId, glowColor }: { p
 
 const StatItem = ({ icon, label, value }: { icon: string, label: string, value: string | number }) => (
   <div className="flex flex-col items-center justify-center py-1.5 px-1">
-    <div className="flex items-center gap-1 text-white/60 mb-0.5">
-      <img src={icon} alt={label} className="w-2.5 h-2.5 object-contain opacity-80" />
-      <span className="text-[7px] font-black uppercase tracking-tighter">{label}</span>
+    <div className="flex items-center gap-1 text-white/70 mb-1">
+      <img src={icon} alt={label} className="w-3.5 h-3.5 object-contain opacity-90" />
+      <span className="text-[9px] font-black uppercase tracking-tighter">{label}</span>
     </div>
-    <span className="text-[12px] font-black text-white font-orbitron leading-none tracking-tight">
+    <span className="text-[13px] font-black text-white font-orbitron leading-none tracking-tight">
       {value}
     </span>
   </div>
@@ -130,11 +129,7 @@ const RightPlayerSidebar: React.FC<RightPlayerSidebarProps> = ({ userProfile }) 
     <div 
       className="w-[280px] h-full flex flex-col relative z-30 transition-all duration-300 overflow-hidden"
       style={{ 
-        backgroundImage: isRenegade ? `url(${spriterenegadoBg})` : 'none',
-        backgroundSize: '100% 100%',
-        backgroundPosition: 'center',
-        backgroundColor: isRenegade ? 'rgba(20, 10, 0, 0.8)' : 'rgba(0, 15, 35, 0.95)',
-        backgroundBlendMode: isRenegade ? 'overlay' : 'normal'
+        backgroundColor: isRenegade ? 'rgba(20, 10, 0, 0.8)' : 'rgba(0, 15, 35, 0.85)'
       }}
     >
       {/* Moving Honeycomb Effect for Corners */}
@@ -239,7 +234,7 @@ const RightPlayerSidebar: React.FC<RightPlayerSidebarProps> = ({ userProfile }) 
         <img 
           src={bottomUi} 
           alt="Bottom UI" 
-          className="w-full h-auto block pointer-events-none mix-blend-screen opacity-90" 
+          className="w-full h-auto block pointer-events-none mix-blend-screen opacity-60 saturate-75" 
         />
         
         {/* Dynamic Values - EXACT positioning over the sprite features */}
@@ -253,14 +248,14 @@ const RightPlayerSidebar: React.FC<RightPlayerSidebarProps> = ({ userProfile }) 
 
           {/* Money Slot - Inside Green Box, shifted left to fit long numbers */}
           <div className="absolute top-[82%] left-[20%] -translate-y-1/2 flex items-center justify-start">
-            <span className="font-orbitron font-black text-[20px] text-white drop-shadow-[0_0_4px_#22c55e] tracking-tighter">
+            <span className="font-orbitron font-black text-[16px] text-white drop-shadow-[0_0_4px_#22c55e] tracking-tighter">
               {formatCurrency(userProfile.money ?? 0)}
             </span>
           </div>
           
           {/* UC Slot - Inside Yellow Box, shifted right to center in available space */}
           <div className="absolute top-[82%] left-[75%] -translate-y-1/2 flex items-center justify-start">
-            <span className="font-orbitron font-black text-[20px] text-white drop-shadow-[0_0_4px_#f59e0b] tracking-tighter">
+            <span className="font-orbitron font-black text-[16px] text-white drop-shadow-[0_0_4px_#f59e0b] tracking-tighter">
               {formatCurrency(userProfile.uCrypto ?? 0)}
             </span>
           </div>
