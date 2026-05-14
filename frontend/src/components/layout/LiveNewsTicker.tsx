@@ -88,14 +88,14 @@ const LiveNewsTicker: React.FC<LiveNewsTickerProps> = ({ isFixed }) => {
     if (!item.faction) return null;
     if (item.faction === 'gangsters') {
       return (
-        <span className="text-orange-400 font-bold mr-1">
+        <span className="text-orange-300 font-bold mr-1">
           [RENEGADO]
         </span>
       );
     }
     if (item.faction === 'guardas') {
       return (
-        <span className="text-blue-800 font-bold mr-1">
+        <span className="text-cyan-400 font-bold mr-1">
           [GUARDIÃO]
         </span>
       );

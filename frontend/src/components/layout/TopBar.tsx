@@ -84,7 +84,7 @@ const TopBar: React.FC<TopBarProps> = ({ userProfile }) => {
 
   const metrics = useMemo(() => [
     { 
-      label: "NVL",
+      label: "NÍVEL",
       value: userProfile ? (levelBreakdown.xpLvl + levelBreakdown.statsBonus + levelBreakdown.moneyBonus) : "-",
       className: "text-green-400",
       glowColor: "#22c55e",
@@ -104,7 +104,7 @@ const TopBar: React.FC<TopBarProps> = ({ userProfile }) => {
       isBattery: true
     },
     { 
-      label: "EN", 
+      label: "ENERGIA", 
       value: energyText, 
       className: "text-orange-400", 
       glowColor: "#f97316", 
@@ -113,13 +113,13 @@ const TopBar: React.FC<TopBarProps> = ({ userProfile }) => {
       barColor: "bg-orange-500/50",
       isBattery: true
     },
-    { label: "PA",       value: userProfile?.action_points ?? "-",                         className: "text-cyan-400",    glowColor: "#06b6d4", tooltip: "Pontos de Ação:20.000 reset diário 00:00h" },
-    { label: "ATK",      value: userProfile?.attack !== undefined ? Number(userProfile.attack).toFixed(2) : "-", className: "text-red-400", glowColor: "#ef4444", tooltip: "ATAQUE" },
-    { label: "DEF",      value: userProfile?.defense !== undefined ? Number(userProfile.defense).toFixed(2) : "-", className: "text-blue-400", glowColor: "#3b82f6", tooltip: "DEFESA" },
-    { label: "FOC",      value: userProfile?.focus !== undefined ? Number(userProfile.focus).toFixed(2) : "-", className: "text-pink-400", glowColor: "#ec4899", tooltip: "FOCO" },
-    { label: "CRIT DMG", value: combat.criticalDamage ? Number(combat.criticalDamage.toFixed(2)) : "-", className: "text-rose-400",    glowColor: "#f43f5e", tooltipId: "topbar-crit-dmg-tooltip", showHint: true },
-    { label: "CRIT%",    value: `${combat.criticalChance ? Number(combat.criticalChance.toFixed(2)) : 0}%`, className: "text-yellow-400",  glowColor: "#eab308", tooltipId: "topbar-crit-pct-tooltip", showHint: true },
-    { label: "INS",      value: userProfile?.instinct !== undefined ? `${Number(userProfile.instinct).toFixed(2)}%` : "-", className: "text-emerald-400", glowColor: "#34d399", tooltip: "INSTINTO" },
+    { label: "PONTOS DE AÇÃO", value: userProfile?.action_points ?? "-",                         className: "text-cyan-400",    glowColor: "#06b6d4", tooltip: "Pontos de Ação:20.000 reset diário 00:00h" },
+    { label: "ATAQUE",      value: userProfile?.attack !== undefined ? Number(userProfile.attack).toFixed(2) : "-", className: "text-red-400", glowColor: "#ef4444", tooltip: "ATAQUE" },
+    { label: "DEFESA",      value: userProfile?.defense !== undefined ? Number(userProfile.defense).toFixed(2) : "-", className: "text-blue-400", glowColor: "#3b82f6", tooltip: "DEFESA" },
+    { label: "FOCO",      value: userProfile?.focus !== undefined ? Number(userProfile.focus).toFixed(2) : "-", className: "text-pink-400", glowColor: "#ec4899", tooltip: "FOCO" },
+    { label: "DANO CRITICO", value: combat.criticalDamage ? Number(combat.criticalDamage.toFixed(2)) : "-", className: "text-rose-400",    glowColor: "#f43f5e", tooltipId: "topbar-crit-dmg-tooltip", showHint: true },
+    { label: "CHANCE CRITICA",    value: `${combat.criticalChance ? Number(combat.criticalChance.toFixed(2)) : 0}%`, className: "text-yellow-400",  glowColor: "#eab308", tooltipId: "topbar-crit-pct-tooltip", showHint: true },
+    { label: "INSTINTO",      value: userProfile?.instinct !== undefined ? `${Number(userProfile.instinct).toFixed(2)}%` : "-", className: "text-emerald-400", glowColor: "#34d399", tooltip: "INSTINTO" },
     { 
       label: "Cash", 
       value: `$${formatCurrency(userProfile?.money ?? 0)}`, 
@@ -158,7 +158,7 @@ const TopBar: React.FC<TopBarProps> = ({ userProfile }) => {
                     >
                       {metric.label}
                     </span>
-                    <div className={`relative ${metric.label === 'NVL' && userProfile?.status ? 'pl-4 pr-3' : 'px-3'} py-1 rounded-lg overflow-hidden flex items-center justify-center gap-1 ${metric.progress !== undefined ? 'bg-white/5 w-[65px] sm:w-[75px]' : 'min-w-[50px]'} ${(metric as any).isBattery ? 'pr-4 !rounded-md' : ''}`}>
+                    <div className={`relative ${metric.label === 'NÍVEL' && userProfile?.status ? 'pl-4 pr-3' : 'px-3'} py-1 rounded-lg overflow-hidden flex items-center justify-center gap-1 ${metric.progress !== undefined ? 'bg-white/5 w-[65px] sm:w-[75px]' : 'min-w-[50px]'} ${(metric as any).isBattery ? 'pr-4 !rounded-md' : ''}`}>
                       {metric.progress !== undefined && (
                         <motion.div
                           initial={false}
@@ -167,7 +167,7 @@ const TopBar: React.FC<TopBarProps> = ({ userProfile }) => {
                           className={`absolute inset-0 left-0 right-auto h-full ${(metric as any).barColor} z-0 shadow-[inset_-1px_0_6px_rgba(255,255,255,0.1)]`}
                         />
                       )}
-                      {(metric.label === "NVL" || index === metrics.length - 1) && userProfile?.status && (
+                      {(metric.label === "NÍVEL" || index === metrics.length - 1) && userProfile?.status && (
                         <div
                           className={`absolute ${index === 0 ? 'left-0' : 'right-0'} top-0 bottom-0 w-1.5 z-20 animate-status-pulse ${
                             userProfile.status === 'Ruptura' ? 'bg-red-500 text-red-500/50' :
@@ -180,7 +180,7 @@ const TopBar: React.FC<TopBarProps> = ({ userProfile }) => {
                           data-tooltip-content={userProfile.status}
                         />
                       )}
-                      {metric.label === "EN" && (
+                      {metric.label === "ENERGIA" && (
                         <div 
                           className="absolute bottom-0 left-0 w-full h-[2px] bg-black/40 z-20 overflow-hidden"
                           data-tooltip-id="topbar-tooltip"
@@ -232,17 +232,17 @@ const TopBar: React.FC<TopBarProps> = ({ userProfile }) => {
                   transition-all duration-300 border-x border-b shadow-lg flex items-center gap-1 group
                   ${isFixed 
                     ? 'bg-rose-600/90 border-rose-400/40 text-white shadow-rose-900/30 hover:bg-rose-500' 
-                    : 'bg-purple-600/90 border-purple-400/40 text-white shadow-purple-900/30 hover:bg-purple-500'
+                    : 'bg-emerald-600/90 border-emerald-400/40 text-white shadow-emerald-900/30 hover:bg-emerald-500'
                   }
                 `}
                 style={{
                   clipPath: 'polygon(0 0, 100% 0, 92% 100%, 8% 100%)',
-                  boxShadow: isFixed ? '0 3px 10px rgba(225, 29, 72, 0.3)' : '0 3px 10px rgba(147, 51, 234, 0.4)'
+                  boxShadow: isFixed ? '0 3px 10px rgba(225, 29, 72, 0.3)' : '0 3px 10px rgba(16, 185, 129, 0.4)'
                 }}
               >
-                <span className={`w-1 h-1 rounded-full animate-pulse ${isFixed ? 'bg-rose-300' : 'bg-purple-300'}`} />
+                <span className={`w-1 h-1 rounded-full animate-pulse ${isFixed ? 'bg-rose-300' : 'bg-emerald-300'}`} />
                 {isFixed ? 'Desafixar' : 'Fixar'}
-                <span className={`w-1 h-1 rounded-full animate-pulse ${isFixed ? 'bg-rose-300' : 'bg-purple-300'}`} />
+                <span className={`w-1 h-1 rounded-full animate-pulse ${isFixed ? 'bg-rose-300' : 'bg-emerald-300'}`} />
               </button>
             </div>
           </div>
