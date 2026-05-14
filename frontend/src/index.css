@@ -11,37 +11,44 @@
     font-family: theme("fontFamily.orbitron");
   }
 
-  /* Custom scrollbar styles - Compatible with all browsers */
-
-  /* Webkit browsers (Chrome, Safari, Edge) */
+  /* Custom scrollbar styles */
   .custom-scrollbar::-webkit-scrollbar {
     width: 8px;
   }
-
   .custom-scrollbar::-webkit-scrollbar-track {
     background: #374151;
     border-radius: 4px;
   }
-
   .custom-scrollbar::-webkit-scrollbar-thumb {
     background: linear-gradient(180deg, #9ca3af 0%, #6b7280 100%);
     border-radius: 4px;
     border: 1px solid #4b5563;
     transition: all 0.2s ease;
   }
-
   .custom-scrollbar::-webkit-scrollbar-thumb:hover {
     background: linear-gradient(180deg, #d1d5db 0%, #9ca3af 100%);
     border-color: #6b7280;
   }
 
-  .custom-scrollbar::-webkit-scrollbar-thumb:active {
-    background: linear-gradient(180deg, #f3f4f6 0%, #d1d5db 100%);
+  /* Thin scrollbar for specific tactical menus */
+  .thin-scrollbar::-webkit-scrollbar {
+    width: 2px;
   }
-
-  /* Corner where scrollbars meet */
-  .custom-scrollbar::-webkit-scrollbar-corner {
-    background: #374151;
+  .thin-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .thin-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(156, 163, 175, 0.2);
+    border-radius: 10px;
+    transition: all 0.2s ease;
+  }
+  .thin-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: rgba(156, 163, 175, 0.5);
+  }
+  .thin-scrollbar::-webkit-scrollbar-button {
+    display: none;
+    width: 0;
+    height: 0;
   }
 
   .no-scrollbar::-webkit-scrollbar {

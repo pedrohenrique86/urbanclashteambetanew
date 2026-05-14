@@ -100,7 +100,7 @@ export default function Toast({
           animate={{ opacity: 1, x: 0, scale: 1 }}
           exit={{ opacity: 0, x: 20, scale: 0.95 }}
           transition={{ type: "spring", damping: 25, stiffness: 350 }}
-          className="fixed top-24 right-4 md:right-8 z-[9999] w-[calc(100%-2rem)] max-w-[340px] pointer-events-auto shadow-2xl"
+          className="fixed bottom-6 md:bottom-10 right-4 md:right-8 z-[9999] w-[calc(100%-2rem)] max-w-[340px] pointer-events-auto shadow-2xl"
         >
           <div
             className={`relative bg-slate-950/60 backdrop-blur-3xl border ${border} ${glow} overflow-hidden`}

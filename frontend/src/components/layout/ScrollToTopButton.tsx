@@ -46,7 +46,7 @@ export default function ScrollToTopButton({ scrollableRef }: ScrollToTopButtonPr
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           onClick={scrollToTop}
-          className="fixed bottom-[14px] md:bottom-12 right-2 md:right-8 z-[99999] flex flex-col items-center gap-0 md:gap-1 group cursor-pointer"
+          className="fixed bottom-[14px] md:bottom-12 right-2 md:right-8 xl:right-[300px] z-[99999] flex flex-col items-center gap-0 md:gap-1 group cursor-pointer"
         >
           {/* Tactical Container */}
           <div className="relative w-7 h-7 md:w-8 md:h-8 flex items-center justify-center scale-90 md:scale-100">

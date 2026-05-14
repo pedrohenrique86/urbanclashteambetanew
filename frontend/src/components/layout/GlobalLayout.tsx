@@ -3,6 +3,7 @@ import { useLocation } from "react-router-dom";
 import TopBar from "./TopBar";
 import DashboardSidebar from "./DashboardSidebar";
 import { MobileAppDrawer } from "./MobileAppDrawer";
+import RightPlayerSidebar from "./RightPlayerSidebar";
 import { useTheme } from "../../contexts/ThemeContext";
 import { useUserProfileContext } from "../../contexts/UserProfileContext";
 import { useHUD } from "../../contexts/HUDContext";
@@ -199,7 +200,7 @@ const GlobalLayout: React.FC<GlobalLayoutProps> = ({ children }) => {
       <div className={`min-h-screen font-exo text-white ${hasDynamicBg ? "" : themeClasses.bg} flex flex-col relative`}>
         <DynamicBackground />
         {!hideBlocker && <StatusBlocker />}
-        <main className="flex-1 relative z-10 overflow-y-auto">
+        <main className="flex-1 relative z-10 overflow-y-auto thin-scrollbar">
           {children}
         </main>
         <ScrollToTopButton />
@@ -232,7 +233,7 @@ const GlobalLayout: React.FC<GlobalLayoutProps> = ({ children }) => {
         <div className="flex flex-col flex-1 w-0">
           <div
             ref={scrollableContainerRef}
-            className="flex-1 relative overflow-y-auto overflow-x-hidden flex flex-col"
+            className="flex-1 relative overflow-y-auto overflow-x-hidden thin-scrollbar flex flex-col"
           >
             <TopBar
               userProfile={userProfile as any}
@@ -258,6 +259,11 @@ const GlobalLayout: React.FC<GlobalLayoutProps> = ({ children }) => {
               />
             )}
           </div>
+        </div>
+
+        {/* Menu Lateral Direito (Teste do usuário) */}
+        <div className="hidden xl:flex xl:flex-shrink-0 z-20 h-full">
+          <RightPlayerSidebar userProfile={userProfile as any} />
         </div>
       </div>
 
