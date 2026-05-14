@@ -67,7 +67,7 @@ const FIELD_TO_SSE = {
   level             : "level",
   energy            : "energy",
   max_energy        : "maxEnergy",
-  action_points     : "ap",
+  action_points     : "actionPoints",
   attack            : "attack",
   defense           : "defense",
   focus             : "focus",
@@ -79,18 +79,19 @@ const FIELD_TO_SSE = {
   status_ends_at    : "statusEndsAt",
   victories         : "victories",
   defeats           : "defeats",
-  winning_streak    : "streak",
-  daily_training_count: "dailyTrainings",
+  winning_streak    : "winningStreak",
+  daily_training_count: "dailyTrainingCount",
   toxicity          : "toxicity",
   merit             : "merit",
   corruption        : "corruption",
-  premium_coins     : "ucrypto",
+  premium_coins     : "uCrypto",
   is_admin          : "isAdmin",
-  display_name      : "username",
-  pending_training_toast: "trainingToast",
-  current_training_id: "trainingId",
+  display_name      : "displayName",
+  pending_training_toast: "pending_training_toast",
+  current_training_id: "currentTrainingId",
   training_ends_at  : "trainingEndsAt",
-  clan_id           : "clan_id"
+  active_training_type: "activeTrainingType",
+  clan_id           : "clanId"
 };
 
 /**

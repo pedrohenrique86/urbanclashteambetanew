@@ -163,9 +163,49 @@ class PlayerStateService {
       await this._hydrateRedis(userId, state);
     }
 
-    // SÊNIOR: Lazy Evaluation da Energia
-    // Se o jogador ficou offline, recuperamos a energia baseada no tempo decorrido
-    return this.regenEnergyForPlayer(userId, this._parseState(state));
+    // SÊNIOR: Lazy Evaluation da Energia e Treinamento
+    // Se o jogador ficou offline, recuperamos a energia e checamos se o treino acabou
+    const parsed = this._parseState(state);
+    const withEnergy = await this.regenEnergyForPlayer(userId, parsed);
+    return this.checkTrainingCompletion(userId, withEnergy);
+  }
+
+  /**
+   * SÊNIOR: Verifica se um treinamento expirou e resolve o status do jogador.
+   * Garante que o usuário receba o toast de conclusão ao logar ou atualizar o perfil.
+   */
+  async checkTrainingCompletion(userId, state) {
+    if (!state.active_training_type || !state.training_ends_at) return state;
+
+    const endsAt = new Date(state.training_ends_at).getTime();
+    if (endsAt <= Date.now() && state.status === "Aprimoramento") {
+       try {
+         // SÊNIOR: Importação dinâmica para evitar circular dependency
+         const trainingService = require("./trainingService");
+         const result = await trainingService.completeTraining(userId);
+         
+         const toast = {
+           title: "TREINAMENTO_CONCLUÍDO",
+           message: `Sua sessão de aprimoramento foi finalizada e os ganhos integrados automaticamente.`,
+           type: "success"
+         };
+
+         const redisKey = `${PLAYER_STATE_PREFIX}${userId}`;
+         await redisClient.client.hSet(redisKey, "pending_training_toast", JSON.stringify(toast));
+
+         // Notifica via SSE que o perfil mudou drasticamente (ganhos + status)
+         sseService.broadcastToUser(userId, "player:patch", { 
+           type: "player:patch",
+           patch: { ...result.player, pending_training_toast: toast },
+           version: Date.now() 
+         });
+
+         return { ...state, ...result.player, pending_training_toast: JSON.stringify(toast) };
+       } catch (err) {
+         console.error(`[playerState] Erro na auto-finalização do treino: ${err.message}`);
+       }
+    }
+    return state;
   }
 
   /**
@@ -258,7 +298,11 @@ class PlayerStateService {
       let finalVal = val;
       
       // SÊNIOR: Incremento relativo ou valor absoluto?
-      if (typeof val === 'number' && NUMERIC_FIELDS.has(key)) {
+      // O level e daily_training_count (quando resetado) devem ser absolutos.
+      // O padrão para campos numéricos é INCREMENTO, exceto se especificado.
+      const isAbsoluteField = ['level'].includes(key);
+
+      if (typeof val === 'number' && NUMERIC_FIELDS.has(key) && !isAbsoluteField) {
         p.hIncrByFloat(redisKey, key, val);
       } else {
         finalVal = (typeof val === 'object' && val !== null) ? JSON.stringify(val) : String(val);
@@ -525,11 +569,22 @@ class PlayerStateService {
     const delay = endsAtMs - Date.now();
     if (delay <= 0) return;
 
-    const timer = setTimeout(() => {
-      sseService.broadcastToUser(userId, "training:completed", { 
-        message: "Unidade: Treinamento tático finalizado. Reivindique os ganhos de atributo." 
-      });
-      this.trainingTimers.delete(userId);
+    const timer = setTimeout(async () => {
+      try {
+        const state = await this.getPlayerState(userId);
+        if (state && state.status === "Aprimoramento") {
+          // Resolve o status e gera o toast via checkTrainingCompletion
+          await this.checkTrainingCompletion(userId, state);
+          
+          sseService.broadcastToUser(userId, "training:completed", { 
+            message: "Módulo de Aprimoramento Concluído. Seus novos parâmetros estão prontos para integração." 
+          });
+        }
+      } catch (err) {
+        console.error(`[playerState] Erro ao auto-resolver treino online: ${err.message}`);
+      } finally {
+        this.trainingTimers.delete(userId);
+      }
     }, delay + 500); // 500ms de margem de segurança
 
     this.trainingTimers.set(userId, timer);

@@ -98,6 +98,7 @@ interface UsePlayerStateSSEOptions {
   onStatusUpdate? : (payload: PlayerStatusPayload) => void;
   onDuplicateSession?: (payload: DuplicateSessionPayload) => void;
   onMarketUpdate? : (payload: MarketUpdatePayload) => void;
+  onTrainingCompleted?: (payload: any) => void;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────────
@@ -122,6 +123,7 @@ export function usePlayerStateSSE({
   onStatusUpdate,
   onDuplicateSession,
   onMarketUpdate,
+  onTrainingCompleted,
 }: UsePlayerStateSSEOptions): void {
   const mountedRef       = useRef(true);
   const esRef            = useRef<EventSource | null>(null);
@@ -132,6 +134,7 @@ export function usePlayerStateSSE({
   const onStatusRef      = useRef(onStatusUpdate);
   const onDuplicateRef    = useRef(onDuplicateSession);
   const onMarketRef       = useRef(onMarketUpdate);
+  const onTrainingCompletedRef = useRef(onTrainingCompleted);
   const wasKickedRef     = useRef(false);
 
   // Mantém referências atualizadas sem recriar a conexão
@@ -140,6 +143,7 @@ export function usePlayerStateSSE({
     onStatusRef.current = onStatusUpdate;
     onDuplicateRef.current = onDuplicateSession;
     onMarketRef.current = onMarketUpdate;
+    onTrainingCompletedRef.current = onTrainingCompleted;
   });
 
   useEffect(() => {
@@ -228,6 +232,19 @@ export function usePlayerStateSSE({
           }
         } catch (err) {
           console.warn("[playerSSE] Falha ao parsear evento market update:", err);
+        }
+      });
+
+      // ── Treinamento: training:completed (Notificação de fim de treino) ───────
+      es.addEventListener("training:completed", (e: MessageEvent) => {
+        if (!mountedRef.current) return;
+        try {
+          const payload = JSON.parse(e.data);
+          if (onTrainingCompletedRef.current) {
+            onTrainingCompletedRef.current(payload);
+          }
+        } catch (err) {
+          console.warn("[playerSSE] Falha ao parsear evento training completed:", err);
         }
       });
 

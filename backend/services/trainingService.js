@@ -26,8 +26,28 @@ class TrainingService {
         throw new Error("Você já tem um treinamento em andamento.");
       }
 
+      if (state.active_training_type && (!state.training_ends_at || new Date(state.training_ends_at) <= new Date())) {
+        throw new Error("Você tem recompensas pendentes do último treino. Reivindique-as primeiro.");
+      }
+
       if (state.daily_training_count >= MAX_DAILY_TRAININGS) {
-        throw new Error(`Limite diário de ${MAX_DAILY_TRAININGS} treinos atingido.`);
+        const lastReset = Number(state.last_training_reset || 0);
+        const now = Date.now();
+        const cooldownMs = 24 * 60 * 60 * 1000; // 24 horas
+
+        if (lastReset > 0 && now - lastReset >= cooldownMs) {
+          // Reset automático após 24h da última conclusão do set de 8
+          await playerStateService.updatePlayerState(userId, { 
+            daily_training_count: 0,
+            last_training_reset: "" // SÊNIOR: Limpa para o próximo ciclo
+          });
+          state.daily_training_count = 0;
+        } else {
+          const remainingMs = cooldownMs - (now - lastReset);
+          const hours = Math.floor(remainingMs / (60 * 60 * 1000));
+          const minutes = Math.floor((remainingMs % (60 * 60 * 1000)) / (60 * 1000));
+          throw new Error(`Limite diário de ${MAX_DAILY_TRAININGS} treinos atingido. Próximo reset em ${hours}h ${minutes}m.`);
+        }
       }
 
       if (state.action_points < training.costs.actionPoints) {
@@ -105,16 +125,22 @@ class TrainingService {
       playerStateService.cancelScheduledTraining(userId);
 
       const isUnlock = oldLevel < 10 && newLevel >= 10;
+      const isDailyQuotaFinished = Number(newState.daily_training_count || 0) >= MAX_DAILY_TRAININGS;
 
-      // REGISTRO DE LOG
-      actionLogService.log(userId, "training", "exercise", state.active_training_type, {
+      if (isDailyQuotaFinished && !state.last_training_reset) {
+         // Marca o início do cooldown de 24h
+         await playerStateService.updatePlayerState(userId, { last_training_reset: Date.now().toString() });
+      }
+
+      // REGISTRO DE LOG (Privado - Removido do Feed Global conforme pedido)
+      await actionLogService.log(userId, "training", "exercise", state.active_training_type, {
         xp_gain: scaledXp,
         stats_gained: {
           atk: training.gains.attack,
           def: training.gains.defense,
           foc: training.gains.focus
         }
-      });
+      }, false);
 
       return {
         message: TRAINING_HUMOR[Math.floor(Math.random() * TRAINING_HUMOR.length)],

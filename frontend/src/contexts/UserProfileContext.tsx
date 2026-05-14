@@ -14,6 +14,7 @@ import api from "../lib/api";
 import { HUDCache } from "../hooks/useHUDCache";
 import { usePlayerStateSSE, PlayerStatePayload } from "../hooks/usePlayerStateSSE";
 import { socketService } from "../services/socketService";
+import { useToast } from "./ToastContext";
 
 export interface Faction {
   id: number;
@@ -192,6 +193,7 @@ function writeProfileCache(profile: UserProfile | null): void {
 
 export const UserProfileProvider = ({ children }: { children: ReactNode }) => {
   const { user, logout } = useAuth();
+  const { showToast } = useToast();
   const navigate = useNavigate();
   // Inicializa com o cache do localStorage — exibe sidebar instantaneamente no F5
   const [userProfile, setUserProfile] = useState<UserProfile | null>(() => readProfileCache());
@@ -378,6 +380,19 @@ export const UserProfileProvider = ({ children }: { children: ReactNode }) => {
     fetchProfile();
   }, [user, fetchProfile]);
 
+  // SÊNIOR: Monitor de Notificações Pendentes (Offline -> Online)
+  // Se o backend marcou um toast para exibição (ex: treino acabou enquanto offline),
+  // exibimos aqui assim que o perfil é carregado ou atualizado via SSE.
+  useEffect(() => {
+    if (userProfile?.pending_training_toast) {
+      const toast = userProfile.pending_training_toast;
+      showToast(toast.message || "Módulo finalizado com sucesso.", toast.type || "success", 7000);
+      
+      // Limpa o toast do estado local para evitar repetições no re-render
+      setUserProfile(prev => prev ? { ...prev, pending_training_toast: null } : null);
+    }
+  }, [userProfile?.pending_training_toast, showToast]);
+
   const refreshProfile = useCallback(async (force = false) => {
     // SÊNIOR: Se o SSE atualizou o estado recentemente (dentro da janela de
     // proteção), o estado React já está correto e mais recente que o banco
@@ -441,6 +456,11 @@ export const UserProfileProvider = ({ children }: { children: ReactNode }) => {
       // SÊNIOR: Despacha um evento global customizado. 
       // Isso permite que a página DarkMarketPage ouça as mudanças sem abrir um segundo canal SSE.
       window.dispatchEvent(new CustomEvent("urbanclash:market_update", { detail: payload }));
+    },
+    onTrainingCompleted: (payload) => {
+      showToast(payload.message || "Treinamento finalizado!", "success", 7000);
+      // Forçamos um refresh do perfil para garantir que o botão de coletar apareça
+      refreshProfile(true);
     }
   });
 
