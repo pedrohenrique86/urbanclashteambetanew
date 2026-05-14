@@ -35,6 +35,7 @@ export const fetchPlayerRankings = async (
       position: index + 1,
       country: player.country || null,
       clan_name: player.clan_name || undefined,
+      total_xp: Number(player.total_xp) || 0,
     });
 
     if (response?.__notModified) {
@@ -145,6 +146,7 @@ export const fetchAllRankings = async (force?: boolean) => {
       position: index + 1,
       country: player.country || null,
       clan_name: player.clan_name || undefined,
+      total_xp: Number(player.total_xp) || 0,
     });
 
     const mapClan = (clan: any, index: number) => ({

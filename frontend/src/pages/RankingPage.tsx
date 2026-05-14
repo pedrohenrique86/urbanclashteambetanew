@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { Tooltip } from "react-tooltip";
 import { Player, Clan } from "../types/ranking";
 import { useRankingCache } from "../hooks/useRankingCache";
 import { useHUD } from "../contexts/HUDContext";
@@ -108,8 +109,12 @@ const PlayerRankingItem = React.memo(function PlayerRankingItem({ player, config
           </div>
           <div className="flex flex-col items-center min-w-[60px]">
              <span className="text-[7px] text-zinc-400 font-black uppercase tracking-widest leading-none mb-1">TOTAL_XP</span>
-             <span className="text-[10px] sm:text-xs font-orbitron font-black text-zinc-400 leading-none">
-                {player.total_xp ? (player.total_xp >= 1000000 ? `${(player.total_xp / 1000000).toFixed(1)}M` : `${(player.total_xp / 1000).toFixed(1)}k`) : "0k"}
+             <span 
+                className="text-[10px] sm:text-xs font-orbitron font-black text-zinc-400 leading-none cursor-help"
+                data-tooltip-id="ranking-xp-tooltip"
+                data-tooltip-content="Critério de desempate"
+             >
+                {Number(player.total_xp || 0).toLocaleString("pt-BR")}
              </span>
           </div>
          <div className="hidden sm:flex flex-col items-center w-20">
@@ -329,8 +334,13 @@ export default function RankingPage() {
           </div>
 
         </div>
-
-      </div>
-    </div>
-  );
+       </div>
+       <Tooltip 
+         id="ranking-xp-tooltip" 
+         place="top" 
+         className="!bg-black/90 !backdrop-blur-xl !text-white !rounded-xl !px-4 !py-2 !text-[10px] !border !border-white/10 !shadow-2xl font-orbitron uppercase tracking-widest"
+         style={{ zIndex: 9999 }}
+       />
+     </div>
+    );
 }
