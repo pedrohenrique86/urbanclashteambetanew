@@ -58,9 +58,9 @@ class PlayerStateService {
     if (!profile) return null;
     const gameLogic = require("../utils/gameLogic");
 
-    const level = parseInt(profile.level, 10) || 1;
     const total_xp = parseInt(profile.total_xp || 0, 10);
     const xpLevelPure = gameLogic.calculateLevelFromXp(total_xp);
+    const level = xpLevelPure;
     const xpStatus = gameLogic.deriveXpStatus(total_xp, xpLevelPure);
 
     const isRuptura = profile.status === 'Ruptura';

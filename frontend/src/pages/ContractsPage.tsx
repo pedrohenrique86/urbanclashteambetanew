@@ -27,6 +27,7 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { calculateDynamicLevel } from "../utils/leveling";
 
 // --- Types ---
 const MILITARY_CLIP = { clipPath: "polygon(8px 0%, 100% 0%, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0% 100%, 0% 8px)" };
@@ -487,7 +488,7 @@ export default function ContractsPage() {
 
   // Lógica de Filtragem de Tarefas (Página 1 e Página 2)
   const allTasks = faction === 'gangsters' ? (config?.heists || []) : (config?.guardianTasks || []);
-  const userLvl = userProfile?.level || 1;
+  const userLvl = calculateDynamicLevel(userProfile);
   const unlockedTasks = allTasks.filter(t => t.level <= userLvl);
   const nextLockedTask = allTasks.find(t => t.level > userLvl);
   
@@ -729,7 +730,7 @@ export default function ContractsPage() {
                       onClick={() => handleHeist(config.dailySpecial.id)}
                       disabled={
                         loadingAction !== null || 
-                        (userProfile?.level || 0) < config.dailySpecial.level || 
+                        userLvl < config.dailySpecial.level || 
                         (userProfile?.energy || 0) < config.dailySpecial.costEnergy ||
                         (userProfile?.action_points || 0) < config.dailySpecial.costPA ||
                         dailyCountdown !== null
@@ -833,7 +834,7 @@ export default function ContractsPage() {
                       key={task.id} 
                       data={task} 
                       type={faction === 'gangsters' ? "heist" : "task"}
-                      userLevel={userProfile?.level || 0}
+                      userLevel={userLvl}
                       userEnergy={userProfile?.energy || 0}
                       userPA={userProfile?.action_points || 0}
                       userTox={userProfile?.toxicity || 0}

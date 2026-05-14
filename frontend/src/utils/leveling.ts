@@ -133,3 +133,26 @@ export const calculateTrainingCost = (baseMoney: number, level: number): number 
   const multiplier = 1 + (lvl - 1) * 0.008; 
   return Math.floor(base * multiplier);
 };
+
+/**
+ * Calculates the Dynamic Level (Prestige) matching backend/utils/gameLogic.js
+ */
+export const calculateDynamicLevel = (profile: any): number => {
+  if (!profile) return 1;
+
+  // 1. Base Level from XP
+  const xp = profile.total_xp || profile.xp || 0;
+  const xpLevel = calculateLevel(xp).level;
+
+  // 2. Stats Bonus (ATK + DEF + FOC) / 25
+  const atk = Number(profile.attack || 0);
+  const def = Number(profile.defense || 0);
+  const foc = Number(profile.focus || 0);
+  const statsBonus = Math.floor((atk + def + foc) / 25);
+
+  // 3. Wealth Bonus (Money) / 100,000
+  const money = Number(profile.money || 0);
+  const moneyBonus = Math.floor(money / 100000);
+
+  return xpLevel + statsBonus + moneyBonus;
+};

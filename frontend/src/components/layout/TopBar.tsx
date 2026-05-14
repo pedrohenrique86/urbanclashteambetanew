@@ -13,6 +13,7 @@ interface TopBarProps {
 
 const TopBar: React.FC<TopBarProps> = ({ userProfile }) => {
   const { themeClasses } = useTheme();
+  const [isFixed, setIsFixed] = React.useState(false); // SÊNIOR: Controle de fixação da HUD na tela
 
   const userFaction = useMemo(() => {
     if (!userProfile) return null;
@@ -139,13 +140,13 @@ const TopBar: React.FC<TopBarProps> = ({ userProfile }) => {
 
   return (
     <>
-      <div className="w-full flex flex-col items-center pt-2 md:pt-4 pb-0 pointer-events-none">
+      <div className={`w-full flex flex-col items-center pt-2 md:pt-4 pb-0 pointer-events-none transition-all duration-500 ${isFixed ? 'sticky top-0 z-[100] drop-shadow-[0_0_20px_rgba(0,0,0,0.8)]' : 'relative z-[30]'}`}>
         <div className="flex flex-col items-center w-[95%] md:w-fit gap-2">
-          <LiveNewsTicker />
+          <LiveNewsTicker isFixed={isFixed} />
           <div
-            className="relative bg-black/60 backdrop-blur-2xl border border-white/10 rounded-2xl p-1.5 shadow-2xl w-full md:w-auto pointer-events-auto"
+            className={`relative border border-white/10 rounded-2xl p-1.5 shadow-2xl w-full md:w-auto pointer-events-auto transition-all duration-500 ${isFixed ? 'bg-black shadow-black' : 'bg-black/60 backdrop-blur-2xl'}`}
             style={{
-              boxShadow: "inset 0 1px 1px rgba(255, 255, 255, 0.05), 0 20px 50px rgba(0, 0, 0, 0.9)",
+              boxShadow: isFixed ? "0 10px 30px rgba(0, 0, 0, 1)" : "inset 0 1px 1px rgba(255, 255, 255, 0.05), 0 20px 50px rgba(0, 0, 0, 0.9)",
             }}
           >
             <div className="flex flex-wrap items-center justify-center gap-1 sm:gap-2">
@@ -217,6 +218,32 @@ const TopBar: React.FC<TopBarProps> = ({ userProfile }) => {
                   )}
                 </React.Fragment>
               ))}
+            </div>
+
+            {/* SÊNIOR: Botão Fixar/Desafixar - Estética Cyberpunk Tactical (Fonte Otimizada) */}
+            <div className="absolute -bottom-[12px] left-1/2 -translate-x-1/2 z-[100] flex justify-center w-auto pointer-events-auto">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsFixed(!isFixed);
+                }}
+                className={`
+                  px-2 py-0 rounded-b-md text-[7.5px] font-orbitron font-black uppercase tracking-[0.05em] 
+                  transition-all duration-300 border-x border-b shadow-lg flex items-center gap-1 group
+                  ${isFixed 
+                    ? 'bg-rose-600/90 border-rose-400/40 text-white shadow-rose-900/30 hover:bg-rose-500' 
+                    : 'bg-purple-600/90 border-purple-400/40 text-white shadow-purple-900/30 hover:bg-purple-500'
+                  }
+                `}
+                style={{
+                  clipPath: 'polygon(0 0, 100% 0, 92% 100%, 8% 100%)',
+                  boxShadow: isFixed ? '0 3px 10px rgba(225, 29, 72, 0.3)' : '0 3px 10px rgba(147, 51, 234, 0.4)'
+                }}
+              >
+                <span className={`w-1 h-1 rounded-full animate-pulse ${isFixed ? 'bg-rose-300' : 'bg-purple-300'}`} />
+                {isFixed ? 'Desafixar' : 'Fixar'}
+                <span className={`w-1 h-1 rounded-full animate-pulse ${isFixed ? 'bg-rose-300' : 'bg-purple-300'}`} />
+              </button>
             </div>
           </div>
         </div>

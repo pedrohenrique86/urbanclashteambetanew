@@ -17,6 +17,7 @@ class ContractService {
    * Multiplica os ganhos do melhor roubo disponível por 4x.
    */
   getDynamicDailySpecial(userLevel) {
+    const gameLogic = require("../utils/gameLogic");
     const unlockedHeists = HEIST_TYPES.filter(h => h.level <= userLevel);
     const bestHeist = unlockedHeists[unlockedHeists.length - 1] || HEIST_TYPES[0];
     
@@ -50,19 +51,23 @@ class ContractService {
       let isDaily = false;
 
       if (heistId === DAILY_SPECIAL.id) {
-        heist = this.getDynamicDailySpecial(state.level);
+        const dynamicLevel = require("../utils/gameLogic").calculateDynamicLevel(state);
+        heist = this.getDynamicDailySpecial(dynamicLevel);
         isDaily = true;
       }
 
       if (!heist) throw new Error("Roubo inválido.");
 
-      if (state.level < heist.level) throw new Error(`Nível insuficiente. Requer nível ${heist.level}.`);
+      const gameLogic = require("../utils/gameLogic");
+      const dynamicLevel = gameLogic.calculateDynamicLevel(state);
+
+      if (dynamicLevel < heist.level) throw new Error(`Nível insuficiente. Requer nível ${heist.level}.`);
       if (state.action_points < heist.costPA) throw new Error("PA insuficiente.");
       if (state.energy < heist.costEnergy) throw new Error("Energia insuficiente.");
 
       // SÊNIOR: Enforce de balanceamento (Só pode fazer a melhor tarefa do seu nível atual)
       if (!isDaily) {
-        const unlockedHeists = HEIST_TYPES.filter(h => h.level <= state.level);
+        const unlockedHeists = HEIST_TYPES.filter(h => h.level <= dynamicLevel);
         const bestHeist = unlockedHeists[unlockedHeists.length - 1];
         if (heist.id !== bestHeist.id) {
           throw new Error(`Operação obsoleta. Para o seu nível, foque em: ${bestHeist.name}.`);
@@ -185,7 +190,7 @@ class ContractService {
         heistName: heist.name,
         timestamp: now,
         isMaster: isDaily,
-        level: state.level,
+        level: require("../utils/gameLogic").calculateDynamicLevel(state),
         renegadeStats: { attack: state.attack, focus: state.focus, instinct: state.instinct },
         loot: lootGained
       };
@@ -228,12 +233,15 @@ class ContractService {
       if (!task) throw new Error("Tarefa inválida.");
 
       const state = await playerStateService.getPlayerState(userId);
-      if (state.level < task.level) throw new Error(`Nível insuficiente.`);
+      const gameLogic = require("../utils/gameLogic");
+      const dynamicLevel = gameLogic.calculateDynamicLevel(state);
+
+      if (dynamicLevel < task.level) throw new Error(`Nível insuficiente.`);
       if (state.action_points < task.costPA) throw new Error("PA insuficiente.");
       if (state.energy < task.costEnergy) throw new Error("Energia insuficiente.");
 
       // SÊNIOR: Enforce de balanceamento (Só pode fazer a melhor tarefa do seu nível atual)
-      const unlockedTasks = GUARDIAN_TYPES.filter(t => t.level <= state.level);
+      const unlockedTasks = GUARDIAN_TYPES.filter(t => t.level <= dynamicLevel);
       const bestTask = unlockedTasks[unlockedTasks.length - 1];
       if (task.id !== bestTask.id) {
         throw new Error(`Tarefa obsoleta. Para o seu nível, foque em: ${bestTask.name}.`);

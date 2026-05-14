@@ -13,7 +13,11 @@ interface NewsItem {
   faction?: string;
 }
 
-const LiveNewsTicker: React.FC = () => {
+interface LiveNewsTickerProps {
+  isFixed?: boolean;
+}
+
+const LiveNewsTicker: React.FC<LiveNewsTickerProps> = ({ isFixed }) => {
   const { showLiveFeed } = useSettings();
   const [news, setNews] = useState<NewsItem[]>([]);
   const [activeIndex, setActiveIndex] = useState(0);
@@ -117,13 +121,15 @@ const LiveNewsTicker: React.FC = () => {
     </div>
   );
 
+  const bgClasses = currentNews?.is_major 
+    ? "bg-red-600/40 border-red-500 animate-pulse" 
+    : isFixed 
+      ? "bg-black border-white/10" 
+      : "bg-black/60 backdrop-blur-2xl border-white/10";
+
   return (
     <div 
-      className={`w-full backdrop-blur-2xl border rounded-full p-1 shadow-2xl flex items-center overflow-hidden font-orbitron pointer-events-auto transition-all duration-500 h-9 ${
-        currentNews?.is_major 
-          ? "bg-red-600/40 border-red-500 animate-pulse" 
-          : "bg-black/60 border-white/10"
-      }`}
+      className={`w-full border rounded-full p-1 shadow-2xl flex items-center overflow-hidden font-orbitron pointer-events-auto transition-all duration-500 h-9 ${bgClasses}`}
       style={{
         boxShadow: currentNews?.is_major 
           ? "inset 0 1px 1px rgba(255, 255, 255, 0.2), 0 0 20px rgba(220, 38, 38, 0.4)"
