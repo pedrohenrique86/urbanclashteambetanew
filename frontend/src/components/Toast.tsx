@@ -96,48 +96,46 @@ export default function Toast({
     <AnimatePresence>
       {show && (
         <motion.div
-          initial={{ opacity: 0, x: 100, scale: 0.9 }}
-          animate={{ opacity: 1, x: 0, scale: 1 }}
-          exit={{ opacity: 0, x: 20, scale: 0.95 }}
+          initial={{ opacity: 0, y: -50, scale: 0.9 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, y: -20, scale: 0.95 }}
           transition={{ type: "spring", damping: 25, stiffness: 350 }}
-          className="fixed bottom-6 md:bottom-10 right-4 md:right-8 z-[9999] w-[calc(100%-2rem)] max-w-[340px] pointer-events-auto shadow-2xl"
+          className="fixed top-6 md:top-12 right-4 md:right-8 z-[99999] w-auto min-w-[200px] max-w-[280px] pointer-events-auto shadow-2xl"
         >
           <div
-            className={`relative bg-slate-950/60 backdrop-blur-3xl border ${border} ${glow} overflow-hidden`}
+            className={`relative bg-slate-950/80 backdrop-blur-3xl border ${border} ${glow} overflow-hidden`}
             style={MILITARY_CLIP}
           >
             {/* Glossy Overlay */}
             <div className="absolute inset-0 bg-gradient-to-tr from-white/[0.03] to-transparent pointer-events-none"></div>
             
-            {/* Header Label */}
-            <div className={`text-[10px] font-exo font-bold tracking-wider px-4 py-1.5 ${headerBg} border-b border-white/5 ${headerText} flex justify-between items-center`}>
-              <span className="flex items-center gap-2">
+            {/* Header Label (More Compact) */}
+            <div className={`text-[9px] font-exo font-black tracking-widest px-3 py-1 ${headerBg} border-b border-white/5 ${headerText} flex justify-between items-center`}>
+              <span className="flex items-center gap-1.5">
                 <div className={`w-1 h-1 rounded-full ${bar} animate-pulse`}></div>
                 {label}
               </span>
               <button 
                 onClick={onClose} 
-                className="hover:text-white transition-colors p-1 -mr-1"
+                className="hover:text-white transition-colors p-0.5"
                 aria-label="Close notification"
               >
-                <XMarkIcon className="w-3.5 h-3.5" />
+                <XMarkIcon className="w-3 h-3" />
               </button>
             </div>
 
-            <div className="p-4 flex gap-4 items-center">
-              <div className={`flex-shrink-0 p-2.5 ${iconBg} ${iconBorder} border shadow-inner`}>
-                {icon}
+            <div className="p-2.5 flex gap-3 items-center">
+              <div className={`flex-shrink-0 p-1.5 ${iconBg} ${iconBorder} border shadow-inner`}>
+                {React.cloneElement(icon as React.ReactElement, { className: "w-4 h-4" })}
               </div>
-                <div className="flex-1 min-w-0 pr-2">
+                <div className="flex-1 min-w-0 pr-1">
                   {message.split('\n').map((line, idx) => {
                     const trimmedLine = line.trim();
                     if (!trimmedLine) return null;
 
-                    // Filtro para ignorar nomes de facções e padrões comuns de nomes de usuários em toasts
                     const upperLine = trimmedLine.toUpperCase();
                     const isFaction = ["RENEGADOS", "GUARDIOES", "GANGSTERS", "GUARDAS", "CITIZEN", "BOT"].some(f => upperLine.includes(f));
                     
-                    // Se for uma linha de facção ou parecer um cabeçalho de nome curto, ignoramos para simplificar
                     if (isFaction || (idx === 0 && trimmedLine.length < 15 && !trimmedLine.includes(' '))) {
                        return null;
                     }
@@ -159,8 +157,8 @@ export default function Toast({
                     };
 
                     return (
-                      <p key={idx} className={`leading-tight break-words font-exo font-bold uppercase tracking-normal ${
-                        idx === 0 || !message.includes('\n') ? 'text-[13px] text-white mb-1' : 'text-[11px] text-slate-300'
+                      <p key={idx} className={`leading-tight break-words font-exo font-bold uppercase tracking-tight ${
+                        idx === 0 || !message.includes('\n') ? 'text-[11px] text-white mb-0.5' : 'text-[9px] text-slate-400'
                       }`}>
                         {parseMessage(trimmedLine)}
                       </p>

@@ -623,15 +623,17 @@ export default function ContractsPage() {
         </motion.div>
       </header>
 
-      {/* Stats Bar */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 relative z-10">
-        {[
-          { label: "Capital Líquido", val: `$${userProfile?.money?.toLocaleString()}`, color: "text-emerald-400", icon: BanknotesIcon, border: "border-emerald-500/20" },
-          { label: "Foco (PA)", val: userProfile?.action_points?.toLocaleString(), color: "text-cyan-400", icon: BoltIcon, border: "border-cyan-500/20" },
-          { label: faction === 'gangsters' ? "Infâmia Urbana" : "Mérito Policial", val: faction === 'gangsters' ? userProfile?.corruption : userProfile?.merit, color: faction === 'gangsters' ? "text-[#CD7F32]" : "text-blue-500", icon: faction === 'gangsters' ? FireIcon : ShieldCheckIcon, border: faction === 'gangsters' ? "border-[#B87333]/20" : "border-blue-500/20" },
-          { label: "Reserva de Energia", val: `${userProfile?.energy}%`, color: "text-yellow-500", icon: BoltIcon, border: "border-yellow-500/20" }
-        ].map((stat, i) => (
-          <div key={i} className={`p-4 bg-black/60 backdrop-blur-md border ${stat.border} relative overflow-hidden group`} style={MILITARY_CLIP}>
+      {/* Stats Bar (Ultra Compact - Single Source of Truth for Reputation) */}
+      <div className="flex justify-center relative z-10">
+        {(faction === 'guardas' 
+          ? [
+              { label: "Mérito Policial", val: userProfile?.merit, color: "text-blue-500", icon: ShieldCheckIcon, border: "border-blue-500/20" }
+            ]
+          : [
+              { label: "Infâmia Urbana", val: userProfile?.corruption, color: "text-[#CD7F32]", icon: FireIcon, border: "border-[#B87333]/20" }
+            ]
+        ).map((stat, i) => (
+          <div key={i} className={`w-full max-w-sm p-4 bg-black/60 backdrop-blur-md border ${stat.border} relative overflow-hidden group`} style={MILITARY_CLIP}>
             <div className="absolute top-0 right-0 p-1 opacity-5 group-hover:opacity-10 transition-opacity">
               <stat.icon className="w-12 h-12 text-white" />
             </div>
@@ -641,6 +643,7 @@ export default function ContractsPage() {
             </div>
           </div>
         ))}
+      </div>
 
         {/* Manual Trigger */}
         <button 
@@ -657,7 +660,6 @@ export default function ContractsPage() {
             <div className="w-2 h-2 bg-[#CD7F32] rounded-full animate-pulse shadow-[0_0_8px_#CD7F32]" />
           </div>
         </button>
-      </div>
 
       <ContractManualModal isOpen={isManualOpen} onClose={() => setIsManualOpen(false)} faction={faction} />
 
@@ -685,10 +687,10 @@ export default function ContractsPage() {
 
                 {/* Badges do Daily Special */}
                 <div className="absolute top-4 right-4 flex flex-col items-end gap-2 pointer-events-none z-20">
-                  {(userProfile?.energy || 0) < config.dailySpecial.costEnergy && (
+                  {(userProfile?.energy || 0) < (config?.dailySpecial?.costEnergy ?? 0) && (
                     <span className="bg-red-600/90 text-white text-[9px] font-black px-3 py-1 shadow-[0_0_15px_rgba(220,38,38,0.5)] border border-red-400/50 animate-pulse uppercase tracking-widest">ENERGIA_CRÍTICA</span>
                   )}
-                  {(userProfile?.action_points || 0) < config.dailySpecial.costPA && (
+                  {(userProfile?.action_points || 0) < (config?.dailySpecial?.costPA ?? 0) && (
                     <span className="bg-orange-600/90 text-white text-[9px] font-black px-3 py-1 shadow-[0_0_15px_rgba(234,88,12,0.5)] border border-orange-400/50 uppercase tracking-widest">SINAL_DE_FOCO_BAIXO</span>
                   )}
                 </div>
@@ -701,7 +703,7 @@ export default function ContractsPage() {
                         <span className="text-[10px] font-black text-[#CD7F32] uppercase tracking-[0.4em]">PROTOCOLO_GOLPE_DE_MESTRE</span>
                       </div>
                       <h2 className="text-3xl md:text-5xl font-black text-white uppercase font-orbitron tracking-tighter leading-none italic">
-                        {config.dailySpecial.name}
+                        {config?.dailySpecial?.name}
                       </h2>
                     </div>
                     
@@ -712,27 +714,27 @@ export default function ContractsPage() {
                     <div className="flex flex-wrap gap-6 pt-4">
                       <div className="flex flex-col">
                         <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Pagamento Estimado</span>
-                        <span className="text-2xl font-black text-emerald-400 font-orbitron">${config.dailySpecial.money[0].toLocaleString()}</span>
+                        <span className="text-2xl font-black text-emerald-400 font-orbitron">${config?.dailySpecial?.money[0].toLocaleString()}</span>
                       </div>
                       <div className="flex flex-col">
                         <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Evolução de Perfil</span>
-                        <span className="text-2xl font-black text-violet-400 font-orbitron">+{config.dailySpecial.xp[0].toLocaleString()} XP</span>
+                        <span className="text-2xl font-black text-violet-400 font-orbitron">+{config?.dailySpecial?.xp[0].toLocaleString()} XP</span>
                       </div>
                       <div className="flex flex-col">
                         <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Nível Mínimo</span>
-                        <span className="text-2xl font-black text-white font-orbitron">Lvl {config.dailySpecial.level}</span>
+                        <span className="text-2xl font-black text-white font-orbitron">Lvl {config?.dailySpecial?.level}</span>
                       </div>
                     </div>
                   </div>
 
                   <div className="flex flex-col gap-4 w-full lg:w-80">
                     <button 
-                      onClick={() => handleHeist(config.dailySpecial.id)}
+                      onClick={() => handleHeist(config?.dailySpecial?.id || '')}
                       disabled={
                         loadingAction !== null || 
-                        userLvl < config.dailySpecial.level || 
-                        (userProfile?.energy || 0) < config.dailySpecial.costEnergy ||
-                        (userProfile?.action_points || 0) < config.dailySpecial.costPA ||
+                        userLvl < (config?.dailySpecial?.level || 0) || 
+                        (userProfile?.energy || 0) < (config?.dailySpecial?.costEnergy || 0) ||
+                        (userProfile?.action_points || 0) < (config?.dailySpecial?.costPA || 0) ||
                         dailyCountdown !== null
                       }
                       className={`w-full px-8 py-5 transition-all font-black uppercase tracking-[0.2em] text-sm relative group/btn overflow-hidden military-clip
@@ -867,7 +869,7 @@ export default function ContractsPage() {
                   <motion.div 
                     initial={{ width: "100%" }}
                     animate={{ width: "0%" }}
-                    transition={{ duration: (masterHeistAlert.expiresAt - Date.now()) / 1000, ease: "linear" }}
+                    transition={{ duration: ((masterHeistAlert?.expiresAt || 0) - Date.now()) / 1000, ease: "linear" }}
                     className="h-full bg-white"
                   />
                 </div>
@@ -879,7 +881,7 @@ export default function ContractsPage() {
                     <div>
                       <h3 className="text-xl font-black text-red-500 uppercase italic">Intervenção Prioritária</h3>
                       <p className="text-sm text-white/80">
-                        {masterHeistAlert.username} detectado em operação crítica. Chance de interceptação: <span className="text-white font-bold">50%</span>
+                        {masterHeistAlert?.username} detectado em operação crítica. Chance de interceptação: <span className="text-white font-bold">50%</span>
                       </p>
                     </div>
                   </div>

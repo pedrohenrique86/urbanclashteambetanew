@@ -5,7 +5,6 @@ import { Player, Clan } from "../types/ranking";
 import { useRankingCache } from "../hooks/useRankingCache";
 import PlayerRankingItem from "./PlayerRankingItem";
 import ClanRankingItem from "./ClanRankingItem";
-import RankingUpdateNotification from "./RankingUpdateNotification";
 import {
   getPositionDisplay,
   getPositionSizeClass,
@@ -28,21 +27,7 @@ export default function RankingSection() {
   };
 
   const { data, loading, error, lastUpdated } = useRankingCache();
-  const [showNotification, setShowNotification] = useState(false);
   const { gangsters, guardas, clans } = data;
-  const isFirstMount = React.useRef(true);
-
-  React.useEffect(() => {
-    if (lastUpdated) {
-      if (isFirstMount.current) {
-        isFirstMount.current = false;
-        return;
-      }
-      setShowNotification(true);
-      const timer = setTimeout(() => setShowNotification(false), 3000);
-      return () => clearTimeout(timer);
-    }
-  }, [lastUpdated]);
 
   const gangsterConfig = {
     title: "OPERATIVOS RENEGADOS",
@@ -95,11 +80,6 @@ export default function RankingSection() {
       {/* Scanline Overlay */}
       <div className="absolute inset-0 bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.1)_50%),linear-gradient(90deg,rgba(255,0,0,0.02),rgba(0,255,0,0.01),rgba(0,0,255,0.02))] z-0 pointer-events-none bg-[length:100%_4px,3px_100%]" />
 
-      {/* HUD Background Decorations */}
-      {showNotification && lastUpdated && (
-        <RankingUpdateNotification lastUpdated={lastUpdated} />
-      )}
-
       <div className="max-w-7xl mx-auto relative z-10">
         <div className="text-center mb-16 sm:mb-24">
           <motion.div
@@ -125,11 +105,12 @@ export default function RankingSection() {
             initial={{ opacity: 0 }}
             whileInView={{ opacity: 1 }}
             viewport={{ once: true }}
-            className="flex items-center justify-center gap-4 text-[10px] font-mono text-gray-600 uppercase tracking-widest"
+            className="flex items-center justify-center gap-4 text-[10px] font-mono text-gray-400 uppercase tracking-[0.2em]"
           >
-            <span>Sync: 10m Interval</span>
-            <div className="w-1 h-1 bg-gray-800 rounded-full" />
-            <span>Last_Update: {lastUpdated ? lastUpdated.toLocaleTimeString("pt-BR") : "---"}</span>
+            <span className="flex items-center gap-2">
+              <div className="w-1 h-1 bg-green-500 rounded-full shadow-[0_0_5px_rgba(34,197,94,0.8)]" />
+              STATUS: REAL-TIME LIVE
+            </span>
           </motion.div>
         </div>
 

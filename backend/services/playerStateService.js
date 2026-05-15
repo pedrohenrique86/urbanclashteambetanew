@@ -59,8 +59,10 @@ class PlayerStateService {
     const gameLogic = require("../utils/gameLogic");
 
     const total_xp = parseInt(profile.total_xp || 0, 10);
+    // AUDITORIA: O Menu Lateral é a Fonte da Verdade (SSOT).
+    // O nível oficial do sistema agora segue o cálculo dinâmico (XP + Stats + Money).
+    const level = gameLogic.calculateDynamicLevel(profile);
     const xpLevelPure = gameLogic.calculateLevelFromXp(total_xp);
-    const level = xpLevelPure;
     const xpStatus = gameLogic.deriveXpStatus(total_xp, xpLevelPure);
 
     const isRuptura = profile.status === 'Ruptura';
@@ -309,18 +311,28 @@ class PlayerStateService {
   async updatePlayerState(userId, updates) {
     const redisKey = `${PLAYER_STATE_PREFIX}${userId}`;
 
-    // SÊNIOR: Se mudou XP, calculamos se o nível base subiu para manter sincronia real-time
-    if (updates.total_xp !== undefined) {
+    // AUDITORIA: Recálculo do Nível Dinâmico (Prestígio) baseado no Menu Lateral.
+    // Sempre que houver mudança em XP, Atributos ou Dinheiro, atualizamos o 'level' oficial.
+    const dynamicFields = ['total_xp', 'attack', 'defense', 'focus', 'money'];
+    const hasDynamicUpdate = Object.keys(updates).some(k => dynamicFields.includes(k));
+
+    if (hasDynamicUpdate) {
       const currentState = await this.getPlayerState(userId);
       const gameLogic = require("../utils/gameLogic");
-      const currentXp = Number(currentState.total_xp || 0);
-      const newTotalXp = currentXp + Number(updates.total_xp);
-      const calculatedLevel = gameLogic.calculateLevelFromXp(newTotalXp);
-      const storedLevel = Number(currentState.level || 1);
       
-      if (calculatedLevel > storedLevel) {
-        updates.level = calculatedLevel;
+      // Simulamos o estado futuro para o cálculo do nível
+      const nextState = { ...currentState };
+      for (const [k, v] of Object.entries(updates)) {
+        if (typeof v === 'number' && NUMERIC_FIELDS.has(k) && k !== 'level') {
+          nextState[k] = (Number(currentState[k]) || 0) + v;
+        } else if (v && typeof v === 'object' && v.$set !== undefined) {
+          nextState[k] = v.$set;
+        } else {
+          nextState[k] = v;
+        }
       }
+      
+      updates.level = gameLogic.calculateDynamicLevel(nextState);
     }
 
     const p = redisClient.pipeline();
@@ -387,19 +399,11 @@ class PlayerStateService {
     if (!state || !redisClient.client.isReady) return;
     const gameLogic = require("../utils/gameLogic");
 
-    // SÊNIOR: Validação rigorosa para evitar erro de 'undefined' no Redis v4
-    // SÊNIOR: Nível Dinâmico (XP + Atributos + Dinheiro)
     const dynamicLevel = gameLogic.calculateDynamicLevel(state);
     const totalXp = Number(state.total_xp || 0);
-    
-    // SÊNIOR: Score unificado (Level.XP) para ordenação perfeita
-    // O Level é a parte inteira, o XP é o critério de desempate (decimal).
     const score = dynamicLevel + (totalXp / 1000000000);
 
-    if (isNaN(score) || !userId) {
-      console.warn(`[RankingUpdate] ⚠️ Dados inválidos para ranking: uid=${userId}, score=${score}`);
-      return;
-    }
+    if (isNaN(score) || !userId) return;
 
     const p = redisClient.pipeline();
     const member = { score, value: String(userId) };
@@ -416,6 +420,24 @@ class PlayerStateService {
     }
 
     await p.exec();
+
+    // AUDITORIA: Ranking de Clãs Live (ZSET)
+    // SÊNIOR: Para suportar 5.000+ CCU, usamos o delta de contribuição do jogador.
+    if (state.clan_id && state.clan_id !== "null" && state.clan_id !== "") {
+      const clanKey = `ranking:clans:all`;
+      const contribKey = `player:lastScoreContrib:${userId}`;
+      
+      const lastContrib = parseFloat(await redisClient.getAsync(contribKey) || 0);
+      const delta = score - lastContrib;
+      
+      if (Math.abs(delta) > 0.0000000001) { // Evita flutuações de float insignificantes
+        await redisClient.zIncrByAsync(clanKey, delta, String(state.clan_id));
+        await redisClient.setAsync(contribKey, String(score));
+      }
+    } else {
+      // Se saiu de um clã, limpa a contribuição para o próximo que entrar
+      await redisClient.delAsync(`player:lastScoreContrib:${userId}`);
+    }
 
     // SÊNIOR: Broadcast para o canal de ranking se o jogador estiver no Top 100
     // Isso permite que o ranking na tela atualize sem refresh manual.

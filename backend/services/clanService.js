@@ -59,6 +59,16 @@ class ClanService {
       await clanStateService.updateClanState(clanId, { member_count: 1 });
       await playerStateService.updatePlayerState(userId, { clan_id: clanId });
 
+      // AUDITORIA: Ranking de Clãs Live (ZSET)
+      // SÊNIOR: Adiciona o score total do player ao clã no momento da entrada
+      const gameLogic = require("../utils/gameLogic");
+      const currentState = await playerStateService.getPlayerState(userId);
+      const dynamicLevel = gameLogic.calculateDynamicLevel(currentState);
+      const score = dynamicLevel + (Number(currentState.total_xp || 0) / 1000000000);
+      
+      await redisClient.zIncrByAsync("ranking:clans:all", score, String(clanId));
+      await redisClient.setAsync(`player:lastScoreContrib:${userId}`, String(score));
+
       // 5. Notificar via Socket (Room do Clã)
       sseService.publishToClan(clanId, "member_joined", { userId, clanId });
       
@@ -102,6 +112,16 @@ class ClanService {
 
       // Invalida cache de autenticação
       await clearAuthCache(userId);
+
+      // AUDITORIA: Ranking de Clãs Live (ZSET)
+      // SÊNIOR: Remove a contribuição total do player ao sair do clã
+      const contribKey = `player:lastScoreContrib:${userId}`;
+      const lastContrib = parseFloat(await redisClient.getAsync(contribKey) || 0);
+      
+      if (lastContrib > 0) {
+        await redisClient.zIncrByAsync("ranking:clans:all", -lastContrib, String(clanId));
+        await redisClient.delAsync(contribKey);
+      }
 
       // Notificar Clã e Player
       sseService.publishToClan(clanId, "member_left", { userId, clanId });

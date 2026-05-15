@@ -141,76 +141,113 @@ class RankingCacheService {
   }
 
   /**
-   * Ranking de Clãs (Cache Permanente de 10 min)
+   * Ranking de Clãs via ZSET (Tempo Real)
+   * SÊNIOR: Suporta 5.000+ CCU com hidratação em lote.
    */
   async _getClansRanking() {
-    const cacheKey = "ranking:clans:all";
-    const cached = await redisClient.getAsync(cacheKey);
-    if (cached) return JSON.parse(cached);
-
-    const { rows } = await query(
-      `SELECT id, name, faction, season_score as score, member_count 
-       FROM clans ORDER BY season_score DESC LIMIT 26`
-    );
+    // Pega os Top 50 clãs
+    const topIds = await redisClient.zRevRangeWithScoresAsync(RANKING_CLANS, 0, 49);
     
-    const result = { data: rows, etag: `W/"clans-${Date.now()}"`, timestamp: Date.now() };
-    await redisClient.setAsync(cacheKey, JSON.stringify(result), "EX", 600);
-    return result;
+    if (!topIds || topIds.length === 0) {
+      // Fallback para o Banco se o Redis estiver vazio (warmup automático)
+      const { rows } = await query(
+        `SELECT id, name, faction, season_score as score, member_count 
+         FROM clans ORDER BY season_score DESC LIMIT 50`
+      );
+      if (rows.length > 0) {
+        // Aproveita para popular o Redis
+        const p = redisClient.pipeline();
+        rows.forEach(r => p.zAdd(RANKING_CLANS, [{ score: Number(r.score) || 0, value: String(r.id) }]));
+        await p.exec();
+      }
+      return { data: rows.map((r, i) => ({ ...r, position: i + 1 })), etag: "db-fallback", timestamp: Date.now() };
+    }
+
+    // Hidratação dos nomes e facções dos clãs
+    // SÊNIOR: Em um sistema de alta escala, usaríamos um HASH no Redis para clãs.
+    // Como os clãs mudam pouco (nome/facção), buscamos no banco as infos básicas dos IDs do Top 50.
+    const ids = [];
+    const scoresMap = {};
+    for (let i = 0; i < topIds.length; i += 2) {
+      const id = topIds[i];
+      const score = topIds[i+1];
+      ids.push(id);
+      scoresMap[id] = score;
+    }
+
+    const { rows: clanDetails } = await query(
+      `SELECT id, name, faction, member_count FROM clans WHERE id IN (${ids.map(() => '?').join(',')})`,
+      ids
+    );
+
+    const finalData = clanDetails
+      .map(c => ({
+        ...c,
+        score: Number(scoresMap[c.id]) || 0
+      }))
+      .sort((a, b) => b.score - a.score)
+      .map((c, i) => ({ ...c, position: i + 1 }));
+
+    return {
+      data: finalData,
+      etag: `W/"clans-live-${Date.now()}"`,
+      timestamp: Date.now()
+    };
   }
 
   /**
-   * Warmup Inicial: Popula os ZSETs a partir do banco de dados.
+   * Atualiza a pontuação de um clã no ranking instantaneamente.
+   */
+  async updateClanScore(clanId, scoreDelta) {
+    if (!clanId) return;
+    await redisClient.zIncrByAsync(RANKING_CLANS, scoreDelta, String(clanId));
+    
+    // Broadcast opcional para o canal de ranking se o clã for importante (Top 20)
+    // sseService.publish("ranking", "clan:update", { clanId, scoreDelta });
+  }
+
+  /**
+   * Warmup Inicial: Popula os ZSETs de Jogadores e Clãs.
    */
   async initializeRankingZSet() {
-    if (!redisClient.client.isReady) {
-      console.warn("[ranking] ⚠️ Redis não está pronto. Warmup adiado.");
-      return;
-    }
+    if (!redisClient.client.isReady) return;
 
-    const count = await redisClient.zCardAsync(RANKING_ALL);
-    if (count > 0) {
-      console.log(`[ranking] ℹ️ ZSET já populado (${count} jogadores).`);
-      return;
-    }
-
-    console.log("[ranking] 🔄 Populando ZSETs de ranking pela primeira vez...");
-    const { rows } = await query(
-      `SELECT user_id, level, total_xp, faction, attack, defense, focus, money 
-       FROM user_profiles 
-       ORDER BY level DESC, total_xp DESC 
-       LIMIT 2000`
-    );
-
-    if (!rows || rows.length === 0) {
-      console.log("[ranking] ℹ️ Nenhum jogador encontrado no banco para indexar.");
-      return;
-    }
-
-    const p = redisClient.pipeline();
-    
-    for (const row of rows) {
-      // Optimização Sênior: Para o warmup, ignoramos o disparo de eventos SSE individuais
-      // e o zRevRankAsync de cada player. Fazemos apenas os zAdds em lote.
-      const dynamicLevel = gameLogic.calculateDynamicLevel(row);
-      const totalXp = Number(row.total_xp || 0);
-      const score = dynamicLevel + (totalXp / 1000000000);
-      
-      if (isNaN(score) || !row.user_id) continue;
-      
-      const member = { score, value: String(row.user_id) };
-      
-      p.zAdd(RANKING_ALL, [member]);
-      
-      const resolved = playerStateService.resolveFactionName(row.faction);
-      if (resolved === "renegados") {
-        p.zAdd(RANKING_RENEGADOS, [member]);
-      } else if (resolved === "guardioes") {
-        p.zAdd(RANKING_GUARDIOES, [member]);
+    // Warmup de Jogadores (já existente)
+    const playerCount = await redisClient.zCardAsync(RANKING_ALL);
+    if (playerCount === 0) {
+      const { rows: pRows } = await query(
+        `SELECT user_id, level, total_xp, faction, attack, defense, focus, money 
+         FROM user_profiles ORDER BY level DESC, total_xp DESC LIMIT 2000`
+      );
+      if (pRows && pRows.length > 0) {
+        const p = redisClient.pipeline();
+        for (const row of pRows) {
+          const dynamicLevel = gameLogic.calculateDynamicLevel(row);
+          const score = dynamicLevel + (Number(row.total_xp || 0) / 1000000000);
+          const member = { score, value: String(row.user_id) };
+          p.zAdd(RANKING_ALL, [member]);
+          const resolved = playerStateService.resolveFactionName(row.faction);
+          if (resolved === "renegados") p.zAdd(RANKING_RENEGADOS, [member]);
+          else if (resolved === "guardioes") p.zAdd(RANKING_GUARDIOES, [member]);
+        }
+        await p.exec();
+        console.log(`[ranking] ✅ ${pRows.length} jogadores indexados.`);
       }
     }
-    
-    await p.exec();
-    console.log(`[ranking] ✅ ${rows.length} jogadores indexados nos ZSETs.`);
+
+    // Warmup de Clãs (NOVO: LIVE)
+    const clanCount = await redisClient.zCardAsync(RANKING_CLANS);
+    if (clanCount === 0) {
+      const { rows: cRows } = await query(
+        `SELECT id, season_score FROM clans ORDER BY season_score DESC LIMIT 500`
+      );
+      if (cRows && cRows.length > 0) {
+        const p = redisClient.pipeline();
+        cRows.forEach(r => p.zAdd(RANKING_CLANS, [{ score: Number(r.season_score) || 0, value: String(r.id) }]));
+        await p.exec();
+        console.log(`[ranking] ✅ ${cRows.length} clãs indexados nos ZSETs.`);
+      }
+    }
   }
 
   // Compatibilidade com ciclos legados

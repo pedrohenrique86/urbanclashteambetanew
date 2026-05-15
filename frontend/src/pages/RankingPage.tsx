@@ -279,8 +279,8 @@ export default function RankingPage() {
               <span className="text-sm sm:text-base font-black font-orbitron text-transparent bg-clip-text bg-gradient-to-r from-white to-zinc-400 tracking-[0.3em] uppercase">SYSTEM.RANKING.V2</span>
             </div>
             <div className="flex items-center gap-3 sm:gap-5">
-              <span className="hidden sm:inline text-[10px] font-mono text-zinc-500 tracking-[0.15em] uppercase border border-white/10 rounded px-2 py-1 bg-white/5">
-                ↻ ATUALIZA A CADA 10 MINUTOS INTEIROS
+              <span className="hidden sm:inline text-[10px] font-mono text-zinc-400 tracking-[0.15em] uppercase border border-white/10 rounded px-2 py-1 bg-white/5">
+                ⚡ ATUALIZAÇÃO EM TEMPO REAL
               </span>
               <div className="flex items-center gap-1.5 px-2 py-1 bg-green-500/10 border border-green-500/20 rounded-md">
                 <div className="w-1.5 h-1.5 rounded-full bg-green-400 shadow-[0_0_10px_rgba(74,222,128,0.9)] animate-pulse" />
@@ -325,11 +325,11 @@ export default function RankingPage() {
 
           {/* Panel Footer */}
           <div className="flex items-center justify-center gap-4 px-4 py-2.5 border-t border-white/5 bg-black/30">
-            <span className="sm:hidden text-[8px] font-mono text-zinc-600 uppercase tracking-widest">↻ ATUALIZAÇÃO A CADA 10 MINUTOS INTEIROS</span>
+            <span className="sm:hidden text-[8px] font-mono text-zinc-600 uppercase tracking-widest">⚡ SINCRONIZAÇÃO EM TEMPO REAL</span>
             <div className="hidden sm:flex items-center gap-6 opacity-30">
-              <span className="text-[8px] font-mono text-white uppercase tracking-wider">UPDT_FREQ: 10_MIN_INT</span>
+              <span className="text-[8px] font-mono text-white uppercase tracking-wider">LIVE_SYNC: INSTANT</span>
               <div className="h-3 w-px bg-white/20" />
-              <span className="text-[8px] font-mono text-white uppercase tracking-wider">DATA_SRC: CENTRAL_DB_01</span>
+              <span className="text-[8px] font-mono text-white uppercase tracking-wider">DATA_SRC: REDIS_ZSET_01</span>
             </div>
           </div>
 

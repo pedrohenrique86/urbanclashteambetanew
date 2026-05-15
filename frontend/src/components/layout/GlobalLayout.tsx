@@ -203,7 +203,7 @@ const GlobalLayout: React.FC<GlobalLayoutProps> = ({ children }) => {
         <main className="flex-1 relative z-10 overflow-y-auto thin-scrollbar">
           {children}
         </main>
-        <ScrollToTopButton />
+        <ScrollToTopButton isHomePage={location.pathname === "/"} />
       </div>
     );
   }
@@ -270,7 +270,7 @@ const GlobalLayout: React.FC<GlobalLayoutProps> = ({ children }) => {
       <Tooltip id="server-time-tooltip" place="top-end" style={{ zIndex: 99999 }} className="!bg-slate-700 !bg-opacity-80 !backdrop-blur-sm !text-white !rounded-lg !px-3 !py-1 !text-[8px] !font-sans" />
       <Tooltip id="game-clock-tooltip" place="top-end" style={{ zIndex: 99999 }} className="!bg-slate-700 !bg-opacity-80 !backdrop-blur-sm !text-white !rounded-lg !px-3 !py-1 !text-[8px] !font-sans" />
       <MobileAppDrawer />
-      <ScrollToTopButton scrollableRef={scrollableContainerRef} />
+      <ScrollToTopButton scrollableRef={scrollableContainerRef} isHomePage={location.pathname === "/"} />
     </div>
   );
 };

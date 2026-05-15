@@ -10,6 +10,7 @@ const DIRTY_PLAYERS_SET    = "dirtyPlayers";
 const RANKING_ALL          = "ranking:players:all";
 const RANKING_RENEGADOS    = "ranking:players:renegados";
 const RANKING_GUARDIOES    = "ranking:players:guardioes";
+const RANKING_CLANS        = "ranking:clans:all";
 const PERSISTENCE_INTERVAL = 3000; // 3 segundos
 
 /**
