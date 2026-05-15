@@ -349,7 +349,7 @@ class ContractService {
             const gFinal = gScore * (0.9 + Math.random() * 0.2);
             const rFinal = rScore * (0.9 + Math.random() * 0.2);
 
-            if (gFinal >= rFinal * 2 && target.isMaster) {
+              if (gFinal >= rFinal * 2 && target.isMaster) {
               // SÊNIOR: GUARDIÃO ESMAGA O RENEGADO
               interception = {
                 targetId: target.userId,
@@ -360,9 +360,7 @@ class ContractService {
               updates.pending_interception = interception;
               updates.last_daily_special_at = new Date().toISOString();
               
-              // Bônus massivo de XP para o Guardião pelo sucesso crítico
               updates.total_xp = (updates.total_xp || 0) + 1000;
-              
               await redisClient.zRemAsync(ACTIVITY_KEY, target.rawStr);
 
               const targetState = await playerStateService.getPlayerState(target.userId);
@@ -382,11 +380,28 @@ class ContractService {
                 }
               }
 
-              await actionLogService.log(userId, 'interception_critical_success', 'contract', task.id, {
+              // Log do Guardião (Público + Pessoal)
+              await actionLogService.log(userId, 'interception', 'contract', task.id, {
                 public_message: `<span class="text-purple-500 font-black">[GLOBAL]</span> <span class="text-cyan-400 font-bold">${state.username}</span> CONSEGUIU INTERCEPTAR <span class="text-orange-300 font-bold">${target.username}</span> COM SUCESSO! ISOLAMENTO É O SEU LUGAR PALAVRAS DELE... <span style="display:none">$</span>`,
                 is_major: true,
-                faction: 'guardas'
+                faction: 'guardas',
+                role: 'guardian',
+                outcome: 'critical_success',
+                target_name: target.username,
+                xp_gain: 1000,
+                items_confiscated: interception.items
               }, true, null);
+
+              // Log Pessoal do Renegado (Derrota Crítica)
+              await actionLogService.log(target.userId, 'interception', 'contract', task.id, {
+                role: 'renegade',
+                outcome: 'critical_fail',
+                guardian_name: state.username,
+                money_loss: moneyLoss,
+                infamy_loss: infamyLoss,
+                items_lost: target.loot,
+                penalty: 'Isolamento (10m)'
+              }, false, null);
 
             } else if (gFinal > rFinal) {
               // SÊNIOR: INTERCEPTAÇÃO NORMAL (Guardião ganha)
@@ -401,6 +416,29 @@ class ContractService {
                 updates.last_daily_special_at = new Date().toISOString();
               }
               await redisClient.zRemAsync(ACTIVITY_KEY, target.rawStr);
+
+              if (target.loot && target.loot.length > 0) {
+                for (const l of target.loot) {
+                  await inventoryService.removeItem(target.userId, l.code, l.quantity);
+                }
+              }
+
+              // Log do Guardião
+              await actionLogService.log(userId, 'interception', 'contract', task.id, {
+                role: 'guardian',
+                outcome: 'success',
+                target_name: target.username,
+                items_confiscated: interception.items
+              }, false, null);
+
+              // Log do Renegado
+              await actionLogService.log(target.userId, 'interception', 'contract', task.id, {
+                role: 'renegade',
+                outcome: 'fail',
+                guardian_name: state.username,
+                items_lost: target.loot
+              }, false, null);
+
             } else if (rFinal >= gFinal * 2 && target.isMaster) {
               // SÊNIOR: RENEGADO ESMAGA O GUARDIÃO
               const moneyLoss = Math.floor((state.money || 0) * 0.1);
@@ -413,23 +451,46 @@ class ContractService {
 
               await redisClient.zRemAsync(ACTIVITY_KEY, target.rawStr);
 
-              // Bônus massivo de XP para o Renegado pelo sucesso crítico
               await playerStateService.updatePlayerState(target.userId, {
                 total_xp: 1000
               });
 
-              await actionLogService.log(target.userId, 'interception_critical_fail', 'contract', task.id, {
+              // Log Público + Pessoal do Renegado
+              await actionLogService.log(target.userId, 'interception', 'contract', task.id, {
                 public_message: `<span class="text-purple-500 font-black">[GLOBAL]</span> <span class="text-orange-300 font-bold">${target.username}</span> ESCAPOU DA INTERCEPTACAO COM SUCESSO, <span class="text-cyan-400 font-bold">${state.username}</span>, NÃO FOI DESSA VEZ, PALAVRAS DELE... <span style="display:none">$</span>`,
                 is_major: true,
-                faction: 'gangsters'
+                faction: 'gangsters',
+                role: 'renegade',
+                outcome: 'critical_success',
+                guardian_name: state.username,
+                xp_gain: 1000
               }, true, null);
+
+              // Log Pessoal do Guardião
+              await actionLogService.log(userId, 'interception', 'contract', task.id, {
+                role: 'guardian',
+                outcome: 'critical_fail',
+                target_name: target.username,
+                money_loss: moneyLoss,
+                merit_loss: meritLoss,
+                penalty: 'Recuperação (10m)'
+              }, false, null);
+
             } else {
               // SÊNIOR: FUGA NORMAL (Renegado escapa)
-              console.log(`[Interception] ${state.username} falhou ao capturar ${target.username} (G:${gFinal.toFixed(1)} vs R:${rFinal.toFixed(1)})`);
-              await actionLogService.log(userId, 'interception_fail', 'contract', task.id, {
-                public_message: `O Guardião ${state.username} detectou o rastro de um crime, mas o suspeito conseguiu escapar da abordagem! <span style="display:none">$</span>`,
+              // Log Guardião
+              await actionLogService.log(userId, 'interception', 'contract', task.id, {
+                role: 'guardian',
+                outcome: 'fail',
                 target_name: target.username
-              }, false);
+              }, false, null);
+
+              // Log Renegado
+              await actionLogService.log(target.userId, 'interception', 'contract', task.id, {
+                role: 'renegade',
+                outcome: 'success',
+                guardian_name: state.username
+              }, false, null);
             }
 
             }

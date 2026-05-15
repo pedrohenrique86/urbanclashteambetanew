@@ -432,7 +432,9 @@ export default function ContractsPage() {
           const heartbeat = new Audio('/sounds/heartbeat.mp3');
           heartbeat.volume = 0.8;
           heartbeat.play().catch(e => console.log('Audio autoplay blocked', e));
-        } catch (err) {}
+        } catch (err) {
+          // ignorado (fallback para browsers estritos)
+        }
       }
     };
 
@@ -549,7 +551,9 @@ export default function ContractsPage() {
           const siren = new Audio('/sounds/siren.mp3');
           siren.volume = 0.5;
           siren.play().catch(e => console.log('Audio autoplay blocked', e));
-        } catch (err) {}
+        } catch (err) {
+          // ignorado (fallback para browsers estritos)
+        }
       }
 
       await mutate();

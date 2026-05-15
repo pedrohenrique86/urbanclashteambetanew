@@ -37,6 +37,8 @@ const LogIcon = ({ type, metadata }: { type: string, metadata: any }) => {
       return <Flame className="w-4 h-4 text-orange-400" />;
     case 'guardian_task':
       return <ShieldCheck className="w-4 h-4 text-blue-400" />;
+    case 'interception':
+      return metadata.outcome?.includes('success') ? <ShieldCheck className="w-4 h-4 text-purple-400" /> : <Flame className="w-4 h-4 text-rose-500" />;
     default:
       return <ClipboardList className="w-4 h-4 text-slate-400" />;
   }
@@ -108,6 +110,54 @@ const LogContent = ({ log }: { log: NetworkLog }) => {
           </div>
         </div>
       );
+
+    case 'interception': {
+      const { role, outcome, target_name, guardian_name, money_loss, infamy_loss, merit_loss, xp_gain, items_confiscated, items_lost, penalty } = meta;
+
+      let label = "";
+      let color = "";
+
+      if (role === 'guardian') {
+         if (outcome === 'critical_success') { label = 'ESMAGAMENTO: INTERCEPTAÇÃO (GOLPE DE MESTRE)'; color = 'text-purple-400'; }
+         else if (outcome === 'success') { label = 'INTERCEPTAÇÃO BEM SUCEDIDA'; color = 'text-blue-400'; }
+         else if (outcome === 'critical_fail') { label = 'FALHA CRÍTICA: COMBATE PERDIDO'; color = 'text-red-500'; }
+         else { label = 'FALHA: ALVO ESCAPOU'; color = 'text-orange-400'; }
+      } else {
+         if (outcome === 'critical_success') { label = 'ESMAGAMENTO: FUGA ESPETACULAR (GOLPE DE MESTRE)'; color = 'text-purple-400'; }
+         else if (outcome === 'success') { label = 'FUGA BEM SUCEDIDA'; color = 'text-emerald-400'; }
+         else if (outcome === 'critical_fail') { label = 'FALHA CRÍTICA: INTERCEPTADO NO GOLPE DE MESTRE'; color = 'text-red-500'; }
+         else { label = 'FALHA: INTERCEPTADO'; color = 'text-rose-400'; }
+      }
+
+      return (
+        <div className="flex flex-col gap-1">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
+            <span className={`${color} font-black uppercase tracking-tight`}>{label}</span>
+            <span className="text-slate-500 text-[10px]">
+               {role === 'guardian' ? `Alvo: ${target_name}` : `Guardião: ${guardian_name}`}
+            </span>
+          </div>
+          <div className="flex flex-wrap gap-3 text-[10px] items-center">
+            {xp_gain > 0 && <span className="text-emerald-400/80">+{xp_gain} XP</span>}
+            {money_loss > 0 && <span className="text-rose-500 font-bold">-${money_loss.toLocaleString()}</span>}
+            {infamy_loss > 0 && <span className="text-rose-500">-{infamy_loss} INFÂMIA</span>}
+            {merit_loss > 0 && <span className="text-rose-500">-{merit_loss} MÉRITO</span>}
+            {penalty && <span className="px-1.5 py-0.5 bg-red-500 text-white font-black animate-pulse">{penalty}</span>}
+
+            {(items_confiscated || items_lost) && (items_confiscated?.length > 0 || items_lost?.length > 0) && (
+              <div className="flex items-center gap-1 font-bold border-l border-slate-700 pl-3">
+                <span className="text-slate-500 uppercase">{items_confiscated ? 'CONFISCADO:' : 'PERDIDO:'}</span>
+                {(items_confiscated || items_lost).map((item: any, i: number) => (
+                  <span key={i} className={`uppercase ${getRarityColor(item.rarity)}`}>
+                    {item.code.replace(/_/g, ' ')} x{item.quantity}
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    }
 
     case 'combat': {
       const outcome = meta.outcome;
