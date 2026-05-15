@@ -426,6 +426,13 @@ export default function ContractsPage() {
       if (faction === 'guardas') {
         setMasterHeistAlert(data);
         showToast(`ALERTA NÍVEL 5: ${data.username} executando Golpe de Mestre!`, 'warning', 2000);
+        
+        // Toca o som de batimento cardíaco para o Guardião (Tensão)
+        try {
+          const heartbeat = new Audio('/sounds/heartbeat.mp3');
+          heartbeat.volume = 0.8;
+          heartbeat.play().catch(e => console.log('Audio autoplay blocked', e));
+        } catch (err) {}
       }
     };
 
@@ -534,7 +541,17 @@ export default function ContractsPage() {
     setCooldown(3);
     try {
       const res = await api.post("/contracts/heist", { heistId });
-      showToast(res.data.message, "success", 2000);
+      showToast(res.data.message, "success", 3000);
+      
+      // Se for Golpe de Mestre e tiver Guardião online, toca a sirene de aproximação
+      if (heistId === 'golpe_mestre' && res.data.hasGuardiansOnline) {
+        try {
+          const siren = new Audio('/sounds/siren.mp3');
+          siren.volume = 0.5;
+          siren.play().catch(e => console.log('Audio autoplay blocked', e));
+        } catch (err) {}
+      }
+
       await mutate();
       await refreshProfile();
     } catch (e: any) {

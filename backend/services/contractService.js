@@ -196,9 +196,14 @@ class ContractService {
       };
       await redisClient.zAddAsync(ACTIVITY_KEY, now, JSON.stringify(activity));
 
+      let hasGuardiansOnline = false;
+
       // Se for Golpe de Mestre, envia alerta prioritário para os Guardiões
       if (isDaily) {
-        const io = require('../socketHandlerNative').getIO();
+        const { getIO, hasFactionOnline } = require('../socketHandlerNative');
+        hasGuardiansOnline = hasFactionOnline('guardas');
+        
+        const io = getIO();
         io.emit('contract:master_heist_alert', {
           username: state.username,
           expiresAt: now + (3 * 1000) // Janela de 3 segundos (tempo real)
@@ -211,6 +216,7 @@ class ContractService {
         xpGained,
         attrGained,
         lootGained,
+        hasGuardiansOnline,
         player: newState
       };
     } finally {

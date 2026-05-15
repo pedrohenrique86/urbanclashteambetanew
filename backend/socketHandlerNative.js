@@ -383,4 +383,22 @@ const getIO = () => ({
   })
 });
 
-module.exports = { initializeSocket, getIO };
+function hasFactionOnline(factionAlias) {
+  const normalizedTarget = factionAlias.toLowerCase().trim();
+  for (const [userId, sockets] of userConnections.entries()) {
+    for (const ws of sockets) {
+      if (ws.user) {
+        const userFaction = String(ws.user.faction || "gangsters").toLowerCase().trim();
+        const resolvedUserFaction = userFaction === "guardas" || userFaction.includes("guarda") ? "guardioes" : "renegados";
+        const resolvedTargetFaction = normalizedTarget === "guardas" || normalizedTarget.includes("guarda") ? "guardioes" : "renegados";
+        
+        if (resolvedUserFaction === resolvedTargetFaction) {
+          return true;
+        }
+      }
+    }
+  }
+  return false;
+}
+
+module.exports = { initializeSocket, getIO, hasFactionOnline };
