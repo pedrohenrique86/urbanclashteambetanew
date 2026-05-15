@@ -113,7 +113,7 @@ const LiveNewsTicker: React.FC<LiveNewsTickerProps> = ({ isFixed }) => {
           </span>
           <div className="text-[11px] text-white/90 uppercase tracking-wider flex items-center font-black">
             {getFactionBadge(item)}
-            <span>{item.message}</span>
+            <span dangerouslySetInnerHTML={{ __html: item.message }} />
           </div>
           <span className="text-white/20 mx-4 opacity-50">•</span>
         </div>

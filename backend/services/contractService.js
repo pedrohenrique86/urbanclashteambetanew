@@ -297,13 +297,25 @@ class ContractService {
       // Busca rastros recentes (janela de 3 segundos para "Tempo Real")
       const rawActivities = await redisClient.zRangeByScoreAsync(ACTIVITY_KEY, threeSecondsAgo, '+inf');
       
+      const lastDaily = state.last_daily_special_at ? new Date(state.last_daily_special_at) : null;
+      let canInterceptMaster = true;
+      if (lastDaily) {
+        if (Date.now() - lastDaily.getTime() < 24 * 60 * 60 * 1000) {
+          canInterceptMaster = false;
+        }
+      }
+
       if (rawActivities && rawActivities.length > 0) {
         const activities = [];
         for (const raw of rawActivities) {
            const parsed = JSON.parse(raw);
-           // Não intercepta a si mesmo e verifica se o roubo é vinculado ou se é Golpe de Mestre
-           if (parsed.userId !== userId && (task.linkedHeists?.includes(parsed.heistId) || parsed.isMaster)) {
-             activities.push({ rawStr: raw, ...parsed });
+           // Não intercepta a si mesmo e verifica se o roubo é vinculado ou se é Golpe de Mestre (respeitando o cooldown de 24h)
+           if (parsed.userId !== userId) {
+             if (parsed.isMaster && canInterceptMaster) {
+               activities.push({ rawStr: raw, ...parsed });
+             } else if (!parsed.isMaster && task.linkedHeists?.includes(parsed.heistId)) {
+               activities.push({ rawStr: raw, ...parsed });
+             }
            }
         }
 
@@ -331,7 +343,8 @@ class ContractService {
             const gFinal = gScore * (0.9 + Math.random() * 0.2);
             const rFinal = rScore * (0.9 + Math.random() * 0.2);
 
-            if (gFinal > rFinal) {
+            if (gFinal >= rFinal * 2 && target.isMaster) {
+              // SÊNIOR: GUARDIÃO ESMAGA O RENEGADO
               interception = {
                 targetId: target.userId,
                 targetName: target.username,
@@ -339,14 +352,80 @@ class ContractService {
                 items: target.loot && target.loot.length > 0 ? target.loot : [{ code: SPECIAL_ITEMS_POOL[Math.floor(Math.random() * SPECIAL_ITEMS_POOL.length)].code, quantity: 1, rarity: 'common' }]
               };
               updates.pending_interception = interception;
+              updates.last_daily_special_at = new Date().toISOString();
+              
+              // Bônus massivo de XP para o Guardião pelo sucesso crítico
+              updates.total_xp = (updates.total_xp || 0) + 1000;
+              
               await redisClient.zRemAsync(ACTIVITY_KEY, target.rawStr);
-            } else {
-                console.log(`[Interception] ${state.username} falhou ao capturar ${target.username} (G:${gFinal.toFixed(1)} vs R:${rFinal.toFixed(1)})`);
-                await actionLogService.log(userId, 'interception_fail', 'contract', task.id, {
-                  public_message: `O Guardião ${state.username} detectou o rastro de um crime, mas o suspeito conseguiu escapar da abordagem!`,
-                  target_name: target.username
-                }, false);
+
+              const targetState = await playerStateService.getPlayerState(target.userId);
+              const moneyLoss = Math.floor((targetState.money || 0) * 0.1);
+              const infamyLoss = Math.floor((targetState.corruption || 0) * 0.1);
+              
+              await playerStateService.updatePlayerState(target.userId, {
+                money: -moneyLoss,
+                corruption: -infamyLoss,
+                status: 'Isolamento',
+                status_ends_at: new Date(Date.now() + 10 * 60 * 1000).toISOString()
+              });
+
+              if (target.loot && target.loot.length > 0) {
+                for (const l of target.loot) {
+                  await inventoryService.removeItem(target.userId, l.code, l.quantity);
+                }
               }
+
+              await actionLogService.log(userId, 'interception_critical_success', 'contract', task.id, {
+                public_message: `<span class="text-purple-500 font-black">[GLOBAL]</span> <span class="text-cyan-400 font-bold">${state.username}</span> CONSEGUIU INTERCEPTAR <span class="text-orange-300 font-bold">${target.username}</span> COM SUCESSO! ISOLAMENTO É O SEU LUGAR PALAVRAS DELE... <span style="display:none">$</span>`,
+                is_major: true,
+                faction: 'guardas'
+              }, true, null);
+
+            } else if (gFinal > rFinal) {
+              // SÊNIOR: INTERCEPTAÇÃO NORMAL (Guardião ganha)
+              interception = {
+                targetId: target.userId,
+                targetName: target.username,
+                heistName: target.heistName,
+                items: target.loot && target.loot.length > 0 ? target.loot : [{ code: SPECIAL_ITEMS_POOL[Math.floor(Math.random() * SPECIAL_ITEMS_POOL.length)].code, quantity: 1, rarity: 'common' }]
+              };
+              updates.pending_interception = interception;
+              if (target.isMaster) {
+                updates.last_daily_special_at = new Date().toISOString();
+              }
+              await redisClient.zRemAsync(ACTIVITY_KEY, target.rawStr);
+            } else if (rFinal >= gFinal * 2 && target.isMaster) {
+              // SÊNIOR: RENEGADO ESMAGA O GUARDIÃO
+              const moneyLoss = Math.floor((state.money || 0) * 0.1);
+              const meritLoss = Math.floor((state.merit || 0) * 0.1);
+              
+              updates.money = (updates.money || 0) - moneyLoss;
+              updates.merit = (updates.merit || 0) - meritLoss;
+              updates.status = 'Recuperação';
+              updates.status_ends_at = new Date(Date.now() + 10 * 60 * 1000).toISOString();
+
+              await redisClient.zRemAsync(ACTIVITY_KEY, target.rawStr);
+
+              // Bônus massivo de XP para o Renegado pelo sucesso crítico
+              await playerStateService.updatePlayerState(target.userId, {
+                total_xp: 1000
+              });
+
+              await actionLogService.log(target.userId, 'interception_critical_fail', 'contract', task.id, {
+                public_message: `<span class="text-purple-500 font-black">[GLOBAL]</span> <span class="text-orange-300 font-bold">${target.username}</span> ESCAPOU DA INTERCEPTACAO COM SUCESSO, <span class="text-cyan-400 font-bold">${state.username}</span>, NÃO FOI DESSA VEZ, PALAVRAS DELE... <span style="display:none">$</span>`,
+                is_major: true,
+                faction: 'gangsters'
+              }, true, null);
+            } else {
+              // SÊNIOR: FUGA NORMAL (Renegado escapa)
+              console.log(`[Interception] ${state.username} falhou ao capturar ${target.username} (G:${gFinal.toFixed(1)} vs R:${rFinal.toFixed(1)})`);
+              await actionLogService.log(userId, 'interception_fail', 'contract', task.id, {
+                public_message: `O Guardião ${state.username} detectou o rastro de um crime, mas o suspeito conseguiu escapar da abordagem! <span style="display:none">$</span>`,
+                target_name: target.username
+              }, false);
+            }
+
             }
           }
         }
