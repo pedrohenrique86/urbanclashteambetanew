@@ -7,7 +7,7 @@
 
 set -e
 
-APP_DIR="/home/ubuntu/urbanclashteambeta/backend"
+APP_DIR="/home/ubuntu/urbanclashteambetanew/backend"
 APP_NAME="backend"
 PM2_ECOSYSTEM="$APP_DIR/ecosystem.config.js"
 
