@@ -16,17 +16,19 @@ import {
   Skull,
   Activity,
   Zap,
-  Lock,
+  Lock as LockIcon,
   Globe
 } from "lucide-react";
 
 import { Avatar } from "../components/ui/Avatar";
+import { getFactionColor } from "./RecoveryBasePage";
 
 type Player = {
   id?: string;
   user_id?: string;
   username: string;
   display_name?: string;
+  faction?: string; // SÊNIOR: Adicionado para coloração
   level?: number;
   role?: string;
   country?: string;
@@ -291,7 +293,7 @@ export default function ClanPage() {
                        </div>
 
                        <div className="flex items-center justify-between flex-grow min-w-0">
-                          <span className="text-xs font-black font-orbitron text-zinc-400 uppercase truncate pr-2 group-hover:text-white group-hover:drop-shadow-[0_0_5px_rgba(255,255,255,0.4)] transition-all">
+                          <span className={`text-xs font-black font-orbitron ${getFactionColor(member.faction)} uppercase truncate pr-2 transition-all`}>
                              {member.username}
                           </span>
                           <div className={`px-2 py-1 rounded-lg bg-black/80 border ${theme.border.replace('/20', '/40')} flex items-center gap-1.5 group-hover:scale-110 transition-all duration-300 shadow-lg`}>
@@ -314,7 +316,7 @@ export default function ClanPage() {
                  <div className="absolute top-0 right-0 w-32 h-32 bg-red-500/5 blur-3xl" />
                  
                  <div className="flex items-center gap-2 mb-1">
-                    <Lock className="w-3 h-3 text-red-500/80" />
+                    <LockIcon className="w-3 h-3 text-red-500/80" />
                     <span className="text-[8px] font-black font-orbitron text-zinc-500 tracking-widest uppercase">ADMINISTRAÇÃO_PERMITIDA</span>
                  </div>
                  

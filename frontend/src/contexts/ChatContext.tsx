@@ -152,6 +152,15 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({
       setIsConnected(false);
     };
 
+    // SÊNIOR: Dispara a autenticação do chat. Isolado para reuso em reconexões.
+    const performChatAuth = () => {
+      const currentToken = apiClient.getToken();
+      if (currentToken) {
+        if (import.meta.env.DEV) console.debug("[ChatContext] Solicitando autenticação de chat...");
+        socketService.authenticateChat(currentToken);
+      }
+    };
+
     // Dispara 1 único retry tardio (Timeout age como break temporal pra recuperação do banco)
     const handleHistoryError = () => {
       if (hasRetriedHistoryRef.current) return;
@@ -176,6 +185,7 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({
     };
 
     // Registra TODOS os listeners ANTES de disparar a autenticação.
+    socketService.on("connect", performChatAuth); // SÊNIOR: Re-autentica ao reconectar
     socketService.onChatAuthSuccess(handleAuthSuccess);
     socketService.onChatAuthFailed(handleAuthFailed);
     socketService.onChatHistory(handleChatHistory);
@@ -183,17 +193,16 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({
     socketService.onMessageReceived(handleNewMessage);
     socketService.onChatHistoryCleared(handleHistoryCleared);
 
-    const authTimeout = setTimeout(() => {
-      socketService.authenticateChat(token);
-    }, 500);
+    // Tenta autenticar imediatamente (se o socket já estiver aberto)
+    performChatAuth();
 
     // Limpeza de listeners para evitar duplicatas e vazamentos de memória
     return () => {
-      clearTimeout(authTimeout);
       if (historyRetryTimeoutRef.current) {
         clearTimeout(historyRetryTimeoutRef.current);
         historyRetryTimeoutRef.current = null;
       }
+      socketService.off("connect", performChatAuth);
       socketService.off("chat:auth_success", handleAuthSuccess);
       socketService.off("chat:auth_failed", handleAuthFailed);
       socketService.off("chat:history", handleChatHistory);

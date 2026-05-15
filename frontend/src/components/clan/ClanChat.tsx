@@ -14,9 +14,11 @@ import {
   Skull,
   Activity
 } from "lucide-react";
+import { getFactionColor } from "../../pages/RecoveryBasePage";
 
 interface ClanMember {
   username: string;
+  faction?: string;
 }
 
 interface ClanChatProps {
@@ -57,12 +59,7 @@ const MessageList = React.memo(function MessageList({ messages, userProfile, cha
           const isMe = msg.userId === userProfile?.id;
           const displayUsername = msg.username || (isMe ? userProfile?.username : 'Membro');
           
-          const rawFaction = userProfile?.faction as any;
-          const userFaction = typeof rawFaction === 'string' ? rawFaction : rawFaction?.name;
-          
-          const factionColor = isMe 
-            ? (userFaction?.toLowerCase().includes('gangster') ? 'text-orange-500 drop-shadow-[0_0_5px_rgba(249,115,22,0.6)]' : 'text-blue-500 drop-shadow-[0_0_5px_rgba(59,130,246,0.6)]')
-            : 'text-zinc-400';
+          const factionColor = getFactionColor(msg.faction);
 
           return (
             <motion.div 
@@ -248,8 +245,8 @@ export const ClanChat: React.FC<ClanChatProps> = ({ members = [] }) => {
                 }`}
                 onClick={() => insertMention(member.username)}
               >
-                <div className="w-1 h-1 rounded-full bg-blue-500" />
-                <span className="text-xs font-orbitron font-bold">{member.username}</span>
+                <div className={`w-1 h-1 rounded-full ${getFactionColor(member.faction).replace('text-', 'bg-')}`} />
+                <span className={`text-xs font-orbitron font-bold ${getFactionColor(member.faction)}`}>{member.username}</span>
               </div>
             ))}
           </motion.div>

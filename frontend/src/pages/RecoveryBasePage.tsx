@@ -229,9 +229,18 @@ function getStatusColor(status: string) {
 
 export function getFactionColor(faction?: string) {
   const f = String(faction || "").toLowerCase().trim();
-  if (['gangsters', 'gangster', 'renegados', 'renegado'].includes(f)) return 'text-orange-500';
-  if (['guardas', 'guarda', 'guardioes', 'guardião', 'guardiões', 'guardiao'].includes(f)) return 'text-blue-400';
-  return 'text-slate-400';
+  
+  // 🔥 Renegados (Laranja Claro)
+  if (f.includes('renegado') || f.includes('gangster')) {
+    return 'text-orange-400 drop-shadow-[0_0_2px_rgba(251,146,60,0.3)]';
+  }
+  
+  // 🛡️ Guardiões (Azul)
+  if (f.includes('guarda') || f.includes('corp') || f.includes('ordem')) {
+    return 'text-blue-400 drop-shadow-[0_0_2px_rgba(96,165,250,0.3)]';
+  }
+
+  return 'text-zinc-400';
 }
 
 // ─── Componentes de Visão ────────────────────────────────────────────────────────

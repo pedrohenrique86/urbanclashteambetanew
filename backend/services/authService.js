@@ -46,7 +46,9 @@ async function authenticateSocket(token) {
         u.country,
         u.is_email_confirmed,
         u.is_admin,
-        up.clan_id
+        up.clan_id,
+        up.faction,
+        up.avatar_url
       FROM users u
       LEFT JOIN user_profiles up ON u.id = up.user_id
       WHERE u.id = ?;

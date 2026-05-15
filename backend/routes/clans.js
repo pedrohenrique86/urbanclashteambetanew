@@ -131,6 +131,7 @@ router.get("/:id/members", async (req, res) => {
         username: f.username, 
         display_name: f.display_name,
         avatar_url: f.avatar_url, 
+        faction: f.faction, // SÊNIOR: Adicionado para coloração na lista
         level: f.level, 
         role: state.clan_role || 'member' 
       };

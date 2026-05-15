@@ -80,6 +80,7 @@ async function handleNewMessage(io, socket, text) {
     id: messageId,
     userId: user.id,
     username: user.username,
+    faction: user.faction, // SÊNIOR: Adicionado para coloração dinâmica por facção
     text: trimmedText,
     timestamp: new Date().toISOString(),
   };
