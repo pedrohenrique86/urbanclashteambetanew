@@ -208,16 +208,16 @@ const ContractManualModal = ({ isOpen, onClose, faction }: { isOpen: boolean, on
                     <div className="absolute top-0 right-0 p-2 opacity-20">
                       <FireIcon className="w-12 h-12 text-red-500" />
                     </div>
-                    <p className="text-[10px] text-red-400 font-black mb-2 tracking-widest">● GOLPE DE MESTRE</p>
+                    <p className="text-[10px] text-red-400 font-black mb-2 tracking-widest">● GOLPE DE MESTRE (RENEGADOS)</p>
                     <p className="text-[10px] font-mono text-slate-400 uppercase leading-relaxed">
-                      Evento Crítico. Chance de detecção elevada para <strong className="text-red-500">50%</strong>. O sinal forte permanece ativo por 10 minutos para todos os Guardiões.
+                      Operação de alto risco disponível apenas <strong className="text-white">1x a cada 24h</strong>. Ao ser executada, emite um alerta global para todos os Guardiões. 
                     </p>
                   </div>
                   
-                  <div className="mt-4 p-4 bg-orange-950/20 border border-orange-500/20">
-                    <p className="text-[10px] text-orange-400 font-black mb-2 tracking-widest">● MERCADO NEGRO</p>
+                  <div className="mt-4 p-4 bg-blue-950/20 border border-blue-500/20">
+                    <p className="text-[10px] text-blue-400 font-black mb-2 tracking-widest">● INTERCEPTAÇÃO (GUARDIÕES)</p>
                     <p className="text-[10px] font-mono text-slate-400 uppercase leading-relaxed">
-                      Itens confiscados por Guardiões podem ser vendidos ilegalmente, aumentando a Corrupção mas gerando lucro imediato.
+                      Ao receber o alerta de crime, os Guardiões têm uma janela de <strong className="text-white">3 segundos</strong> para agir. Qualquer tarefa iniciada nesse período tem <strong className="text-blue-400">50% de chance</strong> de capturar o Renegado em flagrante.
                     </p>
                   </div>
                 </section>
@@ -701,6 +701,9 @@ export default function ContractsPage() {
                       <div className="flex items-center gap-3">
                         <div className="h-4 w-1 bg-[#B87333]"></div>
                         <span className="text-[10px] font-black text-[#CD7F32] uppercase tracking-[0.4em]">PROTOCOLO_GOLPE_DE_MESTRE</span>
+                        <div className="bg-orange-500/10 border border-orange-500/30 px-2 py-0.5 ml-2">
+                           <span className="text-[9px] font-black text-orange-400 animate-pulse">APENAS 1X A CADA 24H</span>
+                        </div>
                       </div>
                       <h2 className="text-3xl md:text-5xl font-black text-white uppercase font-orbitron tracking-tighter leading-none italic">
                         {config?.dailySpecial?.name}
