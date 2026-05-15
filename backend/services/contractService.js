@@ -206,7 +206,7 @@ class ContractService {
         const io = getIO();
         io.emit('contract:master_heist_alert', {
           username: state.username,
-          expiresAt: now + (3 * 1000) // Janela de 3 segundos (tempo real)
+          expiresAt: now + (5 * 1000) // Janela de 5 segundos (tempo real)
         });
       }
 
@@ -295,13 +295,13 @@ class ContractService {
       let interception = null;
       // SÊNIOR: Verificação de rastro no Redis para interceptação (usando ZSET global:heist_activity)
       const ACTIVITY_KEY = "global:heist_activity";
-      const threeSecondsAgo = Date.now() - (3 * 1000);
+      const fiveSecondsAgo = Date.now() - (5 * 1000);
       
       // Limpa rastros antigos (lixo)
-      await redisClient.zRemRangeByScoreAsync(ACTIVITY_KEY, '-inf', threeSecondsAgo - 1);
+      await redisClient.zRemRangeByScoreAsync(ACTIVITY_KEY, '-inf', fiveSecondsAgo - 1);
       
-      // Busca rastros recentes (janela de 3 segundos para "Tempo Real")
-      const rawActivities = await redisClient.zRangeByScoreAsync(ACTIVITY_KEY, threeSecondsAgo, '+inf');
+      // Busca rastros recentes (janela de 5 segundos para "Tempo Real")
+      const rawActivities = await redisClient.zRangeByScoreAsync(ACTIVITY_KEY, fiveSecondsAgo, '+inf');
       
       const lastDaily = state.last_daily_special_at ? new Date(state.last_daily_special_at) : null;
       let canInterceptMaster = true;

@@ -217,7 +217,7 @@ const ContractManualModal = ({ isOpen, onClose, faction }: { isOpen: boolean, on
                   <div className="mt-4 p-4 bg-blue-950/20 border border-blue-500/20">
                     <p className="text-[10px] text-blue-400 font-black mb-2 tracking-widest">● INTERCEPTAÇÃO (GUARDIÕES)</p>
                     <p className="text-[10px] font-mono text-slate-400 uppercase leading-relaxed mb-2">
-                      Ao receber o alerta de crime, os Guardiões têm uma janela de <strong className="text-white">3 segundos</strong> para agir com <strong className="text-blue-400">50% de chance</strong> de capturar o Renegado. <strong className="text-yellow-400">Ao conseguir interceptar um Golpe de Mestre com sucesso, o Guardião entra em Cooldown de 24h para esse tipo de operação.</strong>
+                      Ao receber o alerta de crime, os Guardiões têm uma janela de <strong className="text-white">5 segundos</strong> para agir com <strong className="text-blue-400">50% de chance</strong> de capturar o Renegado. <strong className="text-yellow-400">Ao conseguir interceptar um Golpe de Mestre com sucesso, o Guardião entra em Cooldown de 24h para esse tipo de operação.</strong>
                     </p>
                     <p className="text-[10px] font-mono text-red-400 uppercase leading-relaxed">
                       <strong className="text-purple-400 font-black">EVENTO CRÍTICO:</strong> Se a força de um lado for o DOBRO do outro no Golpe de Mestre, o perdedor sofre grandes perdas financeiras e é enviado imediatamente para o <strong className="text-white">Isolamento/Recuperação</strong> por 10 minutos. O vencedor recebe um prêmio instantâneo de <strong className="text-violet-400 font-black">+1000 XP</strong> e tem seu feito anunciado para todos no <strong className="text-purple-400">Feed Global</strong>.
@@ -425,7 +425,7 @@ export default function ContractsPage() {
     const handleAlert = (data: { username: string, expiresAt: number }) => {
       if (faction === 'guardas') {
         setMasterHeistAlert(data);
-        showToast(`ALERTA NÍVEL 5: ${data.username} executando Golpe de Mestre!`, 'warning', 2000);
+        showToast(`ALERTA NÍVEL 5: ${data.username} executando Golpe de Mestre!`, 'warning', 5000);
         
         // Toca o som de batimento cardíaco para o Guardião (Tensão)
         try {
