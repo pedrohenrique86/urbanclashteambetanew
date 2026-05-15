@@ -169,18 +169,7 @@ export default function DarkMarketPage() {
 
       <main className="max-w-7xl mx-auto space-y-8 relative z-10">
         {/* MARKET INFO CARDS */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="cyber-card p-6" style={MILITARY_CLIP}>
-            <div className="flex items-center gap-4">
-              <div className="bg-fuchsia-500/20 p-3 border border-fuchsia-500/30">
-                <BanknotesIcon className="w-6 h-6 text-fuchsia-400" />
-              </div>
-              <div>
-                <p className="text-[10px] font-mono text-slate-400 uppercase tracking-widest">SALDO_DISPONÍVEL</p>
-                <p className="text-2xl font-orbitron font-black text-white">${userProfile?.money?.toLocaleString()}</p>
-              </div>
-            </div>
-          </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="cyber-card p-6" style={MILITARY_CLIP}>
             <div className="flex items-center gap-4">
               <div className="bg-violet-500/20 p-3 border border-violet-500/30">
@@ -207,142 +196,114 @@ export default function DarkMarketPage() {
           </div>
         </div>
 
-        {/* MARKET TABLE */}
-        <div className="cyber-card overflow-hidden" style={MILITARY_CLIP}>
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="bg-white/5 border-b border-white/10">
-                  <th className="p-4 text-[10px] font-orbitron text-fuchsia-500 tracking-[0.2em] uppercase">ITEM_ESPECIFICAÇÃO</th>
-                  <th className="p-4 text-[10px] font-orbitron text-fuchsia-500 tracking-[0.2em] uppercase">COMPRA</th>
-                  <th className="p-4 text-[10px] font-orbitron text-fuchsia-500 tracking-[0.2em] uppercase">VENDA</th>
-                  <th className="p-4 text-[10px] font-orbitron text-fuchsia-500 tracking-[0.2em] uppercase text-center">SEU_ESTOQUE</th>
-                  <th className="p-4 text-[10px] font-orbitron text-fuchsia-500 tracking-[0.2em] uppercase text-center">QUANTIDADE</th>
-                  <th className="p-4 text-[10px] font-orbitron text-fuchsia-500 tracking-[0.2em] uppercase text-right">OPERAR</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-white/5">
-                {items.map((item, idx) => {
-                  const invItem = userProfile?.inventory?.find((i: any) => i.code === item.code);
-                  const sellPrice = Math.floor(item.base_price * 0.9);
-                  const isRarityHigh = item.rarity === 'legendary' || item.rarity === 'epic';
+        {/* MARKET ITEMS GRID */}
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+          {items.map((item, idx) => {
+            const invItem = userProfile?.inventory?.find((i: any) => i.code === item.code);
+            const sellPrice = Math.floor(item.base_price * 0.9);
+            const isRarityHigh = item.rarity === 'legendary' || item.rarity === 'epic';
+            const canAffordBuy = (userProfile?.money || 0) >= (item.base_price * (quantities[item.code] || 1));
+            const hasEnoughToSell = (invItem?.quantity || 0) >= (quantities[item.code] || 1);
 
-                  return (
-                    <motion.tr 
-                      key={item.id}
-                      initial={{ opacity: 0, x: -10 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: idx * 0.03 }}
-                      className="hover:bg-white/5 transition-colors group"
+            return (
+              <motion.div 
+                key={item.id}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: idx * 0.05 }}
+                className="bg-black/40 backdrop-blur-md border border-white/5 p-4 group hover:bg-white/5 transition-all"
+                style={MILITARY_CLIP}
+              >
+                <div className="flex flex-col sm:flex-row gap-4">
+                  {/* Left: Info & Rarity */}
+                  <div className="flex-1 flex gap-3">
+                    <div className={`w-1 h-full min-h-[40px] ${
+                      item.rarity === 'legendary' ? 'bg-yellow-500' : 
+                      item.rarity === 'epic' ? 'bg-fuchsia-500' : 
+                      item.rarity === 'rare' ? 'bg-violet-500' : 'bg-fuchsia-500/50'
+                    } shadow-[0_0_8px_currentColor]`}></div>
+                    
+                    <div className="flex flex-col gap-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className={`font-black font-orbitron tracking-wider text-sm uppercase ${getRarityColor(item.rarity)}`}>
+                          {item.name}
+                        </span>
+                        {isRarityHigh && (
+                          <span className="text-[7px] px-1 bg-white/10 text-white border border-white/20 uppercase font-bold">Elite</span>
+                        )}
+                      </div>
+                      <p className="text-[10px] text-slate-500 font-mono italic line-clamp-1">{item.description}</p>
+                      <span className="text-[8px] text-fuchsia-500/60 font-black uppercase tracking-tighter">Estoque Rede: {item.market_stock?.toLocaleString() || 0}</span>
+                    </div>
+                  </div>
+
+                  {/* Right: Prices & Stock */}
+                  <div className="flex flex-row sm:flex-col items-end justify-between sm:justify-start gap-4 sm:gap-1">
+                    <div className="flex flex-col items-end">
+                      <span className="text-[8px] font-mono text-slate-500 uppercase">Seu Estoque</span>
+                      <span className={`text-sm font-black font-orbitron ${invItem?.quantity > 0 ? 'text-white' : 'text-slate-700'}`}>
+                        {invItem?.quantity?.toLocaleString() || 0}
+                      </span>
+                    </div>
+                    <div className="flex gap-4">
+                      <div className="flex flex-col items-end">
+                        <span className="text-[7px] font-mono text-fuchsia-500 uppercase">Compra</span>
+                        <span className="font-mono text-fuchsia-400 font-bold text-xs">${item.base_price.toLocaleString()}</span>
+                      </div>
+                      <div className="flex flex-col items-end">
+                        <span className="text-[7px] font-mono text-rose-500 uppercase">Venda</span>
+                        <span className="font-mono text-rose-400/80 font-bold text-xs">${sellPrice.toLocaleString()}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Bottom: Controls */}
+                <div className="mt-4 pt-4 border-t border-white/5 flex flex-wrap items-center justify-between gap-3">
+                  <div className="flex items-center gap-1 bg-black/40 p-1 border border-white/5 rounded-sm">
+                    <input 
+                      type="number" 
+                      min="1"
+                      value={quantities[item.code] || 1}
+                      onChange={(e) => updateQuantity(item.code, parseInt(e.target.value))}
+                      className="w-16 bg-transparent text-center font-mono text-xs text-white outline-none"
+                    />
+                    <div className="flex gap-1">
+                      <button onClick={() => setMaxQuantity(item, 'buy')} className="text-[7px] font-black text-fuchsia-500 bg-fuchsia-500/10 px-1 border border-fuchsia-500/20 hover:bg-fuchsia-500/20">MAX_C</button>
+                      <button onClick={() => setMaxQuantity(item, 'sell')} className="text-[7px] font-black text-rose-500 bg-rose-500/10 px-1 border border-rose-500/20 hover:bg-rose-500/20">MAX_V</button>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => handleAction(item.code, 'buy')}
+                      disabled={actionLoading !== null || !canAffordBuy}
+                      className={`px-4 py-2 flex items-center gap-2 font-black text-[9px] uppercase transition-all
+                        ${!canAffordBuy 
+                          ? 'bg-slate-800 text-slate-500 cursor-not-allowed' 
+                          : 'bg-fuchsia-600 hover:bg-fuchsia-500 text-white shadow-[0_0_10px_rgba(192,38,211,0.3)] active:scale-95'}`}
+                      style={MILITARY_CLIP}
                     >
-                      <td className="p-4">
-                        <div className="flex items-center gap-3">
-                          <div className={`w-1 h-8 ${
-                            item.rarity === 'legendary' ? 'bg-yellow-500' : 
-                            item.rarity === 'epic' ? 'bg-fuchsia-500' : 
-                            item.rarity === 'rare' ? 'bg-violet-500' : 'bg-fuchsia-500/50'
-                          } shadow-[0_0_8px_currentColor]`}></div>
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <span className={`font-black font-orbitron tracking-wider text-sm uppercase ${getRarityColor(item.rarity)}`}>
-                                {item.name}
-                              </span>
-                              {isRarityHigh && (
-                                <span className="text-[8px] px-1 bg-white/10 text-white border border-white/20">ELITE_UNIT</span>
-                              )}
-                            </div>
-                          <div className="flex items-center gap-2">
-                               <p className="text-[10px] text-slate-500 font-mono line-clamp-1 italic">{item.description}</p>
-                               <span className="text-[9px] text-fuchsia-500/60 font-black">| ESTOQUE_REDE: {item.market_stock?.toLocaleString() || 0}</span>
-                            </div>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="p-4">
-                        <span className="font-mono text-fuchsia-400 font-bold">${item.base_price.toLocaleString()}</span>
-                      </td>
-                      <td className="p-4">
-                        <span className="font-mono text-rose-400/80 font-bold">${sellPrice.toLocaleString()}</span>
-                      </td>
-                      <td className="p-4 text-center">
-                        <div className="flex flex-col items-center">
-                          <span className={`text-sm font-black font-orbitron ${invItem?.quantity > 0 ? 'text-white' : 'text-slate-700'}`}>
-                            {invItem?.quantity?.toLocaleString() || 0}
-                          </span>
-                          <span className="text-[8px] text-slate-500 uppercase">UNIDADES</span>
-                        </div>
-                      </td>
-                      <td className="p-4">
-                        <div className="flex items-center justify-center gap-1">
-                          <div className="relative group">
-                            <input 
-                              type="number" 
-                              min="1"
-                              value={quantities[item.code] || 1}
-                              onChange={(e) => updateQuantity(item.code, parseInt(e.target.value))}
-                              className="w-24 bg-black/40 border border-white/10 text-center font-mono text-xs text-white focus:border-fuchsia-500 outline-none p-1.5 pr-8"
-                            />
-                            <div className="absolute right-1 top-1/2 -translate-y-1/2 flex flex-col gap-0.5">
-                               <button 
-                                 onClick={() => setMaxQuantity(item, 'buy')}
-                                 title="Máximo de Compra"
-                                 className="text-[8px] font-black text-fuchsia-500 hover:text-white bg-fuchsia-500/10 px-1 border border-fuchsia-500/20"
-                               >
-                                 C
-                               </button>
-                               <button 
-                                 onClick={() => setMaxQuantity(item, 'sell')}
-                                 title="Máximo de Venda"
-                                 className="text-[8px] font-black text-rose-500 hover:text-white bg-rose-500/10 px-1 border border-rose-500/20"
-                               >
-                                 V
-                               </button>
-                            </div>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="p-4">
-                        <div className="flex justify-end gap-2">
-                          <button
-                            onClick={() => handleAction(item.code, 'buy')}
-                            disabled={actionLoading !== null || (userProfile?.money || 0) < (item.base_price * (quantities[item.code] || 1))}
-                            className={`px-3 py-1.5 flex items-center gap-1.5 font-black text-[10px] uppercase transition-all
-                              ${(userProfile?.money || 0) < (item.base_price * (quantities[item.code] || 1)) 
-                                ? 'bg-slate-800 text-slate-500 cursor-not-allowed opacity-50' 
-                                : 'bg-fuchsia-600 hover:bg-fuchsia-500 text-white shadow-[0_0_10px_rgba(192,38,211,0.4)]'}`}
-                            style={MILITARY_CLIP}
-                          >
-                            {actionLoading === `buy-${item.code}` ? (
-                              <ArrowPathIcon className="w-3 h-3 animate-spin" />
-                            ) : (
-                              <ShoppingCartIcon className="w-3 h-3" />
-                            )}
-                            COMPRAR
-                          </button>
-                          <button
-                            onClick={() => handleAction(item.code, 'sell')}
-                            disabled={actionLoading !== null || (invItem?.quantity || 0) < (quantities[item.code] || 1)}
-                            className={`px-3 py-1.5 flex items-center gap-1.5 font-black text-[10px] uppercase transition-all
-                              ${(invItem?.quantity || 0) < (quantities[item.code] || 1)
-                                ? 'bg-slate-800 text-slate-500 cursor-not-allowed opacity-50'
-                                : 'bg-rose-600 hover:bg-rose-500 text-white shadow-[0_0_10px_rgba(225,29,72,0.4)]'}`}
-                            style={MILITARY_CLIP}
-                          >
-                            {actionLoading === `sell-${item.code}` ? (
-                              <ArrowPathIcon className="w-3 h-3 animate-spin" />
-                            ) : (
-                              <CircleStackIcon className="w-3 h-3" />
-                            )}
-                            VENDER
-                          </button>
-                        </div>
-                      </td>
-                    </motion.tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+                      {actionLoading === `buy-${item.code}` ? <ArrowPathIcon className="w-3 h-3 animate-spin" /> : <ShoppingCartIcon className="w-3 h-3" />}
+                      Comprar
+                    </button>
+                    <button
+                      onClick={() => handleAction(item.code, 'sell')}
+                      disabled={actionLoading !== null || !hasEnoughToSell}
+                      className={`px-4 py-2 flex items-center gap-2 font-black text-[9px] uppercase transition-all
+                        ${!hasEnoughToSell
+                          ? 'bg-slate-800 text-slate-500 cursor-not-allowed'
+                          : 'bg-rose-600 hover:bg-rose-500 text-white shadow-[0_0_10px_rgba(225,29,72,0.3)] active:scale-95'}`}
+                      style={MILITARY_CLIP}
+                    >
+                      {actionLoading === `sell-${item.code}` ? <ArrowPathIcon className="w-3 h-3 animate-spin" /> : <CircleStackIcon className="w-3 h-3" />}
+                      Vender
+                    </button>
+                  </div>
+                </div>
+              </motion.div>
+            );
+          })}
         </div>
 
         {/* WARNING PANEL */}

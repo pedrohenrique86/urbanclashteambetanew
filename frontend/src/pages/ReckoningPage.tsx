@@ -454,21 +454,7 @@ export default function ReckoningPage() {
             </div>
           </motion.div>
           <div className="flex flex-wrap items-center gap-3">
-             <div className="bg-black/40 backdrop-blur-md border border-orange-500/30 px-4 py-2 flex items-center gap-3" style={MILITARY_CLIP}>
-                <FireIcon className="w-5 h-5 text-orange-500" />
-                <div className="flex flex-col">
-                  <span className="text-[8px] font-mono text-slate-500 uppercase">POWER_LVL</span>
-                  <span className="text-lg font-black font-orbitron text-orange-400 leading-none">{playerPower.toLocaleString()}</span>
-                </div>
-              </div>
-              
-              <div className="bg-black/40 backdrop-blur-md border border-emerald-500/30 px-4 py-2 flex items-center gap-3" style={MILITARY_CLIP}>
-                <FingerPrintIcon className="w-5 h-5 text-emerald-500" />
-                <div className="flex flex-col">
-                  <span className="text-[8px] font-mono text-slate-500 uppercase">ACTION_PTS</span>
-                  <span className="text-lg font-black font-orbitron text-emerald-400 leading-none">{userProfile?.action_points?.toLocaleString() || 0}</span>
-                </div>
-              </div>
+
 
               <div 
                 onClick={() => setIsManualOpen(true)}

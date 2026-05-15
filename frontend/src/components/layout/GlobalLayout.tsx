@@ -235,11 +235,13 @@ const GlobalLayout: React.FC<GlobalLayoutProps> = ({ children }) => {
             ref={scrollableContainerRef}
             className="flex-1 relative overflow-y-auto overflow-x-hidden thin-scrollbar flex flex-col"
           >
-            <TopBar
-              userProfile={userProfile as any}
-            />
+            <div className="md:hidden">
+              <TopBar
+                userProfile={userProfile as any}
+              />
+            </div>
 
-            <main className="focus:outline-none pt-2 md:pt-4 px-4 md:px-6 pb-6 md:pb-6 relative w-full">
+            <main className="focus:outline-none pt-0 px-4 md:px-6 pb-6 md:pb-6 relative w-full">
               <div className="urban-container">
                 {children}
               </div>

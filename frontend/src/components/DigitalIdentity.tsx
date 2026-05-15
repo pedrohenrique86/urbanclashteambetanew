@@ -311,7 +311,7 @@ const DigitalIdentity = React.memo(
         initial={{ opacity: 0, scale: 0.9, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         transition={{ type: "spring", damping: 20, stiffness: 100 }}
-        className={`w-[95vw] ${isCompact ? 'max-w-md' : 'max-w-4xl'} mx-auto overflow-hidden rounded-[2rem] border-2 ${factionTheme.border} bg-[#0a0a0a] ${factionTheme.boxGlow} relative selection:bg-zinc-800 before:absolute before:inset-0 before:bg-gradient-to-br ${factionTheme.accent} before:opacity-[0.08] before:pointer-events-none transition-all duration-500`}
+        className={`w-full ${isCompact ? 'max-w-md' : 'max-w-5xl'} mx-auto overflow-hidden rounded-[2rem] border-2 ${factionTheme.border} bg-[#0a0a0a] ${factionTheme.boxGlow} relative selection:bg-zinc-800 before:absolute before:inset-0 before:bg-gradient-to-br ${factionTheme.accent} before:opacity-[0.08] before:pointer-events-none transition-all duration-500`}
       >
         {/* Balloon Point (Tail) */}
         {isCompact && (
@@ -333,10 +333,10 @@ const DigitalIdentity = React.memo(
            </div>
 
            {/* Layout Grid: Changes behavior based on mode */}
-           <div className={`grid grid-cols-1 ${isCompact && !isExpanded ? '' : (isCompact ? 'grid-cols-1' : 'lg:grid-cols-12')} gap-6`}>
+           <div className={`grid grid-cols-1 ${isCompact && !isExpanded ? '' : (isCompact ? 'grid-cols-1' : '2xl:grid-cols-12')} gap-8`}>
               
               {/* Left/Main Column - Always Visible */}
-              <div className={!isCompact ? "lg:col-span-5 flex flex-col items-center lg:items-start" : "flex items-center gap-6"}>
+              <div className={!isCompact ? "2xl:col-span-5 flex flex-col items-center 2xl:items-start" : "flex items-center gap-6"}>
                  <div className="relative flex-shrink-0 group">
                     <div className={`w-20 h-20 sm:w-28 sm:h-28 rounded-2xl border-2 ${factionTheme.border} bg-zinc-900 overflow-hidden ${factionTheme.boxGlow} transition-transform group-hover:scale-[1.02]`}>
                        {isEditing ? (
@@ -378,7 +378,7 @@ const DigitalIdentity = React.memo(
                  </div>
               </div>
 
-              <div className={!isCompact ? "lg:col-span-7 flex flex-col gap-4" : "mt-2"}>
+              <div className={!isCompact ? "2xl:col-span-7 flex flex-col gap-4" : "mt-2"}>
                   <div className="grid grid-cols-4 gap-2">
                     <StatBox label="VITÓRIAS" value={player.victories} icon={Trophy} color="text-green-500" />
                     <StatBox label="DERROTAS" value={player.defeats} icon={Frown} color="text-red-500" />
@@ -395,7 +395,7 @@ const DigitalIdentity = React.memo(
                     initial={isCompact ? { height: 0, opacity: 0 } : false} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }}
                     className="overflow-hidden"
                  >
-                    <div className={`grid grid-cols-1 ${!isCompact ? 'lg:grid-cols-2' : 'grid-cols-1'} gap-6 mt-6 pt-6 border-t border-white/5`}>
+                    <div className={`grid grid-cols-1 ${!isCompact ? '2xl:grid-cols-2' : 'grid-cols-1'} gap-6 mt-6 pt-6 border-t border-white/5`}>
                        {/* Bio Box */}
                        <div className="space-y-3">
                           <div className="flex items-center gap-2 opacity-40"><Activity className="w-3 h-3" /><span className="text-[9px] font-black uppercase tracking-widest">MEMORIA_BIOMETRICA</span></div>

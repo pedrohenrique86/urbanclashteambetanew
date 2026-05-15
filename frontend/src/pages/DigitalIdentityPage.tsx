@@ -222,7 +222,7 @@ export default function DigitalIdentityPage({
   }
 
   return (
-    <>
+    <div className="p-4 md:p-8 min-h-screen">
       {saving && (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60">
           <div className="h-10 w-10 animate-spin rounded-full border-b-2 border-orange-500" />
@@ -241,6 +241,6 @@ export default function DigitalIdentityPage({
         onSave={handleSave}
         isCompact={isCompact}
       />
-    </>
+    </div>
   );
 }

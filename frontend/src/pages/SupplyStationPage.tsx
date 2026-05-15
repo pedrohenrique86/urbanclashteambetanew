@@ -287,44 +287,7 @@ export default function SupplyStationPage() {
         
         {/* TOP STATUS BAR */}
         <div className="flex justify-center relative z-10 mb-8">
-          <div className="w-full max-w-6xl grid grid-cols-1 md:grid-cols-3 gap-6 items-stretch">
-            
-            {/* ENERGY STATUS */}
-            <div 
-              className="bg-black/40 backdrop-blur-md border border-rose-500/30 shadow-[0_0_40px_rgba(244,63,94,0.1),inset_0_1px_rgba(255,255,255,0.1)] p-6 relative group overflow-hidden"
-              style={MILITARY_CLIP}
-            >
-              <div className="absolute top-0 right-0 p-2 opacity-30 group-hover:opacity-50 transition-opacity">
-                <HeartPulse className="w-12 h-12 text-red-500 drop-shadow-[0_0_8px_rgba(239,68,68,0.5)]" />
-              </div>
-              <h3 className="text-[10px] font-orbitron text-rose-500 mb-6 flex flex-col gap-1 tracking-[0.3em]">
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,1)]"></div> ENERGY_LEVEL
-                </div>
-                <span className="text-[9px] text-white/40 font-black font-orbitron tracking-[0.2em] leading-none mt-1 uppercase">ESTADO DE VIGOR</span>
-              </h3>
-              <div className="flex items-center gap-4">
-                <div className="flex-1">
-                  <div className="flex items-end gap-2 mb-2">
-                    <span className="text-6xl font-black text-white font-orbitron leading-none">{currentEnergy}</span>
-                    <span className="text-slate-400 font-bold uppercase text-[10px] tracking-widest mb-1">/ {maxEnergy} EN</span>
-                  </div>
-                  <div className="w-full bg-white/5 h-2 overflow-hidden border border-white/5">
-                    <motion.div 
-                      initial={{ width: 0 }}
-                      animate={{ width: `${(currentEnergy / maxEnergy) * 100}%` }}
-                      className="h-full bg-rose-500 shadow-[0_0_15px_rgba(244,63,94,0.6)] relative"
-                    >
-                      <div className="absolute inset-0 bg-[repeating-linear-gradient(45deg,transparent,transparent_5px,rgba(0,0,0,0.2)_5px,rgba(0,0,0,0.2)_10px)]"></div>
-                    </motion.div>
-                  </div>
-                  <div className="flex justify-between mt-2">
-                    <span className="text-[8px] font-mono text-slate-500 uppercase tracking-tighter">UNIDADE_STATUS:</span>
-                    <span className={`font-mono text-[8px] ${currentEnergy < 20 ? 'text-red-500 animate-pulse' : 'text-rose-500/60'}`}>{currentEnergy < 20 ? 'CRÍTICO' : 'NOMINAL'}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
+          <div className="w-full max-w-6xl grid grid-cols-1 md:grid-cols-2 gap-6 items-stretch">
 
             {/* ANTIDOTE STATUS CARD */}
             {(() => {
