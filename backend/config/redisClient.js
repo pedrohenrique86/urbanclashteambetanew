@@ -382,6 +382,34 @@ const redisWrapper = {
     }
   },
 
+  zIncrByAsync: async (key, increment, member) => {
+    if (!key || !isReady) return null;
+    try {
+      return await client.zIncrBy(String(key), Number(increment), String(member));
+    } catch (err) {
+      console.error(`[RedisClient] Erro em zIncrByAsync key=${key}:`, err.message);
+      return null;
+    }
+  },
+
+  zRevRangeWithScoresAsync: async (key, start, stop) => {
+    if (!key || !isReady) return [];
+    try {
+      // SÊNIOR: No v4, usamos o formato de objeto para WITHSCORES
+      const results = await client.zRangeWithScores(String(key), start, stop, { REV: true });
+      // SÊNIOR: Para compatibilidade com o código que espera [id, score, id, score], 
+      // convertemos o array de objetos { value, score } para o formato "flat".
+      const flat = [];
+      for (const item of results) {
+        flat.push(item.value, item.score);
+      }
+      return flat;
+    } catch (err) {
+      console.error(`[RedisClient] Erro em zRevRangeWithScoresAsync key=${key}:`, err.message);
+      return [];
+    }
+  },
+
   zRangeWithScoresAsync: async (key, start, stop) => {
     if (!key || !isReady) return [];
     try {

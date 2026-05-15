@@ -14,6 +14,7 @@ const {
   RANKING_ALL, 
   RANKING_RENEGADOS, 
   RANKING_GUARDIOES,
+  RANKING_CLANS,
   PLAYER_STATE_PREFIX
 } = require("./playerStateConstants");
 const gameLogic = require("../utils/gameLogic");
@@ -60,7 +61,16 @@ class RankingCacheService {
     const topIds = await redisClient.zRevRangeAsync(zkey, 0, 99);
     
     if (!topIds || topIds.length === 0) {
-      return { data: [], etag: "empty", timestamp: Date.now() };
+      // SÊNIOR: Se o Redis estiver vazio (ex: após reset), dispara warmup automático
+      console.log(`[ranking] 🔄 ZSET ${zkey} vazio. Iniciando reconstrução...`);
+      await this.initializeRankingZSet();
+      
+      // Tenta buscar novamente após o warmup
+      const retryIds = await redisClient.zRevRangeAsync(zkey, 0, 99);
+      if (!retryIds || retryIds.length === 0) {
+        return { data: [], etag: "empty", timestamp: Date.now() };
+      }
+      return this._getUsersRanking(faction); // Recursão controlada (uma única vez)
     }
 
     // Hydration em lote (Pipeline) - Muito mais rápido que queries individuais
@@ -149,17 +159,15 @@ class RankingCacheService {
     const topIds = await redisClient.zRevRangeWithScoresAsync(RANKING_CLANS, 0, 49);
     
     if (!topIds || topIds.length === 0) {
-      // Fallback para o Banco se o Redis estiver vazio (warmup automático)
+      // SÊNIOR: Warmup automático para clãs
+      console.log(`[ranking] 🔄 RANKING_CLANS vazio. Reconstruindo...`);
+      await this.initializeRankingZSet();
+
+      // Fallback para o Banco se o Redis ainda estiver vazio
       const { rows } = await query(
         `SELECT id, name, faction, season_score as score, member_count 
          FROM clans ORDER BY season_score DESC LIMIT 50`
       );
-      if (rows.length > 0) {
-        // Aproveita para popular o Redis
-        const p = redisClient.pipeline();
-        rows.forEach(r => p.zAdd(RANKING_CLANS, [{ score: Number(r.score) || 0, value: String(r.id) }]));
-        await p.exec();
-      }
       return { data: rows.map((r, i) => ({ ...r, position: i + 1 })), etag: "db-fallback", timestamp: Date.now() };
     }
 
