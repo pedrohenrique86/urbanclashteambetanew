@@ -17,6 +17,8 @@ import {
   Skull
 } from 'lucide-react';
 
+const MILITARY_CLIP = { clipPath: "polygon(8px 0%, 100% 0%, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0% 100%, 0% 8px)" };
+
 const FactionThemes = {
   guardas: {
     accent: 'text-cyan-400',
@@ -53,7 +55,7 @@ const HUDCorner = ({ position, colorClass }: { position: 'tl' | 'tr' | 'bl' | 'b
 
 type FactionName = keyof typeof FactionThemes;
 
-const SelecaoClasPage: React.FC = () => {
+const SelecaoDivisoesPage: React.FC = () => {
   const { userProfile, refreshProfile, setUserProfile } = useUserProfile();
   
   const rawFaction = userProfile?.faction as any;
@@ -87,7 +89,7 @@ const SelecaoClasPage: React.FC = () => {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-[#050505] text-white">
         <Zap className="w-12 h-12 text-zinc-800 animate-pulse mb-4" />
-        <span className="text-[10px] font-black font-orbitron text-zinc-600 tracking-[0.4em] uppercase">CARREGANDO_REDES_DE_ELITE</span>
+        <span className="text-[10px] font-black font-orbitron text-zinc-600 tracking-[0.4em] uppercase">CARREGANDO_DIVISOES_DE_ELITE</span>
       </div>
     );
   }
@@ -163,107 +165,122 @@ const SelecaoClasPage: React.FC = () => {
         </AnimatePresence>
 
 
-        {/* Elite Clan Grid - Scrollable content within fixed frame if needed, but aimed at no-scrollbar */}
-        <div className="flex-1 flex items-center justify-center overflow-hidden py-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full max-h-full overflow-y-auto no-scrollbar pb-12 px-2">
-            {clans && clans.map((clan, index) => {
-              const isJoining = joiningClanId === clan.id;
-              const isFull = clan.member_count >= (clan.max_members || 40);
-              
-              return (
-                <motion.div
-                  key={clan.id}
-                  initial={{ opacity: 0, scale: 0.9, y: 20 }}
-                  animate={{ opacity: 1, scale: 1, y: 0 }}
-                  transition={{ delay: index * 0.1, ease: [0.23, 1, 0.32, 1] }}
-                  whileHover={{ scale: 1.02, y: -5 }}
-                  className={`group relative flex flex-col rounded-sm border ${theme.border} ${theme.bg} backdrop-blur-2xl transition-all duration-500 ${theme.glow} h-full`}
+        {/* Elite Clan Grid */}
+        <div className="flex-1 flex flex-col overflow-hidden py-4">
+          {!clans || clans.length === 0 ? (
+             <div className="flex-1 flex flex-col items-center justify-center text-center p-8 border border-dashed border-white/10 rounded-lg">
+                <Users className="w-12 h-12 text-zinc-800 mb-4" />
+                <h3 className="text-zinc-500 font-orbitron font-black text-xs uppercase tracking-widest">Nenhuma divisão operacional encontrada</h3>
+                <p className="text-zinc-600 text-[10px] mt-2 max-w-xs font-mono uppercase">O sistema não detectou redes de elite para sua facção neste setor. Tente novamente em instantes.</p>
+                <button 
+                  onClick={() => refreshProfile()}
+                  className="mt-6 px-6 py-2 border border-white/10 text-[9px] font-black uppercase hover:bg-white/5 transition-all"
+                  style={MILITARY_CLIP}
                 >
-                  {/* HUD Elements */}
-                  <HUDCorner position="tl" colorClass={theme.accent.replace('text-', 'border-')} />
-                  <HUDCorner position="tr" colorClass={theme.accent.replace('text-', 'border-')} />
-                  <HUDCorner position="bl" colorClass={theme.accent.replace('text-', 'border-')} />
-                  <HUDCorner position="br" colorClass={theme.accent.replace('text-', 'border-')} />
-
-                  {/* Top Scanline Animation */}
-                  <div className="absolute inset-0 overflow-hidden pointer-events-none opacity-20">
-                     <motion.div 
-                        animate={{ top: ['-10%', '110%'] }}
-                        transition={{ duration: 3, repeat: Infinity, ease: 'linear' }}
-                        className={`absolute left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-${theme.accent.split('-')[1]}-500/50 to-transparent`}
-                     />
-                  </div>
-                  
-                  {/* Status Badge */}
-                  <div className={`absolute top-4 right-4 px-3 py-1 rounded-sm text-[8px] font-black font-orbitron tracking-[0.2em] z-20 ${isFull ? 'bg-red-500/20 text-red-500 border border-red-500/30' : 'bg-emerald-500/20 text-emerald-500 border border-emerald-500/30 animate-pulse'}`}>
-                     {isFull ? 'LOCKDOWN' : 'OPERACIONAL'}
-                  </div>
-
-                  <div className="p-6 flex flex-col h-full relative z-10">
-                    <div className="flex items-start justify-between mb-4">
-                       <div className="flex flex-col min-w-0">
-                          <h2 className="text-lg sm:text-x font-black font-orbitron text-white leading-none uppercase tracking-tighter group-hover:text-white transition-colors truncate">
-                             {clan.name}
-                          </h2>
-                          <span className="text-[8px] font-bold text-zinc-500 tracking-widest mt-1 uppercase">NET_ID_{clan.id.toString().padStart(4, '0')}</span>
-                       </div>
-                       <div className={`w-10 h-10 shrink-0 rounded-sm bg-black/40 border ${theme.border} flex items-center justify-center`}>
-                          <FactionIcon className={`w-5 h-5 ${theme.accent}`} />
-                       </div>
+                  Reiniciar Escaneamento
+                </button>
+             </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full max-h-full overflow-y-auto no-scrollbar pb-12 px-2">
+              {clans.map((clan, index) => {
+                const isJoining = joiningClanId === clan.id;
+                const isFull = clan.member_count >= (clan.max_members || 40);
+                
+                return (
+                  <motion.div
+                    key={clan.id}
+                    initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    transition={{ delay: index * 0.1, ease: [0.23, 1, 0.32, 1] }}
+                    whileHover={{ scale: 1.02, y: -5 }}
+                    className={`group relative flex flex-col rounded-sm border ${theme.border} ${theme.bg} backdrop-blur-2xl transition-all duration-500 ${theme.glow} h-full`}
+                  >
+                    {/* HUD Elements */}
+                    <HUDCorner position="tl" colorClass={theme.accent.replace('text-', 'border-')} />
+                    <HUDCorner position="tr" colorClass={theme.accent.replace('text-', 'border-')} />
+                    <HUDCorner position="bl" colorClass={theme.accent.replace('text-', 'border-')} />
+                    <HUDCorner position="br" colorClass={theme.accent.replace('text-', 'border-')} />
+  
+                    {/* Top Scanline Animation */}
+                    <div className="absolute inset-0 overflow-hidden pointer-events-none opacity-20">
+                       <motion.div 
+                          animate={{ top: ['-10%', '110%'] }}
+                          transition={{ duration: 3, repeat: Infinity, ease: 'linear' }}
+                          className={`absolute left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-${theme.accent.split('-')[1]}-500/50 to-transparent`}
+                       />
                     </div>
-
-                    <div className="flex-grow">
-                      <p className="text-zinc-400 text-[11px] leading-relaxed mb-4 line-clamp-2 font-medium">
-                        {clan.description || "PROTOCOLOS DE DESCRIÇÃO NÃO ENCONTRADOS."}
-                      </p>
-
-                      <div className="flex gap-3 mb-6">
-                         <div className="flex-1 px-3 py-2 rounded-sm bg-white/[0.02] border border-white/5 flex flex-col items-center">
-                            <span className="text-[6px] font-black text-zinc-500 uppercase tracking-widest mb-1">EFETIVO</span>
-                            <div className="flex items-center gap-1.5">
-                               <Users className="w-2.5 h-2.5 text-zinc-400" />
-                               <span className="text-[10px] font-orbitron font-bold text-white tracking-widest">{clan.member_count}/{clan.max_members || 40}</span>
-                            </div>
+                    
+                    {/* Status Badge */}
+                    <div className={`absolute top-4 right-4 px-3 py-1 rounded-sm text-[8px] font-black font-orbitron tracking-[0.2em] z-20 ${isFull ? 'bg-red-500/20 text-red-500 border border-red-500/30' : 'bg-emerald-500/20 text-emerald-500 border border-emerald-500/30 animate-pulse'}`}>
+                       {isFull ? 'LOCKDOWN' : 'OPERACIONAL'}
+                    </div>
+  
+                    <div className="p-6 flex flex-col h-full relative z-10">
+                      <div className="flex items-start justify-between mb-4">
+                         <div className="flex flex-col min-w-0">
+                            <h2 className="text-lg sm:text-x font-black font-orbitron text-white leading-none uppercase tracking-tighter group-hover:text-white transition-colors truncate">
+                               {clan.name}
+                            </h2>
+                            <span className="text-[8px] font-bold text-zinc-500 tracking-widest mt-1 uppercase">NET_ID_{clan.id.toString().padStart(4, '0')}</span>
                          </div>
-                         <div className="flex-1 px-3 py-2 rounded-sm bg-white/[0.02] border border-white/5 flex flex-col items-center">
-                            <span className="text-[6px] font-black text-zinc-500 uppercase tracking-widest mb-1">SCORE</span>
-                            <div className="flex items-center gap-1.5">
-                               <Target className={`w-2.5 h-2.5 ${theme.accent}`} />
-                               <span className={`text-[10px] font-orbitron font-bold text-white tracking-widest`}>{clan.score || 0}</span>
-                            </div>
+                         <div className={`w-10 h-10 shrink-0 rounded-sm bg-black/40 border ${theme.border} flex items-center justify-center`}>
+                            <FactionIcon className={`w-5 h-5 ${theme.accent}`} />
                          </div>
                       </div>
-                    </div>
-
-                    <button 
-                      type="button"
-                      onClick={() => handleJoinClan(clan.id)}
-                      disabled={isJoining || joiningClanId !== null || isFull}
-                      className={`relative w-full py-3 rounded-sm font-black font-orbitron text-[9px] tracking-[0.4em] uppercase transition-all duration-300 overflow-hidden ${isFull ? 'bg-zinc-900 text-zinc-700 cursor-not-allowed' : theme.button + ' text-white'}`}
-                    >
-                      <div className="flex items-center justify-center gap-2 relative z-10">
-                         {isJoining ? (
-                           <Cpu className={`w-3 h-3 animate-spin ${theme.accent}`} />
-                         ) : isFull ? (
-                           <span>LOCKED</span>
-                         ) : (
-                           <div className="flex items-center gap-2 group-hover:gap-3 transition-all">
-                             <span>INGRESSAR</span>
-                             <ChevronRight className="w-3 h-3" />
+  
+                      <div className="flex-grow">
+                        <p className="text-zinc-400 text-[11px] leading-relaxed mb-4 line-clamp-2 font-medium">
+                          {clan.description || "PROTOCOLOS DE DESCRIÇÃO NÃO ENCONTRADOS."}
+                        </p>
+  
+                        <div className="flex gap-3 mb-6">
+                           <div className="flex-1 px-3 py-2 rounded-sm bg-white/[0.02] border border-white/5 flex flex-col items-center">
+                              <span className="text-[6px] font-black text-zinc-500 uppercase tracking-widest mb-1">EFETIVO</span>
+                              <div className="flex items-center gap-1.5">
+                                 <Users className="w-2.5 h-2.5 text-zinc-400" />
+                                 <span className="text-[10px] font-orbitron font-bold text-white tracking-widest">{clan.member_count}/{clan.max_members || 40}</span>
+                              </div>
                            </div>
-                         )}
+                           <div className="flex-1 px-3 py-2 rounded-sm bg-white/[0.02] border border-white/5 flex flex-col items-center">
+                              <span className="text-[6px] font-black text-zinc-500 uppercase tracking-widest mb-1">SCORE</span>
+                              <div className="flex items-center gap-1.5">
+                                 <Target className={`w-2.5 h-2.5 ${theme.accent}`} />
+                                 <span className={`text-[10px] font-orbitron font-bold text-white tracking-widest`}>{clan.score || 0}</span>
+                              </div>
+                           </div>
+                        </div>
                       </div>
-                      
-                      {!isFull && !isJoining && (
-                        <div className={`absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity bg-gradient-to-r ${theme.accentBg} pointer-events-none`} />
-                      )}
-                    </button>
-                  </div>
-
-                </motion.div>
-              );
-            })}
-          </div>
+  
+                      <button 
+                        type="button"
+                        onClick={() => handleJoinClan(clan.id)}
+                        disabled={isJoining || joiningClanId !== null || isFull}
+                        className={`relative w-full py-3 rounded-sm font-black font-orbitron text-[9px] tracking-[0.4em] uppercase transition-all duration-300 overflow-hidden ${isFull ? 'bg-zinc-900 text-zinc-700 cursor-not-allowed' : theme.button + ' text-white'}`}
+                      >
+                        <div className="flex items-center justify-center gap-2 relative z-10">
+                           {isJoining ? (
+                             <Cpu className={`w-3 h-3 animate-spin ${theme.accent}`} />
+                           ) : isFull ? (
+                             <span>LOCKED</span>
+                           ) : (
+                             <div className="flex items-center gap-2 group-hover:gap-3 transition-all">
+                               <span>INGRESSAR</span>
+                               <ChevronRight className="w-3 h-3" />
+                             </div>
+                           )}
+                        </div>
+                        
+                        {!isFull && !isJoining && (
+                          <div className={`absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity bg-gradient-to-r ${theme.accentBg} pointer-events-none`} />
+                        )}
+                      </button>
+                    </div>
+  
+                  </motion.div>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         {/* Footer HUD decorative element */}
@@ -291,4 +308,4 @@ const SelecaoClasPage: React.FC = () => {
   );
 };
 
-export default SelecaoClasPage;
+export default SelecaoDivisoesPage;

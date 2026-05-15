@@ -100,7 +100,7 @@ async function query(text, params = []) {
 
     return {
       rows: res.rows,
-      rowCount: res.rows.length,
+      rowCount: res.rowsAffected || res.rows.length,
       lastInsertRowid: res.lastInsertRowid
     };
   } catch (error) {

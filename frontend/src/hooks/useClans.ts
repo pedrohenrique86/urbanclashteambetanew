@@ -30,7 +30,7 @@ export const useClans = (faction?: 'gangsters' | 'guardas') => {
         // A resposta pode já ser o array de clãs, dependendo da implementação do apiClient
         setClans(response.clans || response);
       } catch (err) {
-        setError('Falha ao buscar os clãs.');
+        setError('Falha ao buscar as divisões.');
         console.error(err);
       } finally {
         setIsLoading(false);

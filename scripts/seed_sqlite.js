@@ -14,12 +14,35 @@ const factions = [
 ];
 
 const clansToInsert = [
-  { id: 'g1', name: "Sindicato da Névoa", description: "Docas e contrabando.", faction: "gangsters", faction_id: 1 },
-  { id: 'g2', name: "Consórcio Escarlate", description: "Agiotas e apostadores.", faction: "gangsters", faction_id: 1 },
-  { id: 'g3', name: "Irmandade do Asfalto", description: "Rotas de transporte.", faction: "gangsters", faction_id: 1 },
-  { id: 'u1', name: "Baluarte da Aurora", description: "Primeira linha de defesa.", faction: "guardas", faction_id: 2 },
-  { id: 'u2', name: "Sentinelas de Aço", description: "Intervenção rápida.", faction: "guardas", faction_id: 2 }
-  // ... (Simplificado para brevidade, mas o original tinha mais itens)
+  // 🔥 RENEGADOS (GANGSTERS)
+  { id: 'g1', name: "Divisão Sombra", description: "Você nem percebe quando já caiu.", faction: "renegados", faction_id: 1 },
+  { id: 'g2', name: "Divisão Caos", description: "Transformamos ordem em cinzas.", faction: "renegados", faction_id: 1 },
+  { id: 'g3', name: "Divisão Ruína", description: "Onde pisamos, nada permanece.", faction: "renegados", faction_id: 1 },
+  { id: 'g4', name: "Divisão Fúria", description: "Sem freio, sem pausa, só impacto.", faction: "renegados", faction_id: 1 },
+  { id: 'g5', name: "Divisão Eclipse", description: "Sumimos com qualquer vestígio.", faction: "renegados", faction_id: 1 },
+  { id: 'g6', name: "Divisão Vândalos", description: "Marcamos território na força.", faction: "renegados", faction_id: 1 },
+  { id: 'g7', name: "Divisão Predadores", description: "Você corre, a gente termina.", faction: "renegados", faction_id: 1 },
+  { id: 'g8', name: "Divisão Abismo", description: "Cada passo seu é o último.", faction: "renegados", faction_id: 1 },
+  { id: 'g9', name: "Divisão Rebeldes", description: "Regra é só mais um alvo.", faction: "renegados", faction_id: 1 },
+  { id: 'g10', name: "Divisão Carnificina", description: "A batalha sempre escala.", faction: "renegados", faction_id: 1 },
+  { id: 'g11', name: "Divisão Insurgentes", description: "Nunca lutamos do seu jeito.", faction: "renegados", faction_id: 1 },
+  { id: 'g12', name: "Divisão Fantasma", description: "Chegamos, resolvemos, sumimos.", faction: "renegados", faction_id: 1 },
+  { id: 'g13', name: "Divisão Anarquia", description: "O jogo quebra quando entramos.", faction: "renegados", faction_id: 1 },
+
+  // 🛡️ GUARDIÕES (GUARDAS)
+  { id: 'u1', name: "Divisão Sentinela", description: "Nada passa despercebido.", faction: "guardioes", faction_id: 2 },
+  { id: 'u2', name: "Divisão Bastião", description: "Seguramos o que você destrói.", faction: "guardioes", faction_id: 2 },
+  { id: 'u3', name: "Divisão Guardiões", description: "Onde chegamos, tudo resiste.", faction: "guardioes", faction_id: 2 },
+  { id: 'u4', name: "Divisão Vigília", description: "Frieza que decide batalhas.", faction: "guardioes", faction_id: 2 },
+  { id: 'u5', name: "Divisão Aegis", description: "Nem a escuridão atravessa.", faction: "guardioes", faction_id: 2 },
+  { id: 'u6', name: "Divisão Legião", description: "Tomamos território em bloco.", faction: "guardioes", faction_id: 2 },
+  { id: 'u7', name: "Divisão Escudo", description: "Aqui a corrida acaba.", faction: "guardioes", faction_id: 2 },
+  { id: 'u8', name: "Divisão Justiça", description: "Cada erro seu tem sentença.", faction: "guardioes", faction_id: 2 },
+  { id: 'u9', name: "Divisão Custódia", description: "Tudo fica sob vigilância.", faction: "guardioes", faction_id: 2 },
+  { id: 'u10', name: "Divisão Fortaleza", description: "Aqui a batalha encerra.", faction: "guardioes", faction_id: 2 },
+  { id: 'u11', name: "Divisão Ordem", description: "Sempre vencemos do nosso jeito.", faction: "guardioes", faction_id: 2 },
+  { id: 'u12', name: "Divisão Vanguard", description: "Chegamos primeiro e ficamos.", faction: "guardioes", faction_id: 2 },
+  { id: 'u13', name: "Divisão Patrulha", description: "O controle nunca falha.", faction: "guardioes", faction_id: 2 }
 ];
 
 async function seed() {

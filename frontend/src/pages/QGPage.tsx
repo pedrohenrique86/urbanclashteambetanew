@@ -1,6 +1,6 @@
 import React from 'react';
 import { useUserProfileContext } from '../contexts/UserProfileContext';
-import SelecaoClasPage from './SelecaoClasPage';
+import SelecaoDivisoesPage from './SelecaoClasPage';
 import ClanPage from './ClanPage';
 
 const QGPage: React.FC = () => {
@@ -17,7 +17,7 @@ const QGPage: React.FC = () => {
     return <ClanPage />;
   }
 
-  return <SelecaoClasPage />;
+  return <SelecaoDivisoesPage />;
 };
 
 export default QGPage;
