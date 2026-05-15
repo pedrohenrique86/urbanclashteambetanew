@@ -1,8 +1,10 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import { UserProfile } from "../../contexts/UserProfileContext";
 import { calculateCombatStats } from "../../utils/combat";
 import { FACTION_ALIAS_MAP_FRONTEND } from "../../utils/faction";
 import { useTheme } from "../../contexts/ThemeContext";
+import { Tooltip } from "react-tooltip";
+import { X } from "lucide-react";
 
 // Import Assets
 import bottomUi from "../../assets/assetscardplayer/sprite_0002.webp";
@@ -101,8 +103,8 @@ const CircularProgress = ({ progress, label, value, gradientId, glowColor }: { p
   );
 };
 
-const StatItem = ({ icon, label, value, iconScale = 1 }: { icon: string, label: string, value: string | number, iconScale?: number }) => (
-  <div className="flex flex-col items-center justify-center py-1.5 px-1">
+const StatItem = ({ icon, label, value, iconScale = 1, tooltipId, cursorClass = "cursor-default" }: { icon: string, label: string, value: string | number, iconScale?: number, tooltipId?: string, cursorClass?: string }) => (
+  <div className={`flex flex-col items-center justify-center py-1.5 px-1 ${cursorClass}`} data-tooltip-id={tooltipId}>
     <div className="flex items-center gap-1 text-white/70 mb-1">
       <img 
         src={icon} 
@@ -173,16 +175,218 @@ const RightPlayerSidebar: React.FC<RightPlayerSidebarProps> = ({ userProfile }) 
     return                            fmt(abs, 1_000, "T");
   };
 
+  const [activeModal, setActiveModal] = useState<string | null>(null);
+
   if (!userProfile) return null;
 
   const isRenegade = userFaction === "gangsters";
   const factionColor = isRenegade ? "#ff9500" : "#00d0ff";
 
+  // Modal Component for Central Display
+  const StatModal = ({ type, onClose }: { type: string, onClose: () => void }) => {
+    const getContent = () => {
+      switch (type) {
+        case 'level':
+          return (
+            <div className="p-6 space-y-5 font-orbitron">
+              <div className="flex items-center justify-between border-b border-white/10 pb-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
+                  <span className="text-green-400 font-black text-lg tracking-widest uppercase">Análise de Rank Operacional</span>
+                </div>
+                <button onClick={onClose} className="text-white/40 hover:text-white transition-colors">
+                  <X size={20} />
+                </button>
+              </div>
+              
+              <div className="space-y-4">
+                <p className="text-white/60 text-[10px] uppercase tracking-[0.2em] font-bold mb-1">Composição de Prestígio:</p>
+                
+                <div className="grid gap-3">
+                  <div className="flex items-center justify-between bg-white/5 p-4 rounded-xl border border-white/5">
+                    <div className="flex flex-col">
+                      <span className="text-white/40 text-[9px] uppercase font-bold mb-1">Nível Base (XP)</span>
+                      <span className="text-white/90 text-xs font-medium">Progressão de Carreira</span>
+                    </div>
+                    <span className="text-purple-400 font-black text-xl">+{levelBreakdown.xpLvl}</span>
+                  </div>
+
+                  <div className="flex items-center justify-between bg-white/5 p-4 rounded-xl border border-white/5">
+                    <div className="flex flex-col">
+                      <span className="text-white/40 text-[9px] uppercase font-bold mb-1">Maestria Técnica</span>
+                      <span className="text-white/90 text-xs font-medium">Bônus de Atributos ({Math.floor(levelBreakdown.totalStats)} / 25)</span>
+                    </div>
+                    <span className="text-cyan-400 font-black text-xl">+{levelBreakdown.statsBonus}</span>
+                  </div>
+
+                  <div className="flex items-center justify-between bg-white/5 p-4 rounded-xl border border-white/5">
+                    <div className="flex flex-col">
+                      <span className="text-white/40 text-[9px] uppercase font-bold mb-1">Reputação Monetária</span>
+                      <span className="text-white/90 text-xs font-medium">Bônus de Riqueza (${(levelBreakdown.money).toLocaleString("pt-BR")} / 100k)</span>
+                    </div>
+                    <span className="text-lime-400 font-black text-xl">+{levelBreakdown.moneyBonus}</span>
+                  </div>
+                </div>
+
+                <div className="pt-4 border-t border-white/20 flex items-center justify-between">
+                  <div className="flex flex-col">
+                    <span className="text-white font-black text-sm uppercase tracking-widest">Nível Final</span>
+                    <span className="text-[9px] text-white/40 uppercase tracking-widest font-mono">Status Dinâmico em Tempo Real</span>
+                  </div>
+                  <span className="text-green-400 font-black text-4xl drop-shadow-[0_0_15px_rgba(34,197,94,0.6)]">
+                    {levelBreakdown.xpLvl + levelBreakdown.statsBonus + levelBreakdown.moneyBonus}
+                  </span>
+                </div>
+
+                <div className="bg-white/5 p-4 rounded-xl border border-white/5 mt-2">
+                  <p className="text-[10px] text-zinc-300 leading-relaxed font-medium">
+                    <span className="text-green-400/80 font-black uppercase text-[8px] tracking-[0.2em] block mb-1.5">Análise de Balanço:</span>
+                    O divisor <span className="text-cyan-400 font-bold">25</span> nos atributos equilibra seu treino físico com o XP. Isso garante que sua maestria técnica e reputação monetária contribuam para o rank de forma justa, premiando o investimento em sua build.
+                  </p>
+                </div>
+              </div>
+            </div>
+          );
+        case 'xp':
+          return (
+            <div className="p-6 space-y-5 font-orbitron">
+              <div className="flex items-center justify-between border-b border-white/10 pb-3">
+                <span className="text-purple-400 font-black text-lg tracking-widest uppercase">Experiência (XP)</span>
+                <button onClick={onClose} className="text-white/40 hover:text-white transition-colors"><X size={20} /></button>
+              </div>
+              <div className="space-y-4">
+                <div className="bg-black/40 p-5 rounded-2xl border border-purple-500/20 space-y-4">
+                  <p className="text-white/80 text-sm leading-relaxed">Concedida passivamente ao concluir treinamentos diários e operações de risco.</p>
+                  <div className="space-y-3">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="bg-white/5 p-4 rounded-xl border border-white/5">
+                        <span className="text-[10px] text-purple-300/60 uppercase block mb-1">Atual / Requisito</span>
+                        <span className="text-white font-black text-lg">{xpCurrent.toLocaleString()} / {xpRequired.toLocaleString()}</span>
+                      </div>
+                      <div className="bg-white/5 p-4 rounded-xl border border-white/5">
+                        <span className="text-[10px] text-purple-300/60 uppercase block mb-1">XP Total</span>
+                        <span className="text-white font-black text-lg">{Number(userProfile?.xp ?? 0).toLocaleString("pt-BR")}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <p className="text-[10px] text-white leading-relaxed italic border-l-2 border-purple-500/30 pl-4">
+                  O XP forma a base central vital da progressão na Faction, elevando o &apos;Nível Base&apos; do seu status militar antes de receber os cálculos de prestígio (riqueza & treino).
+                </p>
+              </div>
+            </div>
+          );
+        case 'crit_dmg':
+          return (
+            <div className="p-6 space-y-5 font-orbitron">
+              <div className="flex items-center justify-between border-b border-white/10 pb-3">
+                <div className="flex flex-col">
+                  <span className="text-rose-400 font-black text-lg tracking-widest uppercase">Multiplicador Crítico</span>
+                  <span className="text-[9px] text-zinc-500 uppercase font-mono">Cálculo de Letalidade Final</span>
+                </div>
+                <button onClick={onClose} className="text-white/40 hover:text-white transition-colors"><X size={20} /></button>
+              </div>
+              <div className="space-y-4">
+                <div className="bg-black/40 p-5 rounded-2xl border border-rose-500/20 shadow-inner">
+                  <div className="flex justify-between items-end mb-6">
+                    <div className="flex flex-col">
+                      <span className="text-rose-400/60 text-[10px] uppercase font-bold tracking-tighter">Potencial Letal</span>
+                      <span className="text-white font-black text-4xl leading-none">{combat.criticalDamage.toFixed(2)}x</span>
+                    </div>
+                    <span className="text-[10px] text-zinc-500 font-mono italic">MAX 4.0x</span>
+                  </div>
+                  <div className="space-y-3 text-[10px] opacity-90 font-mono">
+                    <div className="flex justify-between items-center border-b border-white/5 pb-2">
+                      <span className="text-zinc-400 uppercase">Base de Facção</span> 
+                      <span className="text-white font-bold">+{((isRenegade?150:130)/100).toFixed(2)}x</span>
+                    </div>
+                    <div className="flex justify-between items-center border-b border-white/5 pb-2">
+                      <span className="text-cyan-400 uppercase">Treino Stats (Soma/50)</span> 
+                      <span className="text-white font-bold">+{(Math.floor((Number(userProfile.attack ?? 0)+Number(userProfile.defense ?? 0)+Number(userProfile.focus ?? 0))/50)/100).toFixed(2)}x</span>
+                    </div>
+                    <div className="flex justify-between items-center border-b border-white/5 pb-2">
+                      <span className="text-rose-400 uppercase">Pontos Acumulados</span> 
+                      <span className="text-white font-bold">+{(Number(userProfile.critical_damage ?? 0)/100).toFixed(2)}x</span>
+                    </div>
+                    <div className="flex justify-between items-center text-emerald-400">
+                      <span className="uppercase">Bônus de Instinto</span> 
+                      <span className="font-bold">+{(Number((userProfile.instinct ?? 0)*0.5)/100).toFixed(2)}x</span>
+                    </div>
+                  </div>
+                </div>
+                <div className="bg-white/5 p-3 rounded-lg border border-white/10 text-center">
+                   <span className="text-[9px] text-white uppercase tracking-[0.2em] font-mono">Fórmula: 1 + (base+stats+acum+inst) / 100</span>
+                </div>
+              </div>
+            </div>
+          );
+        case 'crit_pct':
+          return (
+            <div className="p-6 space-y-5 font-orbitron">
+              <div className="flex items-center justify-between border-b border-white/10 pb-3">
+                <div className="flex flex-col">
+                  <span className="text-yellow-400 font-black text-lg tracking-widest uppercase">Chance Crítica</span>
+                  <span className="text-[9px] text-white uppercase font-mono">Probabilidade de Crítico</span>
+                </div>
+                <button onClick={onClose} className="text-white/40 hover:text-white transition-colors"><X size={20} /></button>
+              </div>
+              <div className="space-y-4">
+                <div className="bg-black/40 p-5 rounded-2xl border border-yellow-500/20">
+                  <div className="flex justify-between items-end mb-6">
+                    <div className="flex flex-col">
+                      <span className="text-yellow-400/60 text-[10px] uppercase font-bold tracking-tighter">Probabilidade</span>
+                      <span className="text-white font-black text-4xl leading-none">{combat.criticalChance.toFixed(2)}%</span>
+                    </div>
+                    <span className="text-[10px] text-white font-mono italic">MAX 60%</span>
+                  </div>
+                  <div className="space-y-3 text-[10px] opacity-90 font-mono text-yellow-50/70">
+                    <div className="flex justify-between items-center border-b border-white/5 pb-2">
+                      <span className="uppercase">Base Fixa Global</span> 
+                      <span className="text-white font-bold">5.00%</span>
+                    </div>
+                    <div className="flex justify-between items-center border-b border-white/5 pb-2">
+                      <span className="text-cyan-400 uppercase">Bônus de Foco (Foco × 0.08)</span> 
+                      <span className="text-white font-bold">+{(Number(userProfile.focus ?? 0) * 0.08).toFixed(2)}%</span>
+                    </div>
+                    <div className="flex justify-between items-center border-b border-white/5 pb-2">
+                      <span className="text-yellow-400 uppercase">Treino Acumulado</span> 
+                      <span className="text-white font-bold">+{Number(userProfile.critical_chance ?? 0).toFixed(2)}%</span>
+                    </div>
+                    <div className="flex justify-between items-center text-emerald-400">
+                      <span className="uppercase">Instinto Crítico (Instinto × 0.15)</span> 
+                      <span className="font-bold">+{(Number(userProfile.instinct ?? 0) * 0.15).toFixed(2)}%</span>
+                    </div>
+                  </div>
+                </div>
+                <div className="bg-white/5 p-3 rounded-lg border border-white/10 text-center">
+                   <p className="text-[9px] text-white leading-relaxed">Seu treinamento em <span className="text-cyan-400">Foco</span> e <span className="text-emerald-400">Instinto</span> são os pilares para garantir acertos letais consistentes.</p>
+                </div>
+              </div>
+            </div>
+          );
+        default: return null;
+      }
+    };
+
+    return (
+      <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
+        <div 
+          className="bg-slate-900/95 border border-white/10 rounded-3xl shadow-[0_0_50px_rgba(0,0,0,0.8)] w-full max-w-[400px] overflow-hidden animate-in zoom-in-95 duration-300"
+          style={{ borderTopColor: type === 'level' ? '#22c55e' : type === 'xp' ? '#a855f7' : type === 'crit_dmg' ? '#f43f5e' : '#eab308' }}
+        >
+          {getContent()}
+        </div>
+        <div className="absolute inset-0 -z-10" onClick={onClose} />
+      </div>
+    );
+  };
+
 
   // Original Layout for other factions
   return (
-    <div 
-      className="w-[280px] h-full flex flex-col relative z-30 transition-all duration-300 overflow-y-auto overflow-x-hidden sidebar-scroll"
+    <>
+      <div 
+        className="w-[280px] h-full flex flex-col relative z-30 transition-all duration-300 overflow-y-auto overflow-x-hidden sidebar-scroll"
       style={{ 
         backgroundColor: 'rgba(0, 15, 35, 0.85)'
       }}
@@ -337,20 +541,30 @@ const RightPlayerSidebar: React.FC<RightPlayerSidebarProps> = ({ userProfile }) 
 
       {/* XP & ENERGIA - Adjusted margin for the massive circular layout */}
       <div className="flex justify-center gap-6 mt-2 relative z-10">
-        <CircularProgress 
-          progress={xpPercentage} 
-          label="XP" 
-          value={`${xpCurrent}/${xpRequired}`} 
-          gradientId="xpGradient" 
-          glowColor="rgba(217, 70, 239, 0.4)" 
-        />
-        <CircularProgress 
-          progress={energyPercentage} 
-          label="Energia" 
-          value={`${energyPercentage.toFixed(0)}%`} 
-          gradientId="energyGradient" 
-          glowColor="rgba(34, 197, 94, 0.4)" 
-        />
+        <button onClick={() => setActiveModal('xp')} className="hover:scale-105 transition-transform">
+          <CircularProgress 
+            progress={xpPercentage} 
+            label="XP" 
+            value={`${xpCurrent}/${xpRequired}`} 
+            gradientId="xpGradient" 
+            glowColor="rgba(217, 70, 239, 0.4)" 
+          />
+        </button>
+        <div 
+          className="hover:scale-105 transition-transform cursor-help"
+          data-tooltip-id="right-sidebar-tooltip"
+          data-tooltip-content="+1% / 3 MINUTOS"
+          data-tooltip-place="left"
+          title=""
+        >
+          <CircularProgress 
+            progress={energyPercentage} 
+            label="Energia" 
+            value={`${energyPercentage.toFixed(0)}%`} 
+            gradientId="energyGradient" 
+            glowColor="rgba(34, 197, 94, 0.4)" 
+          />
+        </div>
       </div>
 
       {/* STATS SECTION */}
@@ -360,27 +574,32 @@ const RightPlayerSidebar: React.FC<RightPlayerSidebarProps> = ({ userProfile }) 
           <div className="flex-1 h-[1px] bg-white/10"></div>
           
           {/* Level Badge Slot - Centered in the Stats Line (2 Lines) */}
-          <div 
-            className="absolute left-1/2 -translate-x-1/2 flex flex-col items-center justify-center px-3 py-1 rounded border border-white/20 shadow-md min-w-[45px]"
+          <button 
+            className="absolute left-1/2 -translate-x-1/2 flex flex-col items-center justify-center px-3 py-1 rounded border border-white/20 shadow-md min-w-[45px] cursor-pointer hover:brightness-125 transition-all"
             style={{ 
               backgroundColor: isRenegade ? '#ff6a00' : '#00a2ff',
               boxShadow: `0 0 5px ${isRenegade ? 'rgba(255,106,0,0.3)' : 'rgba(0,162,255,0.3)'}`
             }}
+            onClick={() => setActiveModal('level')}
           >
             <span className="text-[6px] font-black text-white/90 font-orbitron tracking-widest uppercase leading-none mb-0.5">NÍVEL</span>
             <span className="text-[14px] font-black text-white font-orbitron leading-none">
               {levelBreakdown.xpLvl + levelBreakdown.statsBonus + levelBreakdown.moneyBonus}
             </span>
-          </div>
+          </button>
         </div>
 
         <div className="grid grid-cols-3 border border-white/5 rounded-sm bg-black/10 backdrop-blur-[2px]">
-          <StatItem icon={iconSword} label="Ataque" value={Number(userProfile.attack || 0).toFixed(2)} />
-          <StatItem icon={iconShield} label="Defesa" value={Number(userProfile.defense || 0).toFixed(2)} />
-          <StatItem icon={iconTarget} label="Foco" value={Number(userProfile.focus || 0).toFixed(2)} />
-          <StatItem icon={iconCrit} label="Dano Crit" value={Number(combat.criticalDamage || 0).toFixed(2)} iconScale={1.8} />
-          <StatItem icon={iconBrain} label="Chance Crit" value={`${Number(combat.criticalChance || 0).toFixed(2)}%`} />
-          <StatItem icon={iconBrain} label="Instinto" value={`${Number(userProfile.instinct || 0).toFixed(2)}%`} />
+          <StatItem icon={iconSword} label="Ataque" value={Number(userProfile.attack || 0).toFixed(2)} cursorClass="cursor-default" />
+          <StatItem icon={iconShield} label="Defesa" value={Number(userProfile.defense || 0).toFixed(2)} cursorClass="cursor-default" />
+          <StatItem icon={iconTarget} label="Foco" value={Number(userProfile.focus || 0).toFixed(2)} cursorClass="cursor-default" />
+          <div onClick={() => setActiveModal('crit_dmg')} className="cursor-pointer hover:bg-white/5 transition-colors">
+            <StatItem icon={iconCrit} label="Dano Crit" value={Number(combat.criticalDamage || 0).toFixed(2)} iconScale={1.8} cursorClass="cursor-pointer" />
+          </div>
+          <div onClick={() => setActiveModal('crit_pct')} className="cursor-pointer hover:bg-white/5 transition-colors">
+            <StatItem icon={iconBrain} label="Chance Crit" value={`${Number(combat.criticalChance || 0).toFixed(2)}%`} cursorClass="cursor-pointer" />
+          </div>
+          <StatItem icon={iconBrain} label="Instinto" value={`${Number(userProfile.instinct ?? 0).toFixed(2)}%`} cursorClass="cursor-default" />
         </div>
       </div>
 
@@ -396,7 +615,13 @@ const RightPlayerSidebar: React.FC<RightPlayerSidebarProps> = ({ userProfile }) 
         {/* Dynamic Values - EXACT positioning over the sprite features */}
         <div className="absolute inset-0 z-10">
           {/* Action Points Value - Center of the top box */}
-          <div className="absolute top-[35%] left-1/2 -translate-x-1/2 -translate-y-1/2 w-full flex items-center justify-center">
+          <div 
+            className="absolute top-[35%] left-1/2 -translate-x-1/2 -translate-y-1/2 w-full flex items-center justify-center cursor-help"
+            data-tooltip-id="right-sidebar-tooltip"
+            data-tooltip-content={`Pontos de Ação: ${ (userProfile.action_points ?? 0).toLocaleString() } / 20.000 reset diário 00:00h`}
+            data-tooltip-place="left"
+            title=""
+          >
             <span 
               className="text-[48px] font-black text-cyan-400 font-orbitron leading-none tracking-tighter animate-glow-pulse"
               style={{ textShadow: "0 0 10px #06b6d4" }}
@@ -406,7 +631,13 @@ const RightPlayerSidebar: React.FC<RightPlayerSidebarProps> = ({ userProfile }) 
           </div>
 
           {/* Money Slot - Inside Green Box, shifted left to fit long numbers */}
-          <div className="absolute top-[82%] left-[20%] -translate-y-1/2 flex items-center justify-start">
+          <div 
+            className="absolute top-[82%] left-[20%] -translate-y-1/2 flex items-center justify-start cursor-help"
+            data-tooltip-id="right-sidebar-tooltip"
+            data-tooltip-content={`Dinheiro: $${(userProfile.money ?? 0).toLocaleString("pt-BR")}`}
+            data-tooltip-place="left"
+            title=""
+          >
             <span 
               className="font-orbitron font-black text-[16px] text-lime-400 tracking-tighter animate-glow-pulse-green"
               style={{ textShadow: "0 0 8px #84cc16" }}
@@ -416,7 +647,13 @@ const RightPlayerSidebar: React.FC<RightPlayerSidebarProps> = ({ userProfile }) 
           </div>
           
           {/* UC Slot - Inside Yellow Box, shifted right to center in available space */}
-          <div className="absolute top-[82%] left-[75%] -translate-y-1/2 flex items-center justify-start">
+          <div 
+            className="absolute top-[82%] left-[75%] -translate-y-1/2 flex items-center justify-start cursor-help"
+            data-tooltip-id="right-sidebar-tooltip"
+            data-tooltip-content={`U-CRYPTON TOKENS: ${(userProfile.uCrypto ?? 0).toLocaleString("pt-BR")}`}
+            data-tooltip-place="left"
+            title=""
+          >
             <span 
               className="font-orbitron font-black text-[16px] text-amber-400 tracking-tighter animate-glow-pulse-amber"
               style={{ textShadow: "0 0 8px #f59e0b" }}
@@ -427,6 +664,19 @@ const RightPlayerSidebar: React.FC<RightPlayerSidebarProps> = ({ userProfile }) 
         </div>
       </div>
     </div>
+
+      {/* TACTICAL TOOLTIPS - Economy & Quick Glance */}
+      <Tooltip
+        id="right-sidebar-tooltip"
+        place="left"
+        positionStrategy="fixed"
+        style={{ zIndex: 99999 }}
+        className="!bg-black/95 !backdrop-blur-xl !text-white !rounded-xl !px-4 !py-2 !text-[10px] !border !border-white/10 !shadow-2xl font-orbitron uppercase tracking-widest"
+      />
+
+      {/* RENDER ACTIVE MODAL */}
+      {activeModal && <StatModal type={activeModal as string} onClose={() => setActiveModal(null)} />}
+    </>
   );
 };
 
