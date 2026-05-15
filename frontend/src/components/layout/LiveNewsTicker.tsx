@@ -3,6 +3,7 @@ import { useSettings } from '../../contexts/SettingsContext';
 import { socketService } from '../../services/socketService';
 import { motion, AnimatePresence } from 'framer-motion';
 import { NewspaperIcon, SignalIcon } from '@heroicons/react/24/outline';
+import api from '../../lib/api';
 
 interface NewsItem {
   id: string;
@@ -38,7 +39,6 @@ const LiveNewsTicker: React.FC<LiveNewsTickerProps> = ({ isFixed }) => {
     // Fetch initial logs
     const fetchInitialLogs = async () => {
       try {
-        const api = (await import('../../lib/api')).default;
         const res = await api.get('/contracts/status');
           if (res.data?.logs) {
             const initialNews = res.data.logs.map((log: any) => ({

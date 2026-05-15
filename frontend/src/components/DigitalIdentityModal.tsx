@@ -1,6 +1,7 @@
-import React from "react";
+import React, { Suspense, lazy } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import DigitalIdentityPage from "../pages/DigitalIdentityPage";
+
+const DigitalIdentityPage = lazy(() => import("../pages/DigitalIdentityPage"));
 
 interface DigitalIdentityModalProps {
   userId: string;
@@ -33,7 +34,9 @@ const DigitalIdentityModal = React.memo(
             className="pointer-events-auto relative"
             onClick={(e) => e.stopPropagation()}
           >
-            <DigitalIdentityPage forcedId={userId} onClose={onClose} isCompact={true} />
+            <Suspense fallback={<div className="w-full h-96 animate-pulse bg-white/5 rounded-2xl" />}>
+              <DigitalIdentityPage forcedId={userId} onClose={onClose} isCompact={true} />
+            </Suspense>
           </motion.div>
         </motion.div>
       </AnimatePresence>
