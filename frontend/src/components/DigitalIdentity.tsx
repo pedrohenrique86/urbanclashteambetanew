@@ -353,7 +353,7 @@ const DigitalIdentity = React.memo(
                           style={{ borderRadius: "1rem" }}
                        />
                     </div>
-                    {!isCompact && <div className={`absolute -bottom-2 -right-2 px-3 py-1 rounded-lg ${factionTheme.button} border border-white/10 shadow-lg text-[10px] font-black font-orbitron text-white italic`}>LVL {player.level}</div>}
+                    {!isCompact && <div className={`absolute -bottom-2 -right-2 px-3 py-1 rounded-lg ${factionTheme.button} border border-white/10 shadow-lg text-[10px] font-black font-orbitron text-white italic`}>NVL {player.level}</div>}
                  </div>
 
                  <div className="flex flex-col min-w-0">

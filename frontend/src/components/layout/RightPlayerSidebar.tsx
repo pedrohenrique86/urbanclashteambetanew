@@ -6,6 +6,7 @@ import { useTheme } from "../../contexts/ThemeContext";
 
 // Import Assets
 import bottomUi from "../../assets/assetscardplayer/sprite_0002.webp";
+import iconCrit from "../../assets/assetscardplayer/sprite_0004.webp";
 import iconTarget from "../../assets/assetscardplayer/sprite_0005.webp";
 import iconSword from "../../assets/assetscardplayer/sprite_0006.webp";
 import iconBrain from "../../assets/assetscardplayer/sprite_0007.webp";
@@ -17,46 +18,98 @@ interface RightPlayerSidebarProps {
 
 const CircularProgress = ({ progress, label, value, gradientId, glowColor }: { progress: number, label: string, value: string, gradientId: string, glowColor: string }) => {
   const radius = 42;
-  const stroke = 4;
-  const normalizedRadius = radius - stroke * 2;
+  const stroke = 6;
+  const normalizedRadius = radius - stroke;
   const circumference = normalizedRadius * 2 * Math.PI;
   const strokeDashoffset = circumference - (progress / 100) * circumference;
 
   return (
-    <div className="relative flex items-center justify-center w-[84px] h-[84px]">
-      <svg height={radius * 2} width={radius * 2} className="transform -rotate-90 absolute inset-0">
+    <div className="relative flex items-center justify-center w-[90px] h-[90px] group transition-all duration-500 hover:scale-105">
+      {/* Core Background Pulse (Radar Effect) */}
+      <div 
+        className="absolute inset-0 rounded-full border-2 animate-core-pulse pointer-events-none"
+        style={{ borderColor: glowColor, filter: 'blur(4px)' }}
+      />
+      
+      <svg height={radius * 2} width={radius * 2} className="transform -rotate-90 absolute inset-0 z-10 drop-shadow-[0_0_10px_rgba(0,0,0,0.8)]">
+        {/* Main Track */}
         <circle
-          stroke="rgba(255,255,255,0.1)"
+          stroke="rgba(255,255,255,0.05)"
           fill="transparent"
           strokeWidth={stroke}
           r={normalizedRadius}
           cx={radius}
           cy={radius}
         />
+
+        {/* Rotating Detail Ring (Subtle Mechanical Feel) */}
+        <circle
+          stroke="rgba(255,255,255,0.1)"
+          fill="transparent"
+          strokeWidth="1"
+          strokeDasharray="2 8"
+          r={normalizedRadius - 6}
+          cx={radius}
+          cy={radius}
+          className="animate-[spin_15s_linear_infinite]"
+        />
+        
+        {/* Main Progress Bar - Breathing Neon */}
         <circle
           stroke={`url(#${gradientId})`}
           fill="transparent"
           strokeWidth={stroke}
           strokeDasharray={circumference + ' ' + circumference}
-          style={{ strokeDashoffset, transition: 'stroke-dashoffset 0.8s cubic-bezier(0.4, 0, 0.2, 1)', filter: `drop-shadow(0 0 2px ${glowColor})` }}
+          className="animate-neon-breath"
+          style={{ 
+            strokeDashoffset, 
+            transition: 'stroke-dashoffset 1.5s cubic-bezier(0.4, 0, 0.2, 1)',
+            filter: `drop-shadow(0 0 6px ${glowColor}) drop-shadow(0 0 2px white)` 
+          }}
+          strokeLinecap="round"
+          r={normalizedRadius}
+          cx={radius}
+          cy={radius}
+        />
+
+        {/* Glare Sweep Layer (High-Tech Scan Effect) */}
+        <circle
+          stroke="white"
+          fill="transparent"
+          strokeWidth="2"
+          strokeDasharray="15 185"
+          className="animate-glare-sweep"
+          style={{ 
+            filter: 'blur(1px)',
+            transformOrigin: 'center'
+          }}
           strokeLinecap="round"
           r={normalizedRadius}
           cx={radius}
           cy={radius}
         />
       </svg>
-      <div className="absolute flex flex-col items-center justify-center text-center w-full px-1">
-        <span className="text-[9px] font-black text-white/90 tracking-wider uppercase leading-none mb-0.5">{label}</span>
-        <span className="text-[12px] text-white font-orbitron font-bold leading-none tracking-tight truncate w-full">{value}</span>
+
+      {/* Internal Text Labels */}
+      <div className="absolute flex flex-col items-center justify-center text-center w-full px-1 z-20 pointer-events-none">
+        <span className="text-[7.5px] font-black text-white/40 tracking-[0.2em] uppercase leading-none mb-1">{label}</span>
+        <span className="text-[12px] text-white font-orbitron font-black leading-none tracking-tight drop-shadow-[0_0_8px_rgba(255,255,255,0.5)]">
+          {value}
+        </span>
       </div>
     </div>
   );
 };
 
-const StatItem = ({ icon, label, value }: { icon: string, label: string, value: string | number }) => (
+const StatItem = ({ icon, label, value, iconScale = 1 }: { icon: string, label: string, value: string | number, iconScale?: number }) => (
   <div className="flex flex-col items-center justify-center py-1.5 px-1">
     <div className="flex items-center gap-1 text-white/70 mb-1">
-      <img src={icon} alt={label} className="w-3.5 h-3.5 object-contain opacity-90" />
+      <img 
+        src={icon} 
+        alt={label} 
+        className="w-3.5 h-3.5 object-contain opacity-90" 
+        style={{ transform: `scale(${iconScale})` }} 
+      />
       <span className="text-[9px] font-black uppercase tracking-tighter">{label}</span>
     </div>
     <span className="text-[13px] font-black text-white font-orbitron leading-none tracking-tight">
@@ -125,29 +178,81 @@ const RightPlayerSidebar: React.FC<RightPlayerSidebarProps> = ({ userProfile }) 
   const isRenegade = userFaction === "gangsters";
   const factionColor = isRenegade ? "#ff9500" : "#00d0ff";
 
+
+  // Original Layout for other factions
   return (
     <div 
-      className="w-[280px] h-full flex flex-col relative z-30 transition-all duration-300 overflow-hidden"
+      className="w-[280px] h-full flex flex-col relative z-30 transition-all duration-300 overflow-y-auto overflow-x-hidden sidebar-scroll"
       style={{ 
-        backgroundColor: isRenegade ? 'rgba(20, 10, 0, 0.8)' : 'rgba(0, 15, 35, 0.85)'
+        backgroundColor: 'rgba(0, 15, 35, 0.85)'
       }}
     >
-      {/* Moving Honeycomb Effect for Corners */}
-      <div 
-        className="absolute inset-0 pointer-events-none z-0 opacity-20"
-        style={{
-          backgroundImage: `url("data:image/svg+xml,%3Csvg width='40' height='69.2' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M40 17.3L20 28.8 0 17.3V-5.8l20-11.5L40-5.8V17.3zM0 51.9l-20 11.5L-40 51.9V28.8l20-11.5 20 11.5V51.9zM40 51.9l-20 11.5L0 51.9V28.8l20-11.5 20 11.5V51.9z' stroke='%23${isRenegade ? 'ff6a00' : '00d0ff'}' stroke-width='1' fill='none'/%3E%3C/svg%3E")`,
-          backgroundSize: '40px 69.2px',
-          animation: 'honeycombScroll 60s linear infinite',
-          maskImage: 'radial-gradient(circle at center, transparent 30%, black 100%)',
-          WebkitMaskImage: 'radial-gradient(circle at center, transparent 30%, black 100%)',
-        }}
-      />
-
       <style dangerouslySetInnerHTML={{ __html: `
-        @keyframes honeycombScroll {
-          from { background-position: 0 0; }
-          to { background-position: 400px 692px; }
+        .sidebar-scroll::-webkit-scrollbar {
+          width: 4px;
+        }
+        .sidebar-scroll::-webkit-scrollbar-track {
+          background: rgba(0, 0, 0, 0.2);
+        }
+        .sidebar-scroll::-webkit-scrollbar-thumb {
+          background: rgba(255, 255, 255, 0.1);
+          border-radius: 4px;
+        }
+        .sidebar-scroll::-webkit-scrollbar-thumb:hover {
+          background: rgba(0, 208, 255, 0.5);
+        }
+        @keyframes slowPing {
+          0% { transform: scale(1); opacity: 0.8; }
+          70%, 100% { transform: scale(2.2); opacity: 0; }
+        }
+        .animate-slow-ping {
+          animation: slowPing 3s cubic-bezier(0, 0, 0.2, 1) infinite;
+        }
+        @keyframes glowPulse {
+          0%, 100% { filter: brightness(1) drop-shadow(0 0 5px rgba(6, 182, 212, 0.4)); }
+          50% { filter: brightness(1.2) drop-shadow(0 0 15px rgba(6, 182, 212, 0.8)); }
+        }
+        @keyframes glowPulseGreen {
+          0%, 100% { filter: brightness(1) drop-shadow(0 0 4px rgba(132, 204, 22, 0.4)); }
+          50% { filter: brightness(1.2) drop-shadow(0 0 10px rgba(132, 204, 22, 0.8)); }
+        }
+        @keyframes glowPulseAmber {
+          0%, 100% { filter: brightness(1) drop-shadow(0 0 4px rgba(245, 158, 11, 0.4)); }
+          50% { filter: brightness(1.2) drop-shadow(0 0 10px rgba(245, 158, 11, 0.8)); }
+        }
+        .animate-glow-pulse {
+          animation: glowPulse 4s ease-in-out infinite;
+        }
+        .animate-glow-pulse-green {
+          animation: glowPulseGreen 4s ease-in-out infinite;
+        }
+        .animate-glow-pulse-amber {
+          animation: glowPulseAmber 4s ease-in-out infinite;
+        }
+        @keyframes neonBreath {
+          0%, 100% { filter: brightness(1) saturate(1); }
+          50% { filter: brightness(1.3) saturate(1.2); }
+        }
+        .animate-neon-breath {
+          animation: neonBreath 4s ease-in-out infinite;
+        }
+        @keyframes glareSweep {
+          0% { transform: rotate(0deg); opacity: 0; }
+          10% { opacity: 0.5; }
+          40% { opacity: 0.5; }
+          50% { transform: rotate(360deg); opacity: 0; }
+          100% { transform: rotate(360deg); opacity: 0; }
+        }
+        .animate-glare-sweep {
+          animation: glareSweep 3s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+        }
+        @keyframes corePulse {
+          0% { transform: scale(0.95); opacity: 0.3; }
+          50% { transform: scale(1.1); opacity: 0.1; }
+          100% { transform: scale(0.95); opacity: 0.3; }
+        }
+        .animate-core-pulse {
+          animation: corePulse 4s ease-in-out infinite;
         }
       `}} />
 
@@ -156,7 +261,7 @@ const RightPlayerSidebar: React.FC<RightPlayerSidebarProps> = ({ userProfile }) 
         <defs>
           <linearGradient id="xpGradient" x1="0%" y1="0%" x2="100%" y2="100%">
             <stop offset="0%" stopColor="#d946ef" />
-            <stop offset="100%" stopColor="#7c3aed" />
+            <stop offset="100%" stopColor="#a855f7" />
           </linearGradient>
           <linearGradient id="energyGradient" x1="0%" y1="0%" x2="100%" y2="100%">
             <stop offset="0%" stopColor="#22c55e" />
@@ -167,10 +272,10 @@ const RightPlayerSidebar: React.FC<RightPlayerSidebarProps> = ({ userProfile }) 
 
       {/* HEADER: Circular Avatar - With Neon Faction Ring */}
       <div className="w-full pt-[15px] flex flex-col items-center relative z-10">
-        <div className="relative w-[180px] h-[180px] flex items-center justify-center">
+        <div className="relative w-[140px] h-[140px] flex items-center justify-center">
           {/* Circular Avatar Photo with Subtle Border */}
           <div 
-            className="w-[170px] h-[170px] bg-black/80 rounded-full overflow-hidden z-10 shadow-lg border-[2px] transition-all duration-500"
+            className="w-[130px] h-[130px] bg-black/80 rounded-full overflow-hidden z-10 shadow-lg border-[2px] transition-all duration-500"
             style={{ 
               borderColor: factionColor,
               boxShadow: `0 0 4px ${factionColor}, inset 0 0 4px ${factionColor}`
@@ -183,12 +288,49 @@ const RightPlayerSidebar: React.FC<RightPlayerSidebarProps> = ({ userProfile }) 
             )}
           </div>
           
-          {/* Level Badge Slot */}
-          <div className="absolute bottom-[5px] right-[0px] z-30 flex flex-col items-center justify-center w-[40px] h-[40px] bg-black/60 rounded-full border border-white/20 backdrop-blur-sm shadow-lg">
-            <span className="text-[6px] font-black text-white/80 uppercase tracking-tighter leading-none mb-0.5">Nível</span>
-            <span className="text-[16px] font-black text-white font-orbitron leading-none drop-shadow-[0_0_8px_rgba(255,255,255,0.4)]">
-              {levelBreakdown.xpLvl + levelBreakdown.statsBonus + levelBreakdown.moneyBonus}
-            </span>
+          {/* Pulsing Status Dot with Tooltip */}
+          <div 
+            className="absolute bottom-[15px] right-[5px] z-40 group cursor-help"
+          >
+            <div className="relative flex h-5 w-5">
+              <span 
+                className="animate-slow-ping absolute inline-flex h-full w-full rounded-full opacity-75"
+                style={{ backgroundColor: (() => {
+                  const s = userProfile.status?.toLowerCase() || "";
+                  if (s.includes("isolamento")) return "#ef4444";
+                  if (s.includes("aprimoramento")) return "#22d3ee";
+                  if (s.includes("recondicionamento") || s.includes("recupera")) return "#fbbf24";
+                  if (s.includes("ruptura") || s.includes("sangrando")) return "#f43f5e";
+                  return "#22c55e";
+                })()}}
+              ></span>
+              <span 
+                className="relative inline-flex rounded-full h-5 w-5 border-2 border-black/40 shadow-md"
+                style={{ backgroundColor: (() => {
+                  const s = userProfile.status?.toLowerCase() || "";
+                  if (s.includes("isolamento")) return "#ef4444";
+                  if (s.includes("aprimoramento")) return "#22d3ee";
+                  if (s.includes("recondicionamento") || s.includes("recupera")) return "#fbbf24";
+                  if (s.includes("ruptura") || s.includes("sangrando")) return "#f43f5e";
+                  return "#22c55e";
+                })()}}
+              ></span>
+            </div>
+            
+            {/* Hover Tooltip */}
+            <div className="absolute right-0 bottom-full mb-3 px-2 py-1 bg-black/95 border border-white/10 rounded-md text-[8px] font-black text-white uppercase tracking-[0.2em] opacity-0 group-hover:opacity-100 transition-all duration-300 pointer-events-none whitespace-nowrap shadow-xl z-50 scale-90 group-hover:scale-100 origin-bottom-right">
+              <div className="flex items-center gap-1.5">
+                <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: (() => {
+                  const s = userProfile.status?.toLowerCase() || "";
+                  if (s.includes("isolamento")) return "#ef4444";
+                  if (s.includes("aprimoramento")) return "#22d3ee";
+                  if (s.includes("recondicionamento") || s.includes("recupera")) return "#fbbf24";
+                  if (s.includes("ruptura") || s.includes("sangrando")) return "#f43f5e";
+                  return "#22c55e";
+                })()}}></div>
+                {userProfile.status || "OPERACIONAL"}
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -211,18 +353,32 @@ const RightPlayerSidebar: React.FC<RightPlayerSidebarProps> = ({ userProfile }) 
         />
       </div>
 
-      {/* STATS GRID */}
-      <div className="w-full mt-4 px-6 z-10 relative">
-        <div className="flex items-center gap-2 mb-2">
+      {/* STATS SECTION */}
+      <div className="px-4 mt-4 relative z-10">
+        <div className="flex items-center gap-2 mb-2 relative">
           <span className="text-[11px] font-black text-white/80 tracking-widest uppercase">Stats</span>
           <div className="flex-1 h-[1px] bg-white/10"></div>
+          
+          {/* Level Badge Slot - Centered in the Stats Line (2 Lines) */}
+          <div 
+            className="absolute left-1/2 -translate-x-1/2 flex flex-col items-center justify-center px-3 py-1 rounded border border-white/20 shadow-md min-w-[45px]"
+            style={{ 
+              backgroundColor: isRenegade ? '#ff6a00' : '#00a2ff',
+              boxShadow: `0 0 5px ${isRenegade ? 'rgba(255,106,0,0.3)' : 'rgba(0,162,255,0.3)'}`
+            }}
+          >
+            <span className="text-[6px] font-black text-white/90 font-orbitron tracking-widest uppercase leading-none mb-0.5">NÍVEL</span>
+            <span className="text-[14px] font-black text-white font-orbitron leading-none">
+              {levelBreakdown.xpLvl + levelBreakdown.statsBonus + levelBreakdown.moneyBonus}
+            </span>
+          </div>
         </div>
 
         <div className="grid grid-cols-3 border border-white/5 rounded-sm bg-black/10 backdrop-blur-[2px]">
           <StatItem icon={iconSword} label="Ataque" value={Number(userProfile.attack || 0).toFixed(2)} />
           <StatItem icon={iconShield} label="Defesa" value={Number(userProfile.defense || 0).toFixed(2)} />
           <StatItem icon={iconTarget} label="Foco" value={Number(userProfile.focus || 0).toFixed(2)} />
-          <StatItem icon={iconBrain} label="Dano Crit" value={Number(combat.criticalDamage || 0).toFixed(2)} />
+          <StatItem icon={iconCrit} label="Dano Crit" value={Number(combat.criticalDamage || 0).toFixed(2)} iconScale={1.8} />
           <StatItem icon={iconBrain} label="Chance Crit" value={`${Number(combat.criticalChance || 0).toFixed(2)}%`} />
           <StatItem icon={iconBrain} label="Instinto" value={`${Number(userProfile.instinct || 0).toFixed(2)}%`} />
         </div>
@@ -241,21 +397,30 @@ const RightPlayerSidebar: React.FC<RightPlayerSidebarProps> = ({ userProfile }) 
         <div className="absolute inset-0 z-10">
           {/* Action Points Value - Center of the top box */}
           <div className="absolute top-[35%] left-1/2 -translate-x-1/2 -translate-y-1/2 w-full flex items-center justify-center">
-            <span className="text-[48px] font-black text-white font-orbitron leading-none tracking-tighter drop-shadow-[0_0_8px_rgba(255,255,255,0.4)]">
+            <span 
+              className="text-[48px] font-black text-cyan-400 font-orbitron leading-none tracking-tighter animate-glow-pulse"
+              style={{ textShadow: "0 0 10px #06b6d4" }}
+            >
               {userProfile.action_points ?? 0}
             </span>
           </div>
 
           {/* Money Slot - Inside Green Box, shifted left to fit long numbers */}
           <div className="absolute top-[82%] left-[20%] -translate-y-1/2 flex items-center justify-start">
-            <span className="font-orbitron font-black text-[16px] text-white drop-shadow-[0_0_4px_#22c55e] tracking-tighter">
+            <span 
+              className="font-orbitron font-black text-[16px] text-lime-400 tracking-tighter animate-glow-pulse-green"
+              style={{ textShadow: "0 0 8px #84cc16" }}
+            >
               {formatCurrency(userProfile.money ?? 0)}
             </span>
           </div>
           
           {/* UC Slot - Inside Yellow Box, shifted right to center in available space */}
           <div className="absolute top-[82%] left-[75%] -translate-y-1/2 flex items-center justify-start">
-            <span className="font-orbitron font-black text-[16px] text-white drop-shadow-[0_0_4px_#f59e0b] tracking-tighter">
+            <span 
+              className="font-orbitron font-black text-[16px] text-amber-400 tracking-tighter animate-glow-pulse-amber"
+              style={{ textShadow: "0 0 8px #f59e0b" }}
+            >
               {formatCurrency(userProfile.uCrypto ?? 0)}
             </span>
           </div>
