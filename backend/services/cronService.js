@@ -16,16 +16,21 @@ class CronService {
 
   start() {
     console.log("⏰ CronService iniciado (Checagem de Meia-Noite SP ativa)");
+    this.lastRunDate = null;
     
-    // Verifica a cada minuto
+    // Verifica a cada 10 segundos para garantir precisão e não perder a janela de 00:00
     this.checkInterval = setInterval(() => {
       const nowSP = new Date(new Date().toLocaleString("en-US", { timeZone: "America/Sao_Paulo" }));
+      const todayStr = nowSP.toLocaleDateString("en-CA"); // YYYY-MM-DD (Fuso SP)
       
-      // Se for exatamente 00:00 (ou nos primeiros 59s do dia)
+      // Se for exatamente 00:00 e ainda não rodou hoje
       if (nowSP.getHours() === 0 && nowSP.getMinutes() === 0) {
-        this.executeMidnightTasks();
+        if (this.lastRunDate !== todayStr) {
+          this.lastRunDate = todayStr;
+          this.executeMidnightTasks();
+        }
       }
-    }, 60000); // 1 minuto
+    }, 10000); 
   }
 
   async executeMidnightTasks() {
@@ -86,6 +91,8 @@ class CronService {
         }
         
         console.log("✅ Destaques do dia enviados e persistidos no Ticker.");
+      } else {
+        console.log("ℹ️ Nenhuma atividade de destaque encontrada para o reset de meia-noite.");
       }
 
     } catch (error) {

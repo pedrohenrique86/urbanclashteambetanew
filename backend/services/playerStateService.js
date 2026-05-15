@@ -168,9 +168,57 @@ class PlayerStateService {
     // SÊNIOR: Lazy Evaluation da Energia e Treinamento
     // Se o jogador ficou offline, recuperamos a energia e checamos se o treino acabou
     const parsed = this._parseState(state);
-    const withEnergy = await this.regenEnergyForPlayer(userId, parsed);
+    
+    // SÊNIOR: Reset Diário de AP (Lazy Reset às 00:00 SP)
+    const withReset = await this._checkAndResetAP(userId, parsed);
+
+    // SÊNIOR: Lazy Evaluation da Energia e Treinamento
+    // Se o jogador ficou offline, recuperamos a energia e checamos se o treino acabou
+    const withEnergy = await this.regenEnergyForPlayer(userId, withReset);
     const withTraining = await this.checkTrainingCompletion(userId, withEnergy);
     return this.checkStatusCompletion(userId, withTraining);
+  }
+
+  /**
+   * SÊNIOR: Verifica e aplica o reset diário de AP (20.000 pontos).
+   * O reset é feito de forma 'Lazy' no primeiro acesso do dia.
+   */
+  async _checkAndResetAP(userId, state) {
+    if (!state) return state;
+
+    // Obtemos a data atual formatada para o fuso de SP (YYYY-MM-DD)
+    const today = new Date().toLocaleDateString("en-CA", { timeZone: "America/Sao_Paulo" });
+    const lastReset = state.last_ap_reset;
+
+    if (!lastReset || lastReset !== today) {
+      console.log(`[PlayerState] 🔄 Reset Diário detectado para ${userId} (${today}). Aplicando 20.000 AP.`);
+      
+      const updates = {
+        action_points: 20000,
+        last_ap_reset: today
+      };
+
+      // SÊNIOR: Atualização direta no Redis para evitar recursão infinita no getPlayerState
+      const redisKey = `${PLAYER_STATE_PREFIX}${userId}`;
+      const p = redisClient.pipeline();
+      
+      for (const [k, v] of Object.entries(updates)) {
+        p.hSet(redisKey, k, String(v));
+      }
+      
+      p.hSet(redisKey, "is_dirty", "1");
+      p.sAdd(DIRTY_PLAYERS_SET, String(userId));
+      await p.exec();
+
+      // Notifica o frontend via SSE
+      sseService.broadcastToUser(userId, "player:update", { 
+        actionPoints: 20000
+      });
+
+      return { ...state, ...updates };
+    }
+
+    return state;
   }
 
   /**

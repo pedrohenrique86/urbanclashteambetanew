@@ -180,7 +180,7 @@ class ContractService {
         corruption_gain: infamyGained,
         stats_gained: attrGained.reduce((acc, a) => ({ ...acc, [a.attr]: a.gain }), {}),
         items_looted: lootGained.map(l => ({ code: l.code, quantity: l.quantity, rarity: l.rarity })),
-      }, false);
+      }, true, null);
 
       // Adiciona ao feed de atividades (Redis) para interceptação (janela de 3min)
       const activity = {
@@ -396,7 +396,7 @@ class ContractService {
         is_major: meritGained > 500 || !!interception,
         faction: 'guardas',
         public_message: publicMessage
-      }, false);
+      }, true, null);
 
       return {
         message,
