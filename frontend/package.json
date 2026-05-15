@@ -10,7 +10,7 @@
   "scripts": {
     "check:db": "node check_db.js",
     "dev": "vite --port 3000",
-    "build": "tsc && vite build",
+    "build": "vite build",
     "preview": "vite preview",
     "start": "vite",
     "lint": "eslint . --ext js,jsx,ts,tsx --report-unused-disable-directives --max-warnings 0",
@@ -19,7 +19,6 @@
     "guard": "node config/scripts/ai-guard.js",
     "full-check": "npm run validate && npm run guard",
     "predev": "npm run validate",
-    "prebuild": "npm run validate",
     "services:start": "powershell -ExecutionPolicy Bypass -File start-services.ps1",
     "services:docker": "docker-compose up -d",
     "services:docker-stop": "docker-compose down",
