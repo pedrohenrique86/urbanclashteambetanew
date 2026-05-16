@@ -602,9 +602,9 @@ const RightPlayerSidebar: React.FC<RightPlayerSidebarProps> = ({ userProfile }) 
                  <StatRibbon icon={Dices} label="Chance Crítica" value={`${Number(combat.criticalChance || 0).toFixed(2)}%`} color="#eab308" />
                </div>
                {userFaction === 'guardas' ? (
-                 <StatRibbon icon={Star} label="Mérito" value={Number(userProfile.merit || 0).toString()} color="#3b82f6" />
+                 <StatRibbon icon={Star} label="Mérito" value={formatCurrency(combat.merit)} color="#3b82f6" />
                ) : (
-                 <StatRibbon icon={Skull} label="Infâmia" value={Number(userProfile.corruption || 0).toString()} color="#f97316" />
+                 <StatRibbon icon={Skull} label="Infâmia" value={formatCurrency(combat.corruption)} color="#f97316" />
                )}
             </div>
           </div>
@@ -617,9 +617,9 @@ const RightPlayerSidebar: React.FC<RightPlayerSidebarProps> = ({ userProfile }) 
              <Flame size={16} className="text-pink-400 cursor-help" data-tooltip-id="right-sidebar-tooltip" data-tooltip-content={`DANO CRÍTICO: ${Number(combat.criticalDamage || 0).toFixed(2)}x`} />
              <Dices size={16} className="text-yellow-400 cursor-help" data-tooltip-id="right-sidebar-tooltip" data-tooltip-content={`CHANCE CRÍTICA: ${Number(combat.criticalChance || 0).toFixed(2)}%`} />
              {userFaction === 'guardas' ? (
-               <Star size={16} className="text-blue-400 cursor-help" data-tooltip-id="right-sidebar-tooltip" data-tooltip-content={`MÉRITO: ${userProfile.merit || 0}`} />
+               <Star size={16} className="text-blue-400 cursor-help" data-tooltip-id="right-sidebar-tooltip" data-tooltip-content={`MÉRITO: ${formatCurrency(combat.merit)}`} />
              ) : (
-               <Skull size={16} className="text-orange-400 cursor-help" data-tooltip-id="right-sidebar-tooltip" data-tooltip-content={`INFÂMIA: ${userProfile.corruption || 0}`} />
+               <Skull size={16} className="text-orange-400 cursor-help" data-tooltip-id="right-sidebar-tooltip" data-tooltip-content={`INFÂMIA: ${formatCurrency(combat.corruption)}`} />
              )}
           </div>
         )}

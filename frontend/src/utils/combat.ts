@@ -8,6 +8,8 @@ export interface CombatStats {
   criticalDamage: number;
   effectiveDefense: number;
   effectiveDamageReduction: number;
+  merit: number;
+  corruption: number;
 }
 
 export const getCriticalChanceExplanation = (): string => {
@@ -29,7 +31,9 @@ export const calculateCombatStats = (userProfile: any) => {
       criticalChance: 0,
       criticalDamage: 1,
       effectiveDefense: 0,
-      effectiveDamageReduction: 0
+      effectiveDamageReduction: 0,
+      merit: 0,
+      corruption: 0
     };
   }
 
@@ -79,7 +83,9 @@ export const calculateCombatStats = (userProfile: any) => {
     criticalChance,
     criticalDamage,
     effectiveDefense,
-    effectiveDamageReduction
+    effectiveDamageReduction,
+    merit: Number(userProfile.merit || 0),
+    corruption: Number(userProfile.corruption || 0)
   };
 };
 
