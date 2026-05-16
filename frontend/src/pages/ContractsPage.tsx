@@ -335,6 +335,12 @@ const ActionCard = ({ data, onAction, disabled, userLevel, userEnergy, userPA, u
             <span className="text-[12px] font-black text-orange-500 tracking-[0.2em] uppercase mt-1 block">
               {isLocked ? "SISTEMA BLOQUEADO" : role}
             </span>
+            {/* NVL_REQ Integrado ao Cabeçalho */}
+            <div className="flex items-center gap-2 bg-black/20 backdrop-blur-[2px] py-1 px-3 border border-white/5 w-fit mt-2 rounded-sm">
+              <div className="w-1 h-2.5 bg-orange-500 shadow-[0_0_8px_rgba(249,115,22,1)]"></div>
+              <span className="text-[9px] font-mono text-white/70 font-black tracking-widest">NVL_REQUIRED:</span>
+              <span className="text-sm font-black text-white font-orbitron">{data.level}</span>
+            </div>
           </div>
           {!isLocked && cooldown > 0 && (
             <div className="ml-auto bg-red-500 border border-red-400 px-2 py-1 shadow-[0_0_15px_rgba(220,38,38,0.5)]">
@@ -343,17 +349,16 @@ const ActionCard = ({ data, onAction, disabled, userLevel, userEnergy, userPA, u
           )}
         </div>
 
-        <div className="flex flex-col gap-4 py-2 relative z-10">
-           <div className="flex items-center gap-2 drop-shadow-[0_2px_3px_rgba(0,0,0,1)]">
-              <div className="w-1.5 h-3 bg-orange-500 shadow-[0_0_8px_rgba(249,115,22,1)]"></div>
-              <span className="text-[10px] font-mono text-white/70 font-black tracking-widest">NVL_REQUIRED:</span>
-              <span className="text-base font-black text-white font-orbitron">{data.level}</span>
-              {isLocked && (
-                <span className="ml-auto text-[10px] font-black text-red-500 uppercase tracking-widest animate-pulse italic">Acesso Negado</span>
-              )}
-           </div>
+        <div className="flex flex-col gap-3 py-0 relative z-10">
+            {isLocked && (
+              <div className="text-center -mt-1">
+                <span className="text-[9px] font-black text-red-500 uppercase tracking-widest animate-pulse italic">Acesso Negado</span>
+              </div>
+            )}
+        </div>
 
-           <div className="flex items-center justify-around bg-black/10 backdrop-blur-[2px] py-3 border-y border-white/5">
+        <div className="flex flex-col gap-3 py-0 relative z-10">
+            <div className="flex items-center justify-center gap-10 bg-black/20 backdrop-blur-[2px] py-3 border-y border-white/5 max-w-[280px] mx-auto w-full rounded-sm">
               <div className="flex flex-col items-center gap-1 drop-shadow-[0_2px_3px_rgba(0,0,0,1)]">
                 <BoltIcon className={`w-6 h-6 ${userPA < data.costPA ? 'text-red-500' : 'text-cyan-400'}`} />
                 <span className="text-[15px] font-black font-orbitron text-red-500">-{data.costPA} PA</span>
@@ -363,19 +368,12 @@ const ActionCard = ({ data, onAction, disabled, userLevel, userEnergy, userPA, u
                 <FireIcon className="w-6 h-6 text-yellow-500" />
                 <span className="text-[15px] font-black font-orbitron text-red-500">-{data.costEnergy} NRG</span>
               </div>
-              <div className="w-px h-6 bg-white/10" />
-              <div className="flex flex-col items-center gap-1 drop-shadow-[0_2px_3px_rgba(0,0,0,1)]">
-                <CurrencyDollarIcon className="w-6 h-6 text-emerald-500" />
-                <span className="text-[15px] font-black font-orbitron text-white">
-                   {isRenegade ? 'LUCRO' : 'SALÁRIO'}
-                </span>
-              </div>
            </div>
         </div>
 
-        <div className="flex justify-around items-center py-3 border-y border-white/5 bg-black/5 backdrop-blur-[2px] -mx-6 px-6">
+        <div className="flex justify-center gap-6 items-center py-3 border-y border-white/5 bg-black/10 backdrop-blur-[2px] max-w-[280px] mx-auto w-full rounded-sm">
           <div className="flex flex-col items-center drop-shadow-[0_2px_3px_rgba(0,0,0,1)]">
-            <span className="text-[16px] font-black text-emerald-400 leading-none">~${isRenegade ? data.money[0].toLocaleString() : data.salary[0].toLocaleString()}</span>
+            <span className="text-[16px] font-black text-emerald-400 leading-none">~+${isRenegade ? data.money[0].toLocaleString() : data.salary[0].toLocaleString()}</span>
             <span className="text-[11px] font-mono text-white/50 uppercase tracking-tighter">CASH</span>
           </div>
           <div className="w-px h-4 bg-white/10" />
