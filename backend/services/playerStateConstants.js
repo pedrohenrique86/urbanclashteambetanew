@@ -26,7 +26,8 @@ const DB_PERSIST_FIELDS = new Set([
   "victories", "defeats", "winning_streak",
   "status", "status_ends_at",
   "last_daily_special_at", "last_training_reset", "last_ap_reset",
-  "premium_coins", "active_training_type", "daily_training_count"
+  "premium_coins", "active_training_type", "daily_training_count",
+  "merit", "corruption", "toxicity", "login_streak"
 ]);
 
 /**
@@ -51,10 +52,6 @@ const VOLATILE_FIELDS = new Set([
   "recon_loss_credits",
   "recon_loss_xp",
   "recon_power_result",
-  "merit",
-  "corruption",
-  "toxicity",
-  "login_streak",
   "equipped_chips"
 ]);
 

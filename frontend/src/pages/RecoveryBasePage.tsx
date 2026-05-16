@@ -774,7 +774,7 @@ function OperationalView({ onAction }: { onAction: () => void }) {
                   onClick={() => openUserPanel(ally.id)}
                 />
                 <div className="cursor-pointer" onClick={() => openUserPanel(ally.id)}>
-                  <p className="text-sm font-black text-white italic uppercase tracking-tighter hover:underline flex items-center gap-1.5">
+                  <p className={`text-sm font-black italic uppercase tracking-tighter hover:underline flex items-center gap-1.5 ${getFactionColor(ally.faction)}`}>
                     {ally.country && <img src={`https://flagcdn.com/w20/${ally.country.toLowerCase()}.png`} className="w-3 h-auto opacity-80" alt="flag" />}
                     {ally.username}
                   </p>
