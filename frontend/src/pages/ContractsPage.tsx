@@ -647,27 +647,6 @@ export default function ContractsPage() {
         </motion.div>
       </header>
 
-      {/* Stats Bar (Ultra Compact - Single Source of Truth for Reputation) */}
-      <div className="flex justify-center relative z-10">
-        {(faction === 'guardas' 
-          ? [
-              { label: "Mérito Policial", val: userProfile?.merit, color: "text-blue-500", icon: ShieldCheckIcon, border: "border-blue-500/20" }
-            ]
-          : [
-              { label: "Infâmia Urbana", val: userProfile?.corruption, color: "text-[#CD7F32]", icon: FireIcon, border: "border-[#B87333]/20" }
-            ]
-        ).map((stat, i) => (
-          <div key={i} className={`w-full max-w-sm p-4 bg-black/60 backdrop-blur-md border ${stat.border} relative overflow-hidden group`} style={MILITARY_CLIP}>
-            <div className="absolute top-0 right-0 p-1 opacity-5 group-hover:opacity-10 transition-opacity">
-              <stat.icon className="w-12 h-12 text-white" />
-            </div>
-            <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest mb-1">{stat.label}</p>
-            <div className="flex items-center justify-between">
-              <span className={`text-xl font-black font-orbitron ${stat.color}`}>{stat.val}</span>
-            </div>
-          </div>
-        ))}
-      </div>
 
         {/* Manual Trigger */}
         <button 
