@@ -427,19 +427,57 @@ const RightPlayerSidebar: React.FC<RightPlayerSidebarProps> = ({ userProfile }) 
             50% { opacity: 0.8; filter: brightness(1.3) drop-shadow(0 0 5px var(--pulse-color, white)); }
           }
           .animate-pulse-full { animation: pulse-full 4s ease-in-out infinite; }
-          @keyframes flow {
-            0% { background-position: 0% 50%; }
-            50% { background-position: 100% 50%; }
-            100% { background-position: 0% 50%; }
+          @keyframes circuit-glow {
+            0% { stroke-dashoffset: 1000; opacity: 0.1; }
+            50% { opacity: 0.5; }
+            100% { stroke-dashoffset: 0; opacity: 0.1; }
           }
-          .animate-flow { background-size: 200% 200%; animation: flow 5s ease infinite; }
+          .animate-circuit { 
+            stroke-dasharray: 100 1000; 
+            animation: circuit-glow 6s linear infinite; 
+          }
         `}} />
         
-        {/* Game Background & Patterns */}
-        <div className="absolute inset-0 pointer-events-none" />
-        
-        {/* Scanline Effect */}
-        <div className="absolute inset-0 bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.1)_50%),linear-gradient(90deg,rgba(255,0,0,0.03),rgba(0,255,0,0.01),rgba(0,0,255,0.03))] bg-[length:100%_4px,3px_100%] pointer-events-none opacity-20" />
+        {/* MOTHERBOARD CIRCUIT BACKGROUND */}
+        <div className="absolute inset-0 pointer-events-none overflow-hidden z-0 opacity-80">
+          <svg className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
+             <defs>
+              <linearGradient id="circuitGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stopColor="#22d3ee" stopOpacity="0.1" />
+                <stop offset="50%" stopColor="#22d3ee" stopOpacity="1" />
+                <stop offset="100%" stopColor="#22d3ee" stopOpacity="0.1" />
+              </linearGradient>
+            </defs>
+
+            <g fill="none" stroke="url(#circuitGrad)" strokeWidth="2" strokeLinecap="round">
+              {/* Circuit Path 1 */}
+              <path d="M 10,100 L 120,100 L 120,200 L 250,200" className="animate-circuit" />
+              {/* Circuit Path 2 */}
+              <path d="M 280,50 L 200,50 L 200,300 L 50,300 L 50,500" className="animate-circuit" style={{ animationDelay: '-2s', animationDuration: '8s' }} />
+              {/* Circuit Path 3 */}
+              <path d="M 30,600 L 100,600 L 100,800 L 250,800" className="animate-circuit" style={{ animationDelay: '-4s', animationDuration: '10s' }} />
+              {/* Circuit Path 4 */}
+              <path d="M 270,700 L 180,700 L 180,500 L 80,500 L 80,400" className="animate-circuit" style={{ animationDelay: '-1s', animationDuration: '6s' }} />
+              {/* Circuit Path 5 - NEW */}
+              <path d="M 10,850 L 150,850 L 150,950 L 290,950" className="animate-circuit" style={{ animationDelay: '-3s', animationDuration: '9s' }} />
+              {/* Circuit Path 6 - NEW */}
+              <path d="M 290,350 L 220,350 L 220,450 L 120,450" className="animate-circuit" style={{ animationDelay: '-5s', animationDuration: '7.5s' }} />
+              {/* Circuit Path 7 - NEW */}
+              <path d="M 50,20 L 50,150 L 10,150" className="animate-circuit" style={{ animationDelay: '-0.5s', animationDuration: '4s' }} />
+              {/* Circuit Path 8 - NEW */}
+              <path d="M 250,900 L 250,750 L 300,750" className="animate-circuit" style={{ animationDelay: '-2.5s', animationDuration: '5.5s' }} />
+              
+              {/* Static Background Traces (Orthogonal) */}
+              <g stroke="#22d3ee" strokeOpacity="0.15" strokeWidth="0.8">
+                <path d="M 0,150 L 300,150 M 0,350 L 300,350 M 0,550 L 300,550 M 0,750 L 300,750" />
+                <path d="M 150,0 L 150,1000 M 250,0 L 250,1000" />
+              </g>
+            </g>
+          </svg>
+          
+          {/* Scanline Texture Overlay */}
+          <div className="absolute inset-0 bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.1)_50%),linear-gradient(90deg,rgba(255,0,0,0.03),rgba(0,255,0,0.01),rgba(0,0,255,0.03))] bg-[length:100%_4px,3px_100%] opacity-20" />
+        </div>
 
         {/* AVATAR HERO SECTION */}
         <div className={`relative px-3 pt-1 pb-0.5 flex flex-col items-center shrink-0 ${isCollapsed ? 'gap-4' : ''}`}>
