@@ -6,7 +6,7 @@ import useSWR from "swr";
 import api from "../lib/api";
 import { socketService } from "../services/socketService";
 import { supplyService } from "../services/supplyService";
-import { UtensilsIcon, CoffeeIcon, PizzaIcon } from "lucide-react";
+import { UtensilsIcon, CoffeeIcon, PizzaIcon, Target } from "lucide-react";
 import { 
   ShieldCheckIcon, 
   BoltIcon, 
@@ -28,6 +28,15 @@ import { motion, AnimatePresence } from "framer-motion";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { calculateDynamicLevel } from "../utils/leveling";
+
+// --- Assets ---
+import assaultCarteira from "../assets/task_renegados/assault_carteira.webp";
+import assaultPadaria from "../assets/task_renegados/assault_padaria.webp";
+
+const TASK_BACKGROUNDS: Record<string, string> = {
+  'bater_carteira': assaultCarteira,
+  'assaltar_padaria': assaultPadaria
+};
 
 // --- Types ---
 const MILITARY_CLIP = { clipPath: "polygon(8px 0%, 100% 0%, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0% 100%, 0% 8px)" };
@@ -284,12 +293,21 @@ const ActionCard = ({ data, onAction, disabled, userLevel, userEnergy, userPA, u
       animate={{ opacity: 1, y: 0 }}
       className={`group relative cyber-card cyber-card-copper transition-all duration-300 hover:bg-white/5 
         ${isLocked ? 'opacity-40 grayscale pointer-events-none' : ''}`}
-      style={MILITARY_CLIP}
+      style={{
+        ...MILITARY_CLIP,
+        ...(TASK_BACKGROUNDS[data.id] ? {
+          backgroundImage: `linear-gradient(to bottom, rgba(0,0,0,0.05), rgba(0,0,0,0.4)), url(${TASK_BACKGROUNDS[data.id]})`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          border: '1px solid rgba(184, 115, 51, 0.6)',
+          boxShadow: 'inset 0 0 60px rgba(0,0,0,0.6)'
+        } : {})
+      }}
     >
       <div className="p-6 flex flex-col gap-5">
         {/* HEADER: ICON & ROLE */}
-        <div className="flex items-center gap-4 border-b border-white/5 pb-4">
-          <div className="p-3 bg-white/5 border border-white/10 relative">
+        <div className="flex items-center gap-4 border-b border-white/10 pb-4 -mx-6 px-6 pt-4 -mt-6">
+          <div className="p-2 bg-black/40 border border-white/20 relative backdrop-blur-md">
             {icon}
             {isLocked && (
                <div className="absolute inset-0 flex items-center justify-center bg-black/60">
@@ -297,101 +315,115 @@ const ActionCard = ({ data, onAction, disabled, userLevel, userEnergy, userPA, u
                </div>
             )}
           </div>
-          <div>
-            <h3 className="text-lg font-orbitron font-black text-white tracking-widest uppercase leading-none">{data.name}</h3>
-            <span className="text-[10px] font-black text-orange-500/80 tracking-[0.2em] uppercase mt-1 block">
+          <div className="drop-shadow-[0_2px_4px_rgba(0,0,0,1)]">
+            <h3 className="text-lg font-orbitron font-black text-white tracking-widest uppercase leading-[1.1] max-w-[180px]">{data.name}</h3>
+            <span className="text-[12px] font-black text-orange-500 tracking-[0.2em] uppercase mt-1 block">
               {isLocked ? "SISTEMA BLOQUEADO" : role}
             </span>
           </div>
           {!isLocked && cooldown > 0 && (
-            <div className="ml-auto bg-red-500/10 border border-red-500/30 px-2 py-1">
-              <span className="text-xs font-black text-red-500 animate-pulse">{cooldown}S</span>
+            <div className="ml-auto bg-red-500 border border-red-400 px-2 py-1 shadow-[0_0_15px_rgba(220,38,38,0.5)]">
+              <span className="text-sm font-black text-white animate-pulse">{cooldown}S</span>
             </div>
           )}
         </div>
 
-        {/* INFO: LEVEL & REQUIREMENTS */}
-        <div className="flex justify-between items-center bg-black/40 p-2 border border-white/5">
-           <div className="flex items-center gap-2">
-              <div className="w-1.5 h-1.5 bg-orange-500"></div>
-              <span className="text-[10px] font-mono text-slate-400">REQ_LEVEL:</span>
-              <span className="text-sm font-black text-white font-orbitron">{data.level}</span>
+        <div className="flex flex-col gap-4 py-2 relative z-10">
+           <div className="flex items-center gap-2 drop-shadow-[0_2px_3px_rgba(0,0,0,1)]">
+              <div className="w-1.5 h-3 bg-orange-500 shadow-[0_0_8px_rgba(249,115,22,1)]"></div>
+              <span className="text-[10px] font-mono text-white/70 font-black tracking-widest">NVL_REQUIRED:</span>
+              <span className="text-base font-black text-white font-orbitron">{data.level}</span>
+              {isLocked && (
+                <span className="ml-auto text-[10px] font-black text-red-500 uppercase tracking-widest animate-pulse italic">Acesso Negado</span>
+              )}
            </div>
-           {isLocked && (
-             <span className="text-[9px] font-black text-red-500/80 uppercase tracking-widest">Nível Insuficiente</span>
-           )}
+
+           <div className="flex items-center justify-around bg-black/10 backdrop-blur-[2px] py-3 border-y border-white/5">
+              <div className="flex flex-col items-center gap-1 drop-shadow-[0_2px_3px_rgba(0,0,0,1)]">
+                <BoltIcon className={`w-6 h-6 ${userPA < data.costPA ? 'text-red-500' : 'text-cyan-400'}`} />
+                <span className="text-[15px] font-black font-orbitron text-red-500">-{data.costPA} PA</span>
+              </div>
+              <div className="w-px h-6 bg-white/10" />
+              <div className="flex flex-col items-center gap-1 drop-shadow-[0_2px_3px_rgba(0,0,0,1)]">
+                <FireIcon className="w-6 h-6 text-yellow-500" />
+                <span className="text-[15px] font-black font-orbitron text-red-500">-{data.costEnergy} NRG</span>
+              </div>
+              <div className="w-px h-6 bg-white/10" />
+              <div className="flex flex-col items-center gap-1 drop-shadow-[0_2px_3px_rgba(0,0,0,1)]">
+                <CurrencyDollarIcon className="w-6 h-6 text-emerald-500" />
+                <span className="text-[15px] font-black font-orbitron text-white">
+                   {isRenegade ? 'LUCRO' : 'SALÁRIO'}
+                </span>
+              </div>
+           </div>
         </div>
 
-        {/* COSTS GRID (3 Columns) */}
-        <div className="grid grid-cols-3 gap-2">
-          <div className={`p-2 border flex flex-col items-center ${userPA < data.costPA ? 'bg-red-500/10 border-red-500/30' : 'bg-cyan-500/10 border-cyan-500/20'}`}>
-            <BoltIcon className={`w-3 h-3 mb-1 ${userPA < data.costPA ? 'text-red-500' : 'text-cyan-400'}`} />
-            <span className={`text-[10px] font-bold ${userPA < data.costPA ? 'text-red-200' : 'text-cyan-200'}`}>{data.costPA} PA</span>
+        <div className="flex justify-around items-center py-3 border-y border-white/5 bg-black/5 backdrop-blur-[2px] -mx-6 px-6">
+          <div className="flex flex-col items-center drop-shadow-[0_2px_3px_rgba(0,0,0,1)]">
+            <span className="text-[16px] font-black text-emerald-400 leading-none">~${isRenegade ? data.money[0].toLocaleString() : data.salary[0].toLocaleString()}</span>
+            <span className="text-[11px] font-mono text-white/50 uppercase tracking-tighter">CASH</span>
           </div>
-          <div className="bg-yellow-500/10 border border-yellow-500/20 p-2 flex flex-col items-center">
-            <FireIcon className="w-3 h-3 text-yellow-500 mb-1" />
-            <span className="text-[10px] font-bold text-yellow-200">{data.costEnergy} NRG</span>
+          <div className="w-px h-4 bg-white/10" />
+          <div className="flex flex-col items-center drop-shadow-[0_2px_3px_rgba(0,0,0,1)]">
+            <span className="text-[16px] font-black text-violet-400 leading-none">~+{data.xp[0].toLocaleString()}</span>
+            <span className="text-[11px] font-mono text-white/50 uppercase tracking-tighter">XP</span>
           </div>
-          <div className="bg-emerald-500/10 border border-emerald-500/20 p-2 flex flex-col items-center">
-            <CurrencyDollarIcon className="w-3 h-3 text-emerald-500 mb-1" />
-            <span className="text-[10px] font-bold text-emerald-200">
-               {isRenegade ? 'LUCRO' : 'SALÁRIO'}
-            </span>
+          <div className="w-px h-4 bg-white/10" />
+          <div className="flex flex-col items-center drop-shadow-[0_2px_3px_rgba(0,0,0,1)]">
+            <span className="text-[16px] font-black text-orange-400 leading-none">+{isRenegade ? data.lootChance : (data.merit?.[0] || 0)}</span>
+            <span className="text-[11px] font-mono text-white/50 uppercase tracking-tighter">{isRenegade ? 'LOOT%' : 'MER'}</span>
           </div>
         </div>
 
-        {/* GAINS BADGES */}
-        <div className="flex flex-wrap gap-2 justify-center py-2 border-y border-white/5">
-          <div className="bg-emerald-500/5 border border-emerald-500/20 px-3 py-1 text-[10px] font-bold">
-            <span className="text-emerald-400">${isRenegade ? data.money[0].toLocaleString() : data.salary[0].toLocaleString()}</span> CASH
-          </div>
-          <div className="bg-violet-500/5 border border-violet-500/20 px-3 py-1 text-[10px] font-bold">
-            <span className="text-violet-400">+{data.xp[0].toLocaleString()}</span> XP
-          </div>
-          {isRenegade ? (
-            <div className="bg-orange-500/5 border border-orange-500/20 px-3 py-1 text-[10px] font-bold">
-               <span className="text-orange-400">+{data.lootChance}%</span> LOOT
-            </div>
-          ) : (
-            <div className="bg-blue-500/5 border border-blue-500/20 px-3 py-1 text-[10px] font-bold">
-               <span className="text-blue-400">+{data.merit?.[0] || 0}</span> MÉRITO
-            </div>
+        <div className="mt-3 flex flex-col items-center gap-2">
+          {/* RECARGA RÁPIDA (Dentro do Card) */}
+          {!isLocked && userEnergy < (data.costEnergy || 0) && (
+            <motion.button 
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              disabled={!canAffordRefill || userEnergy >= 100}
+              onClick={(e) => { e.stopPropagation(); onSupply('full_refill'); }}
+              className={`w-3/4 py-1.5 flex items-center justify-center gap-2 text-[9px] font-black border transition-all military-clip ${
+                canAffordRefill && userEnergy < 100
+                  ? "bg-rose-950/30 hover:bg-rose-900/40 border-rose-500/40 text-rose-500 backdrop-blur-sm"
+                  : "bg-zinc-950/40 border-zinc-900/40 text-zinc-700 grayscale cursor-not-allowed"
+              }`}
+            >
+              <UtensilsIcon className="w-3 h-3" />
+              <span>RECARGA RÁPIDA (${refillCost})</span>
+            </motion.button>
           )}
-        </div>
 
-        {/* RECARGA RÁPIDA (Dentro do Card) */}
-        {!isLocked && userEnergy < (data.costEnergy || 0) && (
-          <motion.button 
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            disabled={!canAffordRefill || userEnergy >= 100}
-            onClick={(e) => { e.stopPropagation(); onSupply('full_refill'); }}
-            className={`w-full py-2 flex items-center justify-center gap-2 text-[10px] font-black border transition-all military-clip ${
-              canAffordRefill && userEnergy < 100
-                ? "bg-black/80 hover:bg-rose-900/40 border-rose-500/40 text-rose-500 hover:text-white"
-                : "bg-zinc-950 border-zinc-900 text-zinc-700 grayscale cursor-not-allowed"
-            }`}
+          <button
+            onClick={() => onAction(data.id)}
+            disabled={isLocked || disabled || !hasResources || isCompleted}
+            className={`relative group overflow-hidden w-4/5 py-2.5 transition-all duration-300 military-clip
+              ${isLocked || !hasResources || isCompleted 
+                ? 'bg-zinc-950/60 border-zinc-800 text-zinc-600 grayscale cursor-not-allowed' 
+                : 'bg-orange-500/10 hover:bg-orange-500/20 border border-orange-500/40 hover:border-orange-400 shadow-[0_0_15px_rgba(249,115,22,0.1)] hover:shadow-[0_0_25px_rgba(249,115,22,0.3)]'
+              }`}
           >
-            <UtensilsIcon className="w-3 h-3" />
-            <span>RECARGA DE CAMPO (Custo: ${refillCost})</span>
-          </motion.button>
-        )}
+            {/* Light Sweep Animation Overlay */}
+            <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
+            
+            <span className={`relative z-10 flex items-center justify-center gap-2 text-[10px] font-black tracking-[0.2em] transition-colors
+              ${isLocked || !hasResources || isCompleted ? 'text-zinc-600' : 'text-orange-500 group-hover:text-orange-400'}`}>
+               {!isCompleted && hasResources && !isLocked && (
+                 <Target className="w-3.5 h-3.5 animate-pulse" />
+               )}
+               {isCompleted ? 'CONCLUÍDO' : 
+                (!hasResources ? (
+                 userEnergy < (data.costEnergy || 0) ? 'SEM ENERGIA' : 'SEM PA'
+               ) : (
+                 isRenegade ? 'EXECUTAR OPERAÇÃO' : 'ASSUMIR TAREFA'
+               ))}
+            </span>
 
-        <button
-          onClick={() => onAction(data.id)}
-          disabled={isLocked || disabled || !hasResources || isCompleted}
-          className={`w-full py-4 cyber-button-copper military-clip
-            ${isLocked || !hasResources || isCompleted ? 'opacity-50 grayscale' : ''}`}
-        >
-          <span className="relative z-10 flex items-center justify-center gap-2">
-             {isCompleted ? 'CONTRATO CONCLUÍDO' : 
-              (!hasResources ? (
-               userEnergy < (data.costEnergy || 0) ? 'ENERGIA INSUFICIENTE' : 'PA INSUFICIENTE'
-             ) : (
-               isRenegade ? 'EXECUTAR OPERAÇÃO' : 'ASSUMIR TAREFA'
-             ))}
-          </span>
-        </button>
+            {/* Corner Accents */}
+            <div className="absolute top-0 left-0 w-1.5 h-1.5 border-t border-l border-orange-500/50"></div>
+            <div className="absolute bottom-0 right-0 w-1.5 h-1.5 border-b border-r border-orange-500/50"></div>
+          </button>
+        </div>
       </div>
 
       {/* Decorative side bar for the card (Copper/Bronze) */}
