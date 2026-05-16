@@ -30,12 +30,12 @@ import { ptBR } from "date-fns/locale";
 import { calculateDynamicLevel } from "../utils/leveling";
 
 // --- Assets ---
-import assaultCarteira from "../assets/task_renegados/assault_carteira.webp";
-import assaultPadaria from "../assets/task_renegados/assault_padaria.webp";
+import assaultSucata from "../assets/task_renegados/assault_sucata.avif";
+import assaultDatacenter from "../assets/task_renegados/assault_datacenter.avif";
 
 const TASK_BACKGROUNDS: Record<string, string> = {
-  'bater_carteira': assaultCarteira,
-  'assaltar_padaria': assaultPadaria
+  'bater_carteira': assaultSucata,
+  'assaltar_padaria': assaultDatacenter
 };
 
 // --- Types ---
