@@ -293,18 +293,33 @@ const ActionCard = ({ data, onAction, disabled, userLevel, userEnergy, userPA, u
       animate={{ opacity: 1, y: 0 }}
       className={`group relative cyber-card cyber-card-copper transition-all duration-300 hover:bg-white/5 
         ${isLocked ? 'opacity-40 grayscale pointer-events-none' : ''}`}
-      style={{
-        ...MILITARY_CLIP,
-        ...(TASK_BACKGROUNDS[data.id] ? {
-          backgroundImage: `linear-gradient(to bottom, rgba(0,0,0,0.05), rgba(0,0,0,0.4)), url(${TASK_BACKGROUNDS[data.id]})`,
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-          border: '1px solid rgba(184, 115, 51, 0.6)',
-          boxShadow: 'inset 0 0 60px rgba(0,0,0,0.6)'
-        } : {})
-      }}
+      style={MILITARY_CLIP}
     >
-      <div className="p-6 flex flex-col gap-5">
+      {/* BACKGROUND LAYER: Melhor Prática AAA com <picture> */}
+      {TASK_BACKGROUNDS[data.id] && (
+        <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
+          <picture>
+            {/* Suporte nativo para AVIF/WebP com fallback para a própria imagem importada */}
+            <source srcSet={TASK_BACKGROUNDS[data.id]} type={`image/${TASK_BACKGROUNDS[data.id].split('.').pop()}`} />
+            <img 
+              src={TASK_BACKGROUNDS[data.id]} 
+              alt="" 
+              className={`w-full h-full object-cover transition-all duration-700 group-hover:scale-105 saturate-[1.3] 
+                ${isLocked ? 'opacity-40' : 'opacity-100'}`}
+              loading="lazy"
+              decoding="async"
+            />
+          </picture>
+          {/* Overlay Dinâmico: Quase invisível para autorizados, escuro para bloqueados */}
+          <div className={`absolute inset-0 bg-gradient-to-b transition-colors duration-500
+            ${isLocked 
+              ? 'from-black/60 via-black/80 to-black' 
+              : 'from-transparent via-black/10 to-black/80'}`} 
+          />
+        </div>
+      )}
+
+      <div className="relative z-10 p-6 flex flex-col gap-5">
         {/* HEADER: ICON & ROLE */}
         <div className="flex items-center gap-4 border-b border-white/10 pb-4 -mx-6 px-6 pt-4 -mt-6">
           <div className="p-2 bg-black/40 border border-white/20 relative backdrop-blur-md">
@@ -711,8 +726,22 @@ export default function ContractsPage() {
         <div className="lg:col-span-12 space-y-6">
           
           {/* Daily Special */}
-          {faction === 'gangsters' && config?.dailySpecial && (
-             <div className="relative group overflow-hidden p-8 border border-[#B87333]/40 bg-black/60 backdrop-blur-xl rounded-sm" style={MILITARY_CLIP}>
+           {faction === 'gangsters' && config?.dailySpecial && (
+             <div className="relative group overflow-hidden p-8 border border-[#B87333]/40 rounded-sm" style={MILITARY_CLIP}>
+                {/* BACKGROUND LAYER: Arte Viva para Golpe de Mestre */}
+                <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
+                  <picture>
+                    <source srcSet={assaultDatacenter} type="image/avif" />
+                    <img 
+                      src={assaultDatacenter} 
+                      alt="" 
+                      className="w-full h-full object-cover opacity-100 saturate-[1.4] transition-transform duration-1000 group-hover:scale-110"
+                      loading="lazy"
+                    />
+                  </picture>
+                  <div className="absolute inset-0 bg-gradient-to-b from-transparent via-black/20 to-black/90" />
+                </div>
+
                 {/* Premium Glow */}
                 <div className="absolute -top-24 -right-24 w-64 h-64 bg-[#B87333] rounded-full blur-[100px] opacity-20 group-hover:opacity-30 transition-opacity animate-pulse"></div>
                 

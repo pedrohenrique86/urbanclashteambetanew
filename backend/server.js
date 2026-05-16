@@ -112,6 +112,14 @@ app.use(cors(corsOptions));
 app.use(compression());
 app.use(express.json({ limit: "10mb" }));
 
+// SÊNIOR: Cache-Control agressivo para imagens (Melhor Prática AAA)
+app.use((req, res, next) => {
+  if (req.url.match(/\.(jpg|jpeg|png|gif|webp|avif|svg)$/)) {
+    res.set("Cache-Control", "public, max-age=31536000, immutable");
+  }
+  next();
+});
+
 // SÊNIOR: Logging de Requisições em Desenvolvimento
 if (!isProduction) {
   app.use(morgan("dev"));

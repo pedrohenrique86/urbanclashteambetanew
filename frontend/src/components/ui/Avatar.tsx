@@ -25,14 +25,24 @@ export const Avatar: React.FC<AvatarProps> = ({
   };
 
   if (src && src.trim() !== "" && !src.includes("dicebear.com")) {
+    const extension = src.split('.').pop()?.toLowerCase() || 'png';
+    const mimeType = `image/${extension === 'jpg' ? 'jpeg' : extension}`;
+
     return (
-      <img
-        src={src}
-        alt={alt || "avatar"}
-        className={`${className} object-cover bg-black/40 border border-white/10`}
+      <picture 
+        className={`${className} overflow-hidden block`}
         style={combinedStyle}
         onClick={onClick}
-      />
+      >
+        <source srcSet={src} type={mimeType} />
+        <img
+          src={src}
+          alt={alt || "avatar"}
+          className="w-full h-full object-cover bg-black/40 border border-white/10"
+          loading="lazy"
+          decoding="async"
+        />
+      </picture>
     );
   }
 

@@ -5,6 +5,7 @@ import { FACTION_ALIAS_MAP_FRONTEND } from "../../utils/faction";
 import { useTheme } from "../../contexts/ThemeContext";
 import { Tooltip } from "react-tooltip";
 import { X, Zap, Banknote, Swords, Shield, Target, Brain, Dices, Flame, ArrowLeftRight, Star, Skull } from "lucide-react";
+import { Avatar } from "../ui/Avatar";
 
 // Import Assets
 // bottomUi import removed as per user request
@@ -518,11 +519,10 @@ const RightPlayerSidebar: React.FC<RightPlayerSidebarProps> = ({ userProfile }) 
             
             <div className="w-full h-full rounded-full p-[2px] bg-[#1e293b] shadow-[0_8px_20px_rgba(0,0,0,0.9)] relative z-10 overflow-hidden">
               <div className="w-full h-full rounded-full overflow-hidden bg-black border-2 border-[#0f172a] relative">
-                {userProfile.avatar_url ? (
-                  <img src={userProfile.avatar_url} alt="Profile" className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700" />
-                ) : (
-                  <div className={`w-full h-full flex items-center justify-center bg-slate-900 font-orbitron text-white/10 ${isCollapsed ? 'text-xs' : 'text-2xl'}`}>?</div>
-                )}
+                <Avatar 
+                  src={userProfile.avatar_url} 
+                  className="w-full h-full"
+                />
               </div>
             </div>
 
