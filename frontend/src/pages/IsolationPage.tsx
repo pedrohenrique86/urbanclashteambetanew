@@ -19,7 +19,7 @@ import { tokenStorage } from "../lib/api";
 import { isolationService } from "../services/isolationService";
 import { socketService, ChatMessage } from "../services/socketService";
 import { format } from "date-fns";
-import { getFactionColor } from "./RecoveryBasePage";
+import { getFactionColor } from "../utils/faction";
 import { playMentionSound } from "../lib/audio";
 
 import { Avatar } from "../components/ui/Avatar";

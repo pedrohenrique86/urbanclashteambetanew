@@ -22,6 +22,16 @@ export const FACTION_ALIAS_MAP_FRONTEND: Record<string, 'gangsters' | 'guardas'>
  */
 export const getFactionColor = (faction?: string) => {
   const f = (faction || "").toLowerCase().trim();
+  
+  // Extra aliases for robustness
+  if (f.includes('renegado') || f.includes('gangster') || f.includes('renegados')) {
+    return 'text-orange-400 drop-shadow-[0_0_8px_rgba(249,115,22,0.4)]';
+  }
+  
+  if (f.includes('guarda') || f.includes('guardiao') || f.includes('guardiões') || f.includes('corp') || f.includes('ordem')) {
+    return 'text-blue-400 drop-shadow-[0_0_8px_rgba(59,130,246,0.4)]';
+  }
+
   const canonical = FACTION_ALIAS_MAP_FRONTEND[f] || f;
   
   if (canonical === 'gangsters') {
@@ -30,6 +40,7 @@ export const getFactionColor = (faction?: string) => {
   if (canonical === 'guardas') {
     return 'text-blue-400 drop-shadow-[0_0_8px_rgba(59,130,246,0.4)]';
   }
+  
   return 'text-slate-400';
 };
 

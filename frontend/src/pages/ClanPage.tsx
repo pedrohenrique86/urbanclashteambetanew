@@ -21,7 +21,7 @@ import {
 } from "lucide-react";
 
 import { Avatar } from "../components/ui/Avatar";
-import { getFactionColor } from "./RecoveryBasePage";
+import { getFactionColor } from "../utils/faction";
 
 type Player = {
   id?: string;

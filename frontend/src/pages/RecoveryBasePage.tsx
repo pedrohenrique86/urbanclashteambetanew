@@ -22,6 +22,7 @@ import { ptBR } from "date-fns/locale";
 import { playMentionSound } from "../lib/audio";
 
 import { Avatar } from "../components/ui/Avatar";
+import { getFactionColor } from "../utils/faction";
 
 /**
  * RECOVERY BASE PAGE - AAA Military Cyberpunk Aesthetic
@@ -227,21 +228,6 @@ function getStatusColor(status: string) {
   }
 }
 
-export function getFactionColor(faction?: string) {
-  const f = String(faction || "").toLowerCase().trim();
-  
-  // 🔥 Renegados (Laranja Claro)
-  if (f.includes('renegado') || f.includes('gangster')) {
-    return 'text-orange-400 drop-shadow-[0_0_2px_rgba(251,146,60,0.3)]';
-  }
-  
-  // 🛡️ Guardiões (Azul)
-  if (f.includes('guarda') || f.includes('corp') || f.includes('ordem')) {
-    return 'text-blue-400 drop-shadow-[0_0_2px_rgba(96,165,250,0.3)]';
-  }
-
-  return 'text-zinc-400';
-}
 
 // ─── Componentes de Visão ────────────────────────────────────────────────────────
 

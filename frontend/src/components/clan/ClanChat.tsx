@@ -14,7 +14,7 @@ import {
   Skull,
   Activity
 } from "lucide-react";
-import { getFactionColor } from "../../pages/RecoveryBasePage";
+import { getFactionColor } from "../../utils/faction";
 
 interface ClanMember {
   username: string;
