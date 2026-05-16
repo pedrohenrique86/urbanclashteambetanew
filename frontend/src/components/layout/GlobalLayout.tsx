@@ -230,7 +230,7 @@ const GlobalLayout: React.FC<GlobalLayoutProps> = ({ children }) => {
           />
         </div>
 
-        <div className="flex flex-col flex-1 w-0">
+        <div className="flex flex-col flex-1 w-0 relative">
           <div
             ref={scrollableContainerRef}
             className="flex-1 relative overflow-y-auto overflow-x-hidden thin-scrollbar flex flex-col"
@@ -261,10 +261,11 @@ const GlobalLayout: React.FC<GlobalLayoutProps> = ({ children }) => {
               />
             )}
           </div>
+          <ScrollToTopButton scrollableRef={scrollableContainerRef} isHomePage={location.pathname === "/"} />
         </div>
 
         {/* Menu Lateral Direito (Teste do usuário) */}
-        <div className="hidden xl:flex xl:flex-shrink-0 z-20 h-full">
+        <div className="hidden md:flex md:flex-shrink-0 z-20 h-full">
           <RightPlayerSidebar userProfile={userProfile as any} />
         </div>
       </div>
@@ -272,7 +273,6 @@ const GlobalLayout: React.FC<GlobalLayoutProps> = ({ children }) => {
       <Tooltip id="server-time-tooltip" place="top-end" style={{ zIndex: 99999 }} className="!bg-slate-700 !bg-opacity-80 !backdrop-blur-sm !text-white !rounded-lg !px-3 !py-1 !text-[8px] !font-sans" />
       <Tooltip id="game-clock-tooltip" place="top-end" style={{ zIndex: 99999 }} className="!bg-slate-700 !bg-opacity-80 !backdrop-blur-sm !text-white !rounded-lg !px-3 !py-1 !text-[8px] !font-sans" />
       <MobileAppDrawer />
-      <ScrollToTopButton scrollableRef={scrollableContainerRef} isHomePage={location.pathname === "/"} />
     </div>
   );
 };

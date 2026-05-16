@@ -14,8 +14,8 @@ const REWARDS = {
  * Loot Chance ALTA: Eles são a fonte primária de itens no jogo.
  */
 const HEIST_TYPES = [
-  { id: 'bater_carteira', name: 'Bater Carteira', level: 1, costPA: 20, costEnergy: 2, money: [50, 150], xp: [5, 15], lootChance: 0.10 },
-  { id: 'assaltar_padaria', name: 'Assaltar Padaria', level: 25, costPA: 50, costEnergy: 3, money: [400, 1000], xp: [10, 25], lootChance: 0.15 },
+  { id: 'bater_carteira', name: 'Saque de Sucata', level: 1, costPA: 20, costEnergy: 2, money: [50, 150], xp: [5, 15], lootChance: 0.10 },
+  { id: 'assaltar_padaria', name: 'Invasão de DataCenter', level: 25, costPA: 50, costEnergy: 3, money: [400, 1000], xp: [10, 25], lootChance: 0.15 },
   { id: 'roubar_carro', name: 'Roubar Carro', level: 50, costPA: 100, costEnergy: 5, money: [1000, 2500], xp: [20, 45], lootChance: 0.20 },
   { id: 'invadir_apartamento', name: 'Invadir Apartamento', level: 75, costPA: 150, costEnergy: 6, money: [2500, 5000], xp: [30, 60], lootChance: 0.25 },
   { id: 'carga_caminhao', name: 'Carga de Caminhão', level: 99, costPA: 200, costEnergy: 8, money: [4000, 8000], xp: [40, 80], lootChance: 0.30 },
@@ -36,8 +36,8 @@ const HEIST_TYPES = [
  * Loot Chance BAIXA: O lucro nativo é limitado para compensar a segurança e o bônus de interceptação.
  */
 const GUARDIAN_TYPES = [
-  { id: 'patrulha_pe', name: 'Patrulha a Pé', level: 1, costPA: 5, costEnergy: 10, salary: [50, 150], merit: [10, 30], xp: [5, 15], lootChance: 0.02, linkedHeists: ['bater_carteira'] },
-  { id: 'seguranca_loja', name: 'Segurança de Loja', level: 25, costPA: 12, costEnergy: 15, salary: [400, 1000], merit: [50, 120], xp: [10, 25], lootChance: 0.04, linkedHeists: ['assaltar_padaria'] },
+  { id: 'patrulha_pe', name: 'Vigilância de Depósito', level: 1, costPA: 5, costEnergy: 10, salary: [50, 150], merit: [10, 30], xp: [5, 15], lootChance: 0.02, linkedHeists: ['bater_carteira'] },
+  { id: 'seguranca_loja', name: 'Proteção de Servidores', level: 25, costPA: 12, costEnergy: 15, salary: [400, 1000], merit: [50, 120], xp: [10, 25], lootChance: 0.04, linkedHeists: ['assaltar_padaria'] },
   { id: 'transito', name: 'Controle de Trânsito', level: 50, costPA: 25, costEnergy: 20, salary: [1000, 2500], merit: [150, 350], xp: [20, 45], lootChance: 0.05, linkedHeists: ['roubar_carro'] },
   { id: 'ronda_condominio', name: 'Ronda em Condomínio', level: 75, costPA: 40, costEnergy: 25, salary: [2500, 5000], merit: [300, 700], xp: [30, 60], lootChance: 0.07, linkedHeists: ['invadir_apartamento'] },
   { id: 'escolta_carga', name: 'Escolta de Carga', level: 99, costPA: 60, costEnergy: 30, salary: [4000, 8000], merit: [600, 1300], xp: [40, 80], lootChance: 0.10, linkedHeists: ['carga_caminhao'] },
